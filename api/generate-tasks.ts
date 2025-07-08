@@ -14,9 +14,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Prompt text is required." });
     }
 
+    // Add explicit check for the API key
+    if (!process.env.API_KEY) {
+        console.error('Google AI API key is not set in environment variables.');
+        return res.status(500).json({ error: 'Server configuration error: Missing Google AI API key.' });
+    }
+
     try {
         // Klucz API jest bezpiecznie pobierany ze zmiennych środowiskowych Vercela
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
         // Twoja oryginalna instrukcja systemowa, teraz bezpieczna na backendzie
         const systemInstruction = `You are an expert project manager. Your task is to break down a user's high-level project idea into a list of specific, actionable tasks. Respond ONLY with a valid JSON array of objects. Do not include any other text, explanations, or markdown formatting around the JSON. The JSON schema for the response should be an array of objects, where each object has a "name" (a short, clear task title) and a "description" (a one-sentence explanation of what the task involves).`;
