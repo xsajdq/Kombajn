@@ -159,6 +159,12 @@ export function setupEventListeners() {
     app.addEventListener('submit', (e: SubmitEvent) => {
         const target = e.target as HTMLElement;
 
+        if (target.id === 'setupForm') {
+            e.preventDefault();
+            mainHandlers.handleSetupSubmit();
+            return;
+        }
+
         if (target.id === 'ai-task-generator-form') {
             e.preventDefault();
             const promptEl = document.getElementById('ai-prompt') as HTMLTextAreaElement;

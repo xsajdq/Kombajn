@@ -15,7 +15,7 @@ async function fetchInitialData() {
         // In a real app with authentication, you would first get the current user.
         // For now, we'll simulate fetching all data for a default view.
         const [
-            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies
+            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies, dashboardWidgets
         ] = await Promise.all([
             fetch('/api/data/profiles').then(res => res.json()), // Corrected from 'users' to 'profiles'
             fetch('/api/data/projects').then(res => res.json()),
@@ -26,7 +26,19 @@ async function fetchInitialData() {
             fetch('/api/data/workspaces').then(res => res.json()),
             fetch('/api/data/workspace_members').then(res => res.json()),
             fetch('/api/data/task_dependencies').then(res => res.json()),
+            fetch('/api/data/dashboard_widgets').then(res => res.json()),
         ]);
+
+        // --- FIRST RUN CHECK ---
+        // If there are no users, it means this is the first time the app is running.
+        // We need to guide the user through a setup process.
+        if (profiles.length === 0) {
+            console.log("No users found. Initializing setup process.");
+            state.currentPage = 'setup';
+            renderApp();
+            return; // Stop further execution
+        }
+
 
         // Note: This is a temporary assignment. The `profiles` table might not have all fields of the `User` type.
         // Once authentication is added, this will be handled differently.
@@ -39,6 +51,7 @@ async function fetchInitialData() {
         state.workspaces = workspaces;
         state.workspaceMembers = workspaceMembers;
         state.dependencies = dependencies;
+        state.dashboardWidgets = dashboardWidgets;
 
         // Simulate logging in as the first user and selecting the first workspace
         if (state.users.length > 0) {

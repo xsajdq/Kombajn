@@ -10,32 +10,7 @@ import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
 import * as hrHandlers from './team.ts';
 import { handleWidgetConfigSave } from './dashboard.ts';
-
-async function apiPost(resource: string, body: any) {
-    const response = await fetch(`/api/data/${resource}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Failed to create ${resource}`);
-    }
-    return response.json();
-}
-
-async function apiPut(resource: string, body: any) {
-    const response = await fetch(`/api/data/${resource}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Failed to update ${resource}`);
-    }
-    return response.json();
-}
+import { apiPost, apiPut } from '../services/api.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;

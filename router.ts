@@ -15,10 +15,17 @@ import { ChatPage } from './pages/ChatPage.ts';
 import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage } from './pages/SalesPage.ts';
 import { getCurrentUserRole } from './handlers/main.ts';
+import { SetupPage } from './pages/SetupPage.ts';
 
 export function router() {
     const path = window.location.hash.slice(1) || '/';
     const [page] = path.split('/').filter(p => p);
+
+    // If the state indicates we are in setup mode, always show the setup page.
+    if (state.currentPage === 'setup') {
+        return SetupPage();
+    }
+    
     state.currentPage = page || 'dashboard';
     
     const userRole = getCurrentUserRole();

@@ -12,6 +12,11 @@ import { MentionPopover } from './components/MentionPopover.ts';
 import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
 
 function AppLayout() {
+    // Special case for the setup page, which takes over the whole screen
+    if (state.currentPage === 'setup') {
+        return router();
+    }
+    
     const pageContent = router();
     const { openedProjectId, openedClientId, modal, isCommandPaletteOpen } = state.ui;
     const currentUser = state.currentUser;
@@ -21,7 +26,10 @@ function AppLayout() {
 
 
     if (!currentUser || !activeWorkspaceId) {
-        return `<div class="loading-container"><p>Initializing...</p></div>`;
+        // This is the initial loading state before data is fetched or before setup is complete.
+        return `<div id="app" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+                    <div class="loading-container"><p>Initializing...</p></div>
+                </div>`;
     }
 
     return `
@@ -59,6 +67,11 @@ export function renderApp() {
     };
     
     app.innerHTML = AppLayout();
+
+    // If we are on the setup page, we don't need to do the rest.
+    if (state.currentPage === 'setup') {
+        return;
+    }
     
     const newScrollableContent = document.querySelector('.content');
     if (newScrollableContent) {
