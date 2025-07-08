@@ -22,7 +22,7 @@ async function fetchInitialData() {
             fetch('/api/data/clients').then(res => res.json()),
             fetch('/api/data/tasks').then(res => res.json()),
             fetch('/api/data/deals').then(res => res.json()),
-            fetch('/api/data/timelogs').then(res => res.json()),
+            fetch('/api/data/time_logs').then(res => res.json()),
             fetch('/api/data/workspaces').then(res => res.json()),
             fetch('/api/data/workspace_members').then(res => res.json()),
             // Fetch other resources as needed...
