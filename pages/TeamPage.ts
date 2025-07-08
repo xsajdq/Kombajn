@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -84,7 +85,7 @@ function renderEmployeesTab() {
                                 <div class="avatar">${user.initials}</div>
                                 <div class="member-info">
                                     <strong>${user.name} ${user.id === state.currentUser?.id ? `<span class="subtle-text">${t('hr.you')}</span>` : ''}</strong>
-                                    <p>${user.email}</p>
+                                    <p>${user.email || t('misc.not_applicable')}</p>
                                 </div>
                                 <div class="member-actions">
                                      <span class="status-badge status-backlog">${t('hr.role_' + member.role)}</span>

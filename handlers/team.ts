@@ -1,4 +1,5 @@
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember } from '../types.ts';
@@ -74,7 +75,7 @@ export function handleInviteUser(email: string, role: Role) {
     }
     
     // Find or create a user in the global user list
-    let user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    let user = state.users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
         user = {
             id: generateId(),

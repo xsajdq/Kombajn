@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal } from '../types.ts';
@@ -430,7 +431,7 @@ export function Modal() {
                 </div>
                 <div class="form-group">
                     <label for="employeeEmail">${t('modals.email')}</label>
-                    <input type="email" id="employeeEmail" class="form-control" value="${user.email}" readonly>
+                    <input type="email" id="employeeEmail" class="form-control" value="${user.email || ''}" readonly>
                 </div>
                 <div class="form-group">
                     <label for="contractInfoNotes">${t('modals.contract_notes')}</label>

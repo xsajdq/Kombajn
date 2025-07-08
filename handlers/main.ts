@@ -63,9 +63,10 @@ export async function handleSetupSubmit() {
         }
 
         // 1. Create Profile (which acts as our User)
+        // The `email` field is removed because the user's schema doesn't have it.
+        // We can add the email to the user object later if needed for invites.
         const [profile] = await apiPost('profiles', {
             name: userName,
-            email: userEmail,
             initials: userName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase(),
         });
 

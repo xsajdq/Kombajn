@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import type { User } from '../types.ts';
 
@@ -27,7 +28,7 @@ export function MentionPopover() {
                 <div class="mention-item ${index === state.ui.mention.activeIndex ? 'active' : ''}" data-mention-id="${user.id}" data-mention-name="${user.name}">
                     <div class="avatar">${user.initials}</div>
                     <div class="mention-user">${user.name}</div>
-                    <div class="subtle-text">${user.email}</div>
+                    <div class="subtle-text">${user.email || ''}</div>
                 </div>
             `).join('')}
         </div>

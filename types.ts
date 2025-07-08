@@ -3,7 +3,7 @@
 export interface User {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     avatarUrl?: string; // URL to an image
     initials: string;
     contractInfoNotes?: string;
