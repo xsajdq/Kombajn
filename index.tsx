@@ -4,29 +4,66 @@ import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { closeSidePanels, closeModal } from './handlers/ui.ts';
+import type { User } from './types.ts';
 
-// --- Real-time collaboration simulation ---
-window.addEventListener('storage', (event) => {
-  if (event.key === 'appState' && event.newValue) {
-    // Another tab updated the state. We'll parse the new state and merge it 
-    // into our current in-memory state. This provides a "real-time" update feel.
+// The 'storage' event listener is no longer needed because the backend API
+// is now the single source of truth, not localStorage.
+
+async function fetchInitialData() {
+    console.log("Fetching initial data from server...");
     try {
-        const newState = JSON.parse(event.newValue);
-        Object.assign(state, newState); // Shallow merge is sufficient here
+        // In a real app with authentication, you would first get the current user.
+        // For now, we'll simulate fetching all data for a default view.
+        const [
+            users, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers
+        ] = await Promise.all([
+            fetch('/api/data/users').then(res => res.json()),
+            fetch('/api/data/projects').then(res => res.json()),
+            fetch('/api/data/clients').then(res => res.json()),
+            fetch('/api/data/tasks').then(res => res.json()),
+            fetch('/api/data/deals').then(res => res.json()),
+            fetch('/api/data/timelogs').then(res => res.json()),
+            fetch('/api/data/workspaces').then(res => res.json()),
+            fetch('/api/data/workspace_members').then(res => res.json()),
+            // Fetch other resources as needed...
+        ]);
+
+        state.users = users;
+        state.projects = projects;
+        state.clients = clients;
+        state.tasks = tasks;
+        state.deals = deals;
+        state.timeLogs = timeLogs;
+        state.workspaces = workspaces;
+        state.workspaceMembers = workspaceMembers;
+
+        // Simulate logging in as the first user and selecting the first workspace
+        if (state.users.length > 0) {
+            state.currentUser = state.users.find(u => u.email === 'demo@user.com') || state.users[0];
+        }
+        if (state.workspaces.length > 0) {
+            state.activeWorkspaceId = state.workspaces[0].id;
+        }
+
+        console.log("Initial data fetched and state populated.");
         renderApp();
-    } catch (e) {
-        console.error("Failed to parse state from storage event, reloading.", e);
-        // As a fallback, reload the page to ensure consistency
-        window.location.reload();
+    } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+        // Display an error message to the user
+        document.getElementById('app')!.innerHTML = `
+            <div class="empty-state">
+                <h3>Failed to load application data</h3>
+                <p>Could not connect to the server. Please check your connection and try again.</p>
+            </div>
+        `;
     }
-  }
-});
+}
 
 
 // --- INITIALIZATION ---
 function init() {
     setupEventListeners();
-    renderApp();
+    fetchInitialData(); // Fetch data instead of loading from localStorage
 
     window.addEventListener('hashchange', () => { 
         closeSidePanels(false); // don't re-render here, renderApp below will do it

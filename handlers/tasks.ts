@@ -121,6 +121,7 @@ export function handleAddAttachment(taskId: string, file: File) {
         taskId: taskId,
         fileName: file.name,
         fileSize: file.size,
+        fileType: file.type,
         createdAt: new Date().toISOString(),
     };
     state.attachments.push(newAttachment);

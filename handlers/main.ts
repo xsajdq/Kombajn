@@ -84,6 +84,7 @@ export function handleFileUpload(projectId: string, file: File, taskId?: string)
         taskId: taskId,
         fileName: file.name,
         fileSize: file.size,
+        fileType: file.type,
         createdAt: new Date().toISOString(),
     };
     state.attachments.push(newAttachment);

@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GenerateContentResponse } from "@google/genai";
 import { state } from './state.ts';
 import { t } from './i18n.ts';
 import { formatDate } from './utils.ts';
@@ -8,56 +8,43 @@ import type { AiSuggestedTask } from './types.ts';
 
 declare const jspdf: any;
 
-const API_KEY = process.env.API_KEY;
+// The API_KEY is no longer needed on the client-side.
+// All calls go through our secure backend API.
 
 export async function handleAiTaskGeneration(promptText: string) {
-    if (!API_KEY) {
-        state.ai.error = "API_KEY is not configured. Please set it up to use the AI Assistant.";
-        state.ai.loading = false;
-        renderApp();
-        return;
-    }
-
     state.ai = { loading: true, error: null, suggestedTasks: null };
     renderApp();
 
     try {
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-        const systemInstruction = `You are an expert project manager. Your task is to break down a user's high-level project idea into a list of specific, actionable tasks. Respond ONLY with a valid JSON array of objects. Do not include any other text, explanations, or markdown formatting around the JSON. The JSON schema for the response should be an array of objects, where each object has a "name" (a short, clear task title) and a "description" (a one-sentence explanation of what the task involves).`;
-        const userPrompt = `Generate a list of tasks for the following project: "${promptText}".`;
-
-        const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-04-17',
-            contents: userPrompt,
-            config: {
-                systemInstruction: systemInstruction,
-                responseMimeType: "application/json",
-            }
+        const response = await fetch('/api/generate-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ promptText }),
         });
 
-        let jsonStr = response.text.trim();
-        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
-        const match = jsonStr.match(fenceRegex);
-        if (match && match[2]) {
-            jsonStr = match[2].trim();
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error || 'Failed to generate tasks from AI.');
         }
 
-        const parsedData = JSON.parse(jsonStr) as AiSuggestedTask[];
+        const parsedData = await response.json() as AiSuggestedTask[];
 
         if (Array.isArray(parsedData) && parsedData.every(item => typeof item.name === 'string' && typeof item.description === 'string')) {
             state.ai.suggestedTasks = parsedData;
         } else {
             throw new Error("Received invalid data structure from AI.");
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("AI Task Generation Error:", error);
-        state.ai.error = "Sorry, something went wrong while generating tasks. Please try again or rephrase your idea.";
+        state.ai.error = error.message || "Sorry, something went wrong while generating tasks. Please try again or rephrase your idea.";
     } finally {
         state.ai.loading = false;
         renderApp();
     }
 }
+
 
 export function generateInvoicePDF(invoiceId: string) {
     const activeWorkspaceId = state.activeWorkspaceId;
