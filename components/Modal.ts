@@ -137,7 +137,7 @@ export function Modal() {
                         <label for="taskAssignee">${t('modals.assignee')}</label>
                         <select id="taskAssignee" class="form-control">
                             <option value="">${t('modals.unassigned')}</option>
-                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name}</option>`).join('')}
+                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name || u!.initials}</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-group">
@@ -177,7 +177,7 @@ export function Modal() {
                      <div class="form-group">
                         <label for="dealOwner">${t('modals.deal_owner')}</label>
                         <select id="dealOwner" class="form-control" required>
-                            ${workspaceMembers.map(u => `<option value="${u!.id}" ${state.currentUser?.id === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
+                            ${workspaceMembers.map(u => `<option value="${u!.id}" ${state.currentUser?.id === u!.id ? 'selected' : ''}>${u!.name || u!.initials}</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-group">
@@ -314,11 +314,12 @@ export function Modal() {
                     ${workspaceAutomations.length > 0 ? workspaceAutomations.map(auto => {
                         const project = workspaceProjects.find(p => p.id === auto.projectId);
                         const triggerStatus = t(`tasks.${auto.trigger.status}`);
-                        const actionUser = users.find(u => u.id === auto.action.userId)?.name || '';
+                        const actionUser = users.find(u => u.id === auto.action.userId);
+                        const actionUserName = actionUser?.name || actionUser?.initials || '';
                         return `
                             <div class="automation-list-item">
                                 <span>
-                                    In <strong>${project?.name || 'Unknown Project'}</strong>: When status becomes <strong>${triggerStatus}</strong>, assign to <strong>${actionUser}</strong>.
+                                    In <strong>${project?.name || 'Unknown Project'}</strong>: When status becomes <strong>${triggerStatus}</strong>, assign to <strong>${actionUserName}</strong>.
                                 </span>
                                 <button class="btn-icon delete-automation-btn" data-automation-id="${auto.id}" aria-label="Remove automation"><span class="material-icons-sharp">delete</span></button>
                             </div>
@@ -349,7 +350,7 @@ export function Modal() {
                             <strong>${t('panels.then')}</strong>
                             <span>${t('panels.action_assign_user')}</span>
                             <select id="automation-action-user" class="form-control">
-                                 ${users.map(u => `<option value="${u!.id}">${u!.name}</option>`).join('')}
+                                 ${users.map(u => `<option value="${u!.id}">${u!.name || u!.initials}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -406,10 +407,11 @@ export function Modal() {
             <ul class="wiki-history-list">
             ${history.length > 0 ? history.map(h => {
                 const user = userMap.get(h.userId);
+                const userName = user?.name || user?.initials || 'Unknown';
                 return `
                 <li class="wiki-history-item">
                     <div class="wiki-history-info">
-                        <strong>${t('modals.version_from').replace('{date}', formatDate(h.createdAt, { hour: 'numeric', minute: '2-digit' })).replace('{user}', user?.name || 'Unknown')}</strong>
+                        <strong>${t('modals.version_from').replace('{date}', formatDate(h.createdAt, { hour: 'numeric', minute: '2-digit' })).replace('{user}', userName)}</strong>
                         <p class="subtle-text">${h.content.substring(0, 100)}...</p>
                     </div>
                     <button class="btn btn-secondary btn-sm" data-restore-wiki-version-id="${h.id}">${t('modals.restore')}</button>
@@ -427,7 +429,7 @@ export function Modal() {
             <form id="employeeDetailForm" data-user-id="${user.id}">
                 <div class="form-group">
                     <label for="employeeName">${t('hr.member')}</label>
-                    <input type="text" id="employeeName" class="form-control" value="${user.name}" readonly>
+                    <input type="text" id="employeeName" class="form-control" value="${user.name || user.initials}" readonly>
                 </div>
                 <div class="form-group">
                     <label for="employeeEmail">${t('modals.email')}</label>

@@ -77,11 +77,11 @@ export function handleInviteUser(email: string, role: Role) {
     // Find or create a user in the global user list
     let user = state.users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
+        const namePart = email.split('@')[0];
         user = {
             id: generateId(),
-            name: email.split('@')[0],
             email: email.toLowerCase(),
-            initials: email.substring(0, 2).toUpperCase(),
+            initials: namePart.substring(0, 2).toUpperCase(),
         };
         state.users.push(user);
     }

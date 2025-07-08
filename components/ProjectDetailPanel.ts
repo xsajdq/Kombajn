@@ -188,22 +188,24 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             <div class="card">
                 <h4>${t('panels.project_access')}</h4>
                 <div class="team-member-list">
-                    ${projectMembers.map(pm => `
+                    ${projectMembers.map(pm => {
+                        const userName = pm.user!.name || pm.user!.initials;
+                        return `
                         <div class="team-member-item">
                             <div class="avatar">${pm.user!.initials}</div>
                             <div class="member-info">
-                                <strong>${pm.user!.name} ${pm.user!.id === state.currentUser?.id ? `(${t('hr.you')})` : ''}</strong>
+                                <strong>${userName} ${pm.user!.id === state.currentUser?.id ? `(${t('hr.you')})` : ''}</strong>
                                 <p>${pm.user!.email}</p>
                             </div>
                             <div class="member-actions">
-                                <select class="form-control" data-project-member-id="${pm.id}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''} aria-label="Change role for ${pm.user!.name}">
+                                <select class="form-control" data-project-member-id="${pm.id}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''} aria-label="Change role for ${userName}">
                                     ${projectRoles.map(r => `<option value="${r}" ${pm.role === r ? 'selected' : ''}>${t(`panels.role_${r}`)}</option>`).join('')}
                                 </select>
-                                <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${pm.user!.name}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''}>
+                                <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${userName}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''}>
                                     <span class="material-icons-sharp" style="color: var(--danger-color);">person_remove</span>
                                 </button>
                             </div>
-                        </div>`).join('')}
+                        </div>`}).join('')}
                 </div>
             </div>
             <div class="card">
@@ -212,7 +214,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                      <div class="form-group" style="margin-bottom: 1rem;">
                         <label for="project-member-select">${t('hr.member')}</label>
                         <select id="project-member-select" class="form-control" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>
-                            ${workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name}</option>`).join('')}
+                            ${workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || user!.initials}</option>`).join('')}
                         </select>
                      </div>
                      <div class="form-group" style="margin-bottom: 1rem;">

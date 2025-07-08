@@ -119,7 +119,7 @@ function renderProductivityReports(tasks: Task[], timeLogs: TimeLog[]) {
                     <tbody>
                         ${userActivity.length > 0 ? userActivity.map(data => `
                             <tr>
-                                <td>${data.user.name}</td>
+                                <td>${data.user.name || data.user.initials}</td>
                                 <td>${data.completedCount}</td>
                                 <td>${formatDuration(data.trackedTimeSeconds)}</td>
                             </tr>
@@ -165,7 +165,7 @@ function renderTimeTrackingReports(timeLogs: TimeLog[]) {
                         ${logsWithDetails.length > 0 ? logsWithDetails.map(({ log, user, task, project }) => `
                             <tr>
                                 <td>${formatDate(log.createdAt)}</td>
-                                <td>${user?.name || ''}</td>
+                                <td>${user?.name || user?.initials || ''}</td>
                                 <td>${project?.name || ''}</td>
                                 <td>${task?.name || ''}</td>
                                 <td>${formatDuration(log.trackedSeconds)}</td>
@@ -343,7 +343,7 @@ export function ReportsPage() {
                     <label for="report-filter-user">${t('reports.filter_user')}</label>
                     <select id="report-filter-user" class="form-control">
                         <option value="all">${t('reports.all_users')}</option>
-                         ${workspaceUsers.map(u => `<option value="${u.id}" ${filters.userId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
+                         ${workspaceUsers.map(u => `<option value="${u.id}" ${filters.userId === u.id ? 'selected' : ''}>${u.name || u.initials}</option>`).join('')}
                     </select>
                 </div>
                  <div class="form-group">

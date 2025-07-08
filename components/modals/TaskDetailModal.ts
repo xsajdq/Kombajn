@@ -41,13 +41,14 @@ function renderActivityTab(task: Task) {
         <div class="activity-feed">
             ${activityItems.length > 0 ? activityItems.map(item => {
                 const user = state.users.find(u => u.id === item.userId);
+                const userName = user?.name || user?.initials || 'User';
                 if ('content' in item) { // It's a Comment
                     return `
                         <div class="activity-item">
                             <div class="avatar">${user?.initials || '?'}</div>
                             <div class="activity-content">
                                 <div class="activity-header">
-                                    <strong>${user?.name || 'User'}</strong>
+                                    <strong>${userName}</strong>
                                     <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                                 </div>
                                 <div class="activity-body">
@@ -62,7 +63,7 @@ function renderActivityTab(task: Task) {
                             <div class="avatar">${user?.initials || '?'}</div>
                             <div class="activity-content">
                                 <div class="activity-header">
-                                    <strong>${user?.name || 'User'}</strong>
+                                    <strong>${userName}</strong>
                                     <span>${t('misc.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
                                     <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                                 </div>
@@ -266,7 +267,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     <label for="detail-task-assignee">${t('modals.assignee')}</label>
                     <select id="detail-task-assignee" class="form-control" data-field="assigneeId" ${!canManage ? 'disabled' : ''}>
                         <option value="">${t('modals.unassigned')}</option>
-                        ${state.workspaceMembers.filter(m => m.workspaceId === task.workspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean).map(u => `<option value="${u!.id}" ${task.assigneeId === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
+                        ${state.workspaceMembers.filter(m => m.workspaceId === task.workspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean).map(u => `<option value="${u!.id}" ${task.assigneeId === u!.id ? 'selected' : ''}>${u!.name || u!.initials}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">

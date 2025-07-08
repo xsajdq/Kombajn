@@ -30,7 +30,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                     </button>
                     ${state.ui.isNotificationsOpen ? NotificationsPopover({ currentUser, activeWorkspaceId }) : ''}
                 </div>
-                <div class="avatar" title="${currentUser.name}">${currentUser.initials}</div>
+                <div class="avatar" title="${currentUser.name || currentUser.initials}">${currentUser.initials}</div>
             </div>
         </header>
     `;

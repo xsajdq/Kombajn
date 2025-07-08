@@ -33,8 +33,9 @@ function renderCalendarEvent(item: Task | TimeOffRequest | CalendarEvent | { dat
         handler = `data-task-id="${item.id}"`;
     } else if ('userId' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
+        const userName = user?.name || user?.initials || 'User';
         className += ` type-timeoff user-${item.userId}`;
-        text = `${user?.name || 'User'} - ${t(`team_calendar.leave_type_${item.type}`)}`;
+        text = `${userName} - ${t(`team_calendar.leave_type_${item.type}`)}`;
     } else if ('title' in item) { // CalendarEvent
         const event = item as CalendarEvent;
         if (event.type === 'on-call') {

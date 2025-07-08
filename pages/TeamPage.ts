@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -84,7 +85,7 @@ function renderEmployeesTab() {
                             <div class="member-item" data-modal-target="employeeDetail" data-user-id="${user.id}">
                                 <div class="avatar">${user.initials}</div>
                                 <div class="member-info">
-                                    <strong>${user.name} ${user.id === state.currentUser?.id ? `<span class="subtle-text">${t('hr.you')}</span>` : ''}</strong>
+                                    <strong>${user.name || user.initials} ${user.id === state.currentUser?.id ? `<span class="subtle-text">${t('hr.you')}</span>` : ''}</strong>
                                     <p>${user.email || t('misc.not_applicable')}</p>
                                 </div>
                                 <div class="member-actions">
@@ -148,7 +149,7 @@ function renderLeaveRequestsTab() {
                         <div class="leave-request-item">
                             <div class="avatar">${user?.initials || '?'}</div>
                             <div>
-                                <strong>${user?.name || 'Unknown User'}</strong>
+                                <strong>${user?.name || user?.initials || 'Unknown User'}</strong>
                                 <p class="subtle-text">${t(`team_calendar.leave_type_${request.type}`)}</p>
                             </div>
                             <div>

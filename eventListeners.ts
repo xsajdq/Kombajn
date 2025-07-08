@@ -46,7 +46,7 @@ function handleInsertMention(user: User, input: HTMLInputElement) {
     const mentionRegex = /@(\w*)$/;
     
     // Format mention as `@[User Name](user:u1)`
-    const mentionTag = `@[${user.name}](user:${user.id}) `;
+    const mentionTag = `@[${user.name || user.initials}](user:${user.id}) `;
     
     const newText = textBeforeCursor.replace(mentionRegex, mentionTag) + text.substring(cursorPos);
     
@@ -743,11 +743,10 @@ export function setupEventListeners() {
          // Workspace Settings
         const workspaceSettingInput = target.closest<HTMLInputElement | HTMLTextAreaElement>('#workspace-settings-form [data-field]');
         if (workspaceSettingInput) {
-            const field = workspaceSettingInput.dataset.field as keyof Workspace;
             const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
             if (workspace) {
                 // @ts-ignore
-                workspace[field] = workspaceSettingInput.value;
+                workspace[workspaceSettingInput.dataset.field] = workspaceSettingInput.value;
                 // Defer saving until user clicks away or saves
             }
             return;

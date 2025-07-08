@@ -1,4 +1,5 @@
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Notification, Task } from '../types.ts';
@@ -17,7 +18,7 @@ export function createNotification(
 
     let text = '';
     const actor = state.users.find(u => u.id === data.actorId);
-    const actorName = actor?.name || 'System';
+    const actorName = actor?.name || actor?.initials || 'System';
     const taskName = `"${task.name}"`;
 
     switch (type) {

@@ -30,7 +30,7 @@ function renderDealCard(deal: Deal) {
             <div class="task-card-footer" style="margin-top: 0;">
                 <div class="task-meta">
                     ${owner ? `
-                        <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name}">${owner.initials}</div>
+                        <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
                     ` : `
                         <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
                              <span class="material-icons-sharp icon-sm">person_outline</span>

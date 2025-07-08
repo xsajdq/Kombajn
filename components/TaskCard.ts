@@ -47,7 +47,7 @@ export function renderTaskCard(task: Task) {
                         </div>
                     `: ''}
                     ${assignee ? `
-                        <div class="avatar" title="${assignee.name}">${assignee.initials}</div>
+                        <div class="avatar" title="${assignee.name || assignee.initials}">${assignee.initials}</div>
                     ` : `
                         <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
                              <span class="material-icons-sharp icon-sm">person_outline</span>
