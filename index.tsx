@@ -15,9 +15,9 @@ async function fetchInitialData() {
         // In a real app with authentication, you would first get the current user.
         // For now, we'll simulate fetching all data for a default view.
         const [
-            users, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers
+            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers
         ] = await Promise.all([
-            fetch('/api/data/users').then(res => res.json()),
+            fetch('/api/data/profiles').then(res => res.json()), // Corrected from 'users' to 'profiles'
             fetch('/api/data/projects').then(res => res.json()),
             fetch('/api/data/clients').then(res => res.json()),
             fetch('/api/data/tasks').then(res => res.json()),
@@ -28,7 +28,9 @@ async function fetchInitialData() {
             // Fetch other resources as needed...
         ]);
 
-        state.users = users;
+        // Note: This is a temporary assignment. The `profiles` table might not have all fields of the `User` type.
+        // Once authentication is added, this will be handled differently.
+        state.users = profiles; 
         state.projects = projects;
         state.clients = clients;
         state.tasks = tasks;
@@ -39,13 +41,14 @@ async function fetchInitialData() {
 
         // Simulate logging in as the first user and selecting the first workspace
         if (state.users.length > 0) {
-            state.currentUser = state.users.find(u => u.email === 'demo@user.com') || state.users[0];
+            // Simplified login simulation until proper auth is in place
+            state.currentUser = state.users[0]; 
         }
         if (state.workspaces.length > 0) {
             state.activeWorkspaceId = state.workspaces[0].id;
         }
 
-        console.log("Initial data fetched and state populated.");
+        console.log("Initial data fetched and state populated.", state);
         renderApp();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);

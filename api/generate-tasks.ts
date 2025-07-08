@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userPrompt = `Generate a list of tasks for the following project: "${promptText}".`;
 
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-04-17',
+            model: 'gemini-2.5-flash',
             contents: userPrompt,
             config: {
                 systemInstruction: systemInstruction,
