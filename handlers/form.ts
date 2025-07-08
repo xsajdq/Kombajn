@@ -4,7 +4,7 @@ import { state, saveState, generateId } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal } from '../types.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
@@ -24,6 +24,19 @@ async function apiPost(resource: string, body: any) {
     return response.json();
 }
 
+async function apiPut(resource: string, body: any) {
+    const response = await fetch(`/api/data/${resource}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Failed to update ${resource}`);
+    }
+    return response.json();
+}
+
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
     const activeWorkspaceId = state.activeWorkspaceId;
@@ -36,10 +49,11 @@ export async function handleFormSubmit() {
 
     try {
         if (type === 'addClient') {
+            const clientId = (document.getElementById('clientId') as HTMLInputElement).value;
             const name = (document.getElementById('clientName') as HTMLInputElement).value;
             if (!name) return;
 
-            const clientData = {
+            const clientData: Partial<Client> = {
                 workspaceId: activeWorkspaceId,
                 name: name,
                 vatId: (document.getElementById('clientVatId') as HTMLInputElement).value,
@@ -47,9 +61,17 @@ export async function handleFormSubmit() {
                 email: (document.getElementById('clientEmail') as HTMLInputElement).value,
                 phone: (document.getElementById('clientPhone') as HTMLInputElement).value,
             };
-            
-            const [newClient] = await apiPost('clients', clientData);
-            state.clients.push(newClient);
+
+            if (clientId) { // This is an UPDATE
+                const [updatedClient] = await apiPut('clients', { ...clientData, id: clientId });
+                const index = state.clients.findIndex(c => c.id === clientId);
+                if (index !== -1) {
+                    state.clients[index] = updatedClient;
+                }
+            } else { // This is a CREATE
+                const [newClient] = await apiPost('clients', clientData);
+                state.clients.push(newClient);
+            }
         }
 
         if (type === 'addProject') {

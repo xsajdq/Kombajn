@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getCurrentUserRole } from '../handlers/main.ts';
@@ -21,7 +22,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                 <div class="card">
                     <div class="card-header-flex">
                        <h4>${t('panels.client_details')}</h4>
-                       <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id-edit="${client.id}" ${!canManage ? 'disabled' : ''}>${t('panels.edit_client')}</button>
+                       <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}" ${!canManage ? 'disabled' : ''}>${t('panels.edit_client')}</button>
                     </div>
                     <div class="client-details-grid" style="margin-top: 1rem;">
                         <div><strong>${t('modals.company_name')}:</strong> <p>${client.name}</p></div>
