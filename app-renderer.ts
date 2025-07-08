@@ -1,0 +1,118 @@
+import { state } from './state.ts';
+import { router } from './router.ts';
+import { Sidebar } from './components/Sidebar.ts';
+import { ProjectDetailPanel } from './components/ProjectDetailPanel.ts';
+import { ClientDetailPanel } from './components/ClientDetailPanel.ts';
+import { Modal } from './components/Modal.ts';
+import { AppHeader } from './components/AppHeader.ts';
+import { CommandPalette } from './components/CommandPalette.ts';
+import { FloatingActionButton } from './components/FloatingActionButton.ts';
+import { getCurrentUserRole } from './handlers/main.ts';
+import { MentionPopover } from './components/MentionPopover.ts';
+import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
+
+function AppLayout() {
+    const pageContent = router();
+    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen } = state.ui;
+    const currentUser = state.currentUser;
+    const activeWorkspaceId = state.activeWorkspaceId;
+    const userRole = getCurrentUserRole();
+    const isOverlayVisible = openedProjectId || openedClientId || modal.isOpen;
+
+
+    if (!currentUser || !activeWorkspaceId) {
+        return `<div class="loading-container"><p>Initializing...</p></div>`;
+    }
+
+    return `
+        ${Sidebar({ userRole })}
+        <div class="main-content-container" ${isOverlayVisible ? 'aria-hidden="true"' : ''}>
+            ${AppHeader({ currentUser, activeWorkspaceId })}
+            <main class="content">
+                ${pageContent}
+            </main>
+        </div>
+        ${openedProjectId ? `
+            <div class="side-panel-overlay"></div>
+            ${ProjectDetailPanel({ projectId: openedProjectId })}
+        ` : ''}
+        ${openedClientId ? `
+            <div class="side-panel-overlay"></div>
+            ${ClientDetailPanel({ clientId: openedClientId })}
+        ` : ''}
+        ${modal.isOpen ? Modal() : ''}
+        ${isCommandPaletteOpen ? CommandPalette() : ''}
+        ${FloatingActionButton()}
+    `;
+}
+
+export function renderApp() {
+    const app = document.getElementById('app')!;
+    if (!app) return;
+    document.documentElement.lang = state.settings.language;
+    
+    // Preserve scroll position of the main content area
+    const scrollableContent = document.querySelector('.content');
+    const scrollPositions = {
+        top: scrollableContent?.scrollTop ?? 0,
+        left: scrollableContent?.scrollLeft ?? 0
+    };
+    
+    app.innerHTML = AppLayout();
+    
+    const newScrollableContent = document.querySelector('.content');
+    if (newScrollableContent) {
+        newScrollableContent.scrollTop = scrollPositions.top;
+        newScrollableContent.scrollLeft = scrollPositions.left;
+    }
+
+
+    // Post-render actions
+    document.body.classList.toggle('dark-mode', state.settings.darkMode);
+
+    if (state.ui.modal.justOpened) {
+        state.ui.modal.justOpened = false;
+    }
+
+    if (state.ui.openedProjectId || state.ui.openedClientId) {
+        setTimeout(() => {
+            const panel = document.querySelector<HTMLElement>('.side-panel');
+            if (panel) {
+                panel.classList.add('is-open');
+                 const firstFocusable = panel.querySelector<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                firstFocusable?.focus();
+            }
+        }, 10);
+    }
+    
+    if (state.ui.modal.isOpen) {
+        const modal = document.querySelector<HTMLElement>('.modal-content');
+        if (modal) {
+            const firstFocusable = modal.querySelector<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            firstFocusable?.focus();
+        }
+    }
+
+    if (state.currentPage === 'reports') {
+        initReportsPage();
+    }
+
+    if (state.currentPage === 'tasks') {
+        initTasksPage();
+    }
+
+    if (state.currentPage === 'dashboard') {
+        initDashboardCharts();
+    }
+}
+
+export function renderMentionPopover() {
+    const container = document.getElementById('mention-popover-container');
+    if (container) {
+        container.innerHTML = MentionPopover();
+    }
+}
