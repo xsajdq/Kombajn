@@ -15,7 +15,7 @@ async function fetchInitialData() {
         // In a real app with authentication, you would first get the current user.
         // For now, we'll simulate fetching all data for a default view.
         const [
-            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers
+            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies
         ] = await Promise.all([
             fetch('/api/data/profiles').then(res => res.json()), // Corrected from 'users' to 'profiles'
             fetch('/api/data/projects').then(res => res.json()),
@@ -25,7 +25,7 @@ async function fetchInitialData() {
             fetch('/api/data/time_logs').then(res => res.json()),
             fetch('/api/data/workspaces').then(res => res.json()),
             fetch('/api/data/workspace_members').then(res => res.json()),
-            // Fetch other resources as needed...
+            fetch('/api/data/task_dependencies').then(res => res.json()),
         ]);
 
         // Note: This is a temporary assignment. The `profiles` table might not have all fields of the `User` type.
@@ -38,6 +38,7 @@ async function fetchInitialData() {
         state.timeLogs = timeLogs;
         state.workspaces = workspaces;
         state.workspaceMembers = workspaceMembers;
+        state.dependencies = dependencies;
 
         // Simulate logging in as the first user and selecting the first workspace
         if (state.users.length > 0) {
