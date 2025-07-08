@@ -1,27 +1,48 @@
 // File: services/api.ts
 
-export async function apiPost(resource: string, body: any) {
-    const response = await fetch(`/api/data/${resource}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Failed to create ${resource}`);
+const TOKEN_KEY = 'kombajn_auth_token';
+
+export async function apiFetch(resource: string, options: RequestInit = {}) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers = new Headers(options.headers || {});
+    
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
     }
+    if (!headers.has('Content-Type') && options.body) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    const response = await fetch(resource, { ...options, headers });
+
+    if (!response.ok) {
+        // Specifically handle session expiry or invalid tokens
+        if (response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            window.location.reload(); // Force a reload, which will show the login page
+        }
+        const err = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(err.error || `Request to ${resource} failed with status ${response.status}`);
+    }
+
+    if (response.status === 204) { // Handle No Content response
+        return null;
+    }
+    
     return response.json();
 }
 
-export async function apiPut(resource: string, body: any) {
-    const response = await fetch(`/api/data/${resource}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+
+export function apiPost(resource: string, body: any) {
+    return apiFetch(`/api/data/${resource}`, {
+        method: 'POST',
         body: JSON.stringify(body),
     });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Failed to update ${resource}`);
-    }
-    return response.json();
+}
+
+export function apiPut(resource: string, body: any) {
+    return apiFetch(`/api/data/${resource}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+    });
 }

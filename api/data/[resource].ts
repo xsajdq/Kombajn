@@ -1,6 +1,6 @@
 // Plik: api/data/[resource].ts
-import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getSupabaseAdmin } from '../utils/supabaseAdmin.ts';
 
 const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'dashboard_widgets', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses'];
 
@@ -11,18 +11,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: "Resource not found or not allowed." });
   }
   
-  // Explicitly check for environment variables to prevent crashes.
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-      console.error('Supabase URL or Service Key is not set in environment variables.');
-      return res.status(500).json({ error: 'Server configuration error: Database credentials are missing.' });
-  }
-
   try {
-    // Inicjalizujemy klienta Supabase używając bezpiecznych kluczy serwerowych.
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const supabase = getSupabaseAdmin();
     
+    // AUTHENTICATION CHECK: All data endpoints are now protected.
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'Authentication token required.' });
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+        return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
+    }
+
     switch (req.method) {
         case 'GET': {
+            // Here you could add Row Level Security (RLS) in Supabase to filter data
+            // based on the authenticated user's ID (user.id).
+            // For now, we fetch all data for simplicity as the app filters by workspaceId on the client.
             const { data, error } = await supabase.from(resource).select('*');
             if (error) throw error;
             return res.status(200).json(data);
@@ -34,9 +40,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(201).json(data);
         }
         case 'PUT': {
-            const { id, ...updateData } = req.body;
+            const updatePayload: { [key: string]: any; id?: any; } = req.body;
+            const id = updatePayload.id;
+            delete updatePayload.id;
+
             if (!id) return res.status(400).json({ error: 'ID is required for update' });
-            const { data, error } = await supabase.from(resource).update(updateData as any).eq('id', id).select();
+            
+            const { data, error } = await supabase.from(resource).update(updatePayload).eq('id', id).select();
             if (error) throw error;
             return res.status(200).json(data);
         }

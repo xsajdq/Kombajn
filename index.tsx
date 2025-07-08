@@ -1,72 +1,67 @@
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
-import { closeSidePanels, closeModal } from './handlers/ui.ts';
+import { validateSession, logout } from './services/auth.ts';
+import { apiFetch } from './services/api.ts';
 import type { User } from './types.ts';
 
-// The 'storage' event listener is no longer needed because the backend API
-// is now the single source of truth, not localStorage.
 
-async function fetchInitialData() {
+export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
+    
+    const [
+        profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies, dashboardWidgets
+    ] = await Promise.all([
+        apiFetch('/api/data/profiles'),
+        apiFetch('/api/data/projects'),
+        apiFetch('/api/data/clients'),
+        apiFetch('/api/data/tasks'),
+        apiFetch('/api/data/deals'),
+        apiFetch('/api/data/time_logs'),
+        apiFetch('/api/data/workspaces'),
+        apiFetch('/api/data/workspace_members'),
+        apiFetch('/api/data/task_dependencies'),
+        apiFetch('/api/data/dashboard_widgets'),
+    ]);
+
+    // Populate state with fetched data
+    state.users = profiles; 
+    state.projects = projects;
+    state.clients = clients;
+    state.tasks = tasks;
+    state.deals = deals;
+    state.timeLogs = timeLogs;
+    state.workspaces = workspaces;
+    state.workspaceMembers = workspaceMembers;
+    state.dependencies = dependencies;
+    state.dashboardWidgets = dashboardWidgets;
+
+    // Set the active workspace based on the current user's memberships
+    const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
+    if (userWorkspaces.length > 0) {
+        state.activeWorkspaceId = userWorkspaces[0].workspaceId;
+    } else {
+        // Handle case where user might not be in any workspace yet
+        // This could involve prompting them to create or join one.
+        console.warn("User is not a member of any workspace.");
+        // For now, we might have to show a special state.
+        // For simplicity, we'll log out if no workspace is found.
+        await logout();
+        return;
+    }
+
+    console.log("Initial data fetched and state populated.", state);
+}
+
+export async function bootstrapApp() {
     try {
-        // In a real app with authentication, you would first get the current user.
-        // For now, we'll simulate fetching all data for a default view.
-        const [
-            profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies, dashboardWidgets
-        ] = await Promise.all([
-            fetch('/api/data/profiles').then(res => res.json()), // Corrected from 'users' to 'profiles'
-            fetch('/api/data/projects').then(res => res.json()),
-            fetch('/api/data/clients').then(res => res.json()),
-            fetch('/api/data/tasks').then(res => res.json()),
-            fetch('/api/data/deals').then(res => res.json()),
-            fetch('/api/data/time_logs').then(res => res.json()),
-            fetch('/api/data/workspaces').then(res => res.json()),
-            fetch('/api/data/workspace_members').then(res => res.json()),
-            fetch('/api/data/task_dependencies').then(res => res.json()),
-            fetch('/api/data/dashboard_widgets').then(res => res.json()),
-        ]);
-
-        // --- FIRST RUN CHECK ---
-        // If there are no users, it means this is the first time the app is running.
-        // We need to guide the user through a setup process.
-        if (profiles.length === 0) {
-            console.log("No users found. Initializing setup process.");
-            state.currentPage = 'setup';
-            renderApp();
-            return; // Stop further execution
-        }
-
-
-        // Note: This is a temporary assignment. The `profiles` table might not have all fields of the `User` type.
-        // Once authentication is added, this will be handled differently.
-        state.users = profiles; 
-        state.projects = projects;
-        state.clients = clients;
-        state.tasks = tasks;
-        state.deals = deals;
-        state.timeLogs = timeLogs;
-        state.workspaces = workspaces;
-        state.workspaceMembers = workspaceMembers;
-        state.dependencies = dependencies;
-        state.dashboardWidgets = dashboardWidgets;
-
-        // Simulate logging in as the first user and selecting the first workspace
-        if (state.users.length > 0) {
-            // Simplified login simulation until proper auth is in place
-            state.currentUser = state.users[0]; 
-        }
-        if (state.workspaces.length > 0) {
-            state.activeWorkspaceId = state.workspaces[0].id;
-        }
-
-        console.log("Initial data fetched and state populated.", state);
+        await fetchInitialData();
         renderApp();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
-        // Display an error message to the user
         document.getElementById('app')!.innerHTML = `
             <div class="empty-state">
                 <h3>Failed to load application data</h3>
@@ -77,22 +72,20 @@ async function fetchInitialData() {
 }
 
 
-// --- INITIALIZATION ---
-function init() {
+async function init() {
     setupEventListeners();
-    fetchInitialData(); // Fetch data instead of loading from localStorage
 
-    window.addEventListener('hashchange', () => { 
-        closeSidePanels(false); // don't re-render here, renderApp below will do it
-        closeModal(false); // don't re-render here
-        renderApp(); 
-    });
-    window.addEventListener('popstate', () => { 
-        closeSidePanels(false); // don't re-render here
-        closeModal(false); // don't re-render here
-        renderApp(); 
-    });
-
+    const user = await validateSession();
+    if (user) {
+        console.log("Session validated for user:", user);
+        state.currentUser = user;
+        await bootstrapApp();
+    } else {
+        console.log("No valid session found. Showing auth page.");
+        state.currentPage = 'auth';
+        renderApp();
+    }
+    
     // Timer update interval
     setInterval(() => {
         if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;

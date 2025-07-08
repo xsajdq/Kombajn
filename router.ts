@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -15,16 +16,17 @@ import { ChatPage } from './pages/ChatPage.ts';
 import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage } from './pages/SalesPage.ts';
 import { getCurrentUserRole } from './handlers/main.ts';
-import { SetupPage } from './pages/SetupPage.ts';
+import { AuthPage } from './pages/AuthPage.ts';
 
 export function router() {
+    // If no user is authenticated, always show the authentication page.
+    if (!state.currentUser) {
+        state.currentPage = 'auth';
+        return AuthPage();
+    }
+
     const path = window.location.hash.slice(1) || '/';
     const [page] = path.split('/').filter(p => p);
-
-    // If the state indicates we are in setup mode, always show the setup page.
-    if (state.currentPage === 'setup') {
-        return SetupPage();
-    }
     
     state.currentPage = page || 'dashboard';
     
@@ -45,6 +47,7 @@ export function router() {
         case 'chat': return ChatPage();
         case 'hr': return canAccessTeam ? HRPage() : DashboardPage(); // Guard route
         case 'billing': return canAccessBilling ? BillingPage() : DashboardPage(); // Guard route
+        case 'auth': return AuthPage(); // Fallback case
         case 'dashboard':
         default:
             return DashboardPage();

@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState, generateId } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -44,68 +45,6 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
             return 'viewer'; // Clients can view public projects.
         default:
             return null;
-    }
-}
-
-// --- NEW HANDLERS ---
-export async function handleSetupSubmit() {
-    const submitBtn = document.getElementById('setup-submit-btn') as HTMLButtonElement;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Setting up...';
-
-    try {
-        const userName = (document.getElementById('setupUserName') as HTMLInputElement).value;
-        const userEmail = (document.getElementById('setupUserEmail') as HTMLInputElement).value;
-        const workspaceName = (document.getElementById('setupWorkspaceName') as HTMLInputElement).value;
-
-        if (!userName || !userEmail || !workspaceName) {
-            throw new Error("All fields are required.");
-        }
-
-        // 1. Create Profile (which acts as our User)
-        // The `name` field is removed because the user's schema doesn't have it.
-        // The app will now use initials as the display name if a full name is not available.
-        const [profile] = await apiPost('profiles', {
-            initials: userName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase(),
-        });
-
-        // 2. Create Workspace
-        const [workspace] = await apiPost('workspaces', {
-            name: workspaceName,
-            subscription: { planId: 'free', status: 'active' },
-            planHistory: [{ planId: 'free', date: new Date().toISOString() }],
-        });
-
-        // 3. Link them in workspace_members
-        await apiPost('workspace_members', {
-            workspaceId: workspace.id,
-            userId: profile.id,
-            role: 'owner',
-        });
-        
-        // 4. Create default Dashboard Widgets for the new workspace
-        const defaultWidgets: Omit<DashboardWidget, 'id'|'x'|'y'>[] = [
-            { type: 'myTasks', w: 6, h: 6, config: {} },
-            { type: 'recentActivity', w: 6, h: 6, config: {} },
-        ];
-        
-        const widgetsToInsert = defaultWidgets.map(widget => ({
-            ...widget,
-            workspaceId: workspace.id, // Supabase will assign an ID
-        }));
-        
-        await apiPost('dashboard_widgets', widgetsToInsert);
-
-
-        // Success! Reload the entire app to fetch the new state.
-        alert('Setup complete! Welcome to Kombajn.');
-        window.location.reload();
-
-    } catch (error) {
-        console.error("Setup failed:", error);
-        alert(`Setup failed: ${(error as Error).message}`);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Get Started';
     }
 }
 

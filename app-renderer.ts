@@ -10,11 +10,13 @@ import { FloatingActionButton } from './components/FloatingActionButton.ts';
 import { getCurrentUserRole } from './handlers/main.ts';
 import { MentionPopover } from './components/MentionPopover.ts';
 import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
+import { AuthPage } from './pages/AuthPage.ts';
 
 function AppLayout() {
-    // Special case for the setup page, which takes over the whole screen
-    if (state.currentPage === 'setup') {
-        return router();
+    // If there is no authenticated user, always show the AuthPage.
+    // This protects the entire application.
+    if (!state.currentUser) {
+        return AuthPage();
     }
     
     const pageContent = router();
@@ -26,7 +28,8 @@ function AppLayout() {
 
 
     if (!currentUser || !activeWorkspaceId) {
-        // This is the initial loading state before data is fetched or before setup is complete.
+        // This state should ideally not be reached if the top-level auth check works,
+        // but it's a safe fallback.
         return `<div id="app" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
                     <div class="loading-container"><p>Initializing...</p></div>
                 </div>`;
@@ -59,7 +62,6 @@ export function renderApp() {
     if (!app) return;
     document.documentElement.lang = state.settings.language;
     
-    // Preserve scroll position of the main content area
     const scrollableContent = document.querySelector('.content');
     const scrollPositions = {
         top: scrollableContent?.scrollTop ?? 0,
@@ -68,8 +70,8 @@ export function renderApp() {
     
     app.innerHTML = AppLayout();
 
-    // If we are on the setup page, we don't need to do the rest.
-    if (state.currentPage === 'setup') {
+    // If the AuthPage is rendered, no further action is needed.
+    if (!state.currentUser) {
         return;
     }
     

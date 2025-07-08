@@ -20,6 +20,8 @@ import * as uiHandlers from './handlers/ui.ts';
 import * as wikiHandlers from './handlers/wiki.ts';
 import * as automationHandlers from './handlers/automations.ts';
 import * as dashboardHandlers from './handlers/dashboard.ts';
+import * as auth from './services/auth.ts';
+import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
 
 
 function handleMentionInput(input: HTMLInputElement) {
@@ -159,9 +161,42 @@ export function setupEventListeners() {
     app.addEventListener('submit', (e: SubmitEvent) => {
         const target = e.target as HTMLElement;
 
-        if (target.id === 'setupForm') {
+        if (target.id === 'loginForm') {
             e.preventDefault();
-            mainHandlers.handleSetupSubmit();
+            const email = (document.getElementById('loginEmail') as HTMLInputElement).value;
+            const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
+            const errorDiv = document.getElementById('login-error')!;
+            const button = document.getElementById('login-submit-btn') as HTMLButtonElement;
+            button.textContent = 'Logging in...';
+            button.disabled = true;
+            errorDiv.style.display = 'none';
+
+            auth.login(email, password).catch(err => {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                button.textContent = 'Log In';
+                button.disabled = false;
+            });
+            return;
+        }
+
+        if (target.id === 'registerForm') {
+            e.preventDefault();
+            const name = (document.getElementById('registerName') as HTMLInputElement).value;
+            const email = (document.getElementById('registerEmail') as HTMLInputElement).value;
+            const password = (document.getElementById('registerPassword') as HTMLInputElement).value;
+            const errorDiv = document.getElementById('register-error')!;
+            const button = document.getElementById('register-submit-btn') as HTMLButtonElement;
+            button.textContent = 'Registering...';
+            button.disabled = true;
+            errorDiv.style.display = 'none';
+
+            auth.signup(name, email, password).catch(err => {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                button.textContent = 'Register';
+                button.disabled = false;
+            });
             return;
         }
 
@@ -240,6 +275,29 @@ export function setupEventListeners() {
     app.addEventListener('click', (e) => {
         if (!(e.target instanceof Element)) return;
         const target = e.target as Element;
+
+        // --- NEW: Auth Page Tabs ---
+        const authTab = target.closest<HTMLElement>('.auth-tab');
+        if (authTab) {
+            const tabName = authTab.dataset.authTab;
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            authTab.classList.add('active');
+            const container = document.getElementById('auth-form-container')!;
+            if (tabName === 'login') {
+                container.innerHTML = renderLoginForm();
+            } else {
+                container.innerHTML = renderRegisterForm();
+            }
+            return;
+        }
+        
+        // --- NEW: Logout Button ---
+        const logoutBtn = target.closest<HTMLElement>('[data-logout-button]');
+        if (logoutBtn) {
+            auth.logout();
+            return;
+        }
+
 
         // Close popovers if click is outside
         if (!target.closest('.notification-wrapper') && state.ui.isNotificationsOpen) {
