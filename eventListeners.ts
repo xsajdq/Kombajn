@@ -174,12 +174,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
             auth.login(email, password)
                 .then(() => bootstrapCallback())
-                .then(() => {
-                    // This is the fix: After the app is bootstrapped and the initial render
-                    // shows the dashboard, we explicitly set the URL hash. This syncs the
-                    // URL with the state and prevents the router from misbehaving on a page reload.
-                    window.location.hash = '#/dashboard';
-                })
                 .catch(err => {
                     errorDiv.textContent = err.message;
                     errorDiv.style.display = 'block';
