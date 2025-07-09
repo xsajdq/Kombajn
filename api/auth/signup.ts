@@ -18,17 +18,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Password must be at least 6 characters.' });
         }
 
-        // Step 1: Create the user in the auth schema
+        // Step 1: Create the user, passing the name in the metadata for the trigger to use.
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email,
             password,
-            email_confirm: true, // Auto-confirm for this app's purpose. Real-world might send an email.
+            email_confirm: true, // Auto-confirm for this app's purpose.
+            options: {
+                data: {
+                    name: name
+                }
+            }
         });
 
         if (authError) {
             console.error('Supabase auth error during signup:', authError.message);
             if (authError.message.includes('User already registered') || authError.message.toLowerCase().includes('unique constraint')) {
                 return res.status(409).json({ error: 'A user with this email already exists.' });
+            }
+            // The trigger will fail if the profile table has constraints that are not met.
+            if (authError.message.includes('database error')) {
+                 return res.status(500).json({ error: `Could not create user profile. A database error occurred, possibly related to table constraints. Details: ${authError.message}` });
             }
             return res.status(500).json({ error: `Authentication service error: ${authError.message}` });
         }
@@ -38,55 +47,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(500).json({ error: 'User creation failed unexpectedly.' });
         }
 
-        const user = authData.user;
-
-        // Step 2: Create the public profile linked to the auth user, now including the email.
-        const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-        const { data: profileDataArray, error: profileError } = await (supabase
-            .from('profiles') as any)
-            .insert([{ id: user.id, name, email, initials }])
-            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes');
-
-        if (profileError) {
-            console.error(`Profile creation failed for user ${user.id}. Attempting to roll back auth user. Profile Error:`, profileError);
-            try {
-                const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
-                if (deleteError) {
-                    // This is a critical state. The auth user exists but the profile doesn't.
-                    // Log this for manual intervention.
-                    console.error(`CRITICAL: Failed to roll back auth user ${user.id} after profile creation failure. Manual cleanup required. Delete Error:`, deleteError);
-                } else {
-                    console.log(`Successfully rolled back auth user ${user.id}.`);
-                }
-            } catch (rollbackError) {
-                console.error(`CRITICAL: An unexpected error occurred during auth user rollback for user ${user.id}. Manual cleanup required. Rollback Error:`, rollbackError);
-            }
-            // Return the original profile error to the client.
-            return res.status(500).json({ error: `Could not create user profile: ${profileError.message}` });
-        }
-        
-        if (!profileDataArray || profileDataArray.length === 0) {
-            await supabase.auth.admin.deleteUser(user.id);
-            console.error('Profile insert succeeded but returned no data. Rolled back auth user.');
-            return res.status(500).json({ error: 'Profile creation failed after insert.' });
-        }
-        
-        const profileData = profileDataArray[0];
-
-        // Step 3: Sign in the newly created user to get a session for the client
+        // Step 2: The database trigger 'on_auth_user_created' has already created the profile.
+        // Now, sign in the user to get a session.
         const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
 
-        if (sessionError) {
-            console.error('Sign-in after signup failed:', sessionError.message);
-            return res.status(500).json({ error: `Login after signup failed: ${sessionError.message}` });
+        if (sessionError || !sessionData.session) {
+            console.error('Sign-in after signup failed:', sessionError?.message);
+            // Even if sign-in fails, the user exists. This is an issue.
+            // However, the user can try logging in manually.
+            return res.status(500).json({ error: `Login after signup failed: ${sessionError?.message}` });
         }
         
-        if (!sessionData.session) {
-             console.error('Login after signup did not return a session.');
-             return res.status(500).json({ error: 'Session could not be created after signup.' });
+        // Step 3: Fetch the profile created by the trigger to return to the client.
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
+            .eq('id', authData.user.id)
+            .single();
+            
+        if (profileError || !profileData) {
+            // This is a critical state. The auth user exists but the profile trigger might have failed.
+            console.error(`CRITICAL: User ${authData.user.id} was created but profile could not be fetched. Profile Error:`, profileError);
+            return res.status(500).json({ error: 'User was created, but their profile could not be retrieved.' });
         }
-        
-        // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
+
         const userForClient = {
             ...profileData,
             avatarUrl: profileData.avatar_url
