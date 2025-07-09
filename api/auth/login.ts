@@ -35,8 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .eq('id', user.id);
             
         if (profileError) {
-            console.error(`Error fetching profile for user ${user.id}:`, profileError);
-            throw new Error('Login succeeded but could not retrieve user profile due to a database error.');
+            console.error(`Error fetching profile for user ${user.id}:`, profileError.message);
+            throw new Error(`Login succeeded but could not retrieve user profile. Reason: ${profileError.message}`);
         }
 
         let profileData;
@@ -65,8 +65,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .single();
 
             if (insertError) {
-                console.error(`Failed to create missing profile for user ${user.id}. Error:`, insertError);
-                throw new Error('Login succeeded but failed to create the necessary user profile.');
+                console.error(`Failed to create missing profile for user ${user.id}. Error:`, insertError.message);
+                throw new Error(`Login succeeded but failed to create the necessary user profile. Reason: ${insertError.message}`);
             }
             
             profileData = newProfile;
