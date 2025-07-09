@@ -17,20 +17,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Create the user in the auth schema
-        const { data: { user }, error: authError } = await supabase.auth.admin.createUser({
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email,
             password,
             email_confirm: true, // Auto-confirm for this app's purpose. Real-world might send an email.
         });
 
-        if (authError) throw authError;
-        if (!user) throw new Error('User could not be created in Supabase Auth.');
+        if (authError) {
+             // Provide more specific feedback
+            if (authError.message.includes('User already registered')) {
+                return res.status(409).json({ error: 'A user with this email already exists.' });
+            }
+            throw authError;
+        }
+
+        if (!authData || !authData.user) {
+            throw new Error('User could not be created in Supabase Auth.');
+        }
+
+        const user = authData.user;
 
         // Create the public profile linked to the auth user
         const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert([{ id: user.id, name, initials }])
+            .insert([{ id: user.id, name, initials }] as any)
             .select()
             .single();
         
@@ -49,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ session: sessionData.session, user: profileData });
 
     } catch (error: any) {
-        return res.status(400).json({ error: error.message });
+        // Return 500 for unexpected server errors
+        return res.status(500).json({ error: error.message });
     }
 }

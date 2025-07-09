@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             if (!id) return res.status(400).json({ error: 'ID is required for update' });
             
-            const { data, error } = await supabase.from(resource).update(updatePayload).eq('id', id).select();
+            const { data, error } = await supabase.from(resource).update(updatePayload as any).eq('id', id).select();
             if (error) throw error;
             return res.status(200).json(data);
         }
