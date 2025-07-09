@@ -84,6 +84,9 @@ export async function handleFormSubmit() {
                 description: (document.getElementById('taskDescription') as HTMLTextAreaElement).value,
                 assigneeId: (document.getElementById('taskAssignee') as HTMLSelectElement).value || null,
                 status: state.settings.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
+                startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || null,
+                dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || null,
+                priority: (document.getElementById('taskPriority') as HTMLSelectElement).value || null,
             };
 
             const [newTask] = await apiPost('tasks', taskData);
