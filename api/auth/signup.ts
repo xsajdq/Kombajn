@@ -1,7 +1,7 @@
 
 // api/auth/signup.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../utils/supabaseAdmin';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
