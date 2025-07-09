@@ -1,4 +1,5 @@
 
+
 // api/_lib/supabaseAdmin.ts
 import { createClient } from '@supabase/supabase-js';
 
@@ -23,7 +24,18 @@ export function getSupabaseAdmin() {
     return supabaseAdmin;
 }
 
+// List of keys that are intentionally camelCase in the database and should not be converted.
+const CAMEL_CASE_EXCEPTIONS = new Set([
+  'planHistory',
+  'contractInfoNotes',
+  'employmentInfoNotes',
+]);
+
 function camelToSnake(str: string): string {
+    // If the key is a known exception, return it as is.
+    if (CAMEL_CASE_EXCEPTIONS.has(str)) {
+        return str;
+    }
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 

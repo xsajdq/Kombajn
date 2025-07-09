@@ -1,7 +1,4 @@
 
-
-
-
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -292,14 +289,32 @@ export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'history' | 'r
     renderApp();
 }
 
-export function handleUpdateEmployeeNotes(userId: string, contractNotes: string, employmentNotes: string) {
+export async function handleUpdateEmployeeNotes(userId: string, contractNotes: string, employmentNotes: string) {
     const user = state.users.find(u => u.id === userId);
     if (user) {
-        user.contractInfoNotes = contractNotes;
-        user.employmentInfoNotes = employmentNotes;
-        closeModal();
+        const payload = {
+            id: userId,
+            contractInfoNotes: contractNotes,
+            employmentInfoNotes: employmentNotes,
+        };
+        try {
+            // The response will be an array with the updated profile
+            const [updatedProfile] = await apiPut('profiles', payload);
+
+            // Update local state
+            const index = state.users.findIndex(u => u.id === userId);
+            if (index !== -1) {
+                // Merge the updated fields into the existing user object
+                state.users[index] = { ...state.users[index], ...updatedProfile };
+            }
+            closeModal();
+        } catch (error) {
+            console.error("Failed to update employee notes:", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
     }
 }
+
 
 export function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
     if (!state.currentUser || !state.activeWorkspaceId) return;

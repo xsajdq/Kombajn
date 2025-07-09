@@ -118,6 +118,18 @@ export async function handleFormSubmit() {
             state.deals.push(newDeal);
         }
 
+        if (type === 'employeeDetail') {
+            const form = document.getElementById('employeeDetailForm') as HTMLFormElement;
+            const userId = form.dataset.userId;
+            if (userId) {
+                const contractNotes = (document.getElementById('contractInfoNotes') as HTMLTextAreaElement).value;
+                const employmentNotes = (document.getElementById('employmentInfoNotes') as HTMLTextAreaElement).value;
+                // handleUpdateEmployeeNotes will call the API and close the modal.
+                await hrHandlers.handleUpdateEmployeeNotes(userId, contractNotes, employmentNotes);
+                return; // Return to prevent the default closeModal and renderApp below
+            }
+        }
+
         // The logic for other forms would follow a similar pattern:
         // 1. Get data from the form.
         // 2. Call `apiPost(resource, data)`.
