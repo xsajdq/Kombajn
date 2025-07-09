@@ -1,19 +1,22 @@
 
-import { state, saveState } from '../state.ts';
+import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Deal } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
+import { apiPut } from '../services/api.ts';
 
-let draggedTaskId: string | null = null;
+let draggedItemId: string | null = null;
+let draggedItemType: 'task' | 'deal' | null = null;
 
 export function handleDragStart(e: DragEvent) {
     const itemCard = (e.target as HTMLElement).closest<HTMLElement>('.task-card');
     if (itemCard && e.dataTransfer) {
-        // Use a generic attribute for any draggable item ID
-        draggedTaskId = itemCard.dataset.taskId!;
+        // Determine if we're dragging a task or a deal by looking at the parent board
+        draggedItemType = itemCard.closest('.sales-board') ? 'deal' : 'task';
+        draggedItemId = itemCard.dataset.taskId!; // Both use data-task-id for now
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', draggedTaskId);
+        e.dataTransfer.setData('text/plain', draggedItemId);
         setTimeout(() => itemCard.classList.add('dragging'), 0);
     }
 }
@@ -23,48 +26,80 @@ export function handleDragEnd(e: DragEvent) {
     if (itemCard) {
         itemCard.classList.remove('dragging');
     }
-    draggedTaskId = null;
+    draggedItemId = null;
+    draggedItemType = null;
     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
 
 export function handleDragOver(e: DragEvent) {
     e.preventDefault();
-    const column = (e.target as HTMLElement).closest('.kanban-column');
+    const column = (e.target as HTMLElement).closest<HTMLElement>('.kanban-column');
     if (column) {
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-        column.classList.add('drag-over');
+        // Only allow dropping tasks on status columns and deals on stage columns
+        const isTaskColumn = !!column.dataset.status;
+        const isDealColumn = !!column.dataset.stage;
+
+        if ((draggedItemType === 'task' && isTaskColumn) || (draggedItemType === 'deal' && isDealColumn)) {
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            column.classList.add('drag-over');
+        } else {
+             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
     }
 }
 
-export function handleDrop(e: DragEvent) {
+export async function handleDrop(e: DragEvent) {
     e.preventDefault();
     const column = (e.target as HTMLElement).closest<HTMLElement>('.kanban-column');
-    if (!column || !draggedTaskId || !state.currentUser) {
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    
+    if (!column || !draggedItemId || !draggedItemType || !state.currentUser) {
         return;
     }
 
-    const newStatus = column.dataset.status as Task['status'];
-    const newStage = column.dataset.stage as Deal['stage'];
-
-    const task = state.tasks.find(t => t.id === draggedTaskId);
-    const deal = state.deals.find(d => d.id === draggedTaskId);
-
-    if (task && newStatus && task.status !== newStatus) {
-        task.status = newStatus;
+    if (draggedItemType === 'task') {
+        const newStatus = column.dataset.status as Task['status'];
+        const task = state.tasks.find(t => t.id === draggedItemId);
         
-        if ((newStatus === 'inreview' || newStatus === 'done') && task.assigneeId && task.assigneeId !== state.currentUser.id) {
-            createNotification('status_change', { taskId: draggedTaskId, userIdToNotify: task.assigneeId, newStatus, actorId: state.currentUser.id });
-        }
+        if (task && newStatus && task.status !== newStatus) {
+            const oldStatus = task.status;
+            task.status = newStatus; // Optimistic update
+            renderApp(); // Re-render immediately for snappy UX
 
-        saveState(); // Save before running automations
-        runAutomations('statusChange', { task });
-        renderApp(); // Re-render after state changes
-    } else if (deal && newStage && deal.stage !== newStage) {
-        deal.stage = newStage;
-        saveState();
-        renderApp();
+            try {
+                // Persist the change to the backend
+                await apiPut('tasks', { id: task.id, status: newStatus });
+                
+                if ((newStatus === 'inreview' || newStatus === 'done') && task.assigneeId && task.assigneeId !== state.currentUser.id) {
+                    createNotification('status_change', { taskId: draggedItemId, userIdToNotify: task.assigneeId, newStatus, actorId: state.currentUser.id });
+                }
+                
+                runAutomations('statusChange', { task });
+
+            } catch (error) {
+                console.error("Failed to update task status:", error);
+                alert("Failed to update task status. Reverting change.");
+                task.status = oldStatus;
+                renderApp();
+            }
+        }
+    } else if (draggedItemType === 'deal') {
+        const newStage = column.dataset.stage as Deal['stage'];
+        const deal = state.deals.find(d => d.id === draggedItemId);
+
+        if (deal && newStage && deal.stage !== newStage) {
+            const oldStage = deal.stage;
+            deal.stage = newStage; // Optimistic update
+            renderApp(); // Re-render immediately
+
+            try {
+                await apiPut('deals', { id: deal.id, stage: newStage });
+            } catch (error) {
+                console.error("Failed to update deal stage:", error);
+                alert("Failed to update deal stage. Reverting change.");
+                deal.stage = oldStage;
+                renderApp();
+            }
+        }
     }
-    
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
