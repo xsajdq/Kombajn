@@ -5,14 +5,14 @@ import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User } from './types.ts';
+import type { User, Workspace } from './types.ts';
 
 
 export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies, workspaceJoinRequests
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, workspaceMembers, dependencies, workspaceJoinRequests
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -33,7 +33,14 @@ export async function fetchInitialData() {
     state.tasks = tasks;
     state.deals = deals;
     state.timeLogs = timeLogs;
-    state.workspaces = workspaces;
+    state.workspaces = rawWorkspaces.map((w: any) => ({
+        ...w,
+        subscription: {
+            planId: w.subscription_plan_id,
+            status: w.subscription_status
+        },
+        planHistory: w.planHistory || []
+    }));
     state.workspaceMembers = workspaceMembers;
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;

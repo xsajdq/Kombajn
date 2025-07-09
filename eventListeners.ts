@@ -749,6 +749,17 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             mainHandlers.handleSwitchChannel(channelItem.dataset.channelId!);
             return;
         }
+        
+        // --- Workspace Settings ---
+        const removeLogoBtn = target.closest<HTMLElement>('#remove-logo-btn');
+        if (removeLogoBtn) {
+            const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+            if (workspace) {
+                workspace.companyLogo = undefined;
+                teamHandlers.handleSaveWorkspaceSettings();
+            }
+            return;
+        }
 
     });
 
@@ -878,7 +889,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         // Save workspace settings when user clicks away from an input
         const workspaceSettingInput = target.closest<HTMLInputElement | HTMLTextAreaElement>('#workspace-settings-form [data-field]');
         if (workspaceSettingInput) {
-            saveState(); // Save any pending changes
+            teamHandlers.handleSaveWorkspaceSettings();
             return;
         }
     });
@@ -906,8 +917,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
                 if (workspace) {
                     workspace.companyLogo = event.target?.result as string;
-                    saveState();
-                    renderApp();
+                    teamHandlers.handleSaveWorkspaceSettings();
                 }
             };
             reader.readAsDataURL(file);

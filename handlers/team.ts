@@ -1,6 +1,4 @@
 
-
-
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -19,11 +17,9 @@ export function handleWorkspaceSwitch(workspaceId: string) {
 }
 
 export async function handleCreateWorkspace(name: string, bootstrapCallback: () => Promise<void>) {
-    if (!state.currentUser || !state.activeWorkspaceId) {
-        // This case is for creating the very first workspace from the setup screen
-        if (!state.currentUser) return;
-    } else {
-        // This case is for creating subsequent workspaces from the HR page
+    if (!state.currentUser) return;
+
+    if (state.activeWorkspaceId) {
         const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         if (!activeWorkspace) return;
 
@@ -38,7 +34,24 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
         }
     }
 
-    const [newWorkspace] = await apiPost('workspaces', { name, subscription: { planId: 'free', status: 'active' } });
+    const payload = {
+        name,
+        subscription_plan_id: 'free',
+        subscription_status: 'active'
+    };
+    
+    const [newWorkspaceRaw] = await apiPost('workspaces', payload);
+
+    // Transform the raw workspace object to match the frontend model
+    const newWorkspace = {
+        ...newWorkspaceRaw,
+        subscription: {
+            planId: newWorkspaceRaw.subscription_plan_id,
+            status: newWorkspaceRaw.subscription_status
+        },
+        planHistory: newWorkspaceRaw.planHistory || []
+    };
+
     const [newMembership] = await apiPost('workspace_members', { workspaceId: newWorkspace.id, userId: state.currentUser.id, role: 'owner' });
 
     state.workspaces.push(newWorkspace);
@@ -193,6 +206,48 @@ export function handleRemoveUserFromWorkspace(memberId: string) {
     saveState();
     renderApp();
 }
+
+export async function handleSaveWorkspaceSettings() {
+    if (!state.activeWorkspaceId) return;
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!workspace) return;
+
+    // Transform the frontend model back to the DB model for the PUT request
+    const payload = {
+        id: workspace.id,
+        name: workspace.name,
+        company_name: workspace.companyName,
+        company_address: workspace.companyAddress,
+        company_vat_id: workspace.companyVatId,
+        company_bank_name: workspace.companyBankName,
+        company_bank_account: workspace.companyBankAccount,
+        company_logo: workspace.companyLogo,
+        company_email: workspace.companyEmail,
+    };
+
+    try {
+        const [updatedWorkspaceRaw] = await apiPut('workspaces', payload);
+        const index = state.workspaces.findIndex(w => w.id === workspace.id);
+        if (index !== -1) {
+            // Re-transform the returned data to update local state accurately
+            state.workspaces[index] = {
+                ...state.workspaces[index], // Preserve other parts of state object
+                ...updatedWorkspaceRaw,   // Overwrite with fresh data from DB
+                subscription: {           // Re-nest subscription object
+                    planId: updatedWorkspaceRaw.subscription_plan_id,
+                    status: updatedWorkspaceRaw.subscription_status
+                },
+                planHistory: updatedWorkspaceRaw.planHistory || []
+            };
+        }
+        renderApp(); // Re-render to show changes (like the logo)
+        console.log("Workspace settings saved.");
+    } catch (error) {
+        console.error("Failed to save workspace settings:", error);
+        alert("Failed to save settings. Please try again.");
+    }
+}
+
 
 // --- NEW HR HANDLERS ---
 export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'history' | 'reviews') {
