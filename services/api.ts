@@ -23,7 +23,9 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
 
     if (!response.ok) {
         // Specifically handle session expiry or invalid tokens
-        if (response.status === 401) {
+        // BUT, do not reload on auth endpoints, as a failure there is expected (e.g., wrong password)
+        const isAuthEndpoint = resource.startsWith('/api/auth/login') || resource.startsWith('/api/auth/signup');
+        if (response.status === 401 && !isAuthEndpoint) {
             localStorage.removeItem(TOKEN_KEY);
             window.location.reload(); // Force a reload, which will show the login page
         }
