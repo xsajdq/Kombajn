@@ -13,7 +13,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -25,6 +25,7 @@ export async function fetchInitialData() {
         apiFetch('/api/data/workspace_members'),
         apiFetch('/api/data/task_dependencies'),
         apiFetch('/api/data/workspace_join_requests'),
+        apiFetch('/api/data/notifications'),
     ]);
 
     // Populate state with fetched data
@@ -48,6 +49,7 @@ export async function fetchInitialData() {
     state.workspaceMembers = rawWorkspaceMembers;
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;
+    state.notifications = notifications;
     // The dashboardWidgets state will default to an empty array
 
     // Set the active workspace based on the current user's memberships

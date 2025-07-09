@@ -34,11 +34,26 @@ export async function handleAddTaskComment(taskId: string, input: HTMLInputEleme
         state.ui.mention = { query: null, target: null, activeIndex: 0 }; // Reset mention state
         renderApp();
 
-        // Handle notifications after successful save
-        if (task.assigneeId && task.assigneeId !== state.currentUser.id) {
-            createNotification('new_comment', { taskId, userIdToNotify: task.assigneeId, actorId: state.currentUser.id });
+        // Handle notifications
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        const mentionedUserIds = new Set<string>();
+        let match;
+        while ((match = mentionRegex.exec(trimmedContent)) !== null) {
+            mentionedUserIds.add(match[2]);
         }
-        // ... (mention logic remains the same)
+        
+        // Notify mentioned users
+        for (const userId of mentionedUserIds) {
+            if (userId !== state.currentUser.id) {
+                 await createNotification('mention', { taskId, userIdToNotify: userId, actorId: state.currentUser.id });
+            }
+        }
+
+        // Notify assignee if they weren't the commenter or mentioned
+        if (task.assigneeId && task.assigneeId !== state.currentUser.id && !mentionedUserIds.has(task.assigneeId)) {
+            await createNotification('new_comment', { taskId, userIdToNotify: task.assigneeId, actorId: state.currentUser.id });
+        }
+
     } catch (error) {
         console.error("Failed to add comment:", error);
         alert("Could not add comment. Please try again.");
@@ -60,10 +75,10 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
             await apiPut('tasks', { id: taskId, [field]: value });
 
             if (field === 'assigneeId' && value && value !== state.currentUser.id) {
-                createNotification('new_assignment', { taskId, userIdToNotify: value, actorId: state.currentUser.id });
+                await createNotification('new_assignment', { taskId, userIdToNotify: value, actorId: state.currentUser.id });
             } else if (field === 'status') {
                  if (task.assigneeId && task.assigneeId !== state.currentUser.id) {
-                     createNotification('status_change', { taskId, userIdToNotify: task.assigneeId, newStatus: value, actorId: state.currentUser.id });
+                     await createNotification('status_change', { taskId, userIdToNotify: task.assigneeId, newStatus: value, actorId: state.currentUser.id });
                 }
                 runAutomations('statusChange', { task });
             }

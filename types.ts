@@ -2,6 +2,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -131,10 +132,15 @@ export interface NotificationAction {
     type: 'viewTask' | 'viewJoinRequests';
     taskId?: string;
 }
+
+export type NotificationType = 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request';
+
 export interface Notification {
     id: string;
     userId: string; // The user who should see this
     workspaceId: string;
+    actorId?: string;
+    type: NotificationType;
     text: string;
     createdAt: string; // ISO 8601
     isRead: boolean;

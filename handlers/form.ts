@@ -91,7 +91,7 @@ export async function handleFormSubmit() {
             const [newTask] = await apiPost('tasks', taskData);
             state.tasks.push(newTask);
             if (newTask.assigneeId && state.currentUser && newTask.assigneeId !== state.currentUser.id) {
-                createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: newTask.assigneeId, actorId: state.currentUser.id });
+                await createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: newTask.assigneeId, actorId: state.currentUser.id });
             }
         }
         

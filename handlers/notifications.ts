@@ -2,13 +2,13 @@
 
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Notification, Task } from '../types.ts';
+import type { Notification, Task, NotificationType } from '../types.ts';
 import { t } from '../i18n.ts';
 import { openTaskDetail } from './tasks.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 
 export async function createNotification(
-    type: 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request',
+    type: NotificationType,
     data: { 
         taskId?: string; 
         userIdToNotify: string; 
@@ -55,6 +55,8 @@ export async function createNotification(
         const newNotificationPayload: Omit<Notification, 'id' | 'createdAt'> = {
             userId: data.userIdToNotify,
             workspaceId: targetWorkspaceId,
+            type,
+            actorId: data.actorId,
             text,
             isRead: false,
             action: action,
