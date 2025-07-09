@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -79,6 +80,9 @@ export async function fetchInitialData() {
 export async function bootstrapApp() {
     try {
         await fetchInitialData();
+        // Sync the URL with the state determined by the data before rendering.
+        // This prevents race conditions where the router sees an old URL.
+        window.location.hash = `#/${state.currentPage}`;
         renderApp();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
