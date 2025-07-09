@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Here you could add Row Level Security (RLS) in Supabase to filter data
             // based on the authenticated user's ID (user.id).
             // For now, we fetch all data for simplicity as the app filters by workspaceId on the client.
-            const { data, error } = await supabase.from(resource).select('*');
+            const { data, error } = await (supabase.from(resource) as any).select('*');
             if (error) throw error;
             return res.status(200).json(data);
         }
@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         case 'DELETE': {
              const id = req.body.id;
              if (!id) return res.status(400).json({ error: 'ID is required for delete' });
-             const { error } = await supabase.from(resource).delete().eq('id', id);
+             const { error } = await (supabase.from(resource) as any).delete().eq('id', id);
              if (error) throw error;
              return res.status(204).send(undefined);
         }
