@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'DELETE': {
-             const { id } = req.body;
+             const id = req.body.id;
              if (!id) return res.status(400).json({ error: 'ID is required for delete' });
              const { error } = await supabase.from(resource).delete().eq('id', id);
              if (error) throw error;

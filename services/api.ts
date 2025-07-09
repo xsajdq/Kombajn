@@ -13,7 +13,13 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
         headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(resource, { ...options, headers });
+    // Combine headers with the rest of the options without spreading the top-level object
+    const finalOptions: RequestInit = {
+        ...options,
+        headers: headers
+    };
+
+    const response = await fetch(resource, finalOptions);
 
     if (!response.ok) {
         // Specifically handle session expiry or invalid tokens

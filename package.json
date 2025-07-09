@@ -1,21 +1,17 @@
 {
-  "name": "teamwork-kombajn-online",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "kombajn-app",
+  "version": "1.0.0",
+  "description": "Teamwork Kombajn Application",
+  "main": "index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "@google/genai": "0.14.0",
-    "@vercel/node": "^5.3.4",
-    "@supabase/supabase-js": "^2.50.3"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.7.2",
-    "vite": "^6.2.0"
+    "@google/genai": "^0.14.0",
+    "@supabase/supabase-js": "^2.50.3",
+    "@vercel/node": "^5.3.4"
   }
 }
