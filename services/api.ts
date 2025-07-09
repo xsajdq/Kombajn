@@ -1,4 +1,3 @@
-
 // File: services/api.ts
 import { keysToCamel } from '../utils.ts';
 
@@ -33,13 +32,9 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
     }));
 
     if (!response.ok) {
-        // Specifically handle session expiry or invalid tokens
-        // BUT, do not reload on auth endpoints, as a failure there is expected (e.g., wrong password)
-        const isAuthEndpoint = resource.startsWith('/api/auth/login') || resource.startsWith('/api/auth/signup');
-        if (response.status === 401 && !isAuthEndpoint) {
-            localStorage.removeItem(TOKEN_KEY);
-            window.location.reload(); // Force a reload, which will show the login page
-        }
+        // The calling function should handle any non-ok response.
+        // Forcing a reload here creates a bad user experience and potential loops.
+        // The `validateSession` function, for instance, already catches this error and clears the token.
         throw new Error(data.error || `Request to ${resource} failed with status ${response.status}`);
     }
 
