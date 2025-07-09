@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -20,15 +21,12 @@ export function handleWorkspaceSwitch(workspaceId: string) {
 export async function handleCreateWorkspace(name: string, bootstrapCallback: () => Promise<void>) {
     if (!state.currentUser) return;
 
-    // --- NEW: Add validation ---
     const trimmedName = name.trim();
     if (!trimmedName) {
         alert("Workspace name cannot be empty.");
         return;
     }
 
-    // Check for uniqueness (case-insensitive). This is client-side validation for good UX.
-    // The database should have a unique constraint for data integrity.
     const existingWorkspace = state.workspaces.find(w => w.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingWorkspace) {
         alert(t('hr.workspace_name_exists'));
@@ -50,35 +48,37 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
         }
     }
 
-    const payload = {
-        name: trimmedName,
-        subscription_plan_id: 'free',
-        subscription_status: 'active'
-    };
-    
-    const [newWorkspaceRaw] = await apiPost('workspaces', payload);
+    try {
+        const payload = {
+            name: trimmedName,
+            subscription_plan_id: 'free',
+            subscription_status: 'active'
+        };
+        
+        const [newWorkspaceRaw] = await apiPost('workspaces', payload);
+        await apiPost('workspace_members', { workspace_id: newWorkspaceRaw.id, user_id: state.currentUser.id, role: 'owner' });
 
-    // Transform the raw workspace object to match the frontend model
-    const newWorkspace = {
-        ...newWorkspaceRaw,
-        subscription: {
-            planId: newWorkspaceRaw.subscription_plan_id,
-            status: newWorkspaceRaw.subscription_status
-        },
-        planHistory: newWorkspaceRaw.planHistory || []
-    };
-
-    const [newMembership] = await apiPost('workspace_members', { workspace_id: newWorkspace.id, user_id: state.currentUser.id, role: 'owner' });
-
-    state.workspaces.push(newWorkspace);
-    state.workspaceMembers.push(newMembership);
-    
-    // --- NEW: Change page and set active workspace ---
-    state.currentPage = 'dashboard';
-    state.activeWorkspaceId = newWorkspace.id;
-
-    // Bootstrap the entire app to fetch all data for the new context
-    await bootstrapCallback();
+        // After successful creation, re-bootstrap the app's data.
+        await bootstrapCallback();
+        
+        // After bootstrapping, data should be loaded. We now force the navigation.
+        const workspaceJustCreated = state.workspaces.find(w => w.id === newWorkspaceRaw.id);
+        
+        if (workspaceJustCreated) {
+            // Success! The new workspace was found after bootstrap.
+            state.activeWorkspaceId = workspaceJustCreated.id;
+            state.currentPage = 'dashboard';
+            window.location.hash = '#/dashboard';
+            renderApp();
+        } else {
+            // This is a fallback for a rare race condition where the DB read is faster than the write.
+            // A page reload is the most reliable way to fix this for the user.
+            window.location.reload();
+        }
+    } catch (error) {
+        console.error("Failed to create workspace:", error);
+        alert((error as Error).message);
+    }
 }
 
 export async function handleRequestToJoinWorkspace(workspaceName: string) {
