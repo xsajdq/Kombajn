@@ -1,6 +1,7 @@
 
 
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -53,40 +54,34 @@ export async function handleCreateWorkspace(name: string) {
 
 
     try {
+        // Payloads now use camelCase, as the api service will handle conversion.
         const workspacePayload = {
             name: trimmedName,
-            subscription_plan_id: 'free',
-            subscription_status: 'active'
+            subscriptionPlanId: 'free',
+            subscriptionStatus: 'active'
         };
         
-        // 1. Create the workspace
+        // 1. Create the workspace. The response `newWorkspaceRaw` is now camelCased.
         const [newWorkspaceRaw] = await apiPost('workspaces', workspacePayload);
         
-        // 2. Create the membership, making the current user the owner
-        const memberPayload = { workspace_id: newWorkspaceRaw.id, user_id: state.currentUser.id, role: 'owner' as const };
-        const [newMemberRaw] = await apiPost('workspace_members', memberPayload);
+        // 2. Create the membership. `newMember` is now camelCased.
+        const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, role: 'owner' as const };
+        const [newMember] = await apiPost('workspace_members', memberPayload);
 
         // --- Optimistic UI Update ---
-        // Instead of a full bootstrap, we add the new data directly to the state.
         
-        // 3. Transform new workspace data and add it
+        // 3. Transform new workspace data and add it (still need to handle nesting)
         const newWorkspace: Workspace = {
             ...newWorkspaceRaw,
             subscription: {
-                planId: newWorkspaceRaw.subscription_plan_id,
-                status: newWorkspaceRaw.subscription_status
+                planId: newWorkspaceRaw.subscriptionPlanId,
+                status: newWorkspaceRaw.subscriptionStatus
             },
             planHistory: newWorkspaceRaw.planHistory || []
         };
         state.workspaces.push(newWorkspace);
 
-        // 4. Add the new membership to the state
-        const newMember: WorkspaceMember = {
-            id: newMemberRaw.id,
-            workspaceId: newMemberRaw.workspace_id,
-            userId: newMemberRaw.user_id,
-            role: newMemberRaw.role,
-        };
+        // 4. Add the new membership to the state. No manual transform needed.
         state.workspaceMembers.push(newMember);
 
         // 5. Set the new workspace as active and navigate to the dashboard
@@ -130,7 +125,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
         return;
     }
 
-    const [newRequest] = await apiPost('workspace_join_requests', { workspace_id: targetWorkspace.id, user_id: state.currentUser.id, status: 'pending' });
+    const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
     // Notify all owners of the target workspace
@@ -153,8 +148,8 @@ export async function handleApproveJoinRequest(requestId: string) {
 
     // 1. Add user to workspace members
     const [newMember] = await apiPost('workspace_members', {
-        workspace_id: request.workspaceId,
-        user_id: request.userId,
+        workspaceId: request.workspaceId,
+        userId: request.userId,
         role: 'member' // Default role for approved users
     });
 
@@ -254,35 +249,35 @@ export async function handleSaveWorkspaceSettings() {
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
 
-    // Transform the frontend model back to the DB model for the PUT request
+    // The payload now uses camelCase.
     const payload = {
         id: workspace.id,
         name: workspace.name,
-        company_name: workspace.companyName,
-        company_address: workspace.companyAddress,
-        company_vat_id: workspace.companyVatId,
-        company_bank_name: workspace.companyBankName,
-        company_bank_account: workspace.companyBankAccount,
-        company_logo: workspace.companyLogo,
-        company_email: workspace.companyEmail,
+        companyName: workspace.companyName,
+        companyAddress: workspace.companyAddress,
+        companyVatId: workspace.companyVatId,
+        companyBankName: workspace.companyBankName,
+        companyBankAccount: workspace.companyBankAccount,
+        companyLogo: workspace.companyLogo,
+        companyEmail: workspace.companyEmail,
     };
 
     try {
-        const [updatedWorkspaceRaw] = await apiPut('workspaces', payload);
+        const [updatedWorkspace] = await apiPut('workspaces', payload);
         const index = state.workspaces.findIndex(w => w.id === workspace.id);
         if (index !== -1) {
-            // Re-transform the returned data to update local state accurately
+            // Re-nest the subscription object after update.
             state.workspaces[index] = {
-                ...state.workspaces[index], // Preserve other parts of state object
-                ...updatedWorkspaceRaw,   // Overwrite with fresh data from DB
-                subscription: {           // Re-nest subscription object
-                    planId: updatedWorkspaceRaw.subscription_plan_id,
-                    status: updatedWorkspaceRaw.subscription_status
+                ...state.workspaces[index],
+                ...updatedWorkspace,
+                subscription: {
+                    planId: updatedWorkspace.subscriptionPlanId,
+                    status: updatedWorkspace.subscriptionStatus
                 },
-                planHistory: updatedWorkspaceRaw.planHistory || []
+                planHistory: updatedWorkspace.planHistory || []
             };
         }
-        renderApp(); // Re-render to show changes (like the logo)
+        renderApp();
         console.log("Workspace settings saved.");
     } catch (error) {
         console.error("Failed to save workspace settings:", error);

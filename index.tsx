@@ -33,21 +33,18 @@ export async function fetchInitialData() {
     state.tasks = tasks;
     state.deals = deals;
     state.timeLogs = timeLogs;
+    // Data from the API is now camelCase, but the Workspace type has a nested structure.
+    // We still need to manually map this.
     state.workspaces = rawWorkspaces.map((w: any) => ({
         ...w,
         subscription: {
-            planId: w.subscription_plan_id,
-            status: w.subscription_status
+            planId: w.subscriptionPlanId,
+            status: w.subscriptionStatus
         },
         planHistory: w.planHistory || []
     }));
-    // FIX: Transform workspace_members from snake_case (DB) to camelCase (app)
-    state.workspaceMembers = rawWorkspaceMembers.map((m: any): WorkspaceMember => ({
-        id: m.id,
-        workspaceId: m.workspace_id,
-        userId: m.user_id,
-        role: m.role,
-    }));
+    // All API data is now automatically converted to camelCase.
+    state.workspaceMembers = rawWorkspaceMembers;
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;
     // The dashboardWidgets state will default to an empty array

@@ -129,3 +129,22 @@ export function getUsage(workspaceId: string) {
 export function camelToSnake(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
+
+export function snakeToCamel(str: string): string {
+    return str.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
+}
+
+function convertKeys(obj: any, converter: (key: string) => string): any {
+    if (Array.isArray(obj)) {
+        return obj.map(v => convertKeys(v, converter));
+    } else if (obj !== null && typeof obj === 'object' && obj.constructor === Object) {
+        return Object.keys(obj).reduce((acc, key) => {
+            acc[converter(key)] = convertKeys(obj[key], converter);
+            return acc;
+        }, {} as any);
+    }
+    return obj;
+}
+
+export const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
+export const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);

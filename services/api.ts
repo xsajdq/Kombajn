@@ -1,4 +1,5 @@
 // File: services/api.ts
+import { keysToCamel, keysToSnake } from '../utils.ts';
 
 const TOKEN_KEY = 'kombajn_auth_token';
 
@@ -21,6 +22,15 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
 
     const response = await fetch(resource, finalOptions);
 
+    if (response.status === 204) { // Handle No Content response
+        return null;
+    }
+
+    // Try to parse JSON body, which may exist for both success and error responses
+    const data = await response.json().catch(() => ({ 
+        error: `Request to ${resource} failed with status ${response.status}: ${response.statusText}` 
+    }));
+
     if (!response.ok) {
         // Specifically handle session expiry or invalid tokens
         // BUT, do not reload on auth endpoints, as a failure there is expected (e.g., wrong password)
@@ -29,28 +39,23 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
             localStorage.removeItem(TOKEN_KEY);
             window.location.reload(); // Force a reload, which will show the login page
         }
-        const err = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(err.error || `Request to ${resource} failed with status ${response.status}`);
+        throw new Error(data.error || `Request to ${resource} failed with status ${response.status}`);
     }
 
-    if (response.status === 204) { // Handle No Content response
-        return null;
-    }
-    
-    return response.json();
+    return keysToCamel(data);
 }
 
 
 export function apiPost(resource: string, body: any) {
     return apiFetch(`/api/data/${resource}`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify(keysToSnake(body)),
     });
 }
 
 export function apiPut(resource: string, body: any) {
     return apiFetch(`/api/data/${resource}`, {
         method: 'PUT',
-        body: JSON.stringify(body),
+        body: JSON.stringify(keysToSnake(body)),
     });
 }

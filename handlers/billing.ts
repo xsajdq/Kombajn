@@ -14,32 +14,33 @@ export async function handlePlanChange(newPlanId: PlanId) {
         const currentHistory = Array.isArray(workspace.planHistory) ? workspace.planHistory : [];
         const updatedHistory = [...currentHistory, newChange];
 
+        // The payload now uses camelCase, and the API service will convert it to snake_case.
         const payload = {
             id: workspace.id,
-            subscription_plan_id: newPlanId,
+            subscriptionPlanId: newPlanId,
             planHistory: updatedHistory
         };
         
         try {
-            const [updatedWorkspaceRaw] = await apiPut('workspaces', payload);
+            // The response `updatedWorkspace` will have its keys converted to camelCase by apiFetch.
+            const [updatedWorkspace] = await apiPut('workspaces', payload);
             const index = state.workspaces.findIndex(w => w.id === workspace.id);
             if (index !== -1) {
                 // Re-transform the returned data to update local state accurately
                 state.workspaces[index] = {
                     ...state.workspaces[index], // Preserve other parts of state object
-                    ...updatedWorkspaceRaw,   // Overwrite with fresh data from DB
+                    ...updatedWorkspace,   // Overwrite with fresh data from DB
                     subscription: {           // Re-nest subscription object
-                        planId: updatedWorkspaceRaw.subscription_plan_id,
-                        status: updatedWorkspaceRaw.subscription_status
+                        planId: updatedWorkspace.subscriptionPlanId,
+                        status: updatedWorkspace.subscriptionStatus
                     },
-                    planHistory: updatedWorkspaceRaw.planHistory || []
+                    planHistory: updatedWorkspace.planHistory || []
                 };
             }
             renderApp();
         } catch (error) {
             console.error("Failed to change plan:", error);
             alert("Failed to change plan. Please try again.");
-            // Optionally, you could re-fetch data here to revert optimistic UI changes
         }
     }
 }
