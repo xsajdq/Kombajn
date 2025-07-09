@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -208,7 +209,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const nameInput = document.getElementById('new-workspace-name-setup') as HTMLInputElement;
             const name = nameInput.value.trim();
             if (name) {
-                await teamHandlers.handleCreateWorkspace(name, bootstrapCallback);
+                await teamHandlers.handleCreateWorkspace(name);
             }
             return;
         }
@@ -241,7 +242,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const nameInput = document.getElementById('new-workspace-name') as HTMLInputElement;
             const name = nameInput.value.trim();
             if (name) {
-                await teamHandlers.handleCreateWorkspace(name, bootstrapCallback);
+                await teamHandlers.handleCreateWorkspace(name);
                 nameInput.value = ''; // Clear form
             }
         } else if (target.id === 'add-subtask-form') {
@@ -570,44 +571,8 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             renderApp();
             return;
         }
-        const langSwitcher = target.closest<HTMLSelectElement>('#language-switcher');
-        if (langSwitcher) {
-            langSwitcher.addEventListener('change', () => {
-                state.settings.language = langSwitcher.value as 'en' | 'pl';
-                saveState();
-                renderApp();
-            });
-            return;
-        }
         
-        // --- Kanban Workflow Switcher ---
-        const kanbanWorkflowSwitcher = target.closest<HTMLSelectElement>('#kanban-workflow-switcher');
-        if (kanbanWorkflowSwitcher) {
-             kanbanWorkflowSwitcher.addEventListener('change', () => {
-                state.settings.defaultKanbanWorkflow = kanbanWorkflowSwitcher.value as 'simple' | 'advanced';
-                saveState();
-                renderApp();
-            });
-            return;
-        }
-        
-         // --- Workspace Switcher ---
-        const workspaceSwitcher = target.closest<HTMLSelectElement>('#workspace-switcher');
-        if (workspaceSwitcher) {
-             workspaceSwitcher.addEventListener('change', () => {
-                teamHandlers.handleWorkspaceSwitch(workspaceSwitcher.value);
-            });
-            return;
-        }
-
         // --- Member management ---
-        const roleSelector = target.closest<HTMLSelectElement>('select[data-member-id]');
-        if (roleSelector) {
-            roleSelector.addEventListener('change', () => {
-                teamHandlers.handleChangeUserRole(roleSelector.dataset.memberId!, roleSelector.value as Role);
-            });
-            return;
-        }
         const removeMemberBtn = target.closest<HTMLElement>('[data-remove-member-id]');
         if (removeMemberBtn) {
             if (confirm('Are you sure you want to remove this member?')) {
@@ -894,9 +859,41 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         }
     });
     
-    // File upload handler
+    // File upload handler & other 'change' events
     app.addEventListener('change', (e: Event) => {
         const target = e.target as HTMLInputElement;
+
+        // Workspace Switcher
+        if (target.id === 'workspace-switcher') {
+            teamHandlers.handleWorkspaceSwitch(target.value);
+            return;
+        }
+
+        // --- Role Selector ---
+        const roleSelector = target.closest<HTMLSelectElement>('select[data-member-id]');
+        if (roleSelector) {
+            teamHandlers.handleChangeUserRole(roleSelector.dataset.memberId!, roleSelector.value as Role);
+            return;
+        }
+        
+        // --- Language Switcher ---
+        const langSwitcher = target.closest<HTMLSelectElement>('#language-switcher');
+        if (langSwitcher) {
+            state.settings.language = langSwitcher.value as 'en' | 'pl';
+            saveState();
+            renderApp();
+            return;
+        }
+        
+        // --- Kanban Workflow Switcher ---
+        const kanbanWorkflowSwitcher = target.closest<HTMLSelectElement>('#kanban-workflow-switcher');
+        if (kanbanWorkflowSwitcher) {
+            state.settings.defaultKanbanWorkflow = kanbanWorkflowSwitcher.value as 'simple' | 'advanced';
+            saveState();
+            renderApp();
+            return;
+        }
+
 
         if (target.id === 'attachment-file-input' && target.files?.length) {
             const file = target.files[0];

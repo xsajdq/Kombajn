@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -49,11 +50,20 @@ export async function fetchInitialData() {
     // Set the active workspace based on the current user's memberships
     const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
     if (userWorkspaces.length > 0) {
-        state.activeWorkspaceId = userWorkspaces[0].workspaceId;
+        const lastActiveId = localStorage.getItem('activeWorkspaceId');
+        const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
+        
+        if (lastActiveId && lastActiveWorkspaceExists) {
+            state.activeWorkspaceId = lastActiveId;
+        } else {
+            state.activeWorkspaceId = userWorkspaces[0].workspaceId;
+            localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId);
+        }
     } else {
         // If user has no workspace, show the setup page.
         state.currentPage = 'setup';
-        // No need to set activeWorkspaceId, it remains null.
+        state.activeWorkspaceId = null; // Ensure it's null
+        localStorage.removeItem('activeWorkspaceId');
     }
 
     console.log("Initial data fetched and state populated.", state);

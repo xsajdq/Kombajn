@@ -13,12 +13,16 @@ import { createNotification } from './notifications.ts';
 export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
-        closeSidePanels(false);
-        renderApp();
+        localStorage.setItem('activeWorkspaceId', workspaceId); // Save for next session
+        closeSidePanels(false); // Close panels without re-rendering immediately
+        state.currentPage = 'dashboard'; // Default to dashboard on switch
+        window.location.hash = '#/dashboard'; // Update URL
+        renderApp(); // Now re-render the whole app
     }
 }
 
-export async function handleCreateWorkspace(name: string, bootstrapCallback: () => Promise<void>) {
+
+export async function handleCreateWorkspace(name: string) {
     if (!state.currentUser) return;
 
     const trimmedName = name.trim();
@@ -27,54 +31,73 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
         return;
     }
 
+    // Client-side check for unique name
     const existingWorkspace = state.workspaces.find(w => w.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingWorkspace) {
         alert(t('hr.workspace_name_exists'));
         return;
     }
+    
+    // Check plan limits
+    const ownedWorkspacesCount = state.workspaces.filter(w =>
+        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
+    ).length;
+    // Use the 'free' plan limits if the user has no workspaces yet.
+    const currentPlanId = state.activeWorkspaceId ? state.workspaces.find(w => w.id === state.activeWorkspaceId)!.subscription.planId : 'free';
+    const planLimits = PLANS[currentPlanId];
 
-    if (state.activeWorkspaceId) {
-        const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-        if (!activeWorkspace) return;
-
-        const ownedWorkspacesCount = state.workspaces.filter(w =>
-            state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
-        ).length;
-
-        const planLimits = PLANS[activeWorkspace.subscription.planId];
-        if (ownedWorkspacesCount >= planLimits.workspaces) {
-            alert(t('hr.workspace_limit_reached'));
-            return;
-        }
+    if (ownedWorkspacesCount >= planLimits.workspaces) {
+        alert(t('hr.workspace_limit_reached'));
+        return;
     }
 
+
     try {
-        const payload = {
+        const workspacePayload = {
             name: trimmedName,
             subscription_plan_id: 'free',
             subscription_status: 'active'
         };
         
-        const [newWorkspaceRaw] = await apiPost('workspaces', payload);
-        await apiPost('workspace_members', { workspace_id: newWorkspaceRaw.id, user_id: state.currentUser.id, role: 'owner' });
+        // 1. Create the workspace
+        const [newWorkspaceRaw] = await apiPost('workspaces', workspacePayload);
+        
+        // 2. Create the membership, making the current user the owner
+        const memberPayload = { workspace_id: newWorkspaceRaw.id, user_id: state.currentUser.id, role: 'owner' as const };
+        const [newMemberRaw] = await apiPost('workspace_members', memberPayload);
 
-        // After successful creation, re-bootstrap the app's data.
-        await bootstrapCallback();
+        // --- Optimistic UI Update ---
+        // Instead of a full bootstrap, we add the new data directly to the state.
         
-        // After bootstrapping, data should be loaded. We now force the navigation.
-        const workspaceJustCreated = state.workspaces.find(w => w.id === newWorkspaceRaw.id);
+        // 3. Transform new workspace data and add it
+        const newWorkspace: Workspace = {
+            ...newWorkspaceRaw,
+            subscription: {
+                planId: newWorkspaceRaw.subscription_plan_id,
+                status: newWorkspaceRaw.subscription_status
+            },
+            planHistory: newWorkspaceRaw.planHistory || []
+        };
+        state.workspaces.push(newWorkspace);
+
+        // 4. Add the new membership to the state
+        const newMember: WorkspaceMember = {
+            id: newMemberRaw.id,
+            workspaceId: newMemberRaw.workspace_id,
+            userId: newMemberRaw.user_id,
+            role: newMemberRaw.role,
+        };
+        state.workspaceMembers.push(newMember);
+
+        // 5. Set the new workspace as active and navigate to the dashboard
+        state.activeWorkspaceId = newWorkspace.id;
+        state.currentPage = 'dashboard';
+        localStorage.setItem('activeWorkspaceId', newWorkspace.id);
+        window.location.hash = '#/dashboard';
         
-        if (workspaceJustCreated) {
-            // Success! The new workspace was found after bootstrap.
-            state.activeWorkspaceId = workspaceJustCreated.id;
-            state.currentPage = 'dashboard';
-            window.location.hash = '#/dashboard';
-            renderApp();
-        } else {
-            // This is a fallback for a rare race condition where the DB read is faster than the write.
-            // A page reload is the most reliable way to fix this for the user.
-            window.location.reload();
-        }
+        // 6. Render the app with the complete, updated state
+        renderApp();
+
     } catch (error) {
         console.error("Failed to create workspace:", error);
         alert((error as Error).message);
