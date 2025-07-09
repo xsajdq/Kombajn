@@ -97,6 +97,7 @@ export async function bootstrapApp() {
 
 async function init() {
     setupEventListeners(bootstrapApp);
+    window.addEventListener('hashchange', renderApp);
 
     const user = await validateSession();
     if (user) {
