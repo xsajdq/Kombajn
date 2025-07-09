@@ -79,7 +79,7 @@ export function SettingsPage() {
         if (!workspace) return '';
         
         return `
-            <div id="workspace-settings-form">
+            <form id="workspace-settings-form">
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
                     <div>
                         <h4>${t('settings.company_details')}</h4>
@@ -124,7 +124,11 @@ export function SettingsPage() {
                         </div>
                     </div>
                 </div>
-            </div>
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    <span id="workspace-save-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
+                    <button type="button" id="save-workspace-settings-btn" class="btn btn-primary">${t('modals.save')}</button>
+                </div>
+            </form>
         `;
     };
 

@@ -1,4 +1,5 @@
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -275,7 +276,16 @@ export async function handleSaveWorkspaceSettings() {
             };
         }
         renderApp();
-        console.log("Workspace settings saved.");
+
+        // Provide user feedback after the render
+        const statusEl = document.getElementById('workspace-save-status');
+        if (statusEl) {
+            statusEl.textContent = t('panels.saved');
+            setTimeout(() => {
+                const currentStatusEl = document.getElementById('workspace-save-status');
+                if (currentStatusEl) currentStatusEl.textContent = '';
+            }, 2000);
+        }
     } catch (error) {
         console.error("Failed to save workspace settings:", error);
         alert("Failed to save settings. Please try again.");

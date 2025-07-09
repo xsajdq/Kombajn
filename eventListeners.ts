@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -715,6 +716,12 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         }
         
         // --- Workspace Settings ---
+        const saveWorkspaceBtn = target.closest<HTMLElement>('#save-workspace-settings-btn');
+        if (saveWorkspaceBtn) {
+            teamHandlers.handleSaveWorkspaceSettings();
+            return;
+        }
+        
         const removeLogoBtn = target.closest<HTMLElement>('#remove-logo-btn');
         if (removeLogoBtn) {
             const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
@@ -802,7 +809,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             if (workspace) {
                 // @ts-ignore
                 workspace[workspaceSettingInput.dataset.field] = workspaceSettingInput.value;
-                // Defer saving until user clicks away or saves
+                // Defer saving until user clicks a save button
             }
             return;
         }
@@ -848,14 +855,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     });
 
     app.addEventListener('focusout', (e: FocusEvent) => {
-        const target = e.target as HTMLElement;
-
-        // Save workspace settings when user clicks away from an input
-        const workspaceSettingInput = target.closest<HTMLInputElement | HTMLTextAreaElement>('#workspace-settings-form [data-field]');
-        if (workspaceSettingInput) {
-            teamHandlers.handleSaveWorkspaceSettings();
-            return;
-        }
+        // This is now empty after removing the auto-save functionality.
     });
     
     // File upload handler & other 'change' events
