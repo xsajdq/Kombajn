@@ -13,9 +13,9 @@
   "dependencies": {
     "@google/genai": "^0.14.0",
     "@supabase/supabase-js": "^2.50.3",
-    "@vercel/node": "^5.3.4"
+    "@vercel/node": "^5.3.4",
+    "esbuild": "^0.20.2"
   },
   "devDependencies": {
-    "esbuild": "^0.20.2"
   }
 }

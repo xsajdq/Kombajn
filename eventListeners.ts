@@ -60,7 +60,7 @@ function handleInsertMention(user: User, input: HTMLInputElement) {
     input.selectionStart = input.selectionEnd = textBeforeCursor.replace(mentionRegex, mentionTag).length;
 }
 
-export function setupEventListeners() {
+export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     const app = document.getElementById('app')!;
     
     // --- Global Keydown Listener ---
@@ -171,12 +171,14 @@ export function setupEventListeners() {
             button.disabled = true;
             errorDiv.style.display = 'none';
 
-            auth.login(email, password).catch(err => {
-                errorDiv.textContent = err.message;
-                errorDiv.style.display = 'block';
-                button.textContent = 'Log In';
-                button.disabled = false;
-            });
+            auth.login(email, password)
+                .then(() => bootstrapCallback())
+                .catch(err => {
+                    errorDiv.textContent = err.message;
+                    errorDiv.style.display = 'block';
+                    button.textContent = 'Log In';
+                    button.disabled = false;
+                });
             return;
         }
 
@@ -191,12 +193,14 @@ export function setupEventListeners() {
             button.disabled = true;
             errorDiv.style.display = 'none';
 
-            auth.signup(name, email, password).catch(err => {
-                errorDiv.textContent = err.message;
-                errorDiv.style.display = 'block';
-                button.textContent = 'Register';
-                button.disabled = false;
-            });
+            auth.signup(name, email, password)
+                .then(() => bootstrapCallback())
+                .catch(err => {
+                    errorDiv.textContent = err.message;
+                    errorDiv.style.display = 'block';
+                    button.textContent = 'Register';
+                    button.disabled = false;
+                });
             return;
         }
 

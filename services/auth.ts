@@ -1,7 +1,6 @@
 // File: services/auth.ts
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import { bootstrapApp } from '../index.tsx';
 import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';
 
@@ -26,7 +25,6 @@ export async function login(email: string, password: string): Promise<void> {
     });
     setToken(data.session.access_token);
     state.currentUser = data.user;
-    await bootstrapApp();
 }
 
 export async function signup(name: string, email: string, password: string): Promise<void> {
@@ -36,7 +34,6 @@ export async function signup(name: string, email: string, password: string): Pro
     });
     setToken(data.session.access_token);
     state.currentUser = data.user;
-    await bootstrapApp();
 }
 
 export async function logout(): Promise<void> {

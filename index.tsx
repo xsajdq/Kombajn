@@ -73,7 +73,7 @@ export async function bootstrapApp() {
 
 
 async function init() {
-    setupEventListeners();
+    setupEventListeners(bootstrapApp);
 
     const user = await validateSession();
     if (user) {
