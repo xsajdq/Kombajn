@@ -3,8 +3,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../utils/supabaseAdmin.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-    
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
     try {
         const supabase = getSupabaseAdmin();
         const { name, email, password } = req.body;
@@ -13,10 +15,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Name, email, and password are required.' });
         }
         if (password.length < 6) {
-             return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+            return res.status(400).json({ error: 'Password must be at least 6 characters.' });
         }
 
-        // Create the user in the auth schema
+        // Step 1: Create the user in the auth schema
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email,
             password,
@@ -24,43 +26,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         if (authError) {
-             // Provide more specific feedback
-            if (authError.message.includes('User already registered')) {
+            console.error('Supabase auth error during signup:', authError.message);
+            if (authError.message.includes('User already registered') || authError.message.toLowerCase().includes('unique constraint')) {
                 return res.status(409).json({ error: 'A user with this email already exists.' });
             }
-            throw authError;
+            return res.status(500).json({ error: `Authentication service error: ${authError.message}` });
         }
 
         if (!authData || !authData.user) {
-            throw new Error('User could not be created in Supabase Auth.');
+            console.error('User creation did not return a user object.');
+            return res.status(500).json({ error: 'User creation failed unexpectedly.' });
         }
 
         const user = authData.user;
 
-        // Create the public profile linked to the auth user
-        const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        const { data: profileData, error: profileError } = await supabase
+        // Step 2: Create the public profile linked to the auth user
+        const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+        const { data: profileDataArray, error: profileError } = await supabase
             .from('profiles')
-            .insert([{ id: user.id, name, initials }] as any)
-            .select()
-            .single();
-        
-        if (profileError) {
-            // If profile creation fails, we should ideally delete the auth user to avoid orphans.
-            await supabase.auth.admin.deleteUser(user.id);
-            console.error(`Failed to create profile for ${user.id}. Rolled back auth user creation. Error: ${profileError.message}`);
-            throw new Error(`Could not create user profile: ${profileError.message}`);
-        }
+            .insert({ id: user.id, name, initials } as any)
+            .select();
 
-        // Sign in the newly created user to get a session for the client
+        if (profileError) {
+            await supabase.auth.admin.deleteUser(user.id);
+            console.error(`Profile creation failed, rolling back auth user. Error: ${profileError.message}`);
+            return res.status(500).json({ error: `Could not create user profile: ${profileError.message}` });
+        }
+        
+        if (!profileDataArray || profileDataArray.length === 0) {
+            await supabase.auth.admin.deleteUser(user.id);
+            console.error('Profile insert succeeded but returned no data. Rolled back auth user.');
+            return res.status(500).json({ error: 'Profile creation failed after insert.' });
+        }
+        
+        const profileData = profileDataArray[0];
+
+        // Step 3: Sign in the newly created user to get a session for the client
         const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
 
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+            console.error('Sign-in after signup failed:', sessionError.message);
+            return res.status(500).json({ error: `Login after signup failed: ${sessionError.message}` });
+        }
+        
+        if (!sessionData.session) {
+             console.error('Login after signup did not return a session.');
+             return res.status(500).json({ error: 'Session could not be created after signup.' });
+        }
 
         return res.status(200).json({ session: sessionData.session, user: profileData });
 
     } catch (error: any) {
-        // Return 500 for unexpected server errors
-        return res.status(500).json({ error: error.message });
+        console.error('Unexpected error in signup handler:', error);
+        return res.status(500).json({ error: 'An unexpected server error occurred.' });
     }
 }

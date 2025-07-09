@@ -34,8 +34,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'POST': {
-            const objectsToInsert = Array.isArray(req.body) ? req.body : [req.body];
-            const { data, error } = await supabase.from(resource).insert(objectsToInsert as any).select();
+            // The req.body can be a single object or an array of objects. `insert` handles both.
+            const { data, error } = await supabase.from(resource).insert(req.body).select();
             if (error) throw error;
             return res.status(201).json(data);
         }
