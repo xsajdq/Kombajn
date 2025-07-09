@@ -1,3 +1,4 @@
+
 // api/auth/signup.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../utils/supabaseAdmin.ts';
@@ -48,8 +49,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .select();
 
         if (profileError) {
-            await supabase.auth.admin.deleteUser(user.id);
-            console.error(`Profile creation failed, rolling back auth user. Error: ${profileError.message}`);
+            console.error(`Profile creation failed for user ${user.id}. Attempting to roll back auth user. Profile Error:`, profileError);
+            try {
+                const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+                if (deleteError) {
+                    // This is a critical state. The auth user exists but the profile doesn't.
+                    // Log this for manual intervention.
+                    console.error(`CRITICAL: Failed to roll back auth user ${user.id} after profile creation failure. Manual cleanup required. Delete Error:`, deleteError);
+                } else {
+                    console.log(`Successfully rolled back auth user ${user.id}.`);
+                }
+            } catch (rollbackError) {
+                console.error(`CRITICAL: An unexpected error occurred during auth user rollback for user ${user.id}. Manual cleanup required. Rollback Error:`, rollbackError);
+            }
+            // Return the original profile error to the client.
             return res.status(500).json({ error: `Could not create user profile: ${profileError.message}` });
         }
         

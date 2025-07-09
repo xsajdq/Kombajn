@@ -40,7 +40,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(201).json(data);
         }
         case 'PUT': {
-            const { id, ...updateData } = req.body;
+            // Create a shallow copy of the request body to avoid mutating it directly.
+            // This also avoids using a rest operator in destructuring, which was causing the type error.
+            const recordToUpdate = { ...req.body };
+            const id = recordToUpdate.id;
+            delete recordToUpdate.id;
+            const updateData = recordToUpdate;
 
             if (!id) return res.status(400).json({ error: 'ID is required for update' });
             
