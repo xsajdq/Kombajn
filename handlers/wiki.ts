@@ -1,10 +1,11 @@
 
 
-import { state, saveState, generateId } from '../state.ts';
+import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { WikiHistory } from '../types.ts';
 import { closeModal } from './ui.ts';
 import { renderApp } from '../app-renderer.ts';
+import { apiPost, apiPut } from '../services/api.ts';
 
 export function startWikiEdit() {
     state.ui.isWikiEditing = true;
@@ -22,60 +23,61 @@ export function saveWikiEdit() {
         updateProjectWiki(state.ui.openedProjectId, editor.value);
     }
     state.ui.isWikiEditing = false;
-    renderApp();
+    // updateProjectWiki will re-render on success
 }
 
-export function updateProjectWiki(projectId: string, content: string) {
+export async function updateProjectWiki(projectId: string, content: string) {
     const project = state.projects.find(p => p.id === projectId);
     if (project && state.currentUser) {
-        // Don't save if content is identical
         if (project.wikiContent === content) return;
 
-        // Save the current state to history before updating
-        const historyEntry: WikiHistory = {
-            id: generateId(),
-            projectId: projectId,
-            content: project.wikiContent,
-            userId: state.currentUser.id,
-            createdAt: new Date().toISOString(),
-        };
-        state.wikiHistory.push(historyEntry);
-
+        const originalContent = project.wikiContent;
+        // Optimistic update
         project.wikiContent = content;
-        saveState();
         
         const statusEl = document.getElementById('wiki-save-status');
-        if (statusEl) {
-            statusEl.textContent = t('panels.saved');
+        if (statusEl) statusEl.textContent = t('panels.saved');
+        renderApp();
+
+
+        try {
+            // Persist the change
+            await apiPut('projects', { id: projectId, wikiContent: content });
+
+            // Persist history entry
+            await apiPost('wiki_history', {
+                projectId: projectId,
+                content: originalContent, // save the previous content
+                userId: state.currentUser.id,
+            });
+
+            // Fetch latest history to update state (optional, but good practice)
+            const history = await apiPost('wiki_history/get_for_project', { projectId });
+            state.wikiHistory = history;
+            
             setTimeout(() => {
-                if (statusEl) statusEl.textContent = '';
+                const currentStatusEl = document.getElementById('wiki-save-status');
+                if (currentStatusEl) currentStatusEl.textContent = '';
             }, 2000);
+
+        } catch (error) {
+            console.error("Failed to save wiki:", error);
+            alert("Could not save wiki content.");
+            // Revert on failure
+            project.wikiContent = originalContent;
+            renderApp();
         }
     }
 }
 
-export function handleRestoreWikiVersion(historyId: string) {
+export async function handleRestoreWikiVersion(historyId: string) {
     const historyEntry = state.wikiHistory.find(h => h.id === historyId);
     if (!historyEntry) return;
 
-    const project = state.projects.find(p => p.id === historyEntry.projectId);
-    if (!project || !state.currentUser) return;
-
-    // Save the current version to history before restoring an old one
-    const currentContentHistory: WikiHistory = {
-        id: generateId(),
-        projectId: project.id,
-        content: project.wikiContent,
-        userId: state.currentUser.id,
-        createdAt: new Date().toISOString(),
-    };
-    state.wikiHistory.push(currentContentHistory);
-    
-    // Restore content
-    project.wikiContent = historyEntry.content;
+    // This will save the current content to history and then update with the old content
+    await updateProjectWiki(historyEntry.projectId, historyEntry.content);
     
     // The user is restoring, so they probably want to view it, not edit it.
     state.ui.isWikiEditing = false;
-
-    closeModal(); // This also saves and re-renders
+    closeModal();
 }

@@ -1,6 +1,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -193,6 +194,8 @@ export interface Automation {
 export type DashboardWidgetType = 'myTasks' | 'projectStatus' | 'teamWorkload' | 'recentActivity';
 export interface DashboardWidget {
     id: string;
+    userId: string;
+    workspaceId: string;
     type: DashboardWidgetType;
     x: number;
     y: number;

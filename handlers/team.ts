@@ -1,6 +1,6 @@
 
 
-import { state, saveState, generateId } from '../state.ts';
+import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
 import { closeSidePanels, closeModal } from './ui.ts';
@@ -12,11 +12,11 @@ import { createNotification } from './notifications.ts';
 export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
-        localStorage.setItem('activeWorkspaceId', workspaceId); // Save for next session
-        closeSidePanels(false); // Close panels without re-rendering immediately
-        state.currentPage = 'dashboard'; // Default to dashboard on switch
-        window.location.hash = '#/dashboard'; // Update URL
-        renderApp(); // Now re-render the whole app
+        localStorage.setItem('activeWorkspaceId', workspaceId);
+        closeSidePanels(false);
+        state.currentPage = 'dashboard';
+        window.location.hash = '#/dashboard';
+        renderApp();
     }
 }
 
@@ -30,18 +30,15 @@ export async function handleCreateWorkspace(name: string) {
         return;
     }
 
-    // Client-side check for unique name
     const existingWorkspace = state.workspaces.find(w => w.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingWorkspace) {
         alert(t('hr.workspace_name_exists'));
         return;
     }
     
-    // Check plan limits
     const ownedWorkspacesCount = state.workspaces.filter(w =>
         state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
     ).length;
-    // Use the 'free' plan limits if the user has no workspaces yet.
     const currentPlanId = state.activeWorkspaceId ? state.workspaces.find(w => w.id === state.activeWorkspaceId)!.subscription.planId : 'free';
     const planLimits = PLANS[currentPlanId];
 
@@ -52,23 +49,17 @@ export async function handleCreateWorkspace(name: string) {
 
 
     try {
-        // Payloads now use camelCase, as the api service will handle conversion.
         const workspacePayload = {
             name: trimmedName,
             subscriptionPlanId: 'free',
             subscriptionStatus: 'active'
         };
         
-        // 1. Create the workspace. The response `newWorkspaceRaw` is now camelCased.
         const [newWorkspaceRaw] = await apiPost('workspaces', workspacePayload);
         
-        // 2. Create the membership. `newMember` is now camelCased.
         const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, role: 'owner' as const };
         const [newMember] = await apiPost('workspace_members', memberPayload);
 
-        // --- Optimistic UI Update ---
-        
-        // 3. Transform new workspace data and add it (still need to handle nesting)
         const newWorkspace: Workspace = {
             ...newWorkspaceRaw,
             subscription: {
@@ -79,16 +70,13 @@ export async function handleCreateWorkspace(name: string) {
         };
         state.workspaces.push(newWorkspace);
 
-        // 4. Add the new membership to the state. No manual transform needed.
         state.workspaceMembers.push(newMember);
 
-        // 5. Set the new workspace as active and navigate to the dashboard
         state.activeWorkspaceId = newWorkspace.id;
         state.currentPage = 'dashboard';
         localStorage.setItem('activeWorkspaceId', newWorkspace.id);
         window.location.hash = '#/dashboard';
         
-        // 6. Render the app with the complete, updated state
         renderApp();
 
     } catch (error) {
@@ -100,8 +88,6 @@ export async function handleCreateWorkspace(name: string) {
 export async function handleRequestToJoinWorkspace(workspaceName: string) {
     if (!state.currentUser) return;
     
-    // The client has all workspaces, so we can find the ID here.
-    // In a larger app, this would be an API call to a dedicated endpoint.
     const targetWorkspace = state.workspaces.find(w => w.name.toLowerCase() === workspaceName.toLowerCase());
     
     if (!targetWorkspace) {
@@ -109,14 +95,12 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
         return;
     }
     
-    // Check if user is already a member
-    const isMember = state.workspaceMembers.some(m => m.workspaceId === targetWorkspace.id && m.userId === state.currentUser.id);
+    const isMember = state.workspaceMembers.some(m => m.workspaceId === targetWorkspace.id && m.userId === state.currentUser!.id);
     if (isMember) {
         alert("You are already a member of this workspace.");
         return;
     }
 
-    // Check for existing pending request
     const hasPendingRequest = state.workspaceJoinRequests.some(r => r.workspaceId === targetWorkspace.id && r.userId === state.currentUser!.id && r.status === 'pending');
     if (hasPendingRequest) {
         alert("You already have a pending request to join this workspace.");
@@ -126,7 +110,6 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
     const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
-    // Notify all owners of the target workspace
     const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');
     owners.forEach(owner => {
         createNotification('join_request', {
@@ -144,91 +127,93 @@ export async function handleApproveJoinRequest(requestId: string) {
     const request = state.workspaceJoinRequests.find(r => r.id === requestId);
     if (!request) return;
 
-    // 1. Add user to workspace members
-    const [newMember] = await apiPost('workspace_members', {
-        workspaceId: request.workspaceId,
-        userId: request.userId,
-        role: 'member' // Default role for approved users
-    });
+    try {
+        const [newMember] = await apiPost('workspace_members', {
+            workspaceId: request.workspaceId,
+            userId: request.userId,
+            role: 'member'
+        });
 
-    // 2. Update the request status to 'approved'
-    const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
+        const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
 
-    // 3. Update local state
-    state.workspaceMembers.push(newMember);
-    const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
-    if (reqIndex > -1) {
-        state.workspaceJoinRequests[reqIndex] = updatedRequest;
+        state.workspaceMembers.push(newMember);
+        const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
+        if (reqIndex > -1) {
+            state.workspaceJoinRequests[reqIndex] = updatedRequest;
+        }
+        renderApp();
+    } catch(error) {
+        alert("Failed to approve join request.");
     }
-    renderApp();
 }
 
 export async function handleRejectJoinRequest(requestId: string) {
-    const [updatedRequest] = await apiPut('workspace_join_requests', { id: requestId, status: 'rejected' });
-    const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
-    if (reqIndex > -1) {
-        state.workspaceJoinRequests[reqIndex] = updatedRequest;
+    try {
+        const [updatedRequest] = await apiPut('workspace_join_requests', { id: requestId, status: 'rejected' });
+        const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
+        if (reqIndex > -1) {
+            state.workspaceJoinRequests[reqIndex] = updatedRequest;
+        }
+        renderApp();
+    } catch(error) {
+        alert("Failed to reject join request.");
     }
-    renderApp();
 }
 
-export function handleInviteUser(email: string, role: Role) {
-    if (!state.activeWorkspaceId) return;
+export async function handleInviteUser(email: string, role: Role) {
+    if (!state.activeWorkspaceId || !state.currentUser) return;
     
-    // Check limits before inviting
-    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!workspace) return;
-    const usage = getUsage(workspace.id);
-    const planLimits = PLANS[workspace.subscription.planId];
-    if (usage.users >= planLimits.users) {
-        alert(t('billing.limit_reached_users').replace('{planName}', workspace.subscription.planId));
+    // This is a simplified invite. A real system would send an email.
+    // Here we assume the user exists or will be created. We just create the membership.
+    // For simplicity, we can't create a profile for a non-existent user here.
+    // This part of the logic remains a simplified local representation.
+    // A better approach would be an API endpoint that handles the invitation logic.
+    const user = state.users.find(u => u.email === email);
+    if (!user) {
+        alert(`User with email ${email} not found. Please ask them to sign up first.`);
         return;
     }
-    
-    // Find or create a user in the global user list
-    let user = state.users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-        const namePart = email.split('@')[0];
-        user = {
-            id: generateId(),
-            email: email.toLowerCase(),
-            initials: namePart.substring(0, 2).toUpperCase(),
-        };
-        state.users.push(user);
-    }
-    
-    // Check if user is already a member of this workspace
-    const isAlreadyMember = state.workspaceMembers.some(m => m.userId === user!.id && m.workspaceId === state.activeWorkspaceId);
+
+    const isAlreadyMember = state.workspaceMembers.some(m => m.userId === user.id && m.workspaceId === state.activeWorkspaceId);
     if (isAlreadyMember) {
         alert("This user is already a member of this workspace.");
         return;
     }
 
-    const newMember: WorkspaceMember = {
-        id: generateId(),
-        workspaceId: state.activeWorkspaceId,
-        userId: user.id,
-        role,
-    };
-    state.workspaceMembers.push(newMember);
-    saveState();
-    renderApp();
-}
-
-export function handleChangeUserRole(memberId: string, newRole: Role) {
-    const member = state.workspaceMembers.find(m => m.id === memberId);
-    if (member) {
-        member.role = newRole;
-        saveState();
+    try {
+        const [newMember] = await apiPost('workspace_members', {
+            workspaceId: state.activeWorkspaceId,
+            userId: user.id,
+            role,
+        });
+        state.workspaceMembers.push(newMember);
         renderApp();
+    } catch (error) {
+        alert("Failed to invite user.");
     }
 }
 
-export function handleRemoveUserFromWorkspace(memberId: string) {
-    const memberToRemove = state.workspaceMembers.find(m => m.id === memberId);
-    if (!memberToRemove) return;
+export async function handleChangeUserRole(memberId: string, newRole: Role) {
+    const member = state.workspaceMembers.find(m => m.id === memberId);
+    if (member) {
+        const originalRole = member.role;
+        member.role = newRole;
+        renderApp();
+        try {
+            await apiPut('workspace_members', { id: memberId, role: newRole });
+        } catch(error) {
+            member.role = originalRole;
+            renderApp();
+            alert("Failed to change user role.");
+        }
+    }
+}
 
-    // Prevent removing the last owner
+export async function handleRemoveUserFromWorkspace(memberId: string) {
+    const memberIndex = state.workspaceMembers.findIndex(m => m.id === memberId);
+    if (memberIndex === -1) return;
+
+    const memberToRemove = state.workspaceMembers[memberIndex];
     if (memberToRemove.role === 'owner') {
         const ownerCount = state.workspaceMembers.filter(m => m.workspaceId === memberToRemove.workspaceId && m.role === 'owner').length;
         if (ownerCount <= 1) {
@@ -237,9 +222,16 @@ export function handleRemoveUserFromWorkspace(memberId: string) {
         }
     }
     
-    state.workspaceMembers = state.workspaceMembers.filter(m => m.id !== memberId);
-    saveState();
+    const [removedMember] = state.workspaceMembers.splice(memberIndex, 1);
     renderApp();
+    
+    try {
+        await apiPost('workspace_members/delete', { id: memberId });
+    } catch(error) {
+        state.workspaceMembers.splice(memberIndex, 0, removedMember);
+        renderApp();
+        alert("Failed to remove user.");
+    }
 }
 
 export async function handleSaveWorkspaceSettings() {
@@ -247,7 +239,6 @@ export async function handleSaveWorkspaceSettings() {
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
 
-    // The payload now uses camelCase.
     const payload = {
         id: workspace.id,
         name: workspace.name,
@@ -264,7 +255,6 @@ export async function handleSaveWorkspaceSettings() {
         const [updatedWorkspace] = await apiPut('workspaces', payload);
         const index = state.workspaces.findIndex(w => w.id === workspace.id);
         if (index !== -1) {
-            // Re-nest the subscription object after update.
             state.workspaces[index] = {
                 ...state.workspaces[index],
                 ...updatedWorkspace,
@@ -277,7 +267,6 @@ export async function handleSaveWorkspaceSettings() {
         }
         renderApp();
 
-        // Provide user feedback after the render
         const statusEl = document.getElementById('workspace-save-status');
         if (statusEl) {
             statusEl.textContent = t('panels.saved');
@@ -293,7 +282,6 @@ export async function handleSaveWorkspaceSettings() {
 }
 
 
-// --- NEW HR HANDLERS ---
 export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'history' | 'reviews') {
     state.ui.hr.activeTab = tab;
     renderApp();
@@ -308,13 +296,9 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
             employmentInfoNotes: employmentNotes,
         };
         try {
-            // The response will be an array with the updated profile
             const [updatedProfile] = await apiPut('profiles', payload);
-
-            // Update local state
             const index = state.users.findIndex(u => u.id === userId);
             if (index !== -1) {
-                // Merge the updated fields into the existing user object
                 state.users[index] = { ...state.users[index], ...updatedProfile };
             }
             closeModal();
@@ -326,44 +310,74 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
 }
 
 
-export function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
+export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
-    const newRequest: TimeOffRequest = {
-        id: generateId(),
+    const newRequestPayload: Omit<TimeOffRequest, 'id'|'createdAt'|'status'> = {
         workspaceId: state.activeWorkspaceId,
         userId: state.currentUser.id,
         type,
         startDate,
         endDate,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
     };
 
-    state.timeOffRequests.push(newRequest);
-    closeModal();
-}
-
-export function handleApproveTimeOffRequest(requestId: string) {
-    const request = state.timeOffRequests.find(r => r.id === requestId);
-    if (request) {
-        request.status = 'approved';
-        saveState();
-        renderApp();
+    try {
+        const [savedRequest] = await apiPost('time_off_requests', newRequestPayload);
+        state.timeOffRequests.push(savedRequest);
+        closeModal();
+    } catch(error) {
+        alert("Failed to submit time off request.");
     }
 }
 
-export function handleRejectTimeOffRequest(requestId: string, reason: string) {
+export async function handleApproveTimeOffRequest(requestId: string) {
     const request = state.timeOffRequests.find(r => r.id === requestId);
     if (request) {
+        const originalStatus = request.status;
+        request.status = 'approved';
+        renderApp();
+        try {
+            await apiPut('time_off_requests', { id: requestId, status: 'approved' });
+        } catch(error) {
+            request.status = originalStatus;
+            renderApp();
+            alert("Failed to approve request.");
+        }
+    }
+}
+
+export async function handleRejectTimeOffRequest(requestId: string, reason: string) {
+    const request = state.timeOffRequests.find(r => r.id === requestId);
+    if (request) {
+        const originalStatus = request.status;
         request.status = 'rejected';
         request.rejectionReason = reason;
-        // The calling function `handleFormSubmit` will close the modal.
+        
+        try {
+            await apiPut('time_off_requests', { id: requestId, status: 'rejected', rejectionReason: reason });
+            closeModal(); // Success, close modal
+        } catch(error) {
+            request.status = originalStatus;
+            delete request.rejectionReason;
+            alert("Failed to reject request.");
+        } finally {
+            renderApp();
+        }
     }
 }
 
-export function handleRemoveUserFromProject(projectMemberId: string) {
-    state.projectMembers = state.projectMembers.filter(pm => pm.id !== projectMemberId);
-    saveState();
+export async function handleRemoveUserFromProject(projectMemberId: string) {
+    const memberIndex = state.projectMembers.findIndex(pm => pm.id === projectMemberId);
+    if (memberIndex === -1) return;
+    
+    const [removedMember] = state.projectMembers.splice(memberIndex, 1);
     renderApp();
+    
+    try {
+        await apiPost('project_members/delete', { id: projectMemberId });
+    } catch(error) {
+        state.projectMembers.splice(memberIndex, 0, removedMember);
+        renderApp();
+        alert("Failed to remove user from project.");
+    }
 }

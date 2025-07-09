@@ -1,6 +1,6 @@
 
 
-import { state, saveState, generateId } from '../state.ts';
+import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS } from '../utils.ts';
@@ -37,13 +37,13 @@ export async function handleFormSubmit() {
                 phone: (document.getElementById('clientPhone') as HTMLInputElement).value,
             };
 
-            if (clientId) { // This is an UPDATE
+            if (clientId) {
                 const [updatedClient] = await apiPut('clients', { ...clientData, id: clientId });
                 const index = state.clients.findIndex(c => c.id === clientId);
                 if (index !== -1) {
                     state.clients[index] = updatedClient;
                 }
-            } else { // This is a CREATE
+            } else {
                 const [newClient] = await apiPost('clients', clientData);
                 state.clients.push(newClient);
             }
@@ -69,7 +69,6 @@ export async function handleFormSubmit() {
             
             const [newProject] = await apiPost('projects', projectData);
             state.projects.push(newProject);
-            // Additional local logic (like creating channels or template tasks) would go here
         }
 
         if (type === 'addTask') {
@@ -91,11 +90,71 @@ export async function handleFormSubmit() {
 
             const [newTask] = await apiPost('tasks', taskData);
             state.tasks.push(newTask);
-            // Handle notifications
             if (newTask.assigneeId && state.currentUser && newTask.assigneeId !== state.currentUser.id) {
                 createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: newTask.assigneeId, actorId: state.currentUser.id });
             }
         }
+        
+        if (type === 'addInvoice') {
+            const form = document.getElementById('invoiceForm') as HTMLFormElement;
+            if (!form) return;
+            
+            const clientId = data.clientId;
+            const issueDate = data.issueDate;
+            const dueDate = data.dueDate;
+            const items = data.items;
+
+            if (!clientId || !issueDate || !dueDate || items.length === 0) {
+                alert("Please fill all required invoice fields.");
+                return;
+            }
+            
+            const invoicePayload = {
+                workspaceId: activeWorkspaceId,
+                clientId: clientId,
+                invoiceNumber: `INV-${Date.now()}`, // Simple invoice number generation
+                issueDate: issueDate,
+                dueDate: dueDate,
+                status: 'pending',
+                emailStatus: 'not_sent',
+            };
+            
+            const [newInvoice] = await apiPost('invoices', invoicePayload);
+            
+            // Link line items to the new invoice
+            const itemPayloads = items.map((item: any) => ({
+                invoiceId: newInvoice.id,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+            }));
+            const lineItems = await apiPost('invoice_line_items', itemPayloads);
+            
+            newInvoice.items = lineItems;
+            state.invoices.push(newInvoice);
+            
+            // Mark time logs and expenses as billed
+            if (data.sourceLogIds?.length > 0) {
+                for (const logId of data.sourceLogIds) {
+                    await apiPut('time_logs', { id: logId, invoiceId: newInvoice.id });
+                    const log = state.timeLogs.find(l => l.id === logId);
+                    if (log) log.invoiceId = newInvoice.id;
+                }
+            }
+        }
+        
+        if (type === 'rejectTimeOffRequest') {
+             const form = document.getElementById('rejectTimeOffForm') as HTMLFormElement;
+             const requestId = form.dataset.requestId!;
+             const reason = (document.getElementById('rejectionReason') as HTMLTextAreaElement).value;
+             if (reason) {
+                await hrHandlers.handleRejectTimeOffRequest(requestId, reason);
+             } else {
+                alert("Reason for rejection is required.");
+                return; // Prevent closing the modal
+             }
+        }
+
 
         if (type === 'addDeal') {
             const name = (document.getElementById('dealName') as HTMLInputElement).value;
@@ -111,7 +170,6 @@ export async function handleFormSubmit() {
                 ownerId: (document.getElementById('dealOwner') as HTMLSelectElement).value,
                 stage: (document.getElementById('dealStage') as HTMLSelectElement).value as Deal['stage'],
                 expectedCloseDate: (document.getElementById('dealExpectedCloseDate') as HTMLInputElement).value || null,
-                createdAt: new Date().toISOString()
             };
 
             const [newDeal] = await apiPost('deals', dealData);
@@ -124,9 +182,8 @@ export async function handleFormSubmit() {
             if (userId) {
                 const contractNotes = (document.getElementById('contractInfoNotes') as HTMLTextAreaElement).value;
                 const employmentNotes = (document.getElementById('employmentInfoNotes') as HTMLTextAreaElement).value;
-                // handleUpdateEmployeeNotes will call the API and close the modal.
                 await hrHandlers.handleUpdateEmployeeNotes(userId, contractNotes, employmentNotes);
-                return; // Return to prevent the default closeModal and renderApp below
+                return; 
             }
         }
 
@@ -137,16 +194,10 @@ export async function handleFormSubmit() {
             const comment = (document.getElementById('timeLogComment') as HTMLTextAreaElement).value.trim();
 
             if (taskId && timeString && dateString) {
-                // handleSaveManualTimeLog will throw on error, and the catch block below will handle it.
                 await timerHandlers.handleSaveManualTimeLog(taskId, timeString, dateString, comment || undefined);
             }
         }
 
-        // The logic for other forms would follow a similar pattern:
-        // 1. Get data from the form.
-        // 2. Call `apiPost(resource, data)`.
-        // 3. Push the returned object into the local state.
-        
         closeModal();
         renderApp();
 

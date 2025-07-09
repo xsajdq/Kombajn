@@ -1,7 +1,6 @@
 
 
-
-import { state, saveState, generateId } from '../state.ts';
+import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
@@ -20,77 +19,85 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
     const project = state.projects.find(p => p.id === projectId);
     if (!project) return null;
     
-    // 1. Check for explicit project membership first. This is the highest priority.
     const projectMember = state.projectMembers.find(pm => pm.projectId === projectId && pm.userId === userId);
     if (projectMember) {
         return projectMember.role;
     }
 
-    // 2. If the project is private and user is not an explicit member, they have no access.
     if (project.privacy === 'private') {
         return null;
     }
 
-    // 3. If the project is public, determine implied role based on workspace role.
     const workspaceMember = state.workspaceMembers.find(wm => wm.workspaceId === project.workspaceId && wm.userId === userId);
-    if (!workspaceMember) return null; // Not part of the workspace at all.
+    if (!workspaceMember) return null;
 
     switch (workspaceMember.role) {
         case 'owner':
         case 'manager':
-            return 'admin'; // Workspace admins are project admins for all public projects.
+            return 'admin';
         case 'member':
-            return 'editor'; // Workspace members can edit public projects.
+            return 'editor';
         case 'client':
-            return 'viewer'; // Clients can view public projects.
+            return 'viewer';
         default:
             return null;
     }
 }
 
-export function handleSaveProjectAsTemplate(projectId: string) {
+export async function handleSaveProjectAsTemplate(projectId: string) {
     const project = state.projects.find(p => p.id === projectId);
-    if (!project) return;
+    if (!project || !state.activeWorkspaceId) return;
 
     const tasksToTemplate = state.tasks
-        .filter(t => t.projectId === projectId && !t.parentId) // Only top-level tasks
+        .filter(t => t.projectId === projectId && !t.parentId)
         .map(({ name, description, priority }) => ({ name, description, priority }));
 
     const automationsToTemplate = state.automations
         .filter(a => a.projectId === projectId)
         .map(({ trigger, action }): Omit<Automation, 'id' | 'workspaceId' | 'projectId'> => ({ trigger, action }));
 
-    const newTemplate: ProjectTemplate = {
-        id: generateId(),
-        workspaceId: project.workspaceId,
+    const newTemplatePayload: Omit<ProjectTemplate, 'id'> = {
+        workspaceId: state.activeWorkspaceId,
         name: `${project.name} Template`,
         tasks: tasksToTemplate,
         automations: automationsToTemplate,
     };
 
-    state.projectTemplates.push(newTemplate);
-    saveState();
-    alert(`Project "${project.name}" saved as a template!`);
-    closeProjectMenu();
+    try {
+        const [savedTemplate] = await apiPost('project_templates', newTemplatePayload);
+        state.projectTemplates.push(savedTemplate);
+        alert(`Project "${project.name}" saved as a template!`);
+    } catch (error) {
+        console.error("Failed to save project as template:", error);
+        alert("Could not save template. Please try again.");
+    } finally {
+        closeProjectMenu();
+    }
 }
 
-export function handleFileUpload(projectId: string, file: File, taskId?: string) {
+export async function handleFileUpload(projectId: string, file: File, taskId?: string) {
     const project = state.projects.find(p => p.id === projectId);
-    if (!project) return;
+    if (!project || !state.activeWorkspaceId) return;
 
-    const newAttachment: Attachment = {
-        id: generateId(),
-        workspaceId: project.workspaceId,
+    // This is a simplified version. A real implementation would upload to Supabase Storage
+    // and then save the file URL/path in the database.
+    const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
+        workspaceId: state.activeWorkspaceId,
         projectId: projectId,
         taskId: taskId,
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
-        createdAt: new Date().toISOString(),
     };
-    state.attachments.push(newAttachment);
-    saveState();
-    renderApp();
+    
+    try {
+        const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
+        state.attachments.push(savedAttachment);
+        renderApp();
+    } catch(error) {
+        console.error("File upload failed:", error);
+        alert("File upload failed. Please try again.");
+    }
 }
 
 export function toggleProjectMenu() {
@@ -103,31 +110,32 @@ export function closeProjectMenu() {
     menu?.classList.add('hidden');
 }
 
-// --- CHAT HANDLERS ---
 export function handleSwitchChannel(channelId: string) {
     state.ui.activeChannelId = channelId;
-    saveState();
     renderApp();
 }
 
-export function handleSendMessage(channelId: string, content: string) {
+export async function handleSendMessage(channelId: string, content: string) {
     if (!state.currentUser) return;
     
-    const newMessage: ChatMessage = {
-        id: generateId(),
+    const newMessagePayload: Omit<ChatMessage, 'id'|'createdAt'> = {
         channelId,
         userId: state.currentUser.id,
         content,
-        createdAt: new Date().toISOString(),
     };
     
-    state.chatMessages.push(newMessage);
-    saveState();
-    renderApp();
-    
-    // Scroll to bottom of messages
-    const messageList = document.querySelector('.message-list');
-    if (messageList) {
-        messageList.scrollTop = messageList.scrollHeight;
+    try {
+        const [savedMessage] = await apiPost('chat_messages', newMessagePayload);
+        state.chatMessages.push(savedMessage);
+        
+        const messageList = document.querySelector('.message-list');
+        renderApp(); // Re-render to show the new message
+        if (messageList) {
+            // Scroll to bottom after render
+            setTimeout(() => messageList.scrollTop = messageList.scrollHeight, 0);
+        }
+    } catch (error) {
+        console.error("Failed to send message:", error);
+        alert("Could not send message.");
     }
 }
