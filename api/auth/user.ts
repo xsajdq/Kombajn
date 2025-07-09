@@ -19,10 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             throw error || new Error('User not found for the provided token.');
         }
 
-        // Fetch the corresponding public profile data
+        // Fetch the corresponding public profile data, now including the email
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id, name, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
+            .select('id, name, email, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
             .eq('id', user.id)
             .single();
 
@@ -30,13 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              throw new Error(`User authenticated but profile not found: ${profileError.message}`);
         }
         
-        // Combine auth user data (for email) and profile data
-        const responseUser = {
-            ...profileData,
-            email: user.email
-        };
-        
-        return res.status(200).json({ user: responseUser });
+        return res.status(200).json({ user: profileData });
 
     } catch (error: any) {
         return res.status(401).json({ error: error.message });
