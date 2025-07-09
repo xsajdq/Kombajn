@@ -41,11 +41,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const user = authData.user;
 
-        // Step 2: Create the public profile linked to the auth user
+        // Step 2: Create the public profile linked to the auth user, now including the email.
         const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
         const { data: profileDataArray, error: profileError } = await (supabase
             .from('profiles') as any)
-            .insert([{ id: user.id, name, initials }])
+            .insert([{ id: user.id, name, email, initials }])
             .select('id, name, initials');
 
         if (profileError) {
