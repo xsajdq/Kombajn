@@ -23,7 +23,8 @@ export async function login(email: string, password: string): Promise<void> {
         method: 'POST',
         body: JSON.stringify({ email, password })
     });
-    setToken(data.session.access_token);
+    // FIX: The `apiFetch` service converts snake_case (access_token) to camelCase (accessToken).
+    setToken(data.session.accessToken);
     state.currentUser = data.user;
 }
 
@@ -32,7 +33,8 @@ export async function signup(name: string, email: string, password: string): Pro
         method: 'POST',
         body: JSON.stringify({ name, email, password })
     });
-    setToken(data.session.access_token);
+    // FIX: The `apiFetch` service converts snake_case (access_token) to camelCase (accessToken).
+    setToken(data.session.accessToken);
     state.currentUser = data.user;
 }
 
