@@ -142,11 +142,20 @@ export function Modal() {
                     </div>
                     <div class="form-group">
                         <label for="taskStartDate">${t('modals.start_date')}</label>
-                        <input type="date" id="taskStartDate" class="form-control">
+                        <input type="date" id="taskStartDate" class="form-control" value="${new Date().toISOString().slice(0, 10)}">
                     </div>
                     <div class="form-group">
                         <label for="taskDueDate">${t('modals.due_date')}</label>
                         <input type="date" id="taskDueDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPriority">${t('modals.priority')}</label>
+                        <select id="taskPriority" class="form-control">
+                            <option value="">${t('modals.priority_none')}</option>
+                            <option value="low">${t('modals.priority_low')}</option>
+                            <option value="medium">${t('modals.priority_medium')}</option>
+                            <option value="high">${t('modals.priority_high')}</option>
+                        </select>
                     </div>
                 </div>
             </form>
