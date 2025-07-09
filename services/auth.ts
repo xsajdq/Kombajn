@@ -3,6 +3,7 @@ import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';
+import { unsubscribeAll } from './supabase.ts';
 
 const TOKEN_KEY = 'kombajn_auth_token';
 
@@ -39,6 +40,7 @@ export async function signup(name: string, email: string, password: string): Pro
 }
 
 export async function logout(): Promise<void> {
+    await unsubscribeAll();
     const token = getToken();
     if (token) {
         await apiFetch('/api/auth/logout', { method: 'POST' });

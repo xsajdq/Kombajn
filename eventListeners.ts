@@ -1,6 +1,5 @@
 
 
-
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -26,6 +25,7 @@ import * as dashboardHandlers from './handlers/dashboard.ts';
 import * as userHandlers from './handlers/user.ts';
 import * as auth from './services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
+import { subscribeToRealtimeUpdates } from './services/supabase.ts';
 
 
 function handleMentionInput(input: HTMLInputElement) {
@@ -176,7 +176,10 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             errorDiv.style.display = 'none';
 
             auth.login(email, password)
-                .then(() => bootstrapCallback())
+                .then(async () => {
+                    await bootstrapCallback();
+                    subscribeToRealtimeUpdates();
+                })
                 .catch(err => {
                     errorDiv.textContent = err.message;
                     errorDiv.style.display = 'block';
@@ -197,7 +200,10 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             errorDiv.style.display = 'none';
 
             auth.signup(name, email, password)
-                .then(() => bootstrapCallback())
+                .then(async () => {
+                    await bootstrapCallback();
+                    subscribeToRealtimeUpdates();
+                })
                 .catch(err => {
                     errorDiv.textContent = err.message;
                     errorDiv.style.display = 'block';

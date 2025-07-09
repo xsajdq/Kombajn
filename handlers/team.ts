@@ -8,6 +8,7 @@ import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
+import { subscribeToRealtimeUpdates } from '../services/supabase.ts';
 
 export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
@@ -17,6 +18,8 @@ export function handleWorkspaceSwitch(workspaceId: string) {
         state.currentPage = 'dashboard';
         window.location.hash = '#/dashboard';
         renderApp();
+        // Re-subscribe to realtime channels for the new workspace context
+        subscribeToRealtimeUpdates();
     }
 }
 

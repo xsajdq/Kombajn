@@ -7,6 +7,7 @@ import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
 import type { User, Workspace, WorkspaceMember } from './types.ts';
+import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 
 
 export async function fetchInitialData() {
@@ -102,11 +103,16 @@ async function init() {
     setupEventListeners(bootstrapApp);
     window.addEventListener('hashchange', renderApp);
 
+    // Initialize the Supabase client for realtime updates
+    await initSupabase();
+
     const user = await validateSession();
     if (user) {
         console.log("Session validated for user:", user);
         state.currentUser = user;
         await bootstrapApp();
+        // After bootstrapping, we have the user and workspace, so we can subscribe.
+        subscribeToRealtimeUpdates();
     } else {
         console.log("No valid session found. Showing auth page.");
         state.currentPage = 'auth';
