@@ -35,18 +35,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         case 'POST': {
             // The req.body can be a single object or an array of objects. `insert` handles both.
-            const { data, error } = await supabase.from(resource).insert(req.body).select();
+            const { data, error } = await (supabase.from(resource) as any).insert(req.body).select();
             if (error) throw error;
             return res.status(201).json(data);
         }
         case 'PUT': {
-            const updatePayload: { [key: string]: any; id?: any; } = req.body;
-            const id = updatePayload.id;
-            delete updatePayload.id;
+            const { id, ...updateData } = req.body;
 
             if (!id) return res.status(400).json({ error: 'ID is required for update' });
             
-            const { data, error } = await supabase.from(resource).update(updatePayload as any).eq('id', id).select();
+            const { data, error } = await (supabase.from(resource) as any)
+              .update(updateData)
+              .eq('id', id)
+              .select();
             if (error) throw error;
             return res.status(200).json(data);
         }

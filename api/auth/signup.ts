@@ -42,9 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Step 2: Create the public profile linked to the auth user
         const initials = name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-        const { data: profileDataArray, error: profileError } = await supabase
-            .from('profiles')
-            .insert({ id: user.id, name, initials } as any)
+        const { data: profileDataArray, error: profileError } = await (supabase
+            .from('profiles') as any)
+            .insert([{ id: user.id, name, initials }])
             .select();
 
         if (profileError) {
