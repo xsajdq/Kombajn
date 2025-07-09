@@ -1,3 +1,4 @@
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -158,11 +159,11 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     });
 
 
-    app.addEventListener('submit', (e: SubmitEvent) => {
+    app.addEventListener('submit', async (e: SubmitEvent) => {
         const target = e.target as HTMLElement;
+        e.preventDefault();
 
         if (target.id === 'loginForm') {
-            e.preventDefault();
             const email = (document.getElementById('loginEmail') as HTMLInputElement).value;
             const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
             const errorDiv = document.getElementById('login-error')!;
@@ -183,7 +184,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         }
 
         if (target.id === 'registerForm') {
-            e.preventDefault();
             const name = (document.getElementById('registerName') as HTMLInputElement).value;
             const email = (document.getElementById('registerEmail') as HTMLInputElement).value;
             const password = (document.getElementById('registerPassword') as HTMLInputElement).value;
@@ -203,16 +203,32 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 });
             return;
         }
+        
+        if (target.id === 'create-workspace-setup-form') {
+            const nameInput = document.getElementById('new-workspace-name-setup') as HTMLInputElement;
+            const name = nameInput.value.trim();
+            if (name) {
+                await teamHandlers.handleCreateWorkspace(name, bootstrapCallback);
+            }
+            return;
+        }
+
+        if (target.id === 'join-workspace-setup-form') {
+            const nameInput = document.getElementById('join-workspace-name-setup') as HTMLInputElement;
+            const name = nameInput.value.trim();
+            if (name) {
+                await teamHandlers.handleRequestToJoinWorkspace(name);
+            }
+            return;
+        }
 
         if (target.id === 'ai-task-generator-form') {
-            e.preventDefault();
             const promptEl = document.getElementById('ai-prompt') as HTMLTextAreaElement;
             const promptText = promptEl.value.trim();
             if (promptText) {
                 handleAiTaskGeneration(promptText);
             }
         } else if (target.id === 'invite-user-form') {
-            e.preventDefault();
             const emailInput = document.getElementById('invite-email') as HTMLInputElement;
             const roleInput = document.getElementById('invite-role') as HTMLSelectElement;
             const email = emailInput.value.trim();
@@ -222,15 +238,13 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 emailInput.value = ''; // Clear form
             }
         } else if (target.id === 'create-workspace-form') {
-            e.preventDefault();
             const nameInput = document.getElementById('new-workspace-name') as HTMLInputElement;
             const name = nameInput.value.trim();
             if (name) {
-                teamHandlers.handleCreateWorkspace(name);
+                await teamHandlers.handleCreateWorkspace(name, bootstrapCallback);
                 nameInput.value = ''; // Clear form
             }
         } else if (target.id === 'add-subtask-form') {
-            e.preventDefault();
             const input = target.querySelector<HTMLInputElement>('input')!;
             const parentTaskId = target.dataset.parentTaskId!;
             if (input.value.trim() && parentTaskId) {
@@ -238,7 +252,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 input.value = '';
             }
         } else if (target.id === 'add-dependency-form') {
-            e.preventDefault();
             const select = target.querySelector('select') as HTMLSelectElement;
             const blockedTaskId = target.dataset.blockedTaskId!;
             const blockingTaskId = select.value;
@@ -246,7 +259,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 taskHandlers.handleAddDependency(blockingTaskId, blockedTaskId);
             }
         } else if (target.id === 'add-custom-field-form') {
-            e.preventDefault();
             const nameInput = target.querySelector<HTMLInputElement>('#custom-field-name')!;
             const typeInput = target.querySelector<HTMLSelectElement>('#custom-field-type')!;
             if (nameInput.value && typeInput.value) {
@@ -254,7 +266,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 nameInput.value = '';
             }
         } else if (target.id === 'add-automation-form') {
-            e.preventDefault();
             const projectId = target.querySelector<HTMLSelectElement>('#automation-project')!.value;
             const triggerStatus = target.querySelector<HTMLSelectElement>('#automation-trigger-status')!.value as Task['status'];
             const actionUser = target.querySelector<HTMLSelectElement>('#automation-action-user')!.value;
@@ -262,17 +273,12 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 automationHandlers.handleAddAutomation(projectId, triggerStatus, actionUser);
             }
         } else if (target.id === 'chat-form') {
-            e.preventDefault();
             const input = document.getElementById('chat-message-input') as HTMLInputElement;
             const content = input.value.trim();
             if (content && state.ui.activeChannelId) {
                 mainHandlers.handleSendMessage(state.ui.activeChannelId, content);
                 input.value = '';
             }
-        }
-        else if (target.matches('form')) {
-            // Generic form handler if needed in future
-            e.preventDefault();
         }
     });
 
@@ -395,6 +401,18 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         if (rejectRequestBtn) {
             const requestId = rejectRequestBtn.dataset.rejectRequestId!;
             uiHandlers.showModal('rejectTimeOffRequest', { requestId });
+            return;
+        }
+
+        const approveJoinRequestBtn = target.closest<HTMLElement>('[data-approve-join-request-id]');
+        if (approveJoinRequestBtn) {
+            teamHandlers.handleApproveJoinRequest(approveJoinRequestBtn.dataset.approveJoinRequestId!);
+            return;
+        }
+        
+        const rejectJoinRequestBtn = target.closest<HTMLElement>('[data-reject-join-request-id]');
+        if (rejectJoinRequestBtn) {
+            teamHandlers.handleRejectJoinRequest(rejectJoinRequestBtn.dataset.rejectJoinRequestId!);
             return;
         }
 

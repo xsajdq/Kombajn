@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -126,8 +127,8 @@ export interface Comment {
 }
 
 export interface NotificationAction {
-    type: 'viewTask';
-    taskId: string;
+    type: 'viewTask' | 'viewJoinRequests';
+    taskId?: string;
 }
 export interface Notification {
     id: string;
@@ -313,9 +314,17 @@ export interface Deal {
     createdAt: string; // ISO
 }
 
+export interface WorkspaceJoinRequest {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: string;
+}
+
 
 export interface AppState {
-    currentPage: string;
+    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
     currentUser: User | null;
     activeWorkspaceId: string | null;
     workspaces: Workspace[];
@@ -345,6 +354,7 @@ export interface AppState {
     calendarEvents: CalendarEvent[];
     expenses: Expense[];
     deals: Deal[];
+    workspaceJoinRequests: WorkspaceJoinRequest[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         darkMode: boolean;

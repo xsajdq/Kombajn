@@ -1,6 +1,7 @@
 
 
-import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal } from './types.ts';
+
+import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest } from './types.ts';
 
 export function generateId(): string {
     // A more robust ID generator
@@ -50,6 +51,7 @@ function getInitialState(): AppState {
         calendarEvents: [],
         expenses: [],
         deals: [],
+        workspaceJoinRequests: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             // Settings can still be loaded from localStorage for user convenience

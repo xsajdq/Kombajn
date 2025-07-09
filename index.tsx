@@ -12,7 +12,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies
+        profiles, projects, clients, tasks, deals, timeLogs, workspaces, workspaceMembers, dependencies, workspaceJoinRequests
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -23,6 +23,7 @@ export async function fetchInitialData() {
         apiFetch('/api/data/workspaces'),
         apiFetch('/api/data/workspace_members'),
         apiFetch('/api/data/task_dependencies'),
+        apiFetch('/api/data/workspace_join_requests'),
     ]);
 
     // Populate state with fetched data
@@ -35,6 +36,7 @@ export async function fetchInitialData() {
     state.workspaces = workspaces;
     state.workspaceMembers = workspaceMembers;
     state.dependencies = dependencies;
+    state.workspaceJoinRequests = workspaceJoinRequests;
     // The dashboardWidgets state will default to an empty array
 
     // Set the active workspace based on the current user's memberships
@@ -42,13 +44,9 @@ export async function fetchInitialData() {
     if (userWorkspaces.length > 0) {
         state.activeWorkspaceId = userWorkspaces[0].workspaceId;
     } else {
-        // Handle case where user might not be in any workspace yet
-        // This could involve prompting them to create or join one.
-        console.warn("User is not a member of any workspace.");
-        // For now, we might have to show a special state.
-        // For simplicity, we'll log out if no workspace is found.
-        await logout();
-        return;
+        // If user has no workspace, show the setup page.
+        state.currentPage = 'setup';
+        // No need to set activeWorkspaceId, it remains null.
     }
 
     console.log("Initial data fetched and state populated.", state);

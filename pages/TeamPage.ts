@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -25,7 +26,7 @@ export function HRPage() {
             tabContent = renderEmployeesTab();
             break;
         case 'requests':
-            tabContent = renderLeaveRequestsTab();
+            tabContent = renderRequestsTab();
             break;
         case 'history':
              tabContent = `<div class="empty-state"><p>Leave history coming soon.</p></div>`;
@@ -128,12 +129,16 @@ function renderEmployeesTab() {
     `;
 }
 
-function renderLeaveRequestsTab() {
-     const pendingRequests = state.timeOffRequests.filter(r => 
+function renderRequestsTab() {
+     const pendingLeaveRequests = state.timeOffRequests.filter(r => 
         r.workspaceId === state.activeWorkspaceId && r.status === 'pending'
      );
 
-     if (pendingRequests.length === 0) {
+     const pendingJoinRequests = state.workspaceJoinRequests.filter(r =>
+        r.workspaceId === state.activeWorkspaceId && r.status === 'pending'
+     );
+
+     if (pendingLeaveRequests.length === 0 && pendingJoinRequests.length === 0) {
         return `<div class="empty-state">
             <span class="material-icons-sharp">inbox</span>
             <h3>${t('hr.no_pending_requests')}</h3>
@@ -141,9 +146,33 @@ function renderLeaveRequestsTab() {
      }
 
      return `
-        <div class="card">
+        <div class="card" style="margin-bottom: 2rem;">
+            <h4>${t('hr.join_requests_title')}</h4>
             <div class="leave-request-list">
-                ${pendingRequests.map(request => {
+                ${pendingJoinRequests.length > 0 ? pendingJoinRequests.map(request => {
+                    const user = state.users.find(u => u.id === request.userId);
+                    if (!user) return '';
+                    return `
+                        <div class="leave-request-item">
+                            <div class="avatar">${user.initials}</div>
+                            <div>
+                                <strong>${user.name || user.initials}</strong>
+                                <p class="subtle-text">${user.email}</p>
+                            </div>
+                            <div class="leave-request-actions">
+                                <button class="btn btn-secondary" data-reject-join-request-id="${request.id}">${t('hr.reject')}</button>
+                                <button class="btn btn-primary" data-approve-join-request-id="${request.id}">${t('hr.approve')}</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : `<p class="subtle-text" style="padding: 1rem;">${t('hr.no_pending_requests')}</p>`}
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>${t('team_calendar.add_leave')}</h4>
+            <div class="leave-request-list">
+                ${pendingLeaveRequests.length > 0 ? pendingLeaveRequests.map(request => {
                     const user = state.users.find(u => u.id === request.userId);
                     return `
                         <div class="leave-request-item">
@@ -166,7 +195,7 @@ function renderLeaveRequestsTab() {
                             </div>
                         </div>
                     `;
-                }).join('')}
+                }).join('') : `<p class="subtle-text" style="padding: 1rem;">${t('hr.no_pending_requests')}</p>`}
             </div>
         </div>
      `;

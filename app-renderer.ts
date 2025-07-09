@@ -1,3 +1,4 @@
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -14,9 +15,13 @@ import { AuthPage } from './pages/AuthPage.ts';
 
 function AppLayout() {
     // If there is no authenticated user, always show the AuthPage.
-    // This protects the entire application.
     if (!state.currentUser) {
         return AuthPage();
+    }
+    
+    // If the user is authenticated but has no workspace, show the setup page.
+    if (state.currentPage === 'setup') {
+        return AuthPage({ isSetup: true });
     }
     
     const pageContent = router();
@@ -70,8 +75,8 @@ export function renderApp() {
     
     app.innerHTML = AppLayout();
 
-    // If the AuthPage is rendered, no further action is needed.
-    if (!state.currentUser) {
+    // If the Auth or Setup Page is rendered, no further action is needed for most things.
+    if (!state.currentUser || state.currentPage === 'setup') {
         return;
     }
     

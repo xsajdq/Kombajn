@@ -1,63 +1,126 @@
 
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember } from '../types.ts';
+import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
 import { closeSidePanels, closeModal } from './ui.ts';
 import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
+import { apiPost, apiPut } from '../services/api.ts';
+import { createNotification } from './notifications.ts';
 
 export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
         closeSidePanels(false);
-        saveState();
         renderApp();
     }
 }
 
-export function handleCreateWorkspace(name: string) {
-    if (!state.currentUser || !state.activeWorkspaceId) return;
+export async function handleCreateWorkspace(name: string, bootstrapCallback: () => Promise<void>) {
+    if (!state.currentUser || !state.activeWorkspaceId) {
+        // This case is for creating the very first workspace from the setup screen
+        if (!state.currentUser) return;
+    } else {
+        // This case is for creating subsequent workspaces from the HR page
+        const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+        if (!activeWorkspace) return;
 
-    // Validation
-    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!activeWorkspace) return;
+        const ownedWorkspacesCount = state.workspaces.filter(w =>
+            state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
+        ).length;
 
-    const ownedWorkspacesCount = state.workspaces.filter(w =>
-        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
-    ).length;
-
-    const planLimits = PLANS[activeWorkspace.subscription.planId];
-    if (ownedWorkspacesCount >= planLimits.workspaces) {
-        alert(t('hr.workspace_limit_reached'));
-        return;
+        const planLimits = PLANS[activeWorkspace.subscription.planId];
+        if (ownedWorkspacesCount >= planLimits.workspaces) {
+            alert(t('hr.workspace_limit_reached'));
+            return;
+        }
     }
 
-    // Create new workspace and membership
-    const newWorkspace: Workspace = {
-        id: generateId(),
-        name,
-        // The new workspace inherits the subscription status of the one it was created from
-        // This is a simplification; a real app might have more complex logic
-        subscription: activeWorkspace.subscription,
-        planHistory: [{ planId: activeWorkspace.subscription.planId, date: new Date().toISOString() }],
-    };
-
-    const newMembership: WorkspaceMember = {
-        id: generateId(),
-        workspaceId: newWorkspace.id,
-        userId: state.currentUser.id,
-        role: 'owner',
-    };
+    const [newWorkspace] = await apiPost('workspaces', { name, subscription: { planId: 'free', status: 'active' }, planHistory: [{ planId: 'free', date: new Date().toISOString() }] });
+    const [newMembership] = await apiPost('workspace_members', { workspaceId: newWorkspace.id, userId: state.currentUser.id, role: 'owner' });
 
     state.workspaces.push(newWorkspace);
     state.workspaceMembers.push(newMembership);
-
-    // Switch to the new workspace
+    
+    // Set the new workspace as active and bootstrap the entire app
     state.activeWorkspaceId = newWorkspace.id;
+    await bootstrapCallback();
+}
 
-    closeSidePanels(false); // Close any open panels
-    saveState();
+export async function handleRequestToJoinWorkspace(workspaceName: string) {
+    if (!state.currentUser) return;
+    
+    // The client has all workspaces, so we can find the ID here.
+    // In a larger app, this would be an API call to a dedicated endpoint.
+    const targetWorkspace = state.workspaces.find(w => w.name.toLowerCase() === workspaceName.toLowerCase());
+    
+    if (!targetWorkspace) {
+        alert(`Workspace "${workspaceName}" not found.`);
+        return;
+    }
+    
+    // Check if user is already a member
+    const isMember = state.workspaceMembers.some(m => m.workspaceId === targetWorkspace.id && m.userId === state.currentUser.id);
+    if (isMember) {
+        alert("You are already a member of this workspace.");
+        return;
+    }
+
+    // Check for existing pending request
+    const hasPendingRequest = state.workspaceJoinRequests.some(r => r.workspaceId === targetWorkspace.id && r.userId === state.currentUser!.id && r.status === 'pending');
+    if (hasPendingRequest) {
+        alert("You already have a pending request to join this workspace.");
+        return;
+    }
+
+    const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser.id, status: 'pending' });
+    state.workspaceJoinRequests.push(newRequest);
+
+    // Notify all owners of the target workspace
+    const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');
+    owners.forEach(owner => {
+        createNotification('join_request', {
+            userIdToNotify: owner.userId,
+            actorId: state.currentUser!.id,
+            workspaceId: targetWorkspace.id,
+            workspaceName: targetWorkspace.name
+        });
+    });
+
+    renderApp();
+}
+
+export async function handleApproveJoinRequest(requestId: string) {
+    const request = state.workspaceJoinRequests.find(r => r.id === requestId);
+    if (!request) return;
+
+    // 1. Add user to workspace members
+    const [newMember] = await apiPost('workspace_members', {
+        workspaceId: request.workspaceId,
+        userId: request.userId,
+        role: 'member' // Default role for approved users
+    });
+
+    // 2. Update the request status to 'approved'
+    const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
+
+    // 3. Update local state
+    state.workspaceMembers.push(newMember);
+    const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
+    if (reqIndex > -1) {
+        state.workspaceJoinRequests[reqIndex] = updatedRequest;
+    }
+    renderApp();
+}
+
+export async function handleRejectJoinRequest(requestId: string) {
+    const [updatedRequest] = await apiPut('workspace_join_requests', { id: requestId, status: 'rejected' });
+    const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
+    if (reqIndex > -1) {
+        state.workspaceJoinRequests[reqIndex] = updatedRequest;
+    }
     renderApp();
 }
 

@@ -1,6 +1,4 @@
 
-
-
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -17,6 +15,7 @@ import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage } from './pages/SalesPage.ts';
 import { getCurrentUserRole } from './handlers/main.ts';
 import { AuthPage } from './pages/AuthPage.ts';
+import type { AppState } from './types.ts';
 
 export function router() {
     // If no user is authenticated, always show the authentication page.
@@ -24,11 +23,15 @@ export function router() {
         state.currentPage = 'auth';
         return AuthPage();
     }
+    
+    if (state.currentPage === 'setup') {
+        return AuthPage({ isSetup: true });
+    }
 
     const path = window.location.hash.slice(1) || '/';
     const [page] = path.split('/').filter(p => p);
     
-    state.currentPage = page || 'dashboard';
+    state.currentPage = (page || 'dashboard') as AppState['currentPage'];
     
     const userRole = getCurrentUserRole();
     const canAccessTeam = userRole === 'owner' || userRole === 'manager';
