@@ -246,7 +246,8 @@ body {
 .subtle-text { color: var(--subtle-text-color); font-size: 0.9rem; }
 .icon-sm { font-size: 1.1rem; }
 .back-link { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--primary-color); margin-bottom: 1rem; font-weight: 600; }
-.avatar { width: 32px; height: 32px; border-radius: 50%; background-color: var(--primary-color); color: var(--white-color); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; flex-shrink: 0; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background-color: var(--primary-color); color: var(--white-color); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; flex-shrink: 0; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background-color: var(--light-color); color: var(--subtle-text-color); display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); }
 
 /* DASHBOARD */
@@ -302,6 +303,16 @@ input:checked + .slider:before { transform: translateX(26px); }
 .setting-tab.active {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
+}
+.profile-settings-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+@media (min-width: 768px) {
+    .profile-settings-container {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 

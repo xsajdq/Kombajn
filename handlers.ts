@@ -2,6 +2,7 @@
 
 
 
+
 export * from './handlers/ai.ts';
 export * from './handlers/billing.ts';
 export * from './handlers/commands.ts';
@@ -18,3 +19,4 @@ export * from './handlers/ui.ts';
 export * from './handlers/wiki.ts';
 export * from './handlers/automations.ts';
 export * from './handlers/dashboard.ts';
+export * from './handlers/user.ts';

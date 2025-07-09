@@ -3,6 +3,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -425,7 +426,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile';
         };
         dashboard: {
             isEditing: boolean;

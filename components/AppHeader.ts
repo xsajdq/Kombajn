@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
@@ -34,7 +35,9 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                 <button class="btn-icon" data-logout-button title="Log Out">
                     <span class="material-icons-sharp">logout</span>
                 </button>
-                <div class="avatar" title="${currentUser.name || currentUser.initials}">${currentUser.initials}</div>
+                <div class="avatar" title="${currentUser.name || currentUser.initials}">
+                    ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}">` : currentUser.initials}
+                </div>
             </div>
         </header>
     `;

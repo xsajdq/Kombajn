@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -22,6 +23,7 @@ import * as uiHandlers from './handlers/ui.ts';
 import * as wikiHandlers from './handlers/wiki.ts';
 import * as automationHandlers from './handlers/automations.ts';
 import * as dashboardHandlers from './handlers/dashboard.ts';
+import * as userHandlers from './handlers/user.ts';
 import * as auth from './services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
 
@@ -202,6 +204,16 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                     button.textContent = 'Register';
                     button.disabled = false;
                 });
+            return;
+        }
+
+        if (target.id === 'update-profile-form') {
+            await userHandlers.handleUpdateProfile(target as HTMLFormElement);
+            return;
+        }
+
+        if (target.id === 'update-password-form') {
+            await userHandlers.handleUpdatePassword(target as HTMLFormElement);
             return;
         }
         
@@ -881,6 +893,19 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         // Workspace Switcher
         if (target.id === 'workspace-switcher') {
             teamHandlers.handleWorkspaceSwitch(target.value);
+            return;
+        }
+        
+        if (target.id === 'avatar-upload' && target.files?.length) {
+            const file = target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const avatarPreview = document.getElementById('avatar-preview');
+                if (avatarPreview && event.target?.result) {
+                    avatarPreview.innerHTML = `<img src="${event.target.result}" alt="Avatar preview">`;
+                }
+            };
+            reader.readAsDataURL(file);
             return;
         }
 

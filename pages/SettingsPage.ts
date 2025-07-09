@@ -1,5 +1,7 @@
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -41,6 +43,60 @@ export function SettingsPage() {
             </select>
         </div>
     `;
+
+    const renderProfileSettings = () => {
+        const user = state.currentUser;
+        if (!user) return '';
+
+        return `
+            <div class="profile-settings-container">
+                <div class="card">
+                    <h4>${t('settings.profile_details')}</h4>
+                    <form id="update-profile-form">
+                        <div class="form-group">
+                            <label for="profile-avatar">${t('settings.avatar')}</label>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div class="avatar" style="width: 64px; height: 64px; font-size: 1.5rem;" id="avatar-preview">
+                                    ${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="User avatar">` : user.initials}
+                                </div>
+                                <label for="avatar-upload" class="btn btn-secondary">${t('settings.upload_avatar')}</label>
+                                <input type="file" id="avatar-upload" class="hidden" accept="image/png, image/jpeg">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top:1rem;">
+                            <label for="profile-full-name">${t('settings.full_name')}</label>
+                            <input type="text" id="profile-full-name" class="form-control" value="${user.name || ''}" required>
+                        </div>
+                        <div class="form-group" style="margin-top:1rem;">
+                            <label for="profile-email">${t('settings.email_address')}</label>
+                            <input type="email" id="profile-email" class="form-control" value="${user.email || ''}" readonly disabled>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem;">
+                            <span id="profile-update-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
+                            <button type="submit" class="btn btn-primary">${t('settings.update_profile')}</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card">
+                    <h4>${t('settings.change_password')}</h4>
+                    <form id="update-password-form">
+                        <div class="form-group">
+                            <label for="password-new">${t('settings.new_password')}</label>
+                            <input type="password" id="password-new" class="form-control" required minlength="6">
+                        </div>
+                         <div class="form-group" style="margin-top:1rem;">
+                            <label for="password-confirm">${t('settings.confirm_new_password')}</label>
+                            <input type="password" id="password-confirm" class="form-control" required minlength="6">
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem;">
+                            <span id="password-update-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
+                            <button type="submit" class="btn btn-primary">${t('settings.update_password')}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    };
 
     const renderCustomFieldsSettings = () => {
         const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === state.activeWorkspaceId);
@@ -137,6 +193,9 @@ export function SettingsPage() {
         case 'general':
             tabContent = renderGeneralSettings();
             break;
+        case 'profile':
+            tabContent = renderProfileSettings();
+            break;
         case 'customFields':
             if (canManage) tabContent = renderCustomFieldsSettings();
             break;
@@ -150,6 +209,7 @@ export function SettingsPage() {
         <h2>${t('settings.title')}</h2>
         <div class="settings-tabs">
             <div class="setting-tab ${activeTab === 'general' ? 'active' : ''}" data-tab="general">${t('settings.tab_general')}</div>
+            <div class="setting-tab ${activeTab === 'profile' ? 'active' : ''}" data-tab="profile">${t('settings.tab_profile')}</div>
             ${canManage ? `<div class="setting-tab ${activeTab === 'customFields' ? 'active' : ''}" data-tab="customFields">${t('settings.tab_custom_fields')}</div>` : ''}
             ${canManage ? `<div class="setting-tab ${activeTab === 'workspace' ? 'active' : ''}" data-tab="workspace">${t('settings.tab_workspace')}</div>` : ''}
         </div>
