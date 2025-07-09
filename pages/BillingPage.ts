@@ -93,7 +93,7 @@ export function BillingPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${activeWorkspace.planHistory.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(change => `
+                                ${(activeWorkspace.planHistory || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(change => `
                                     <tr>
                                         <td>${t(`billing.plan_${change.planId}`)}</td>
                                         <td>${formatDate(change.date)}</td>

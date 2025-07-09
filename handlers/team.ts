@@ -38,7 +38,7 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
         }
     }
 
-    const [newWorkspace] = await apiPost('workspaces', { name, subscription: { planId: 'free', status: 'active' }, planHistory: [{ planId: 'free', date: new Date().toISOString() }] });
+    const [newWorkspace] = await apiPost('workspaces', { name, subscription: { planId: 'free', status: 'active' } });
     const [newMembership] = await apiPost('workspace_members', { workspaceId: newWorkspace.id, userId: state.currentUser.id, role: 'owner' });
 
     state.workspaces.push(newWorkspace);

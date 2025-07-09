@@ -35,7 +35,7 @@ export interface Workspace {
         planId: PlanId;
         status: SubscriptionStatus;
     };
-    planHistory: PlanChange[];
+    planHistory?: PlanChange[];
 }
 
 export interface WorkspaceMember {
