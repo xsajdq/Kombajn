@@ -52,7 +52,7 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
         planHistory: newWorkspaceRaw.planHistory || []
     };
 
-    const [newMembership] = await apiPost('workspace_members', { workspaceId: newWorkspace.id, userId: state.currentUser.id, role: 'owner' });
+    const [newMembership] = await apiPost('workspace_members', { workspace_id: newWorkspace.id, user_id: state.currentUser.id, role: 'owner' });
 
     state.workspaces.push(newWorkspace);
     state.workspaceMembers.push(newMembership);
@@ -88,7 +88,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
         return;
     }
 
-    const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser.id, status: 'pending' });
+    const [newRequest] = await apiPost('workspace_join_requests', { workspace_id: targetWorkspace.id, user_id: state.currentUser.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
     // Notify all owners of the target workspace
@@ -111,8 +111,8 @@ export async function handleApproveJoinRequest(requestId: string) {
 
     // 1. Add user to workspace members
     const [newMember] = await apiPost('workspace_members', {
-        workspaceId: request.workspaceId,
-        userId: request.userId,
+        workspace_id: request.workspaceId,
+        user_id: request.userId,
         role: 'member' // Default role for approved users
     });
 
