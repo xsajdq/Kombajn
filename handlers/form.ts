@@ -130,6 +130,18 @@ export async function handleFormSubmit() {
             }
         }
 
+        if (type === 'addManualTimeLog') {
+            const taskId = data.taskId as string;
+            const timeString = (document.getElementById('timeLogAmount') as HTMLInputElement).value;
+            const dateString = (document.getElementById('timeLogDate') as HTMLInputElement).value;
+            const comment = (document.getElementById('timeLogComment') as HTMLTextAreaElement).value.trim();
+
+            if (taskId && timeString && dateString) {
+                // handleSaveManualTimeLog will throw on error, and the catch block below will handle it.
+                await timerHandlers.handleSaveManualTimeLog(taskId, timeString, dateString, comment || undefined);
+            }
+        }
+
         // The logic for other forms would follow a similar pattern:
         // 1. Get data from the form.
         // 2. Call `apiPost(resource, data)`.

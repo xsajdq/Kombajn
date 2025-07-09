@@ -283,7 +283,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         }
     });
 
-    app.addEventListener('click', (e) => {
+    app.addEventListener('click', async (e) => {
         if (!(e.target instanceof Element)) return;
         const target = e.target as Element;
 
@@ -729,6 +729,22 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 workspace.companyLogo = undefined;
                 teamHandlers.handleSaveWorkspaceSettings();
             }
+            return;
+        }
+        
+        // --- Time Log Saving ---
+        const saveTimeLogNoCommentBtn = target.closest('#save-timelog-nocomment');
+        if (saveTimeLogNoCommentBtn) {
+            const { taskId, trackedSeconds } = state.ui.modal.data;
+            await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds);
+            return;
+        }
+
+        const saveTimeLogWithCommentBtn = target.closest('#save-timelog-withcomment');
+        if (saveTimeLogWithCommentBtn) {
+            const { taskId, trackedSeconds } = state.ui.modal.data;
+            const comment = (document.getElementById('timelog-comment') as HTMLTextAreaElement).value.trim();
+            await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment);
             return;
         }
 

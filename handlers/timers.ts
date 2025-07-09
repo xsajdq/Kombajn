@@ -1,9 +1,10 @@
 
-import { state, saveState, generateId } from '../state.ts';
+import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { TimeLog } from '../types.ts';
 import { parseDurationStringToSeconds } from '../utils.ts';
+import { apiPost } from '../services/api.ts';
 
 export function startTimer(taskId: string) {
     if (!state.activeTimers[taskId]) {
@@ -21,12 +22,11 @@ export function stopTimer(taskId: string) {
     }
 }
 
-export function handleSaveTimeLogAndComment(taskId: string, trackedSeconds: number, comment?: string) {
+export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds: number, comment?: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
-    const newTimeLog: TimeLog = {
-        id: generateId(),
+    const timeLogPayload = {
         workspaceId: task.workspaceId,
         taskId,
         userId: state.currentUser.id,
@@ -34,22 +34,29 @@ export function handleSaveTimeLogAndComment(taskId: string, trackedSeconds: numb
         createdAt: new Date().toISOString(),
         ...(comment && { comment }),
     };
-    state.timeLogs.push(newTimeLog);
-    closeModal();
+
+    try {
+        const [savedLog] = await apiPost('time_logs', timeLogPayload);
+        state.timeLogs.push(savedLog);
+        closeModal();
+    } catch(error) {
+        console.error("Failed to save time log:", error);
+        alert("Could not save time log. Please try again.");
+    }
 }
 
-export function handleSaveManualTimeLog(taskId: string, timeString: string, dateString: string, comment?: string) {
+export async function handleSaveManualTimeLog(taskId: string, timeString: string, dateString: string, comment?: string) {
     const task = state.tasks.find(t => t.id === taskId);
-    if (!task || !state.currentUser) return;
+    if (!task || !state.currentUser) {
+        throw new Error("Task or user not found.");
+    }
 
     const trackedSeconds = parseDurationStringToSeconds(timeString);
     if (trackedSeconds <= 0) {
-        alert("Invalid time format or amount. Please use a format like '2h 30m'.");
-        return;
+        throw new Error("Invalid time format or amount. Please use a format like '2h 30m'.");
     }
 
-    const newTimeLog: TimeLog = {
-        id: generateId(),
+    const timeLogPayload = {
         workspaceId: task.workspaceId,
         taskId,
         userId: state.currentUser.id,
@@ -57,6 +64,7 @@ export function handleSaveManualTimeLog(taskId: string, timeString: string, date
         createdAt: new Date(dateString).toISOString(),
         ...(comment && { comment }),
     };
-    state.timeLogs.push(newTimeLog);
-    // The calling function `handleFormSubmit` will close the modal.
+
+    const [savedLog] = await apiPost('time_logs', timeLogPayload);
+    state.timeLogs.push(savedLog);
 }
