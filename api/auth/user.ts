@@ -1,6 +1,6 @@
 // api/auth/user.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../utils/supabaseAdmin.ts';
+import { getSupabaseAdmin } from '../utils/supabaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
