@@ -28,53 +28,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const user = authData.user;
 
-        // Fetch profile(s) without .single() to handle 0 or >1 results gracefully
-        const { data: profiles, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
-            .eq('id', user.id);
-            
-        if (profileError) {
-            console.error(`Error fetching profile for user ${user.id}:`, profileError.message);
-            throw new Error(`Login succeeded but could not retrieve user profile. Reason: ${profileError.message}`);
+        // Use a secure RPC function to get or create the profile, bypassing any RLS issues.
+        const nameFromEmail = user.email!.split('@')[0];
+        const { data: profiles, error: rpcError } = await supabase
+            .rpc('create_profile_if_not_exists', {
+                user_id: user.id,
+                user_email: user.email,
+                user_name: nameFromEmail
+            });
+
+        if (rpcError) {
+            console.error(`RPC create_profile_if_not_exists failed for user ${user.id}:`, rpcError);
+            throw new Error(`Login succeeded but could not retrieve or create user profile. Reason: ${rpcError.message}`);
         }
 
-        let profileData;
-
-        if (profiles && profiles.length > 0) {
-            if (profiles.length > 1) {
-                console.warn(`Duplicate profiles found for user ${user.id}. Using the first one found.`);
-            }
-            profileData = profiles[0];
-        } else {
-            // Self-healing: No profile found, so create one.
-            console.warn(`User ${user.id} authenticated successfully but had no profile. Creating one now.`);
-            
-            const nameFromEmail = user.email!.split('@')[0];
-            const initials = nameFromEmail.substring(0, 2).toUpperCase();
-
-            const { data: newProfile, error: insertError } = await supabase
-                .from('profiles')
-                .insert({
-                    id: user.id,
-                    email: user.email,
-                    name: nameFromEmail,
-                    initials: initials
-                })
-                .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
-                .single();
-
-            if (insertError) {
-                console.error(`Failed to create missing profile for user ${user.id}. Error:`, insertError.message);
-                throw new Error(`Login succeeded but failed to create the necessary user profile. Reason: ${insertError.message}`);
-            }
-            
-            profileData = newProfile;
+        if (!profiles || profiles.length === 0) {
+             throw new Error('Login succeeded but user profile could not be retrieved or created via RPC.');
         }
 
-        if (!profileData) {
-             throw new Error('Login succeeded but user profile could not be retrieved or created.');
-        }
+        const profileData = profiles[0];
 
         // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
         const userForClient = {
@@ -82,7 +54,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             avatarUrl: profileData.avatar_url
         };
         delete (userForClient as any).avatar_url;
-
 
         return res.status(200).json({ session: authData.session, user: userForClient });
 
