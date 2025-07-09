@@ -1,4 +1,3 @@
-
 // api/auth/signup.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
@@ -46,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data: profileDataArray, error: profileError } = await (supabase
             .from('profiles') as any)
             .insert([{ id: user.id, name, email, initials }])
-            .select('id, name, email, initials, avatarUrl, contractInfoNotes, employmentInfoNotes');
+            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes');
 
         if (profileError) {
             console.error(`Profile creation failed for user ${user.id}. Attempting to roll back auth user. Profile Error:`, profileError);
@@ -87,7 +86,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              return res.status(500).json({ error: 'Session could not be created after signup.' });
         }
         
-        return res.status(200).json({ session: sessionData.session, user: profileData });
+        // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
+        const userForClient = {
+            ...profileData,
+            avatarUrl: profileData.avatar_url
+        };
+        delete (userForClient as any).avatar_url;
+
+        return res.status(200).json({ session: sessionData.session, user: userForClient });
 
     } catch (error: any) {
         console.error('Unexpected error in signup handler:', error);

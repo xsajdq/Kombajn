@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch the corresponding public profile data, now including the email
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id, name, email, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
+            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
             .eq('id', user.id)
             .single();
 
@@ -30,7 +30,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              throw new Error(`User authenticated but profile not found: ${profileError.message}`);
         }
         
-        return res.status(200).json({ user: profileData });
+        // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
+        const userForClient = {
+            ...profileData,
+            avatarUrl: profileData.avatar_url
+        };
+        delete (userForClient as any).avatar_url;
+
+        return res.status(200).json({ user: userForClient });
 
     } catch (error: any) {
         return res.status(401).json({ error: error.message });

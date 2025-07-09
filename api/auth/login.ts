@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch profile(s) without .single() to handle 0 or >1 results gracefully
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
-            .select('id, name, email, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
+            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
             .eq('id', user.id);
             
         if (profileError) {
@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     name: nameFromEmail,
                     initials: initials
                 })
-                .select('id, name, email, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
+                .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
                 .single();
 
             if (insertError) {
@@ -76,7 +76,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              throw new Error('Login succeeded but user profile could not be retrieved or created.');
         }
 
-        return res.status(200).json({ session: authData.session, user: profileData });
+        // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
+        const userForClient = {
+            ...profileData,
+            avatarUrl: profileData.avatar_url
+        };
+        delete (userForClient as any).avatar_url;
+
+
+        return res.status(200).json({ session: authData.session, user: userForClient });
 
     } catch (error: any) {
         // Use 500 for server-side logic failures after successful auth, 401 for auth failures
