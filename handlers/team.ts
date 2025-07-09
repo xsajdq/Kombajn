@@ -1,4 +1,5 @@
 
+
 import { state, saveState, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -19,6 +20,21 @@ export function handleWorkspaceSwitch(workspaceId: string) {
 export async function handleCreateWorkspace(name: string, bootstrapCallback: () => Promise<void>) {
     if (!state.currentUser) return;
 
+    // --- NEW: Add validation ---
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+        alert("Workspace name cannot be empty.");
+        return;
+    }
+
+    // Check for uniqueness (case-insensitive). This is client-side validation for good UX.
+    // The database should have a unique constraint for data integrity.
+    const existingWorkspace = state.workspaces.find(w => w.name.toLowerCase() === trimmedName.toLowerCase());
+    if (existingWorkspace) {
+        alert(t('hr.workspace_name_exists'));
+        return;
+    }
+
     if (state.activeWorkspaceId) {
         const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         if (!activeWorkspace) return;
@@ -35,7 +51,7 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
     }
 
     const payload = {
-        name,
+        name: trimmedName,
         subscription_plan_id: 'free',
         subscription_status: 'active'
     };
@@ -57,8 +73,11 @@ export async function handleCreateWorkspace(name: string, bootstrapCallback: () 
     state.workspaces.push(newWorkspace);
     state.workspaceMembers.push(newMembership);
     
-    // Set the new workspace as active and bootstrap the entire app
+    // --- NEW: Change page and set active workspace ---
+    state.currentPage = 'dashboard';
     state.activeWorkspaceId = newWorkspace.id;
+
+    // Bootstrap the entire app to fetch all data for the new context
     await bootstrapCallback();
 }
 
