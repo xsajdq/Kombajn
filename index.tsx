@@ -1,19 +1,18 @@
 
-
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace } from './types.ts';
+import type { User, Workspace, WorkspaceMember } from './types.ts';
 
 
 export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, workspaceMembers, dependencies, workspaceJoinRequests
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -42,7 +41,13 @@ export async function fetchInitialData() {
         },
         planHistory: w.planHistory || []
     }));
-    state.workspaceMembers = workspaceMembers;
+    // FIX: Transform workspace_members from snake_case (DB) to camelCase (app)
+    state.workspaceMembers = rawWorkspaceMembers.map((m: any): WorkspaceMember => ({
+        id: m.id,
+        workspaceId: m.workspace_id,
+        userId: m.user_id,
+        role: m.role,
+    }));
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;
     // The dashboardWidgets state will default to an empty array
