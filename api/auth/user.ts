@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch the corresponding public profile data
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
             .eq('id', user.id)
             .single();
 
@@ -30,7 +30,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              throw new Error(`User authenticated but profile not found: ${profileError.message}`);
         }
         
-        return res.status(200).json({ user: profileData });
+        // Combine auth user data (for email) and profile data
+        const responseUser = {
+            ...profileData,
+            email: user.email
+        };
+        
+        return res.status(200).json({ user: responseUser });
 
     } catch (error: any) {
         return res.status(401).json({ error: error.message });

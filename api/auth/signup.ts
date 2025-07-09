@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data: profileDataArray, error: profileError } = await (supabase
             .from('profiles') as any)
             .insert([{ id: user.id, name, initials }])
-            .select();
+            .select('id, name, initials');
 
         if (profileError) {
             console.error(`Profile creation failed for user ${user.id}. Attempting to roll back auth user. Profile Error:`, profileError);
@@ -86,8 +86,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              console.error('Login after signup did not return a session.');
              return res.status(500).json({ error: 'Session could not be created after signup.' });
         }
+        
+        const responseUser = {
+            ...profileData,
+            email: user.email
+        };
 
-        return res.status(200).json({ session: sessionData.session, user: profileData });
+        return res.status(200).json({ session: sessionData.session, user: responseUser });
 
     } catch (error: any) {
         console.error('Unexpected error in signup handler:', error);

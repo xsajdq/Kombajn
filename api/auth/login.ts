@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch the corresponding profile to return to the client
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, initials, avatarUrl, contractInfoNotes, employmentInfoNotes')
             .eq('id', data.user.id)
             .single();
 
@@ -34,7 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              throw new Error('Login succeeded but user profile could not be retrieved.');
         }
 
-        return res.status(200).json({ session: data.session, user: profileData });
+        // Combine auth user data (for email) and profile data
+        const responseUser = {
+            ...profileData,
+            email: data.user.email
+        };
+
+        return res.status(200).json({ session: data.session, user: responseUser });
 
     } catch (error: any) {
         return res.status(401).json({ error: error.message });
