@@ -1,11 +1,10 @@
-
 {
   "name": "kombajn-app",
   "version": "1.0.0",
   "private": true,
   "description": "Teamwork Kombajn Application",
   "scripts": {
-    "build": "mkdir -p public && esbuild index.tsx --bundle --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html index.css public/"
+    "build": "mkdir -p public && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html index.css public/"
   },
   "keywords": [],
   "author": "",
