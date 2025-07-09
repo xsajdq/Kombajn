@@ -1,10 +1,10 @@
+
 // api/_lib/supabaseAdmin.ts
 import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
-let supabaseAdmin: SupabaseClient;
+let supabaseAdmin: any;
 
-export function getSupabaseAdmin(): SupabaseClient {
+export function getSupabaseAdmin() {
     if (supabaseAdmin) {
         return supabaseAdmin;
     }
@@ -22,3 +22,21 @@ export function getSupabaseAdmin(): SupabaseClient {
     });
     return supabaseAdmin;
 }
+
+function camelToSnake(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+function convertKeys(obj: any, converter: (key: string) => string): any {
+    if (Array.isArray(obj)) {
+        return obj.map(v => convertKeys(v, converter));
+    } else if (obj !== null && typeof obj === 'object' && obj.constructor === Object) {
+        return Object.keys(obj).reduce((acc, key) => {
+            acc[converter(key)] = convertKeys(obj[key], converter);
+            return acc;
+        }, {} as any);
+    }
+    return obj;
+}
+
+export const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);

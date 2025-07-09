@@ -1,7 +1,7 @@
 
 // Plik: api/data/[resource].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
+import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
 
 const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests'];
 
@@ -24,27 +24,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (authError || !user) {
         return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
     }
+    
+    // Convert incoming camelCase request body to snake_case for the database.
+    const bodyInSnakeCase = req.body ? keysToSnake(req.body) : req.body;
 
     switch (req.method) {
         case 'GET': {
-            // Here you could add Row Level Security (RLS) in Supabase to filter data
-            // based on the authenticated user's ID (user.id).
-            // For now, we fetch all data for simplicity as the app filters by workspaceId on the client.
+            // RLS in Supabase should filter data.
+            // Data is returned in snake_case, and the client's apiFetch will convert it to camelCase.
             const { data, error } = await (supabase.from(resource) as any).select('*');
             if (error) throw error;
             return res.status(200).json(data);
         }
         case 'POST': {
-            // The req.body can be a single object or an array of objects. `insert` handles both.
-            const { data, error } = await (supabase.from(resource) as any).insert(req.body).select();
+            // The body is already converted to snake_case.
+            const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
             if (error) throw error;
             return res.status(201).json(data);
         }
         case 'PUT': {
-            // Create a shallow copy of the request body to avoid mutating it directly.
-            // This also avoids using a rest operator in destructuring, which was causing the type error.
-            const recordToUpdate = { ...req.body };
-            const id = recordToUpdate.id;
+            // The body is already converted to snake_case.
+            const recordToUpdate = { ...bodyInSnakeCase };
+            const id = recordToUpdate.id; // 'id' column is not converted, which is correct.
             delete recordToUpdate.id;
             const updateData = recordToUpdate;
 
@@ -58,7 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'DELETE': {
-             const id = req.body.id;
+             // DELETE often just takes an ID, so the body might be simple { id: '...' }
+             const id = bodyInSnakeCase.id;
              if (!id) return res.status(400).json({ error: 'ID is required for delete' });
              const { error } = await (supabase.from(resource) as any).delete().eq('id', id);
              if (error) throw error;

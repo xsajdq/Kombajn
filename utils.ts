@@ -126,12 +126,12 @@ export function getUsage(workspaceId: string) {
     return { projects, users, invoicesThisMonth };
 }
 
-export function camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-}
-
 export function snakeToCamel(str: string): string {
     return str.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
+}
+
+export function camelToSnake(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
 function convertKeys(obj: any, converter: (key: string) => string): any {
@@ -147,4 +147,3 @@ function convertKeys(obj: any, converter: (key: string) => string): any {
 }
 
 export const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
-export const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);

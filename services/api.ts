@@ -1,5 +1,6 @@
+
 // File: services/api.ts
-import { keysToCamel, keysToSnake } from '../utils.ts';
+import { keysToCamel } from '../utils.ts';
 
 const TOKEN_KEY = 'kombajn_auth_token';
 
@@ -49,13 +50,13 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
 export function apiPost(resource: string, body: any) {
     return apiFetch(`/api/data/${resource}`, {
         method: 'POST',
-        body: JSON.stringify(keysToSnake(body)),
+        body: JSON.stringify(body),
     });
 }
 
 export function apiPut(resource: string, body: any) {
     return apiFetch(`/api/data/${resource}`, {
         method: 'PUT',
-        body: JSON.stringify(keysToSnake(body)),
+        body: JSON.stringify(body),
     });
 }
