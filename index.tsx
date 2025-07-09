@@ -59,6 +59,11 @@ export async function fetchInitialData() {
             state.activeWorkspaceId = userWorkspaces[0].workspaceId;
             localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId);
         }
+        
+        // If user is on the auth/setup page but has workspaces, redirect to dashboard.
+        if (state.currentPage === 'auth' || state.currentPage === 'setup') {
+            state.currentPage = 'dashboard';
+        }
     } else {
         // If user has no workspace, show the setup page.
         state.currentPage = 'setup';
