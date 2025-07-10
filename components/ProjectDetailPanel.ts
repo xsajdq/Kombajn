@@ -25,7 +25,6 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
     const totalTrackedSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
     const { openedProjectTab } = state.ui;
     
-    const userRole = getCurrentUserRole();
     const projectRole = getUserProjectRole(state.currentUser?.id || '', projectId);
     const canManageProject = projectRole === 'admin';
     const canEditProject = canManageProject || projectRole === 'editor';
@@ -40,51 +39,75 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             done: projectTasks.filter(t => t.status === 'done'),
         };
 
-        const renderTaskList = (tasks: Task[], title: string) => `
+        const totalTasks = projectTasks.length;
+        const completedTasks = tasksByStatus.done.length;
+        const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+        const todoTasksCount = tasksByStatus.todo.length;
+        const today = new Date().toISOString().slice(0, 10);
+        const overdueTasksCount = projectTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
+        const members = state.projectMembers.filter(pm => pm.projectId === project.id);
+        const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
+
+        const renderTaskList = (tasks: Task[], title: string) => tasks.length === 0 ? '' : `
             <div class="project-task-group">
                 <h5>${title} (${tasks.length})</h5>
-                ${tasks.length > 0 ? `
-                    <ul class="task-list-panel">
-                        ${tasks.map(task => {
-                            const isRunning = !!state.activeTimers[task.id];
-                            return `
-                            <li class="task-item-panel clickable" data-task-id="${task.id}" role="button" tabindex="0" aria-label="View task ${task.name}">
-                                <div class="task-details">
-                                    <span>${task.name}</span>
-                                </div>
-                                 <div class="task-actions">
-                                    <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                                    <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                                        <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
-                                    </button>
-                                </div>
-                            </li>
-                        `}).join('')}
-                    </ul>
-                ` : `<p class="empty-task-list">${t('panels.no_tasks_in_stage')}</p>`}
+                <ul class="task-list-panel">
+                    ${tasks.map(task => {
+                        const isRunning = !!state.activeTimers[task.id];
+                        return `
+                        <li class="task-item-panel clickable" data-task-id="${task.id}" role="button" tabindex="0" aria-label="View task ${task.name}">
+                            <div class="task-details">
+                                <span>${task.name}</span>
+                            </div>
+                             <div class="task-actions">
+                                <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
+                                <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                                    <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
+                                </button>
+                            </div>
+                        </li>
+                    `}).join('')}
+                </ul>
             </div>
         `;
 
         return `
-            <div class="side-panel-content">
-                <div class="card">
-                    <h4>${t('panels.project_overview')}</h4>
-                    <div class="project-stats">
-                        <div>
-                            <span class="stat-label">${t('panels.total_time_tracked')}</span>
-                            <span class="stat-value project-total-time">${formatDuration(totalTrackedSeconds)}</span>
+            <div class="side-panel-content project-dashboard">
+                 <div class="project-dashboard-grid">
+                    <div class="card stat-card" style="grid-column: 1 / -1;">
+                        <h4>${t('panels.progress')}</h4>
+                        <div class="kpi-progress-bar">
+                            <div class="kpi-progress-bar-inner" style="width: ${progress}%;"></div>
                         </div>
-                        <div>
-                            <span class="stat-label">${t('panels.tasks')}</span>
-                            <span class="stat-value">${projectTasks.length}</span>
+                        <span class="kpi-progress-text">${Math.round(progress)}%</span>
+                    </div>
+
+                    <div class="card stat-card">
+                        <h4>${t('panels.tasks_todo')}</h4>
+                        <div class="stat-card-value">${todoTasksCount}</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h4>${t('panels.tasks_overdue')}</h4>
+                        <div class="stat-card-value ${overdueTasksCount > 0 ? 'overdue' : ''}">${overdueTasksCount}</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h4>${t('panels.total_time_tracked')}</h4>
+                        <div class="stat-card-value project-total-time">${formatDuration(totalTrackedSeconds)}</div>
+                    </div>
+                    <div class="card stat-card">
+                         <h4>${t('panels.team')}</h4>
+                         <div class="kpi-avatar-stack">
+                            ${memberUsers.slice(0, 5).map(u => u ? `
+                                <div class="avatar" title="${u.name || u.initials}">
+                                    ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}">` : u.initials}
+                                </div>
+                            ` : '').join('')}
+                            ${memberUsers.length > 5 ? `<div class="avatar more-avatar">+${memberUsers.length - 5}</div>` : ''}
                         </div>
                     </div>
                 </div>
-                <div class="card">
-                    <h4>${t('panels.client_info')}</h4>
-                    ${client ? `<p>${client.name}</p>` : `<p>${t('panels.client_not_found')}</p>`}
-                </div>
-                <div class="card">
+
+                <div class="card" style="margin-top: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4>${t('panels.tasks')}</h4>
                         <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
