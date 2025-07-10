@@ -109,9 +109,59 @@
 .minimal-theme .widget-header { padding: 1.5rem 1.75rem; }
 .minimal-theme .widget-content { padding: 1.75rem; }
 .minimal-theme .kanban-board { gap: 2rem; }
-.minimal-theme .kanban-column { background-color: var(--background-color); padding: 1.5rem; }
+.minimal-theme .kanban-column { background-color: var(--light-color); padding: 1.5rem; }
 .minimal-theme .kanban-tasks { gap: 1.5rem; }
 .minimal-theme .task-card { padding: 1.5rem; box-shadow: none; border: 1px solid var(--border-color); }
 .minimal-theme .task-card:hover { box-shadow: 0 2px 8px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04); }
 .minimal-theme .task-list-row:hover,
 .minimal-theme .invoice-list-row:hover { background-color: var(--background-color); }
+
+
+/* RESPONSIVE STYLES */
+@media (max-width: 1024px) {
+    .task-list-header, .invoice-list-header { display: none; }
+    .task-list-row, .invoice-list-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem 1rem;
+        padding: 1rem;
+    }
+    .task-list-col, .invoice-list-row > div { 
+        padding: 0.5rem 0; 
+        border: none; 
+        display: flex; 
+        align-items: center; 
+    }
+    .task-list-col::before, .invoice-list-row > div::before {
+        content: attr(data-label);
+        font-weight: 600;
+        width: 80px;
+        margin-right: 1rem;
+        flex-shrink: 0;
+        display: inline-block;
+        color: var(--subtle-text-color);
+    }
+    .task-list-col[data-label="Task"]::before, .invoice-list-row > div[data-label="Number"]::before {
+        display: none;
+    }
+    .task-list-col[data-label="Task"], .invoice-list-row > div[data-label="Number"] {
+         grid-column: 1 / -1;
+         font-size: 1.1rem;
+    }
+
+    .kanban-board, .kanban-board.workflow-advanced {
+        grid-template-columns: 1fr;
+    }
+    .tasks-filter-bar {
+        padding: 1rem;
+    }
+}
+@media (max-width: 768px) {
+  .kanban-header { flex-wrap: wrap; }
+  .kanban-header h2 { width: 100%; margin-bottom: 1rem; }
+  .kanban-header > div { order: 1; width: 100%; justify-content: space-between; }
+}
+@media (max-width: 576px) {
+   .task-list-row, .invoice-list-row {
+        grid-template-columns: 1fr;
+    }
+}

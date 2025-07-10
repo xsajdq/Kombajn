@@ -24,7 +24,7 @@ export function ProjectsPage() {
     <div>
         <h2>
             <span>${t('projects.title')}</span>
-            <button class="btn btn-primary" data-modal-target="addProject" ${!canManage ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+            <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!canManage ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                 <span class="material-icons-sharp">add</span> ${t('projects.new_project')}
             </button>
         </h2>

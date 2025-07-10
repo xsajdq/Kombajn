@@ -1,6 +1,7 @@
 
 
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -9,6 +10,7 @@ import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
 import type { User, Workspace, WorkspaceMember, DashboardWidget } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
+import { startOnboarding } from './handlers/onboarding.ts';
 
 
 export async function fetchInitialData() {
@@ -77,6 +79,13 @@ export async function fetchInitialData() {
         state.currentPage = 'setup';
         state.activeWorkspaceId = null; // Ensure it's null
         localStorage.removeItem('activeWorkspaceId');
+    }
+
+    // After setting the active workspace, check if onboarding is needed.
+    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
+        // Delay slightly to ensure the initial page render is complete
+        setTimeout(() => startOnboarding(), 500);
     }
 
     console.log("Initial data fetched and state populated.", state);

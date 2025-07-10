@@ -6,7 +6,7 @@
 .btn-secondary:hover:not(:disabled) { background-color: var(--border-color); }
 .btn-link { background: none; border: none; color: var(--primary-color); font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 0; }
 .btn-link:hover { text-decoration: underline; }
-.btn-icon { background: transparent; border: none; color: var(--subtle-text-color); cursor: pointer; padding: 0.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.btn-icon { background: transparent; border: none; color: var(--subtle-text-color); cursor: pointer; padding: 0.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
 .btn-icon:hover { background-color: var(--light-color); color: var(--dark-color); }
 .btn-icon.active { color: var(--primary-color); background-color: color-mix(in srgb, var(--primary-color) 15%, transparent); }
 .btn:disabled { background-color: var(--subtle-text-color) !important; color: var(--white-color) !important; cursor: not-allowed; opacity: 0.7; }
@@ -76,12 +76,15 @@
 
 
 /* MINIMAL THEME OVERRIDES */
-.minimal-theme .btn { font-weight: 700; }
+.minimal-theme .btn { font-weight: 700; transition: all 0.2s ease-in-out; }
+.minimal-theme .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 .minimal-theme .btn-primary { background-color: var(--primary-color); color: var(--white-color); border: 1px solid var(--primary-color); }
 .minimal-theme .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover-color); border-color: var(--primary-hover-color); }
 .minimal-theme .btn-secondary { background-color: var(--content-bg); color: var(--text-color); border: 1px solid var(--border-color); }
 .minimal-theme .btn-secondary:hover:not(:disabled) { border-color: #d1d5db; background-color: #f9fafb; }
-.minimal-theme .card { padding: 2rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
+
+.minimal-theme .card { padding: 2rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); transition: all 0.2s ease-in-out; }
+.minimal-theme .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .minimal-theme .empty-state { background-color: transparent; border: 2px dashed var(--border-color); }
 .minimal-theme .modal-overlay { background: rgba(55, 65, 81, 0.6); backdrop-filter: blur(4px); }
 .minimal-theme .side-panel-overlay { background-color: rgba(55, 65, 81, 0.5); }
