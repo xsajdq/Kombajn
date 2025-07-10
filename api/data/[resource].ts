@@ -8,20 +8,10 @@ const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoice
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resource = req.query.resource as string;
 
-  if (resource.endsWith('/delete')) {
-      const actualResource = resource.replace('/delete', '');
-      if (req.method === 'POST' && ALLOWED_RESOURCES.includes(actualResource)) {
-        return handleDelete(req, res, actualResource);
-      }
-  }
-
-  if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) {
-      return res.status(404).json({ error: "Resource not found or not allowed." });
-  }
-  
   try {
     const supabase = getSupabaseAdmin();
     
+    // 1. Authenticate FIRST for all requests.
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) {
         return res.status(401).json({ error: 'Authentication token required.' });
@@ -29,6 +19,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
         return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
+    }
+    
+    // 2. Handle delete operations (now authenticated)
+    if (resource.endsWith('/delete')) {
+        const actualResource = resource.replace('/delete', '');
+        if (req.method === 'POST' && ALLOWED_RESOURCES.includes(actualResource)) {
+            const { id } = req.body;
+            if (!id) return res.status(400).json({ error: 'ID is required for delete' });
+
+            const { error } = await (supabase.from(actualResource) as any).delete().eq('id', id);
+            if (error) throw error;
+            
+            return res.status(204).send(undefined);
+        }
+    }
+
+    // 3. Handle standard resource operations
+    if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) {
+        return res.status(404).json({ error: "Resource not found or not allowed." });
     }
     
     const bodyInSnakeCase = req.body ? keysToSnake(req.body) : req.body;
@@ -60,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         default:
-            res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+            res.setHeader('Allow', ['GET', 'POST', 'PUT']);
             return res.status(405).end('Method Not Allowed');
     }
   } catch(error: any) {
@@ -68,20 +77,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
      const errorMessage = error.message || 'An internal server error occurred.';
      return res.status(500).json({ error: errorMessage });
   }
-}
-
-async function handleDelete(req: VercelRequest, res: VercelResponse, resource: string) {
-    try {
-        const supabase = getSupabaseAdmin();
-        const { id } = req.body; // Expecting { id: '...' } in body
-        if (!id) return res.status(400).json({ error: 'ID is required for delete' });
-
-        const { error } = await (supabase.from(resource) as any).delete().eq('id', id);
-        if (error) throw error;
-        
-        return res.status(204).send(undefined);
-    } catch (error: any) {
-        console.error(`Error deleting from ${resource}:`, error);
-        return res.status(500).json({ error: error.message });
-    }
 }
