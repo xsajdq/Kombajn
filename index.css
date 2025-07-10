@@ -328,6 +328,12 @@ body {
   gap: 0.25rem;
 }
 
+.widget-controls [data-remove-widget-id]:hover {
+    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--danger-color) 10%, transparent);
+}
+
+
 .widget-content {
   padding: 1.25rem;
   flex-grow: 1;
