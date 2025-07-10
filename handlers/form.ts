@@ -143,6 +143,52 @@ export async function handleFormSubmit() {
             }
         }
         
+        if (type === 'addTimeOffRequest') {
+            const leaveType = (document.getElementById('leaveType') as HTMLSelectElement).value as TimeOffRequest['type'];
+            const startDate = (document.getElementById('leaveStartDate') as HTMLInputElement).value;
+            const endDate = (document.getElementById('leaveEndDate') as HTMLInputElement).value;
+
+            if (!leaveType || !startDate || !endDate) {
+                alert('Please fill all required fields.');
+                return; // Prevent closing the modal
+            }
+            if (new Date(endDate) < new Date(startDate)) {
+                alert('End date cannot be before start date.');
+                return; // Prevent closing the modal
+            }
+            // This handler already closes the modal on success.
+            await hrHandlers.handleSubmitTimeOffRequest(leaveType, startDate, endDate);
+            return; // Exit here since the handler manages its own flow.
+        }
+
+        if (type === 'addCalendarEvent') {
+            const title = (document.getElementById('eventTitle') as HTMLInputElement).value;
+            const eventType = (document.getElementById('eventType') as HTMLSelectElement).value as CalendarEvent['type'];
+            const startDate = (document.getElementById('eventStartDate') as HTMLInputElement).value;
+            const endDate = (document.getElementById('eventEndDate') as HTMLInputElement).value;
+
+            if (!title || !startDate || !endDate) {
+                alert('Please fill all required fields.');
+                return; // prevent modal close
+            }
+            if (new Date(endDate) < new Date(startDate)) {
+                alert('End date cannot be before start date.');
+                return; // prevent modal close
+            }
+
+            const payload: Omit<CalendarEvent, 'id'> = {
+                workspaceId: activeWorkspaceId,
+                title,
+                type: eventType,
+                startDate,
+                endDate,
+                isAllDay: true, // Assuming all-day for now
+            };
+
+            const [newEvent] = await apiPost('calendar_events', payload);
+            state.calendarEvents.push(newEvent);
+        }
+
         if (type === 'rejectTimeOffRequest') {
              const form = document.getElementById('rejectTimeOffForm') as HTMLFormElement;
              const requestId = form.dataset.requestId!;
