@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -16,7 +17,7 @@ import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts'
 import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
 
-function AppLayout() {
+async function AppLayout() {
     // If there is no authenticated user, always show the AuthPage.
     if (!state.currentUser) {
         return AuthPage();
@@ -27,7 +28,7 @@ function AppLayout() {
         return AuthPage({ isSetup: true });
     }
     
-    const pageContent = router();
+    const pageContent = await router();
     const { openedProjectId, openedClientId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
@@ -66,7 +67,7 @@ function AppLayout() {
     `;
 }
 
-export function renderApp() {
+export async function renderApp() {
     const app = document.getElementById('app')!;
     if (!app) return;
     document.documentElement.lang = state.settings.language;
@@ -80,7 +81,7 @@ export function renderApp() {
         left: scrollableContent?.scrollLeft ?? 0
     };
     
-    app.innerHTML = AppLayout();
+    app.innerHTML = await AppLayout();
 
     // If the Auth or Setup Page is rendered, no further action is needed for most things.
     if (!state.currentUser || state.currentPage === 'setup') {

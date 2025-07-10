@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -94,7 +95,7 @@ export async function bootstrapApp() {
         // Sync the URL with the state determined by the data before rendering.
         // This prevents race conditions where the router sees an old URL.
         window.location.hash = `#/${state.currentPage}`;
-        renderApp();
+        await renderApp();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
         document.getElementById('app')!.innerHTML = `
@@ -124,7 +125,7 @@ async function init() {
     } else {
         console.log("No valid session found. Showing auth page.");
         state.currentPage = 'auth';
-        renderApp();
+        await renderApp();
     }
     
     // Timer update interval

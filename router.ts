@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -17,7 +18,7 @@ import { getCurrentUserRole } from './handlers/main.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 
-export function router() {
+export async function router() {
     // If no user is authenticated, always show the authentication page.
     if (!state.currentUser) {
         state.currentPage = 'auth';
@@ -41,7 +42,7 @@ export function router() {
         case 'projects': return ProjectsPage();
         case 'clients': return ClientsPage();
         case 'tasks': return TasksPage();
-        case 'team-calendar': return TeamCalendarPage();
+        case 'team-calendar': return await TeamCalendarPage();
         case 'reports': return ReportsPage();
         case 'sales': return SalesPage();
         case 'invoices': return InvoicesPage();
