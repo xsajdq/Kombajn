@@ -389,13 +389,14 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const targetCalendar = calendarNav.dataset.targetCalendar || 'main';
             const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
             const [year, month] = state.ui[dateKey].split('-').map(Number);
-            let newDate;
+            const currentDate = new Date(year, month - 1, 1); // month is 1-based, constructor is 0-based
+
             if (calendarNav.dataset.calendarNav === 'prev') {
-                newDate = new Date(year, month - 2, 1);
+                currentDate.setMonth(currentDate.getMonth() - 1);
             } else {
-                newDate = new Date(year, month, 1);
+                currentDate.setMonth(currentDate.getMonth() + 1);
             }
-            state.ui[dateKey] = newDate.toISOString().slice(0, 7);
+            state.ui[dateKey] = currentDate.toISOString().slice(0, 7);
             renderApp();
             return;
         }
