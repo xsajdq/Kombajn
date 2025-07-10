@@ -10,7 +10,13 @@ export function generateId(): string {
 
 // saveState is no longer needed as the server is the source of truth.
 export function saveState() {
-    // This function is now a no-op but can be kept for future caching strategies.
+    // This function can be used to save settings to localStorage
+    const settingsToSave = {
+        theme: state.settings.theme,
+        language: state.settings.language,
+        defaultKanbanWorkflow: state.settings.defaultKanbanWorkflow,
+    };
+    localStorage.setItem('kombajn-settings', JSON.stringify(settingsToSave));
 }
 
 function getInitialState(): AppState {
@@ -18,6 +24,21 @@ function getInitialState(): AppState {
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
+    // Load settings from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
+    const legacyDarkMode = localStorage.getItem('darkMode');
+
+    let theme: 'light' | 'dark' | 'minimal' = savedSettings.theme;
+    if (!theme) {
+        if (legacyDarkMode === 'true') {
+            theme = 'dark';
+        } else {
+            theme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        // Migrate old setting
+        localStorage.removeItem('darkMode');
+    }
+    
     // This is now the blueprint for a clean, empty state.
     // Data will be fetched from the API.
     return {
@@ -54,10 +75,9 @@ function getInitialState(): AppState {
         workspaceJoinRequests: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
-            // Settings can still be loaded from localStorage for user convenience
-            darkMode: localStorage.getItem('darkMode') === 'true' || window.matchMedia?.('(prefers-color-scheme: dark)').matches,
-            language: (localStorage.getItem('language') as 'en' | 'pl') || 'en',
-            defaultKanbanWorkflow: (localStorage.getItem('defaultKanbanWorkflow') as 'simple' | 'advanced') || 'simple',
+            theme,
+            language: savedSettings.language || 'en',
+            defaultKanbanWorkflow: savedSettings.defaultKanbanWorkflow || 'simple',
         },
         activeTimers: {},
         ui: {

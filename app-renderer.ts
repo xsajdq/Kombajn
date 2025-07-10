@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -88,7 +89,13 @@ export function renderApp() {
 
 
     // Post-render actions
-    document.body.classList.toggle('dark-mode', state.settings.darkMode);
+    document.body.classList.remove('dark-theme', 'minimal-theme');
+    if (state.settings.theme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else if (state.settings.theme === 'minimal') {
+      document.body.classList.add('minimal-theme');
+    }
+
 
     if (state.ui.modal.justOpened) {
         state.ui.modal.justOpened = false;

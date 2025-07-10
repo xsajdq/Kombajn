@@ -581,14 +581,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         if (target.closest('#mark-all-read-btn')) { notificationHandlers.markAllNotificationsAsRead(); return; }
 
 
-        // --- Dark Mode / Language ---
-        const darkModeToggle = target.closest('#dark-mode-toggle');
-        if (darkModeToggle) {
-            state.settings.darkMode = (darkModeToggle as HTMLInputElement).checked;
-            saveState();
-            renderApp();
-            return;
-        }
+
         
         // --- Member management ---
         const removeMemberBtn = target.closest<HTMLElement>('[data-remove-member-id]');
@@ -929,7 +922,15 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             return;
         }
         
-        // --- Language Switcher ---
+        // --- Theme & Language Switchers ---
+        const themeSwitcher = target.closest<HTMLSelectElement>('#theme-switcher');
+        if (themeSwitcher) {
+            state.settings.theme = themeSwitcher.value as 'light' | 'dark' | 'minimal';
+            saveState();
+            renderApp();
+            return;
+        }
+
         const langSwitcher = target.closest<HTMLSelectElement>('#language-switcher');
         if (langSwitcher) {
             state.settings.language = langSwitcher.value as 'en' | 'pl';

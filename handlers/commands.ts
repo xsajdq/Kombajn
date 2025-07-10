@@ -1,6 +1,8 @@
 
 
 
+
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
@@ -26,7 +28,7 @@ export function getCommands(): Command[] {
     const commands: Command[] = [
         { id: 'new-task', name: t('command_palette.cmd_new_task'), icon: 'add_task', shortcut: 'N', action: () => showModal('addTask') },
         { id: 'toggle-theme', name: t('command_palette.cmd_toggle_theme'), icon: 'brightness_6', action: () => {
-            state.settings.darkMode = !state.settings.darkMode;
+            state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
             saveState();
             renderApp();
         }},

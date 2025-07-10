@@ -365,7 +365,7 @@ export interface AppState {
     workspaceJoinRequests: WorkspaceJoinRequest[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
-        darkMode: boolean;
+        theme: 'light' | 'dark' | 'minimal';
         language: 'en' | 'pl';
         defaultKanbanWorkflow: 'simple' | 'advanced';
     };

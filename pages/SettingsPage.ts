@@ -2,6 +2,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -14,13 +15,14 @@ export function SettingsPage() {
     const renderGeneralSettings = () => `
         <div class="setting-item">
             <div>
-                <h4>${t('settings.dark_mode')}</h4>
-                <p class="subtle-text">${t('settings.dark_mode_desc')}</p>
+                <h4>${t('settings.theme')}</h4>
+                <p class="subtle-text">${t('settings.theme_desc')}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="dark-mode-toggle" ${state.settings.darkMode ? 'checked' : ''}>
-              <span class="slider round"></span>
-            </label>
+            <select id="theme-switcher" class="form-control" style="max-width: 200px;">
+                <option value="light" ${state.settings.theme === 'light' ? 'selected' : ''}>${t('settings.theme_light')}</option>
+                <option value="dark" ${state.settings.theme === 'dark' ? 'selected' : ''}>${t('settings.theme_dark')}</option>
+                <option value="minimal" ${state.settings.theme === 'minimal' ? 'selected' : ''}>${t('settings.theme_minimal')}</option>
+            </select>
         </div>
         <div class="setting-item">
             <div>
