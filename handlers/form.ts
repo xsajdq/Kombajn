@@ -243,6 +243,17 @@ export async function handleFormSubmit() {
                 await timerHandlers.handleSaveManualTimeLog(taskId, timeString, dateString, comment || undefined);
             }
         }
+        
+        if (type === 'adjustVacationAllowance') {
+            const form = document.getElementById('adjustVacationForm') as HTMLFormElement;
+            const userId = form.dataset.userId!;
+            const hoursInput = document.getElementById('vacation-allowance-hours') as HTMLInputElement;
+            const hours = parseInt(hoursInput.value, 10);
+            if (userId && !isNaN(hours)) {
+                await hrHandlers.handleSetVacationAllowance(userId, hours);
+                return; // Handler closes modal
+            }
+        }
 
         closeModal();
         renderApp();

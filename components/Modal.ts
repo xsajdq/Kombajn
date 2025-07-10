@@ -535,6 +535,21 @@ export function Modal() {
         `;
     }
 
+    if (state.ui.modal.type === 'adjustVacationAllowance') {
+        const { userId, currentAllowance } = modalData;
+        const user = state.users.find(u => u.id === userId);
+        title = `${t('modals.adjust_vacation_title')} - ${user?.name || ''}`;
+        maxWidth = '500px';
+        body = `
+            <form id="adjustVacationForm" data-user-id="${userId}">
+                <div class="form-group">
+                    <label for="vacation-allowance-hours">${t('modals.total_allowance_hours')}</label>
+                    <input type="number" id="vacation-allowance-hours" class="form-control" value="${currentAllowance}" required>
+                </div>
+            </form>
+        `;
+    }
+
     return `
         <div class="modal-overlay ${isOpening ? 'modal-overlay-opening' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-content ${isOpening ? 'modal-content-opening' : ''}" style="max-width: ${maxWidth}">

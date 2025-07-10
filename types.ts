@@ -8,6 +8,7 @@ export interface User {
     initials: string;
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
+    vacationAllowanceHours?: number; // Total vacation hours for the year
 }
 
 export type Role = 'owner' | 'manager' | 'member' | 'client';
@@ -420,7 +421,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | null;
             data?: any;
             justOpened?: boolean;
         };
@@ -441,7 +442,7 @@ export interface AppState {
             isEditing: boolean;
         };
         hr: {
-             activeTab: 'employees' | 'requests' | 'history' | 'reviews';
+             activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
         }
         onboarding: {
             isActive: boolean;

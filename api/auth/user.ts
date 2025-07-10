@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch the corresponding public profile data, now including the email
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id, name, email, initials, avatar_url, contractInfoNotes, employmentInfoNotes')
+            .select('id, name, email, initials, avatar_url, contract_info_notes, employment_info_notes, vacation_allowance_hours')
             .eq('id', user.id)
             .single();
 
@@ -33,9 +33,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
         const userForClient = {
             ...profileData,
-            avatarUrl: profileData.avatar_url
+            avatarUrl: profileData.avatar_url,
+            vacationAllowanceHours: profileData.vacation_allowance_hours
         };
         delete (userForClient as any).avatar_url;
+        delete (userForClient as any).vacation_allowance_hours;
+
 
         return res.status(200).json({ user: userForClient });
 

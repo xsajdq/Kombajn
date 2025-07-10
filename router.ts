@@ -49,7 +49,7 @@ export async function router() {
         case 'ai-assistant': return AIAssistantPage();
         case 'settings': return SettingsPage();
         case 'chat': return ChatPage();
-        case 'hr': return canAccessTeam ? HRPage() : DashboardPage(); // Guard route
+        case 'hr': return canAccessTeam ? await HRPage() : DashboardPage(); // Guard route
         case 'billing': return canAccessBilling ? BillingPage() : DashboardPage(); // Guard route
         case 'auth': return AuthPage(); // Fallback case
         case 'dashboard':

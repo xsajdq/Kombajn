@@ -3,12 +3,13 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDate } from '../utils.ts';
+import { formatDate, getVacationInfo } from '../utils.ts';
 import type { Role, User, WorkspaceMember, TimeOffRequest } from '../types.ts';
 import { getCurrentUserRole } from '../handlers/main.ts';
 import { PLANS } from '../utils.ts';
+import { fetchPublicHolidays } from '../handlers/calendar.ts';
 
-export function HRPage() {
+export async function HRPage() {
     const userRole = getCurrentUserRole();
     if (userRole !== 'owner' && userRole !== 'manager') {
         return `<div class="empty-state">
@@ -17,6 +18,9 @@ export function HRPage() {
             <p>${t('hr.access_denied_desc')}</p>
         </div>`;
     }
+    
+    // Ensure we have holiday data for calculations
+    await fetchPublicHolidays(new Date().getFullYear());
 
     const { activeTab } = state.ui.hr;
 
@@ -27,6 +31,9 @@ export function HRPage() {
             break;
         case 'requests':
             tabContent = renderRequestsTab();
+            break;
+        case 'vacation':
+            tabContent = renderVacationTab();
             break;
         case 'history':
              tabContent = `<div class="empty-state"><p>Leave history coming soon.</p></div>`;
@@ -48,6 +55,7 @@ export function HRPage() {
             <div class="hr-tabs">
                 <div class="hr-tab ${activeTab === 'employees' ? 'active' : ''}" data-hr-tab="employees">${t('hr.tabs.employees')}</div>
                 <div class="hr-tab ${activeTab === 'requests' ? 'active' : ''}" data-hr-tab="requests">${t('hr.tabs.requests')}</div>
+                <div class="hr-tab ${activeTab === 'vacation' ? 'active' : ''}" data-hr-tab="vacation">${t('hr.tabs.vacation')}</div>
                 <div class="hr-tab ${activeTab === 'history' ? 'active' : ''}" data-hr-tab="history">${t('hr.tabs.history')}</div>
                 <div class="hr-tab ${activeTab === 'reviews' ? 'active' : ''}" data-hr-tab="reviews">${t('hr.tabs.reviews')}</div>
             </div>
@@ -199,4 +207,41 @@ function renderRequestsTab() {
             </div>
         </div>
      `;
+}
+
+function renderVacationTab() {
+    const workspaceUsers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId)!)
+        .filter(Boolean);
+
+    return `
+        <div class="card invoice-list-container">
+            <div class="vacation-table-header">
+                <div>${t('hr.employee')}</div>
+                <div>${t('hr.vacation_pool')}</div>
+                <div>${t('hr.vacation_used')}</div>
+                <div>${t('hr.vacation_remaining')}</div>
+                <div>${t('hr.actions')}</div>
+            </div>
+            <div class="vacation-table-body">
+                ${workspaceUsers.map(user => {
+                    const vacationInfo = getVacationInfo(user, state.timeOffRequests, state.publicHolidays);
+                    return `
+                        <div class="vacation-table-row">
+                            <div data-label="${t('hr.employee')}">${user.name || user.initials}</div>
+                            <div data-label="${t('hr.vacation_pool')}">${vacationInfo.pool.days} ${t('hr.days')} / ${vacationInfo.pool.hours} ${t('hr.hours')}</div>
+                            <div data-label="${t('hr.vacation_used')}">${vacationInfo.used.days} ${t('hr.days')} / ${vacationInfo.used.hours} ${t('hr.hours')}</div>
+                            <div data-label="${t('hr.vacation_remaining')}">${vacationInfo.remaining.days} ${t('hr.days')} / ${vacationInfo.remaining.hours} ${t('hr.hours')}</div>
+                            <div data-label="${t('hr.actions')}">
+                                <button class="btn btn-secondary btn-sm" data-modal-target="adjustVacationAllowance" data-user-id="${user.id}" data-current-allowance="${vacationInfo.pool.hours}">
+                                    ${t('hr.manage_vacation')}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
 }

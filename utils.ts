@@ -1,6 +1,6 @@
 
 import { state } from './state.ts';
-import type { Task, PlanId } from './types.ts';
+import type { Task, PlanId, User, TimeOffRequest, PublicHoliday } from './types.ts';
 
 export const PLANS: Record<PlanId, { projects: number; users: number; invoices: number; workspaces: number; }> = {
     free: {
@@ -125,6 +125,45 @@ export function getUsage(workspaceId: string) {
 
     return { projects, users, invoicesThisMonth };
 }
+
+export function calculateBusinessDays(startDateStr: string, endDateStr: string, holidays: { date: string }[]): number {
+    let count = 0;
+    const startDate = new Date(startDateStr + 'T00:00:00Z');
+    const endDate = new Date(endDateStr + 'T00:00:00Z');
+    const holidaySet = new Set(holidays.map(h => h.date));
+
+    let currentDate = startDate;
+    while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getUTCDay();
+        const dateString = currentDate.toISOString().slice(0, 10);
+        if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidaySet.has(dateString)) {
+            count++;
+        }
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+    return count;
+}
+
+
+export function getVacationInfo(user: User, timeOffRequests: TimeOffRequest[], holidays: PublicHoliday[]) {
+    const poolHours = user.vacationAllowanceHours ?? 200; // Default to 200 hours (25 days * 8h)
+    
+    const usedHours = timeOffRequests
+        .filter(req => req.userId === user.id && req.status === 'approved' && req.type === 'vacation')
+        .reduce((total, req) => {
+            const businessDays = calculateBusinessDays(req.startDate, req.endDate, holidays);
+            return total + (businessDays * 8); // Assume 8-hour workdays
+        }, 0);
+        
+    const remainingHours = poolHours - usedHours;
+    
+    return {
+        pool: { hours: poolHours, days: poolHours / 8 },
+        used: { hours: usedHours, days: usedHours / 8 },
+        remaining: { hours: remainingHours, days: remainingHours / 8 }
+    };
+}
+
 
 export function snakeToCamel(str: string): string {
     return str.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());

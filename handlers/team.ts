@@ -291,7 +291,7 @@ export async function handleSaveWorkspaceSettings() {
 }
 
 
-export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'history' | 'reviews') {
+export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews') {
     state.ui.hr.activeTab = tab;
     renderApp();
 }
@@ -374,6 +374,28 @@ export async function handleRejectTimeOffRequest(requestId: string, reason: stri
         }
     }
 }
+
+export async function handleSetVacationAllowance(userId: string, hours: number) {
+    const user = state.users.find(u => u.id === userId);
+    if (!user) return;
+    
+    const originalAllowance = user.vacationAllowanceHours;
+    
+    // Optimistic update
+    user.vacationAllowanceHours = hours;
+    closeModal();
+    
+    try {
+        await apiPut('profiles', { id: userId, vacationAllowanceHours: hours });
+    } catch (error) {
+        console.error("Failed to update vacation allowance:", error);
+        alert("Could not save vacation allowance. Please try again.");
+        // Revert on failure
+        user.vacationAllowanceHours = originalAllowance;
+        renderApp();
+    }
+}
+
 
 export async function handleRemoveUserFromProject(projectMemberId: string) {
     const memberIndex = state.projectMembers.findIndex(pm => pm.id === projectMemberId);
