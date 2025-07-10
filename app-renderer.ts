@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -70,6 +71,9 @@ export function renderApp() {
     if (!app) return;
     document.documentElement.lang = state.settings.language;
     
+    // Check if a side panel is currently open before re-rendering
+    const wasPanelOpen = !!document.querySelector('.side-panel.is-open');
+
     const scrollableContent = document.querySelector('.content');
     const scrollPositions = {
         top: scrollableContent?.scrollTop ?? 0,
@@ -104,18 +108,26 @@ export function renderApp() {
     }
 
     if (state.ui.openedProjectId || state.ui.openedClientId) {
-        setTimeout(() => {
-            const panel = document.querySelector<HTMLElement>('.side-panel');
-            // Only add the class to trigger the animation if the panel doesn't already have it.
-            // This prevents re-animation on tab switches within the panel.
-            if (panel && !panel.classList.contains('is-open')) {
+        const panel = document.querySelector<HTMLElement>('.side-panel');
+        if (panel) {
+            if (wasPanelOpen) {
+                // Panel was already open, show it instantly without animation
+                panel.classList.add('no-transition');
                 panel.classList.add('is-open');
-                 const firstFocusable = panel.querySelector<HTMLElement>(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                firstFocusable?.focus();
+                setTimeout(() => {
+                    panel.classList.remove('no-transition');
+                }, 50); // Small delay to ensure styles apply before removing class
+            } else {
+                // It's a new panel, so animate it in.
+                setTimeout(() => {
+                    panel.classList.add('is-open');
+                    const firstFocusable = panel.querySelector<HTMLElement>(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                    );
+                    firstFocusable?.focus();
+                }, 10);
             }
-        }, 10);
+        }
     }
     
     if (state.ui.modal.isOpen) {
