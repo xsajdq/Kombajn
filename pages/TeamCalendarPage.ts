@@ -1,10 +1,46 @@
 
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent } from '../types.ts';
+
+// Local helper function to render a single item in the calendar
+function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
+    let className = 'team-calendar-item';
+    let text = '';
+    let handler = '';
+    
+    // Task
+    if ('status' in item && 'projectId' in item) { 
+        className += ` type-task clickable`;
+        text = item.name;
+        handler = `data-task-id="${item.id}"`;
+    // Time Off Request
+    } else if ('userId' in item && 'rejectionReason' in item) {
+        const user = state.users.find(u => u.id === item.userId);
+        const userName = user?.name || user?.initials || 'User';
+        // Simple hash to get a consistent color for a user
+        const colorIndex = item.userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 8;
+        className += ` type-timeoff color-${colorIndex}`;
+        text = `${userName}`;
+        handler = `title="${userName}: ${t(`team_calendar.leave_type_${item.type}`)}"`;
+    // Calendar Event
+    } else if ('title' in item && 'isAllDay' in item) { 
+        const event = item as CalendarEvent;
+        if (event.type === 'on-call') {
+            className += ' type-on-call';
+            text = `${t('team_calendar.on_call')}: ${event.title}`;
+        } else {
+            className += ' type-event';
+            text = event.title;
+        }
+    // Public Holiday
+    } else if ('name' in item && 'date' in item) { 
+        className += ' type-public-holiday';
+        text = item.name;
+    }
+
+    return `<div class="${className}" ${handler}>${text}</div>`;
+}
 
 const POLISH_PUBLIC_HOLIDAYS_2024 = [
     { date: '2024-01-01', name: 'Nowy Rok' },
@@ -22,64 +58,21 @@ const POLISH_PUBLIC_HOLIDAYS_2024 = [
     { date: '2024-12-26', name: 'Drugi dzień Świąt Bożego Narodzenia' }
 ];
 
-function renderCalendarEvent(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
-    let className = 'team-calendar-event';
-    let text = '';
-    let handler = '';
-    
-    if ('status' in item && 'projectId' in item) { // Task
-        className += ` type-task priority-${item.priority || 'low'}`;
-        text = item.name;
-        handler = `data-task-id="${item.id}"`;
-    } else if ('userId' in item) { // TimeOffRequest
-        const user = state.users.find(u => u.id === item.userId);
-        const userName = user?.name || user?.initials || 'User';
-        className += ` type-timeoff user-${item.userId}`;
-        text = `${userName} - ${t(`team_calendar.leave_type_${item.type}`)}`;
-    } else if ('title' in item) { // CalendarEvent
-        const event = item as CalendarEvent;
-        if (event.type === 'on-call') {
-            className += ' type-on-call';
-            text = `${t('team_calendar.on_call')}: ${event.title}`;
-        } else {
-            className += ' type-event';
-            text = event.title;
-        }
-    } else { // Public Holiday
-        className += ' type-public-holiday';
-        text = item.name;
-    }
-
-    return `<div class="${className}" ${handler} title="${text}">${text}</div>`;
-}
-
 export function TeamCalendarPage() {
     const [year, month] = state.ui.teamCalendarDate.split('-').map(Number);
     const currentDate = new Date(year, month - 1, 1);
     const monthName = currentDate.toLocaleString(state.settings.language, { month: 'long', year: 'numeric' });
-
-    // Aggregate all events for the current month view
-    const tasks = state.tasks.filter(t => t.dueDate?.startsWith(state.ui.teamCalendarDate));
-    const timeOffs = state.timeOffRequests.filter(to => to.startDate.startsWith(state.ui.teamCalendarDate) && to.status === 'approved'); // Only show approved
-    const events = state.calendarEvents.filter(e => e.startDate.startsWith(state.ui.teamCalendarDate));
-    const holidays = POLISH_PUBLIC_HOLIDAYS_2024.filter(h => h.date.startsWith(state.ui.teamCalendarDate));
+    const today = new Date();
     
-    const allItems: (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[] = [...tasks, ...timeOffs, ...events, ...holidays];
+    // 1. Aggregate all data for the workspace
+    const tasks = state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.dueDate);
+    const timeOffs = state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved');
+    const events = state.calendarEvents.filter(e => e.workspaceId === state.activeWorkspaceId);
+    const holidays = POLISH_PUBLIC_HOLIDAYS_2024;
 
-    const itemsByDay: Record<number, (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[]> = {};
-    allItems.forEach(item => {
-        const dateStr = 'date' in item ? item.date : ('dueDate' in item && item.dueDate ? item.dueDate : item.startDate);
-        if (dateStr) {
-            const day = parseInt(dateStr.slice(8, 10), 10);
-            if (!itemsByDay[day]) {
-                itemsByDay[day] = [];
-            }
-            itemsByDay[day].push(item);
-        }
-    });
-
+    // 2. Build calendar grid structure
     const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday - 0, Monday - 1
+    const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday - 0
     let daysHtml = '';
 
     for (let i = 0; i < firstDayIndex; i++) {
@@ -87,12 +80,31 @@ export function TeamCalendarPage() {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const itemsForDay = itemsByDay[day] || [];
+        const dayDate = new Date(year, month - 1, day);
+        const dayDateString = dayDate.toISOString().slice(0, 10);
+        
+        const isToday = today.getFullYear() === year && today.getMonth() === month - 1 && today.getDate() === day;
+        
+        const itemsForDay: (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[] = [];
+        
+        itemsForDay.push(...tasks.filter(t => t.dueDate === dayDateString));
+        itemsForDay.push(...timeOffs.filter(to => {
+            const start = new Date(to.startDate + 'T00:00:00');
+            const end = new Date(to.endDate + 'T23:59:59');
+            return dayDate >= start && dayDate <= end;
+        }));
+        itemsForDay.push(...events.filter(e => {
+            const start = new Date(e.startDate + 'T00:00:00');
+            const end = new Date(e.endDate + 'T23:59:59');
+            return dayDate >= start && dayDate <= end;
+        }));
+        itemsForDay.push(...holidays.filter(h => h.date === dayDateString));
+
         daysHtml += `
-            <div class="calendar-day">
+            <div class="calendar-day ${isToday ? 'today' : ''}">
                 <div class="day-number">${day}</div>
-                <div class="calendar-tasks">
-                    ${itemsForDay.map(renderCalendarEvent).join('')}
+                <div class="calendar-items">
+                    ${itemsForDay.map(renderCalendarItem).join('')}
                 </div>
             </div>
         `;
@@ -104,6 +116,7 @@ export function TeamCalendarPage() {
         daysHtml += `<div class="calendar-day other-month"></div>`;
     }
 
+    // 3. Final page render
     return `
         <div>
             <div class="kanban-header">
@@ -124,7 +137,7 @@ export function TeamCalendarPage() {
                     <h4 class="calendar-title">${monthName}</h4>
                     <button class="btn-icon" data-calendar-nav="next" data-target-calendar="team" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
                 </div>
-                <div class="calendar-grid team-calendar-grid">
+                <div class="calendar-grid">
                     <div class="calendar-weekday">${t('calendar.weekdays.sun')}</div>
                     <div class="calendar-weekday">${t('calendar.weekdays.mon')}</div>
                     <div class="calendar-weekday">${t('calendar.weekdays.tue')}</div>
