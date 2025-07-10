@@ -1,11 +1,9 @@
 
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { DashboardWidget, DashboardWidgetType } from '../types.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 
 export function toggleEditMode() {
     state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
@@ -51,7 +49,10 @@ export async function removeWidget(widgetId: string) {
     const [removedWidget] = state.dashboardWidgets.splice(widgetIndex, 1);
     renderApp();
     try {
-        await apiPost('dashboard_widgets/delete', { id: widgetId });
+        await apiFetch(`/api/data/dashboard_widgets`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: widgetId }),
+        });
     } catch (error) {
         state.dashboardWidgets.splice(widgetIndex, 0, removedWidget);
         renderApp();
