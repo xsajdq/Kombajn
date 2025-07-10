@@ -1,5 +1,6 @@
 
 
+
 /* COMPONENTS */
 .notification-wrapper {
     position: relative;
@@ -162,6 +163,7 @@
 .side-panel-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1050; cursor: pointer; }
 .side-panel { position: fixed; top: 0; right: 0; width: 60%; height: 100%; background-color: var(--background-color); box-shadow: -10px 0 30px -15px rgba(0,0,0,0.3); z-index: 1051; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 .side-panel.is-open { transform: translateX(0); }
+.side-panel.no-transition { transition: none !important; }
 .side-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-color); background-color: var(--content-bg); flex-shrink: 0; }
 .side-panel-header h2 { margin-bottom: 0; }
 .side-panel-content { padding: 2rem; overflow-y: auto; flex-grow: 1; }
