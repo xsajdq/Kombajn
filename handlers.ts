@@ -6,6 +6,7 @@
 
 export * from './handlers/ai.ts';
 export * from './handlers/billing.ts';
+export * from './handlers/calendar.ts';
 export * from './handlers/commands.ts';
 export * from './handlers/dnd.ts';
 export * from './handlers/form.ts';

@@ -383,27 +383,48 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             return;
         }
 
-
         const calendarNav = target.closest<HTMLElement>('[data-calendar-nav]');
-        if (calendarNav) { 
+        if (calendarNav) {
             const targetCalendar = calendarNav.dataset.targetCalendar || 'main';
-            const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
-            const [year, month] = state.ui[dateKey].split('-').map(Number);
-            
-            // This approach avoids timezone issues from toISOString()
-            const currentDate = new Date(year, month - 1, 1);
 
-            if (calendarNav.dataset.calendarNav === 'prev') {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-            } else {
-                currentDate.setMonth(currentDate.getMonth() + 1);
+            if (targetCalendar === 'team') {
+                const view = state.ui.teamCalendarView;
+                const current_date = new Date(state.ui.teamCalendarDate + 'T12:00:00Z'); // Use noon to avoid DST issues
+                
+                if (calendarNav.dataset.calendarNav === 'prev') {
+                    if (view === 'month') current_date.setMonth(current_date.getMonth() - 1);
+                    else if (view === 'week') current_date.setDate(current_date.getDate() - 7);
+                    else current_date.setDate(current_date.getDate() - 1);
+                } else {
+                    if (view === 'month') current_date.setMonth(current_date.getMonth() + 1);
+                    else if (view === 'week') current_date.setDate(current_date.getDate() + 7);
+                    else current_date.setDate(current_date.getDate() + 1);
+                }
+                state.ui.teamCalendarDate = current_date.toISOString().slice(0, 10);
+            } else { // 'main' calendar (task calendar)
+                const [year, month] = state.ui.calendarDate.split('-').map(Number);
+                const currentDate = new Date(year, month - 1, 1);
+                if (calendarNav.dataset.calendarNav === 'prev') {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                } else {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                const newYear = currentDate.getFullYear();
+                const newMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+                state.ui.calendarDate = `${newYear}-${newMonth}`;
             }
-            
-            const newYear = currentDate.getFullYear();
-            const newMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-            state.ui[dateKey] = `${newYear}-${newMonth}`;
 
             renderApp();
+            return;
+        }
+
+        const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
+        if (teamCalendarViewBtn) {
+            const view = teamCalendarViewBtn.dataset.teamCalendarView as 'month' | 'week' | 'day';
+            if (view) {
+                state.ui.teamCalendarView = view;
+                renderApp();
+            }
             return;
         }
         

@@ -104,8 +104,8 @@ export interface Attachment {
     projectId: string; // All attachments belong to a project
     taskId?: string; // Optionally, to a specific task
     fileName: string;
+    fileType: string;
     fileSize: number; // in bytes
-    fileType: string; // MIME type
     createdAt: string; // ISO
 }
 export interface TimeLog {
@@ -331,6 +331,11 @@ export interface WorkspaceJoinRequest {
     createdAt: string;
 }
 
+export interface PublicHoliday {
+    date: string;
+    name: string;
+}
+
 
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
@@ -364,6 +369,7 @@ export interface AppState {
     expenses: Expense[];
     deals: Deal[];
     workspaceJoinRequests: WorkspaceJoinRequest[];
+    publicHolidays: PublicHoliday[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -405,7 +411,8 @@ export interface AppState {
             dateEnd: string;
         };
         calendarDate: string; // YYYY-MM for the calendar view
-        teamCalendarDate: string; // YYYY-MM for the team calendar view
+        teamCalendarView: 'month' | 'week' | 'day';
+        teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
         activeChannelId: string | null;
         isWikiEditing: boolean;
         taskDetail: {

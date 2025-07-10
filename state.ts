@@ -73,6 +73,7 @@ function getInitialState(): AppState {
         expenses: [],
         deals: [],
         workspaceJoinRequests: [],
+        publicHolidays: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme,
@@ -96,7 +97,8 @@ function getInitialState(): AppState {
             taskFilters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all' },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
-            teamCalendarDate: now.toISOString().slice(0, 7),
+            teamCalendarView: 'month',
+            teamCalendarDate: now.toISOString().slice(0, 10),
             activeChannelId: null,
             isWikiEditing: false,
             taskDetail: { activeTab: 'activity' },
