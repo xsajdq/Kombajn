@@ -114,29 +114,69 @@ export function handleWidgetDragOver(e: DragEvent) {
 export async function handleWidgetDrop(e: DragEvent) {
     e.preventDefault();
     if (!state.ui.dashboard.isEditing) return;
-    const dropTarget = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
-    if (!dropTarget || !draggedWidgetId) return;
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
+    if (!dropTargetElement || !draggedWidgetId) return;
 
-    const dropTargetId = dropTarget.dataset.widgetId!;
-    dropTarget.classList.remove('drag-over');
+    const dropTargetId = dropTargetElement.dataset.widgetId!;
+    dropTargetElement.classList.remove('drag-over');
 
-    const draggedIndex = state.dashboardWidgets.findIndex(w => w.id === draggedWidgetId);
-    const targetIndex = state.dashboardWidgets.findIndex(w => w.id === dropTargetId);
+    const draggedWidget = state.dashboardWidgets.find(w => w.id === draggedWidgetId);
+    const targetWidget = state.dashboardWidgets.find(w => w.id === dropTargetId);
 
-    if (draggedIndex > -1 && targetIndex > -1 && draggedIndex !== targetIndex) {
-        const originalOrder = [...state.dashboardWidgets];
-        const [draggedItem] = state.dashboardWidgets.splice(draggedIndex, 1);
-        state.dashboardWidgets.splice(targetIndex, 0, draggedItem);
-        renderApp();
+    if (!draggedWidget || !targetWidget || draggedWidget.id === targetWidget.id) {
+        return;
+    }
+
+    // Store original positions for potential revert
+    const originalDraggedPos = { x: draggedWidget.x, y: draggedWidget.y, w: draggedWidget.w, h: draggedWidget.h };
+    const originalTargetPos = { x: targetWidget.x, y: targetWidget.y, w: targetWidget.w, h: targetWidget.h };
+
+    // Optimistic swap of grid properties
+    draggedWidget.x = originalTargetPos.x;
+    draggedWidget.y = originalTargetPos.y;
+    draggedWidget.w = originalTargetPos.w;
+    draggedWidget.h = originalTargetPos.h;
+
+    targetWidget.x = originalDraggedPos.x;
+    targetWidget.y = originalDraggedPos.y;
+    targetWidget.w = originalDraggedPos.w;
+    targetWidget.h = originalDraggedPos.h;
+
+    renderApp();
+
+    try {
+        // Persist changes for both widgets to the backend
+        await Promise.all([
+            apiPut('dashboard_widgets', {
+                id: draggedWidget.id,
+                x: draggedWidget.x,
+                y: draggedWidget.y,
+                w: draggedWidget.w,
+                h: draggedWidget.h
+            }),
+            apiPut('dashboard_widgets', {
+                id: targetWidget.id,
+                x: targetWidget.x,
+                y: targetWidget.y,
+                w: targetWidget.w,
+                h: targetWidget.h
+            })
+        ]);
+    } catch (error) {
+        console.error("Could not save widget positions:", error);
+        alert("Could not save the new widget layout.");
+
+        // Revert on failure
+        draggedWidget.x = originalDraggedPos.x;
+        draggedWidget.y = originalDraggedPos.y;
+        draggedWidget.w = originalDraggedPos.w;
+        draggedWidget.h = originalDraggedPos.h;
+
+        targetWidget.x = originalTargetPos.x;
+        targetWidget.y = originalTargetPos.y;
+        targetWidget.w = originalTargetPos.w;
+        targetWidget.h = originalTargetPos.h;
         
-        try {
-            // This is a simplification. A real implementation would update an 'order' field.
-            // For now, we assume the D&D is for visual purposes and don't persist order changes.
-            // To persist, you would need to add an `order` property to widgets and update them all.
-        } catch(error) {
-            state.dashboardWidgets = originalOrder;
-            renderApp();
-            alert("Could not reorder widgets.");
-        }
+        renderApp();
     }
 }
