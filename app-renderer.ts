@@ -106,7 +106,9 @@ export function renderApp() {
     if (state.ui.openedProjectId || state.ui.openedClientId) {
         setTimeout(() => {
             const panel = document.querySelector<HTMLElement>('.side-panel');
-            if (panel) {
+            // Only add the class to trigger the animation if the panel doesn't already have it.
+            // This prevents re-animation on tab switches within the panel.
+            if (panel && !panel.classList.contains('is-open')) {
                 panel.classList.add('is-open');
                  const firstFocusable = panel.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
