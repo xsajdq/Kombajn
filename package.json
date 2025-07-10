@@ -4,7 +4,7 @@
   "private": true,
   "description": "Teamwork Kombajn Application",
   "scripts": {
-    "build": "mkdir -p public && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html index.css public/"
+    "build": "mkdir -p public/css && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html public/ && cp css/*.css public/css/"
   },
   "keywords": [],
   "author": "",

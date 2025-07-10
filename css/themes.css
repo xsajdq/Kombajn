@@ -1,0 +1,76 @@
+:root {
+  --primary-color: #4a90e2;
+  --primary-hover-color: #357ABD;
+  --dark-color: #2c3e50;
+  --light-color: #ecf0f1;
+  --background-color: #f4f7fa;
+  --content-bg: var(--white-color);
+  --text-color: #34495e;
+  --subtle-text-color: #7f8c8d;
+  --border-color: #dfe6e9;
+  --white-color: #ffffff;
+  --danger-color: #e74c3c;
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #4a90e2;
+  --priority-high: #e74c3c;
+  --priority-medium: #f39c12;
+  --priority-low: #3498db;
+  --status-backlog-color: #636e72;
+  --status-inreview-color: #8e44ad;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --border-radius: 8px;
+}
+
+.dark-theme {
+  --primary-color: #58a6ff;
+  --primary-hover-color: #79b8ff;
+  --dark-color: #e6edf3;
+  --light-color: #2d333b;
+  --background-color: #0d1117;
+  --content-bg: #161b22;
+  --text-color: #c9d1d9;
+  --subtle-text-color: #8b949e;
+  --border-color: #30363d;
+  --sidebar-bg: #161b22;
+  --sidebar-text: #8b949e;
+  --sidebar-active: #58a6ff;
+  --priority-high: #f87171;
+  --priority-medium: #fbbf24;
+  --priority-low: #60a5fa;
+}
+
+/* --- NEW MINIMAL THEME --- */
+.minimal-theme {
+  --primary-color: #4A5568; /* Slate 600 */
+  --primary-hover-color: #2D3748; /* Slate 800 */
+  --dark-color: #1A202C; /* Slate 900 */
+  --light-color: #EDF2F7; /* Slate 200 */
+  --background-color: #F7FAFC; /* Slate 50 */
+  --content-bg: #FFFFFF;
+  --text-color: #2D3748; /* Slate 800 */
+  --subtle-text-color: #718096; /* Slate 500 */
+  --border-color: #E2E8F0; /* Slate 300 */
+  --white-color: #FFFFFF;
+  --danger-color: #E53E3E; /* Red 600 */
+  --success-color: #38A169; /* Green 600 */
+  --warning-color: #D69E2E; /* Yellow 600 */
+  --sidebar-bg: var(--background-color);
+  --sidebar-text: #4A5568; /* Slate 600 */
+  --sidebar-active: #1A202C; /* Slate 900 */
+  --priority-high: #E53E3E;
+  --priority-medium: #D69E2E;
+  --priority-low: #4299E1; /* Blue 500 */
+  --status-backlog-color: #A0AEC0; /* Slate 400 */
+  --status-inreview-color: #9F7AEA; /* Purple 500 */
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  --border-radius: 8px;
+}
