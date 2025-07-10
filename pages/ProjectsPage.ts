@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS } from '../utils.ts';
@@ -49,7 +50,7 @@ export function ProjectsPage() {
                 <span class="material-icons-sharp">folder_off</span>
                 <h3>${t('projects.no_projects_yet')}</h3>
                 <p>${t('projects.no_projects_desc')}</p>
-                <button class="btn btn-primary" data-modal-target="addProject" ${!canManage ? 'disabled' : ''}>
+                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!canManage ? 'disabled' : ''}>
                     ${t('projects.create_project')}
                 </button>
             </div>

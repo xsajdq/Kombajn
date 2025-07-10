@@ -1,7 +1,4 @@
 
-
-
-
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
