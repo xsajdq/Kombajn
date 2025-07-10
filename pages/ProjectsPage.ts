@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS } from '../utils.ts';
@@ -17,10 +18,11 @@ export function ProjectsPage() {
     const projects = state.projects.filter(p => {
         if (p.workspaceId !== state.activeWorkspaceId) return false;
         if (p.privacy === 'public') return true;
-        // If private, check if current user is a member of that project
         return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
     });
     
+    const today = new Date().toISOString().slice(0, 10);
+
     return `
     <div>
         <h2>
@@ -30,17 +32,52 @@ export function ProjectsPage() {
             </button>
         </h2>
         ${projects.length > 0 ? `
-            <div class="item-grid">
+            <div class="project-grid">
                 ${projects.map(project => {
                     const client = state.clients.find(c => c.id === project.clientId);
+                    const tasks = state.tasks.filter(t => t.projectId === project.id);
+                    const completedTasks = tasks.filter(t => t.status === 'done').length;
+                    const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+                    const members = state.projectMembers.filter(pm => pm.projectId === project.id);
+                    const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
+                    const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
+
                     return `
-                        <div class="item-card clickable" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
-                            <span class="material-icons-sharp">folder</span>
-                            <div style="flex-grow: 1;">
-                                <strong>${project.name}</strong>
-                                <div class="subtle-text">${client ? client.name : t('misc.no_client')}</div>
+                        <div class="project-card clickable" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
+                            <div class="project-card-header">
+                                <h3>${project.name}</h3>
+                                <p class="subtle-text">${client?.name || t('misc.no_client')}</p>
                             </div>
-                            ${project.privacy === 'private' ? `<span class="material-icons-sharp privacy-icon" title="${t('projects.project_is_private')}">lock</span>` : ''}
+                            <div class="project-card-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                                </div>
+                                <span class="progress-text">${Math.round(progress)}%</span>
+                            </div>
+                            <div class="project-card-footer">
+                                <div class="project-card-stats">
+                                    <div class="stat-item" title="${t('projects.members')}">
+                                        <span class="material-icons-sharp icon-sm">group</span>
+                                        <span>${members.length}</span>
+                                    </div>
+                                    ${overdueTasks > 0 ? `
+                                        <div class="stat-item overdue" title="${t('projects.overdue_tasks')}">
+                                            <span class="material-icons-sharp icon-sm">error_outline</span>
+                                            <span>${overdueTasks}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="avatar-stack">
+                                    ${memberUsers.slice(0, 3).map(u => u ? `
+                                        <div class="avatar" title="${u.name || u.initials}">
+                                            ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}">` : u.initials}
+                                        </div>
+                                    ` : '').join('')}
+                                    ${memberUsers.length > 3 ? `
+                                        <div class="avatar more-avatar">+${memberUsers.length - 3}</div>
+                                    ` : ''}
+                                </div>
+                            </div>
                         </div>
                     `;
                 }).join('')}

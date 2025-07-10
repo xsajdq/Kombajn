@@ -3,6 +3,8 @@
 
 
 
+
+
 :root {
   --primary-color: #4a90e2;
   --primary-hover-color: #357ABD;
@@ -405,17 +407,7 @@ body {
     position: relative;
 }
 
-/* PROJECTS / CLIENTS LISTS */
-.item-grid, .clients-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-.minimal-theme .item-grid, .minimal-theme .clients-grid {
-    gap: 2rem;
-}
 .item-list { display: flex; flex-direction: column; gap: 1rem; }
-.item-card { background-color: var(--content-bg); border-radius: var(--border-radius); padding: 1.5rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem; font-weight: 500; cursor: pointer; }
-.minimal-theme .item-card {
-    box-shadow: none;
-}
-.item-card .material-icons-sharp { color: var(--primary-color); }
 
 /* SETTINGS */
 .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
