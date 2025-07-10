@@ -21,10 +21,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
     }
     
-    // 2. Handle delete operations (now authenticated)
-    if (resource.endsWith('/delete')) {
-        const actualResource = resource.replace('/delete', '');
-        if (req.method === 'POST' && ALLOWED_RESOURCES.includes(actualResource)) {
+    // 2. Determine resource type and check if allowed
+    const isDeleteRequest = resource.endsWith('/delete');
+    const actualResource = isDeleteRequest ? resource.replace('/delete', '') : resource;
+
+    if (typeof actualResource !== 'string' || !ALLOWED_RESOURCES.includes(actualResource)) {
+        return res.status(404).json({ error: "Resource not found or not allowed." });
+    }
+    
+    // 3. Handle request based on type (delete or standard CRUD)
+    if (isDeleteRequest) {
+        if (req.method === 'POST') {
             const { id } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required for delete' });
 
@@ -32,24 +39,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (error) throw error;
             
             return res.status(204).send(undefined);
+        } else {
+            res.setHeader('Allow', ['POST']);
+            return res.status(405).end('Method Not Allowed for this endpoint.');
         }
     }
 
-    // 3. Handle standard resource operations
-    if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) {
-        return res.status(404).json({ error: "Resource not found or not allowed." });
-    }
-    
+    // Standard CRUD operations
     const bodyInSnakeCase = req.body ? keysToSnake(req.body) : req.body;
 
     switch (req.method) {
         case 'GET': {
-            const { data, error } = await (supabase.from(resource) as any).select('*');
+            const { data, error } = await (supabase.from(actualResource) as any).select('*');
             if (error) throw error;
             return res.status(200).json(data);
         }
         case 'POST': {
-            const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
+            const { data, error } = await (supabase.from(actualResource) as any).insert(bodyInSnakeCase).select();
             if (error) throw error;
             return res.status(201).json(data);
         }
@@ -61,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             if (!id) return res.status(400).json({ error: 'ID is required for update' });
             
-            const { data, error } = await (supabase.from(resource) as any)
+            const { data, error } = await (supabase.from(actualResource) as any)
               .update(updateData)
               .eq('id', id)
               .select();
