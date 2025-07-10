@@ -1,8 +1,4 @@
 
-
-
-
-
 import { state } from './state.ts';
 
 const translations = {
@@ -14,7 +10,8 @@ const translations = {
             widget_my_tasks_title: 'My Tasks', widget_project_status_title: 'Project Status', widget_team_workload_title: 'Team Workload', widget_recent_activity_title: 'Recent Activity',
             no_tasks_assigned: 'No tasks assigned to you.',
             select_project_for_widget: 'Select a project to display data.',
-            no_activity_yet: 'No recent activity in this workspace.'
+            no_activity_yet: 'No recent activity in this workspace.',
+            grid_columns: 'Grid Columns'
         },
         tasks: {
             title: 'Tasks', new_task: 'New Task', board_view: 'Board View', list_view: 'List View', calendar_view: 'Calendar View', gantt_view: 'Gantt View',
@@ -115,7 +112,8 @@ const translations = {
             widget_my_tasks_title: 'Moje zadania', widget_project_status_title: 'Status projektu', widget_team_workload_title: 'Obciążenie zespołu', widget_recent_activity_title: 'Ostatnia aktywność',
             no_tasks_assigned: 'Nie masz przypisanych żadnych zadań.',
             select_project_for_widget: 'Wybierz projekt, aby wyświetlić dane.',
-            no_activity_yet: 'Brak ostatniej aktywności w tym obszarze roboczym.'
+            no_activity_yet: 'Brak ostatniej aktywności w tym obszarze roboczym.',
+            grid_columns: 'Liczba kolumn'
         },
         tasks: {
             title: 'Zadania', new_task: 'Nowe zadanie', board_view: 'Tablica', list_view: 'Lista', calendar_view: 'Kalendarz', gantt_view: 'Gantt',

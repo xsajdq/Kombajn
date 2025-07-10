@@ -192,3 +192,19 @@ export async function handleWidgetDrop(e: DragEvent) {
         renderApp();
     }
 }
+
+export async function handleGridColumnsChange(columns: number) {
+    if (!state.activeWorkspaceId) return;
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!workspace) return;
+    
+    workspace.dashboardGridColumns = columns;
+    renderApp();
+
+    try {
+        await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: columns });
+    } catch (error) {
+        console.error("Failed to save grid column preference:", error);
+        alert("Could not save your grid layout preference.");
+    }
+}

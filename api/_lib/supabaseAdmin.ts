@@ -29,6 +29,7 @@ const CAMEL_CASE_EXCEPTIONS = new Set([
   'planHistory',
   'contractInfoNotes',
   'employmentInfoNotes',
+  'dashboardGridColumns',
 ]);
 
 function camelToSnake(str: string): string {

@@ -1,6 +1,5 @@
 
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -167,12 +166,22 @@ export function DashboardPage() {
     const userWidgets = state.dashboardWidgets.filter(w => 
         w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
     );
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    const gridCols = workspace?.dashboardGridColumns || 12;
 
     return `
         <div>
             <div class="dashboard-header">
                 <h2>${t('dashboard.title')}</h2>
                 <div>
+                    ${isEditing ? `
+                        <div class="grid-columns-control">
+                            <label for="dashboard-grid-columns">${t('dashboard.grid_columns')}:</label>
+                            <select id="dashboard-grid-columns" class="form-control">
+                                ${[4, 6, 8, 10, 12].map(c => `<option value="${c}" ${gridCols === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
                      <button id="add-widget-btn" class="btn btn-secondary" style="${isEditing ? '' : 'display: none;'}">
                         <span class="material-icons-sharp">add</span> ${t('dashboard.add_widget')}
                     </button>
@@ -182,7 +191,7 @@ export function DashboardPage() {
                     </button>
                 </div>
             </div>
-            <div class="dashboard-grid ${isEditing ? 'editing' : ''}">
+            <div class="dashboard-grid ${isEditing ? 'editing' : ''}" style="grid-template-columns: repeat(${gridCols}, 1fr);">
                 ${userWidgets.map(widget => renderWidget(widget)).join('')}
             </div>
         </div>

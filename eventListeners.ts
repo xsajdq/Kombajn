@@ -1,5 +1,4 @@
 
-
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -937,6 +936,16 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             state.settings.defaultKanbanWorkflow = kanbanWorkflowSwitcher.value as 'simple' | 'advanced';
             saveState();
             renderApp();
+            return;
+        }
+
+        // --- Dashboard Grid Columns ---
+        const gridColumnsSelect = target.closest<HTMLSelectElement>('#dashboard-grid-columns');
+        if (gridColumnsSelect) {
+            const newCount = parseInt(gridColumnsSelect.value, 10);
+            if (!isNaN(newCount)) {
+                dashboardHandlers.handleGridColumnsChange(newCount);
+            }
             return;
         }
 

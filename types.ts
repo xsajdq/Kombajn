@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export interface User {
     id: string;
     name?: string;
@@ -39,6 +34,7 @@ export interface Workspace {
         status: SubscriptionStatus;
     };
     planHistory?: PlanChange[];
+    dashboardGridColumns?: number;
 }
 
 export interface WorkspaceMember {
