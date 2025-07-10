@@ -1,7 +1,5 @@
 
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -65,6 +63,8 @@ function renderRecentActivityWidget(widget: DashboardWidget) {
 function renderWidget(widget: DashboardWidget) {
     let content = '';
     let title = t(`dashboard.widget_${camelToSnake(widget.type)}_title`);
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    const gridCols = workspace?.dashboardGridColumns || 12;
 
     switch (widget.type) {
         case 'myTasks':
@@ -89,11 +89,17 @@ function renderWidget(widget: DashboardWidget) {
         <div class="widget-card" 
             draggable="${isEditing}" 
             data-widget-id="${widget.id}" 
-            style="grid-column: ${widget.x || 1} / span ${widget.w}; grid-row: ${widget.y || 1} / span ${widget.h};">
+            style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
             <div class="widget-header">
                 <h4>${title}</h4>
                 ${isEditing ? `
                     <div class="widget-controls">
+                        <button class="btn-icon" data-resize-action="decrease" data-widget-id="${widget.id}" title="${t('dashboard.decrease_width')}" ${widget.w <= 1 ? 'disabled' : ''}>
+                            <span class="material-icons-sharp">remove</span>
+                        </button>
+                        <button class="btn-icon" data-resize-action="increase" data-widget-id="${widget.id}" title="${t('dashboard.increase_width')}" ${widget.w >= gridCols ? 'disabled' : ''}>
+                            <span class="material-icons-sharp">add</span>
+                        </button>
                         <button class="btn-icon" data-configure-widget-id="${widget.id}" title="${t('modals.configure_widget')}"><span class="material-icons-sharp">settings</span></button>
                         <button class="btn-icon" data-remove-widget-id="${widget.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
                     </div>
@@ -166,9 +172,10 @@ export function initDashboardCharts() {
 
 export function DashboardPage() {
     const { isEditing } = state.ui.dashboard;
-    const userWidgets = state.dashboardWidgets.filter(w => 
-        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
-    );
+    const userWidgets = state.dashboardWidgets
+        .filter(w => w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     const gridCols = workspace?.dashboardGridColumns || 12;
     
@@ -197,7 +204,7 @@ export function DashboardPage() {
                     </button>
                 </div>
             </div>
-            <div class="dashboard-grid ${isEditing ? 'editing' : ''}" style="grid-template-columns: repeat(${gridCols}, 1fr);">
+            <div class="dashboard-grid ${isEditing ? 'editing' : ''}" style="grid-template-columns: repeat(${gridCols}, 1fr); grid-auto-flow: dense;">
                 ${userWidgets.map(widget => renderWidget(widget)).join('')}
             </div>
         </div>

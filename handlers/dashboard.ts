@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
@@ -16,19 +17,18 @@ export async function addWidget(type: DashboardWidgetType) {
     const userWidgets = state.dashboardWidgets.filter(w => 
         w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
     );
-    let nextY = 1;
-    if (userWidgets.length > 0) {
-        nextY = Math.max(...userWidgets.map(w => w.y + w.h));
-    }
+    
+    const maxSortOrder = userWidgets.reduce((max, w) => Math.max(max, w.sortOrder || 0), 0);
 
     const newWidgetPayload = {
         userId: state.currentUser.id,
         workspaceId: state.activeWorkspaceId,
         type,
-        x: 1, 
-        y: nextY, 
+        x: 0,
+        y: 0,
         w: 6, 
-        h: 4, // Default size
+        h: 4,
+        sortOrder: maxSortOrder + 1,
         config: {}
     };
     
@@ -106,7 +106,7 @@ export function handleWidgetDragStart(e: DragEvent) {
 
 export function handleWidgetDragEnd(e: DragEvent) {
     const target = e.target as HTMLElement;
-    if (target.classList) { // Check if target exists
+    if (target.classList) {
         target.classList.remove('dragging');
     }
     document.querySelectorAll('.widget-card.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -132,63 +132,43 @@ export async function handleWidgetDrop(e: DragEvent) {
     const dropTargetId = dropTargetElement.dataset.widgetId!;
     dropTargetElement.classList.remove('drag-over');
 
-    const draggedWidget = state.dashboardWidgets.find(w => w.id === draggedWidgetId);
-    const targetWidget = state.dashboardWidgets.find(w => w.id === dropTargetId);
+    const userWidgets = state.dashboardWidgets.filter(w => w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    
+    const draggedIndex = userWidgets.findIndex(w => w.id === draggedWidgetId);
+    const targetIndex = userWidgets.findIndex(w => w.id === dropTargetId);
 
-    if (!draggedWidget || !targetWidget || draggedWidget.id === targetWidget.id) {
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
         return;
     }
 
-    // Store original positions for potential revert
-    const originalDraggedPos = { x: draggedWidget.x, y: draggedWidget.y, w: draggedWidget.w, h: draggedWidget.h };
-    const originalTargetPos = { x: targetWidget.x, y: targetWidget.y, w: targetWidget.w, h: targetWidget.h };
-
-    // Optimistic swap of grid properties
-    draggedWidget.x = originalTargetPos.x;
-    draggedWidget.y = originalTargetPos.y;
-    draggedWidget.w = originalTargetPos.w;
-    draggedWidget.h = originalTargetPos.h;
-
-    targetWidget.x = originalDraggedPos.x;
-    targetWidget.y = originalDraggedPos.y;
-    targetWidget.w = originalDraggedPos.w;
-    targetWidget.h = originalDraggedPos.h;
+    const originalWidgets = JSON.parse(JSON.stringify(state.dashboardWidgets));
+    
+    const [draggedItem] = userWidgets.splice(draggedIndex, 1);
+    userWidgets.splice(targetIndex, 0, draggedItem);
+    
+    userWidgets.forEach((widget, index) => {
+        const globalWidget = state.dashboardWidgets.find(w => w.id === widget.id);
+        if (globalWidget) {
+            globalWidget.sortOrder = index;
+        }
+    });
 
     renderApp();
 
     try {
-        // Persist changes for both widgets to the backend
-        await Promise.all([
-            apiPut('dashboard_widgets', {
-                id: draggedWidget.id,
-                x: draggedWidget.x,
-                y: draggedWidget.y,
-                w: draggedWidget.w,
-                h: draggedWidget.h
-            }),
-            apiPut('dashboard_widgets', {
-                id: targetWidget.id,
-                x: targetWidget.x,
-                y: targetWidget.y,
-                w: targetWidget.w,
-                h: targetWidget.h
-            })
-        ]);
+        await Promise.all(
+            userWidgets.map((widget, index) =>
+                apiPut('dashboard_widgets', {
+                    id: widget.id,
+                    sortOrder: index,
+                })
+            )
+        );
     } catch (error) {
-        console.error("Could not save widget positions:", error);
+        console.error("Could not save widget order:", error);
         alert("Could not save the new widget layout.");
-
-        // Revert on failure
-        draggedWidget.x = originalDraggedPos.x;
-        draggedWidget.y = originalDraggedPos.y;
-        draggedWidget.w = originalDraggedPos.w;
-        draggedWidget.h = originalDraggedPos.h;
-
-        targetWidget.x = originalTargetPos.x;
-        targetWidget.y = originalTargetPos.y;
-        targetWidget.w = originalTargetPos.w;
-        targetWidget.h = originalTargetPos.h;
-        
+        state.dashboardWidgets = originalWidgets;
         renderApp();
     }
 }
@@ -198,6 +178,7 @@ export async function handleGridColumnsChange(columns: number) {
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
     
+    const originalColumns = workspace.dashboardGridColumns;
     workspace.dashboardGridColumns = columns;
     renderApp();
 
@@ -205,6 +186,34 @@ export async function handleGridColumnsChange(columns: number) {
         await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: columns });
     } catch (error) {
         console.error("Failed to save grid column preference:", error);
+        workspace.dashboardGridColumns = originalColumns;
+        renderApp();
         alert("Could not save your grid layout preference.");
+    }
+}
+
+export async function handleWidgetResize(widgetId: string, direction: 'increase' | 'decrease') {
+    const widget = state.dashboardWidgets.find(w => w.id === widgetId);
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!widget || !workspace) return;
+    
+    const gridCols = workspace.dashboardGridColumns || 12;
+    const originalWidth = widget.w;
+    
+    let newWidth = widget.w + (direction === 'increase' ? 1 : -1);
+    newWidth = Math.max(1, Math.min(newWidth, gridCols)); // Clamp between 1 and max columns
+
+    if (newWidth === originalWidth) return;
+
+    widget.w = newWidth;
+    renderApp();
+
+    try {
+        await apiPut('dashboard_widgets', { id: widget.id, w: newWidth });
+    } catch (error) {
+        console.error("Failed to save widget width:", error);
+        alert("Could not save widget size.");
+        widget.w = originalWidth;
+        renderApp();
     }
 }

@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 
 const translations = {
@@ -11,7 +12,9 @@ const translations = {
             no_tasks_assigned: 'No tasks assigned to you.',
             select_project_for_widget: 'Select a project to display data.',
             no_activity_yet: 'No recent activity in this workspace.',
-            grid_columns: 'Grid Columns'
+            grid_columns: 'Grid Columns',
+            increase_width: 'Increase width',
+            decrease_width: 'Decrease width',
         },
         tasks: {
             title: 'Tasks', new_task: 'New Task', board_view: 'Board View', list_view: 'List View', calendar_view: 'Calendar View', gantt_view: 'Gantt View',
@@ -113,7 +116,9 @@ const translations = {
             no_tasks_assigned: 'Nie masz przypisanych żadnych zadań.',
             select_project_for_widget: 'Wybierz projekt, aby wyświetlić dane.',
             no_activity_yet: 'Brak ostatniej aktywności w tym obszarze roboczym.',
-            grid_columns: 'Liczba kolumn'
+            grid_columns: 'Liczba kolumn',
+            increase_width: 'Poszerz widżet',
+            decrease_width: 'Zwęź widżet',
         },
         tasks: {
             title: 'Zadania', new_task: 'Nowe zadanie', board_view: 'Tablica', list_view: 'Lista', calendar_view: 'Kalendarz', gantt_view: 'Gantt',

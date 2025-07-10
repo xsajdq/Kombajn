@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     name?: string;
@@ -204,6 +205,7 @@ export interface DashboardWidget {
     y: number;
     w: number;
     h: number;
+    sortOrder?: number;
     config: {
         title?: string;
         projectId?: string;

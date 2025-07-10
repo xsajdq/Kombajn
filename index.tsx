@@ -1,12 +1,13 @@
 
 
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 
 
@@ -52,7 +53,7 @@ export async function fetchInitialData() {
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;
     state.notifications = notifications;
-    state.dashboardWidgets = dashboardWidgets;
+    state.dashboardWidgets = dashboardWidgets.sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     // Set the active workspace based on the current user's memberships
     const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);

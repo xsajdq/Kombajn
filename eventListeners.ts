@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -722,6 +723,13 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         const widgetCard = target.closest<HTMLElement>('[data-widget-type]');
         if (widgetCard) {
             dashboardHandlers.addWidget(widgetCard.dataset.widgetType as DashboardWidgetType);
+            return;
+        }
+        const resizeWidgetBtn = target.closest<HTMLElement>('[data-resize-action]');
+        if (resizeWidgetBtn) {
+            const widgetId = resizeWidgetBtn.dataset.widgetId!;
+            const action = resizeWidgetBtn.dataset.resizeAction as 'increase' | 'decrease';
+            dashboardHandlers.handleWidgetResize(widgetId, action);
             return;
         }
 
