@@ -1,5 +1,6 @@
 
 
+
 // api/_lib/supabaseAdmin.ts
 import { createClient } from '@supabase/supabase-js';
 
@@ -29,7 +30,6 @@ const CAMEL_CASE_EXCEPTIONS = new Set([
   'planHistory',
   'contractInfoNotes',
   'employmentInfoNotes',
-  'dashboardGridColumns',
 ]);
 
 function camelToSnake(str: string): string {
