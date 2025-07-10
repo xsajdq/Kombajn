@@ -1,5 +1,6 @@
 
 
+
 :root {
   --primary-color: #4a90e2;
   --primary-hover-color: #357ABD;
@@ -570,90 +571,6 @@ input:checked + .slider:before { transform: translateX(26px); }
 .modal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; margin-top: 1rem; margin-bottom: 1rem;}
 .full-width { grid-column: 1 / -1; }
 
-/* TASK DETAIL MODAL */
-.task-detail-modal-layout {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2rem;
-}
-.task-detail-main {
-    position: relative;
-}
-.task-detail-sidebar {
-    background-color: var(--background-color);
-    padding: 1rem;
-    border-radius: var(--border-radius);
-    align-self: flex-start; /* Stick to top */
-}
-.task-detail-sidebar h4 {
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.5rem;
-}
-.task-detail-sidebar .form-group {
-    margin-bottom: 1rem;
-}
-.task-detail-description {
-    margin-bottom: 2rem;
-    line-height: 1.6;
-}
-.activity-feed-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-.activity-feed {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.activity-item {
-    display: flex;
-    gap: 1rem;
-}
-.activity-item .avatar {
-    flex-shrink: 0;
-}
-.activity-content {
-    flex-grow: 1;
-}
-.activity-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.25rem;
-}
-.activity-header strong {
-    font-weight: 600;
-}
-.activity-time {
-    font-size: 0.8rem;
-    color: var(--subtle-text-color);
-}
-.activity-body {
-    background-color: var(--background-color);
-    border-radius: var(--border-radius);
-    padding: 0.75rem 1rem;
-}
-.timelog-comment {
-    font-style: italic;
-    color: var(--subtle-text-color);
-    padding-top: 0.5rem;
-    margin-top: 0.5rem;
-    border-top: 1px dashed var(--border-color);
-}
-.add-comment-form {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-}
-#task-comment-input {
-    flex-grow: 1;
-}
-
 /* ADD COMMENT TO TIMELOG MODAL */
 #add-comment-to-timelog-form .form-group {
     margin-bottom: 1rem;
@@ -1135,8 +1052,6 @@ input:checked + .slider:before { transform: translateX(26px); }
 /* RESPONSIVE */
 @media (max-width: 1024px) {
     .side-panel { width: 80%; }
-    .task-detail-modal-layout { grid-template-columns: 1fr; }
-    .task-detail-sidebar { margin-top: 2rem; }
     .team-grid { grid-template-columns: 1fr; }
     .billing-grid { grid-template-columns: 1fr; }
 

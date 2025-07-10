@@ -30,8 +30,8 @@ function renderActivityTab(task: Task) {
     
     return `
         <div class="task-detail-section">
-            <div class="task-detail-section-header">
-                <h4 class="activity-feed-title" style="margin:0">${t('modals.activity')}</h4>
+            <div class="task-detail-section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+                <h4 style="margin:0">${t('modals.activity')}</h4>
                 <button class="btn btn-secondary btn-sm" data-modal-target="addManualTimeLog" data-task-id="${task.id}">
                     <span class="material-icons-sharp" style="font-size: 1.2rem">add_alarm</span>
                     ${t('modals.add_time_log_button')}
@@ -236,7 +236,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
         <div class="task-detail-modal-layout">
             <div class="task-detail-main">
                 <p class="subtle-text" style="margin-bottom: 0.5rem;">${project?.name || t('misc.no_project')}</p>
-                <h3 style="margin-bottom: 1rem;">${task.name}</h3>
+                <h3 style="margin-bottom: 1rem; font-size: 1.8rem; font-weight: 700;">${task.name}</h3>
                 ${task.description ? `<p class="task-detail-description">${task.description}</p>` : ''}
 
                 <div class="task-detail-tabs">

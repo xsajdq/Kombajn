@@ -1,4 +1,5 @@
 
+
 /* COMPONENTS */
 .btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--border-radius); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
 .btn-primary { background-color: var(--primary-color); color: var(--white-color); }
@@ -79,6 +80,83 @@
 }
 
 
+/* --- NEW TASK DETAIL MODAL --- */
+.task-detail-modal-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+.task-detail-main {
+    flex: 2;
+    min-width: 0; /* Prevents flex item from overflowing */
+}
+.task-detail-sidebar {
+    flex: 1;
+    background-color: var(--background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    position: sticky; /* Keeps it in view while main content scrolls */
+    top: 0;
+}
+.minimal-theme .task-detail-sidebar {
+    background-color: var(--light-color);
+    border: 1px solid var(--border-color);
+}
+.task-detail-sidebar h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.task-detail-description {
+    line-height: 1.7;
+    margin-bottom: 2rem;
+}
+.task-detail-tabs {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+.task-detail-tab {
+    padding: 0.75rem 0.25rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+.task-detail-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.activity-feed { display: flex; flex-direction: column; gap: 1.5rem; }
+.activity-item { display: flex; gap: 1rem; align-items: flex-start; }
+.activity-item .avatar { flex-shrink: 0; }
+.activity-content { flex-grow: 1; }
+.activity-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+.activity-header strong { font-weight: 600; }
+.activity-time { font-size: 0.8rem; color: var(--subtle-text-color); margin-left: auto; }
+.activity-body { background-color: var(--background-color); border-radius: var(--border-radius); padding: 0.75rem 1rem; }
+.timelog-comment { font-style: italic; }
+.add-comment-form { display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
+#task-comment-input { flex-grow: 1; }
+
+.subtask-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.subtask-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 6px; }
+.subtask-item:hover { background-color: var(--light-color); }
+.subtask-item.done .subtask-name { text-decoration: line-through; color: var(--subtle-text-color); }
+.subtask-name { flex-grow: 1; }
+.delete-subtask-btn { margin-left: auto; visibility: hidden; }
+.subtask-item:hover .delete-subtask-btn { visibility: visible; }
+.add-subtask-form { margin-bottom: 1rem; }
+
 /* MINIMAL THEME OVERRIDES */
 .minimal-theme .btn { font-weight: 700; transition: all 0.2s ease-in-out; }
 .minimal-theme .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
@@ -94,3 +172,20 @@
 .minimal-theme .side-panel-overlay { background-color: rgba(55, 65, 81, 0.5); }
 .minimal-theme .form-control { background-color: var(--content-bg); border: 1px solid var(--border-color); }
 .minimal-theme .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent); }
+.minimal-theme .btn-icon:hover { background-color: var(--light-color); color: var(--dark-color); }
+.minimal-theme .btn, .minimal-theme .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.minimal-theme .card:hover, .minimal-theme .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.minimal-theme .activity-body {
+    background-color: var(--light-color);
+}
+.minimal-theme .subtask-item:hover {
+    background-color: var(--light-color);
+}
+.minimal-theme .task-detail-sidebar {
+    border: none;
+}
