@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -9,6 +10,7 @@ import { t } from '../i18n.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
 import { subscribeToRealtimeUpdates } from '../services/supabase.ts';
+import { startOnboarding } from './onboarding.ts';
 
 export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
@@ -82,6 +84,9 @@ export async function handleCreateWorkspace(name: string) {
         
         renderApp();
 
+        // Start onboarding for the first workspace
+        startOnboarding();
+
     } catch (error) {
         console.error("Failed to create workspace:", error);
         alert((error as Error).message);
@@ -110,7 +115,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
         return;
     }
 
-    const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser.id, status: 'pending' });
+    const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser!.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
     const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');

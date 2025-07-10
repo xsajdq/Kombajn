@@ -105,7 +105,24 @@ const translations = {
         misc: { not_applicable: 'N/A', no_project: 'No Project', no_client: 'No Client', edit: 'Edit' },
         notifications: { title: 'Notifications', mark_all_read: 'Mark all as read', no_notifications: 'You have no new notifications.', comment_added: '{user} commented on {taskName}', task_assigned: 'You have been assigned to task {taskName}', status_changed: 'Status for {taskName} was changed to {status}', user_mentioned: '{user} mentioned you in {taskName}', join_request: '{user} wants to join workspace {workspaceName}' },
         command_palette: { placeholder: 'Type a command or search...', no_results: 'No results found', cmd_new_task: 'Create new task', cmd_toggle_theme: 'Toggle light/dark theme', cmd_go_dashboard: 'Go to Dashboard', cmd_go_projects: 'Go to Projects', cmd_go_tasks: 'Go to Tasks', cmd_go_settings: 'Go to Settings', cmd_toggle_notifications: 'Toggle notifications', cmd_new_project: 'Create new project', cmd_new_client: 'Create new client', cmd_new_invoice: 'Create new invoice', cmd_go_hr: 'Go to HR' },
-        setup: { title: "Let's get you set up", create_workspace_header: "Create a new workspace", create_workspace_placeholder: "Your company or team name", create_workspace_button: "Create Workspace", join_workspace_header: "Or join an existing one", join_workspace_placeholder: "Enter workspace name", join_workspace_button: "Request to Join", request_pending_title: "Request Sent!", request_pending_message: "Your request to join <strong>{workspaceName}</strong> has been sent. You will be notified once the owner approves it. Please check back later." }
+        setup: { title: "Let's get you set up", create_workspace_header: "Create a new workspace", create_workspace_placeholder: "Your company or team name", create_workspace_button: "Create Workspace", join_workspace_header: "Or join an existing one", join_workspace_placeholder: "Enter workspace name", join_workspace_button: "Request to Join", request_pending_title: "Request Sent!", request_pending_message: "Your request to join <strong>{workspaceName}</strong> has been sent. You will be notified once the owner approves it. Please check back later." },
+        onboarding: {
+            step0_title: "Welcome to Kombajn!",
+            step0_content: "Let's take a quick tour to show you the most important features. This will only take a minute.",
+            step1_title: "Projects",
+            step1_content: "This is the heart of your workspace. All your work is organized into projects.",
+            step2_title: "Create Your First Project",
+            step2_content: "Click here to create your first project. You can assign it to a client and start adding tasks.",
+            step3_title: "Tasks View",
+            step3_content: "Here you can see all tasks from all your projects in one place. You can switch between board, list, and calendar views.",
+            step4_title: "Settings",
+            step4_content: "Customize your workspace, profile, and application settings here.",
+            step5_title: "You're All Set!",
+            step5_content: "That's it! You're ready to start working. Feel free to explore and create something amazing.",
+            next: "Next",
+            skip: "Skip",
+            finish: "Finish"
+        }
     },
     pl: {
         sidebar: { dashboard: 'Pulpit', projects: 'Projekty', tasks: 'Zadania', team_calendar: 'Kalendarz Zespołu', clients: 'Klienci', sales: 'Sprzedaż', reports: 'Raporty', invoices: 'Faktury', ai_assistant: 'Asystent AI', hr: 'Kadry', settings: 'Ustawienia', billing: 'Rozliczenia', chat: 'Czat' },
@@ -210,7 +227,24 @@ const translations = {
         misc: { not_applicable: 'B/D', no_project: 'Brak projektu', no_client: 'Brak klienta', edit: 'Edytuj' },
         notifications: { title: 'Powiadomienia', mark_all_read: 'Oznacz wszystkie jako przeczytane', no_notifications: 'Nie masz nowych powiadomień.', comment_added: '{user} skomentował(a) {taskName}', task_assigned: 'Przydzielono Ci zadanie {taskName}', status_changed: 'Status dla {taskName} zmieniono na {status}', user_mentioned: '{user} wspomniał(a) o Tobie w {taskName}', join_request: '{user} chce dołączyć do obszaru roboczego {workspaceName}' },
         command_palette: { placeholder: 'Wpisz komendę lub szukaj...', no_results: 'Nie znaleziono wyników', cmd_new_task: 'Utwórz nowe zadanie', cmd_toggle_theme: 'Zmień motyw jasny/ciemny', cmd_go_dashboard: 'Przejdź do Pulpitu', cmd_go_projects: 'Przejdź do Projektów', cmd_go_tasks: 'Przejdź do Zadań', cmd_go_settings: 'Przejdź do Ustawień', cmd_toggle_notifications: 'Pokaż/ukryj powiadomienia', cmd_new_project: 'Utwórz nowy projekt', cmd_new_client: 'Utwórz nowego klienta', cmd_new_invoice: 'Utwórz nową fakturę', cmd_go_hr: 'Przejdź do Kadr' },
-        setup: { title: "Zaczynajmy", create_workspace_header: "Utwórz nowy obszar roboczy", create_workspace_placeholder: "Nazwa Twojej firmy lub zespołu", create_workspace_button: "Utwórz obszar", join_workspace_header: "Lub dołącz do istniejącego", join_workspace_placeholder: "Wpisz nazwę obszaru roboczego", join_workspace_button: "Wyślij prośbę o dołączenie", request_pending_title: "Wysłano prośbę!", request_pending_message: "Twoja prośba o dołączenie do <strong>{workspaceName}</strong> została wysłana. Zostaniesz powiadomiony/a, gdy właściciel ją zatwierdzi. Sprawdź ponownie później." }
+        setup: { title: "Zaczynajmy", create_workspace_header: "Utwórz nowy obszar roboczy", create_workspace_placeholder: "Nazwa Twojej firmy lub zespołu", create_workspace_button: "Utwórz obszar", join_workspace_header: "Lub dołącz do istniejącego", join_workspace_placeholder: "Wpisz nazwę obszaru roboczego", join_workspace_button: "Wyślij prośbę o dołączenie", request_pending_title: "Wysłano prośbę!", request_pending_message: "Twoja prośba o dołączenie do <strong>{workspaceName}</strong> została wysłana. Zostaniesz powiadomiony/a, gdy właściciel ją zatwierdzi. Sprawdź ponownie później." },
+        onboarding: {
+            step0_title: "Witaj w Kombajnie!",
+            step0_content: "Pozwól, że w minutę oprowadzę Cię po najważniejszych funkcjach aplikacji.",
+            step1_title: "Projekty",
+            step1_content: "To serce Twojego obszaru roboczego. Cała praca jest zorganizowana w projektach.",
+            step2_title: "Stwórz Swój Pierwszy Projekt",
+            step2_content: "Kliknij tutaj, aby utworzyć swój pierwszy projekt. Możesz przypisać go do klienta i zacząć dodawać zadania.",
+            step3_title: "Widok Zadań",
+            step3_content: "Tutaj zobaczysz wszystkie zadania ze wszystkich projektów w jednym miejscu. Możesz przełączać się między widokiem tablicy, listy i kalendarza.",
+            step4_title: "Ustawienia",
+            step4_content: "W tym miejscu możesz dostosować swój obszar roboczy, profil i ustawienia aplikacji.",
+            step5_title: "Wszystko Gotowe!",
+            step5_content: "To wszystko! Jesteś gotowy/a do pracy. Eksploruj aplikację i stwórz coś niesamowitego.",
+            next: "Dalej",
+            skip: "Pomiń",
+            finish: "Zakończ"
+        }
     }
 };
 

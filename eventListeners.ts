@@ -26,6 +26,7 @@ import * as userHandlers from './handlers/user.ts';
 import * as auth from './services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
 import { subscribeToRealtimeUpdates } from './services/supabase.ts';
+import * as onboardingHandlers from './handlers/onboarding.ts';
 
 
 function handleMentionInput(input: HTMLInputElement) {
@@ -78,7 +79,9 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
         // Close modals/panels with Escape
         if (e.key === 'Escape') {
-            if (state.ui.isCommandPaletteOpen) {
+            if (state.ui.onboarding.isActive) {
+                onboardingHandlers.finishOnboarding();
+            } else if (state.ui.isCommandPaletteOpen) {
                 uiHandlers.toggleCommandPalette(false);
             } else if (state.ui.modal.isOpen) {
                 uiHandlers.closeModal();
@@ -304,6 +307,16 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     app.addEventListener('click', async (e) => {
         if (!(e.target instanceof Element)) return;
         const target = e.target as Element;
+
+        // --- Onboarding ---
+        if (target.closest('.onboarding-next-btn')) {
+            onboardingHandlers.nextStep();
+            return;
+        }
+        if (target.closest('.onboarding-skip-btn')) {
+            onboardingHandlers.finishOnboarding();
+            return;
+        }
 
         // --- NEW: Auth Page Tabs ---
         const authTab = target.closest<HTMLElement>('.auth-tab');

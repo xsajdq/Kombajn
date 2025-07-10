@@ -107,6 +107,7 @@ function getInitialState(): AppState {
             settings: { activeTab: 'general' },
             dashboard: { isEditing: false },
             hr: { activeTab: 'employees' },
+            onboarding: { isActive: false, step: 0 },
         },
     };
 }

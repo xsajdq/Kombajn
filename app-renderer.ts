@@ -13,6 +13,7 @@ import { getCurrentUserRole } from './handlers/main.ts';
 import { MentionPopover } from './components/MentionPopover.ts';
 import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
 import { AuthPage } from './pages/AuthPage.ts';
+import { OnboardingGuide } from './components/OnboardingGuide.ts';
 
 function AppLayout() {
     // If there is no authenticated user, always show the AuthPage.
@@ -26,7 +27,7 @@ function AppLayout() {
     }
     
     const pageContent = router();
-    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen } = state.ui;
+    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
     const userRole = getCurrentUserRole();
@@ -60,6 +61,7 @@ function AppLayout() {
         ${modal.isOpen ? Modal() : ''}
         ${isCommandPaletteOpen ? CommandPalette() : ''}
         ${FloatingActionButton()}
+        ${onboarding.isActive ? OnboardingGuide() : ''}
     `;
 }
 

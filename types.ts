@@ -36,6 +36,7 @@ export interface Workspace {
     };
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
+    onboardingCompleted?: boolean;
 }
 
 export interface WorkspaceMember {
@@ -432,5 +433,9 @@ export interface AppState {
         hr: {
              activeTab: 'employees' | 'requests' | 'history' | 'reviews';
         }
+        onboarding: {
+            isActive: boolean;
+            step: number;
+        };
     };
 }
