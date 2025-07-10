@@ -35,7 +35,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const { id } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required for delete' });
 
-            const { error } = await (supabase.from(actualResource) as any).delete().eq('id', id);
+            const query = (supabase.from(actualResource) as any).delete().eq('id', id);
+
+            // Add an ownership check for dashboard widgets for extra security
+            if (actualResource === 'dashboard_widgets') {
+                query.eq('user_id', user.id);
+            }
+
+            const { error } = await query;
             if (error) throw error;
             
             return res.status(204).send(undefined);

@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -86,7 +87,7 @@ function renderWidget(widget: DashboardWidget) {
         <div class="widget-card" 
             draggable="${isEditing}" 
             data-widget-id="${widget.id}" 
-            style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
+            style="grid-column: ${widget.x || 1} / span ${widget.w}; grid-row: ${widget.y || 1} / span ${widget.h};">
             <div class="widget-header">
                 <h4>${title}</h4>
                 ${isEditing ? `

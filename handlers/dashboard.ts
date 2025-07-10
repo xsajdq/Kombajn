@@ -15,11 +15,22 @@ export function toggleEditMode() {
 export async function addWidget(type: DashboardWidgetType) {
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
+    const userWidgets = state.dashboardWidgets.filter(w => 
+        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
+    );
+    let nextY = 1;
+    if (userWidgets.length > 0) {
+        nextY = Math.max(...userWidgets.map(w => w.y + w.h));
+    }
+
     const newWidgetPayload = {
         userId: state.currentUser.id,
         workspaceId: state.activeWorkspaceId,
         type,
-        x: 0, y: 0, w: 6, h: 4, // Default size
+        x: 1, 
+        y: nextY, 
+        w: 6, 
+        h: 4, // Default size
         config: {}
     };
     
