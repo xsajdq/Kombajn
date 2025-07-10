@@ -389,14 +389,20 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const targetCalendar = calendarNav.dataset.targetCalendar || 'main';
             const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
             const [year, month] = state.ui[dateKey].split('-').map(Number);
-            const currentDate = new Date(year, month - 1, 1); // month is 1-based, constructor is 0-based
+            
+            // This approach avoids timezone issues from toISOString()
+            const currentDate = new Date(year, month - 1, 1);
 
             if (calendarNav.dataset.calendarNav === 'prev') {
                 currentDate.setMonth(currentDate.getMonth() - 1);
             } else {
                 currentDate.setMonth(currentDate.getMonth() + 1);
             }
-            state.ui[dateKey] = currentDate.toISOString().slice(0, 7);
+            
+            const newYear = currentDate.getFullYear();
+            const newMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+            state.ui[dateKey] = `${newYear}-${newMonth}`;
+
             renderApp();
             return;
         }
