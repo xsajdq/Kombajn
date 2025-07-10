@@ -378,6 +378,9 @@ export interface AppState {
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;
+        notifications: {
+            activeTab: 'new' | 'read';
+        };
         commandPaletteActiveIndex: number;
         mention: {
             query: string | null;

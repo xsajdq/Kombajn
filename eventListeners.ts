@@ -592,6 +592,12 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         const notificationItem = target.closest<HTMLElement>('.notification-item');
         if (notificationItem) { notificationHandlers.handleNotificationClick(notificationItem.dataset.notificationId!); return; }
         if (target.closest('#mark-all-read-btn')) { notificationHandlers.markAllNotificationsAsRead(); return; }
+        const notificationTab = target.closest<HTMLElement>('.notification-tab');
+        if (notificationTab) {
+            state.ui.notifications.activeTab = notificationTab.dataset.tab as 'new' | 'read';
+            renderApp();
+            return;
+        }
 
 
 

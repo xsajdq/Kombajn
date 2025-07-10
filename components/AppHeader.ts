@@ -1,6 +1,5 @@
 
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
@@ -44,10 +43,18 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
 }
 
 export function NotificationsPopover({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
-    const notifications = state.notifications
+    const allNotifications = state.notifications
         .filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    const { activeTab } = state.ui.notifications;
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+
+    const filteredNotifications = allNotifications.filter(n => {
+        if (activeTab === 'new') return !n.isRead;
+        if (activeTab === 'read') return n.isRead;
+        return true;
+    });
 
     // A simple time ago function for notifications
     const timeAgo = (dateStr: string) => {
@@ -72,10 +79,14 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
                 <h4>${t('notifications.title')}</h4>
                 <button class="btn-link" id="mark-all-read-btn">${t('notifications.mark_all_read')}</button>
             </div>
+            <div class="notifications-tabs">
+                <div class="notification-tab ${activeTab === 'new' ? 'active' : ''}" data-tab="new">${t('notifications.tab_new')} (${unreadCount})</div>
+                <div class="notification-tab ${activeTab === 'read' ? 'active' : ''}" data-tab="read">${t('notifications.tab_read')}</div>
+            </div>
             <div class="notifications-body">
-                ${notifications.length > 0 ? `
+                ${filteredNotifications.length > 0 ? `
                     <ul class="notification-list">
-                        ${notifications.map(n => `
+                        ${filteredNotifications.map(n => `
                             <li class="notification-item ${n.isRead ? '' : 'unread'}" data-notification-id="${n.id}">
                                 <div class="notification-item-icon">
                                     <span class="material-icons-sharp">info</span>
@@ -88,7 +99,7 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
                         `).join('')}
                     </ul>
                 ` : `
-                    <p class="no-notifications">${t('notifications.no_notifications')}</p>
+                    <p class="no-notifications">${activeTab === 'new' ? t('notifications.no_new_notifications') : t('notifications.no_notifications')}</p>
                 `}
             </div>
         </div>

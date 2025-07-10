@@ -85,6 +85,7 @@ function getInitialState(): AppState {
             openedProjectId: null,
             openedProjectTab: 'tasks',
             isNotificationsOpen: false,
+            notifications: { activeTab: 'new' },
             isCommandPaletteOpen: false,
             commandPaletteQuery: '',
             commandPaletteActiveIndex: 0,
