@@ -18,17 +18,17 @@ function renderMyTasksWidget(widget: DashboardWidget) {
     const tasks = state.tasks.filter(task => task.assigneeId === state.currentUser?.id && task.status !== 'done');
     const content = tasks.length > 0
         ? `<ul class="widget-task-list">${tasks.map(task => `
-            <li class="clickable" data-task-id="${task.id}">
+            <li class="clickable" data-task-id="${task.id}" role="button" tabindex="0">
                 <span>${task.name}</span>
                 <span class="subtle-text">${state.projects.find(p => p.id === task.projectId)?.name}</span>
             </li>`).join('')}</ul>`
-        : `<div class="empty-widget">${t('dashboard.no_tasks_assigned')}</div>`;
+        : `<div class="empty-widget"><span class="material-icons-sharp">task_alt</span>${t('dashboard.no_tasks_assigned')}</div>`;
     return content;
 }
 
 function renderProjectStatusWidget(widget: DashboardWidget) {
     if (!widget.config.projectId) {
-        return `<div class="empty-widget">${t('dashboard.select_project_for_widget')}</div>`;
+        return `<div class="empty-widget"><span class="material-icons-sharp">folder_special</span>${t('dashboard.select_project_for_widget')}</div>`;
     }
     return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
 }
@@ -44,16 +44,16 @@ function renderRecentActivityWidget(widget: DashboardWidget) {
         .slice(0, 10);
     
     if (activities.length === 0) {
-        return `<div class="empty-widget">${t('dashboard.no_activity_yet')}</div>`;
+        return `<div class="empty-widget"><span class="material-icons-sharp">history</span>${t('dashboard.no_activity_yet')}</div>`;
     }
 
     return `<ul class="widget-task-list">${activities.map(item => {
         const user = state.users.find(u => u.id === item.userId);
         const task = state.tasks.find(t => t.id === item.taskId);
         if ('content' in item) { // Comment
-             return `<li class="clickable" data-task-id="${item.taskId}"><span><strong>${user?.name}</strong> commented on ${task?.name || ''}</span><span class="subtle-text"></span></li>`;
+             return `<li class="clickable" data-task-id="${item.taskId}" role="button" tabindex="0"><span><strong>${user?.name}</strong> commented on ${task?.name || ''}</span><span class="subtle-text"></span></li>`;
         } else { // TimeLog
-             return `<li class="clickable" data-task-id="${item.taskId}"><span><strong>${user?.name}</strong> logged ${formatDuration(item.trackedSeconds)} on ${task?.name || ''}</span></li>`;
+             return `<li class="clickable" data-task-id="${item.taskId}" role="button" tabindex="0"><span><strong>${user?.name}</strong> logged ${formatDuration(item.trackedSeconds)} on ${task?.name || ''}</span></li>`;
         }
     }).join('')}</ul>`;
 }
@@ -86,7 +86,7 @@ function renderWidget(widget: DashboardWidget) {
         <div class="widget-card" 
             draggable="${isEditing}" 
             data-widget-id="${widget.id}" 
-            style="grid-column-end: span ${widget.w}; grid-row-end: span ${widget.h};">
+            style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
             <div class="widget-header">
                 <h4>${title}</h4>
                 ${isEditing ? `
