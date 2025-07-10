@@ -81,6 +81,95 @@
 .status-badge.status-inreview { background-color: var(--status-inreview-color); }
 .status-badge.status-done, .status-badge.status-paid { background-color: var(--success-color); }
 
+/* CLIENTS PAGE */
+.clients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.client-card-new {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.client-card-new:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.client-card-main {
+    flex-grow: 1;
+    padding: 1.5rem;
+}
+
+.client-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.client-icon-wrapper {
+    background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color);
+    border-radius: var(--border-radius);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.client-card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.client-card-body p {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--subtle-text-color);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.client-card-body p:last-child {
+    margin-bottom: 0;
+}
+
+.client-card-stats {
+    background-color: var(--light-color);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    min-width: 120px;
+    text-align: center;
+}
+
+.stat-item .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.stat-item .stat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    text-transform: uppercase;
+}
+
 /* INVOICES PAGE & MODAL */
 .invoice-list-container { padding: 0; }
 .invoice-list-header, .invoice-list-row { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr auto; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); align-items: center; }
@@ -116,6 +205,16 @@
 .minimal-theme .task-card:hover { box-shadow: 0 2px 8px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04); }
 .minimal-theme .task-list-row:hover,
 .minimal-theme .invoice-list-row:hover { background-color: var(--background-color); }
+.minimal-theme .kanban-column {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+}
+.minimal-theme .client-card-stats {
+    background-color: var(--light-color);
+}
+.minimal-theme .stat-item .stat-value {
+    color: var(--primary-color);
+}
 
 
 /* RESPONSIVE STYLES */

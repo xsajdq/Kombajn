@@ -48,7 +48,7 @@ const translations = {
         },
         calendar: { prev_month: 'Previous month', next_month: 'Next month', weekdays: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' } },
         team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other' },
-        clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client' },
+        clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client', active_projects: 'Active Projects' },
         projects: { title: 'Projects', new_project: 'New Project', no_projects_yet: 'No Projects Yet', no_projects_desc: 'Create your first project to start organizing your work.', create_project: 'Create Project', project_is_private: 'Private Project' },
         reports: {
             title: 'Reports',
@@ -169,7 +169,7 @@ const translations = {
         },
         calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Niedz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' } },
         team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop/zwolnienie', time_off: 'Urlop/Zwolnienie', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto państwowe', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inne' },
-        clients: { title: 'Klienci', new_client: 'Nowy Klient', no_clients_yet: 'Brak Klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj Klienta' },
+        clients: { title: 'Klienci', new_client: 'Nowy Klient', no_clients_yet: 'Brak Klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj Klienta', active_projects: 'Aktywne Projekty' },
         projects: { title: 'Projekty', new_project: 'Nowy Projekt', no_projects_yet: 'Brak Projektów', no_projects_desc: 'Utwórz swój pierwszy projekt, aby zacząć organizować pracę.', create_project: 'Utwórz Projekt', project_is_private: 'Projekt prywatny' },
         reports: {
             title: 'Raporty',
