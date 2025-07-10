@@ -106,7 +106,11 @@ function renderWidget(widget: DashboardWidget) {
 export function initDashboardCharts() {
     destroyCharts();
 
-    state.dashboardWidgets.forEach(widget => {
+    const userWidgets = state.dashboardWidgets.filter(w =>
+        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
+    );
+
+    userWidgets.forEach(widget => {
         const chartCanvas = document.getElementById(`widget-chart-${widget.id}`) as HTMLCanvasElement;
         if (!chartCanvas) return;
 
@@ -159,6 +163,10 @@ export function initDashboardCharts() {
 
 export function DashboardPage() {
     const { isEditing } = state.ui.dashboard;
+    const userWidgets = state.dashboardWidgets.filter(w => 
+        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
+    );
+
     return `
         <div>
             <div class="dashboard-header">
@@ -174,7 +182,7 @@ export function DashboardPage() {
                 </div>
             </div>
             <div class="dashboard-grid ${isEditing ? 'editing' : ''}">
-                ${state.dashboardWidgets.map(widget => renderWidget(widget)).join('')}
+                ${userWidgets.map(widget => renderWidget(widget)).join('')}
             </div>
         </div>
     `;
