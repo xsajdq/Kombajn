@@ -86,37 +86,58 @@ function handleInsertMention(user: User, inputDiv: HTMLElement) {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
-    const range = selection.getRangeAt(0).cloneRange();
-    const textBeforeCursor = range.startContainer.textContent?.substring(0, range.startOffset) || '';
+    const range = selection.getRangeAt(0);
+    const cursorNode = range.startContainer;
+    const cursorOffset = range.startOffset;
+
+    if (cursorNode.nodeType !== Node.TEXT_NODE) {
+        console.warn("Mention trigger was not in a text node. Aborting.");
+        return;
+    }
+
+    const textBeforeCursor = (cursorNode.textContent || '').substring(0, cursorOffset);
     const atPosition = textBeforeCursor.lastIndexOf('@');
-    if (atPosition === -1) return;
 
-    // Set range to encompass the @query text
-    range.setStart(range.startContainer, atPosition);
-    range.setEnd(range.startContainer, range.startOffset);
-    range.deleteContents();
+    if (atPosition === -1) {
+        return; // Should not happen if popover is visible
+    }
 
-    // Create the mention chip
+    // --- Start of new logic ---
+    const originalTextNode = cursorNode as Text;
+    const parent = originalTextNode.parentNode;
+    if (!parent) return;
+
+    // Create the new mention chip
     const mentionChip = document.createElement('span');
     mentionChip.className = 'mention-chip';
     mentionChip.setAttribute('contenteditable', 'false');
     mentionChip.dataset.userId = user.id;
     mentionChip.textContent = `@${user.name || user.initials}`;
+    
+    // A non-breaking space after the chip is good for UX.
+    const spaceNode = document.createTextNode('\u00A0'); 
 
-    // Create a space node to follow the chip, for continued typing
-    const spaceNode = document.createTextNode('\u00A0'); // Non-breaking space
+    // Get the parts of the text node we want to keep
+    const textBefore = originalTextNode.nodeValue!.substring(0, atPosition);
+    const textAfter = originalTextNode.nodeValue!.substring(cursorOffset);
+    
+    // Replace the original text node with the new structure
+    parent.insertBefore(new Text(textBefore), originalTextNode);
+    parent.insertBefore(mentionChip, originalTextNode);
+    parent.insertBefore(spaceNode, originalTextNode);
+    // Important: We need a reference to the node *after* the space to place the cursor
+    const afterNode = parent.insertBefore(new Text(textAfter), originalTextNode);
+    parent.removeChild(originalTextNode);
 
-    range.insertNode(spaceNode);
-    range.insertNode(mentionChip);
-
-    // Move cursor after the space
-    range.setStartAfter(spaceNode);
+    // Set the cursor position at the beginning of the text node that follows the space
+    range.setStart(afterNode, 0);
     range.collapse(true);
-
     selection.removeAllRanges();
     selection.addRange(range);
+    
+    // --- End of new logic ---
 
-    // Clean up mention state
+    // Clean up mention state and focus
     state.ui.mention.query = null;
     state.ui.mention.target = null;
     renderMentionPopover();
