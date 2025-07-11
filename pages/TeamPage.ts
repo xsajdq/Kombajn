@@ -71,10 +71,10 @@ function renderEmployeesTab() {
         .map(m => ({ member: m, user: state.users.find(u => u.id === m.userId)! }))
         .filter(item => item.user);
 
-    const ALL_ROLES: Role[] = ['admin', 'manager', 'member', 'finance', 'client'];
+    const ALL_ROLES: Role[] = ['owner', 'admin', 'manager', 'member', 'finance', 'client'];
 
     const ownedWorkspacesCount = state.workspaces.filter(w =>
-        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser?.id && m.roles.includes('owner'))
+        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser?.id && m.role === 'owner')
     ).length;
 
     const planLimits = PLANS[activeWorkspace.subscription.planId];
@@ -93,7 +93,7 @@ function renderEmployeesTab() {
                     </div>
                     <div class="member-list">
                         ${members.map(({ member, user }) => {
-                            const isCurrentUserOwner = member.roles.includes('owner');
+                            const isCurrentUserOwner = member.role === 'owner';
                             const isSelf = user.id === state.currentUser?.id;
                             return `
                             <div class="member-item">
@@ -102,22 +102,16 @@ function renderEmployeesTab() {
                                     <strong>${user.name || user.initials} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
                                     <p>${user.email || t('misc.not_applicable')}</p>
                                     <div class="member-roles">
-                                        ${member.roles.map(role => `<span class="status-badge status-backlog">${t(`hr.role_${role}`)}</span>`).join('')}
+                                        <span class="status-badge status-backlog">${t(`hr.role_${member.role}`)}</span>
                                     </div>
                                 </div>
                                 <div class="member-actions">
                                     ${canManageRoles && !isCurrentUserOwner ? `
-                                        <form class="update-member-roles-form" data-member-id="${member.id}">
-                                            <div class="member-roles-editor">
-                                                ${ALL_ROLES.map(role => `
-                                                    <label>
-                                                        <input type="checkbox" name="roles" value="${role}" ${member.roles.includes(role) ? 'checked' : ''}>
-                                                        ${t(`hr.role_${role}`)}
-                                                    </label>
-                                                `).join('')}
-                                            </div>
-                                            <button type="submit" class="btn btn-secondary btn-sm">${t('modals.save')}</button>
-                                        </form>
+                                        <select class="form-control" data-change-role-for-member-id="${member.id}" ${isSelf ? 'disabled' : ''}>
+                                            ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
+                                                <option value="${role}" ${member.role === role ? 'selected' : ''}>${t(`hr.role_${role}`)}</option>
+                                            `).join('')}
+                                        </select>
                                     ` : ''}
                                      ${canRemoveUsers && !isCurrentUserOwner ? `
                                         <button class="btn-icon" data-remove-member-id="${member.id}" title="${t('hr.remove')}"><span class="material-icons-sharp">person_remove</span></button>
@@ -140,7 +134,7 @@ function renderEmployeesTab() {
                         <div class="form-group" style="margin-top: 1rem;">
                             <label for="invite-role">${t('hr.select_role')}</label>
                             <select id="invite-role" class="form-control">
-                                ${ALL_ROLES.map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
+                                ${ALL_ROLES.filter(r => r !== 'owner').map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">${t('hr.invite')}</button>

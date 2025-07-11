@@ -361,9 +361,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 teamHandlers.handleInviteUser(email, role);
                 emailInput.value = ''; // Clear form
             }
-        } else if (target.classList.contains('update-member-roles-form')) {
-            await teamHandlers.handleUpdateMemberRoles(target as HTMLFormElement);
-            return;
         } else if (target.id === 'create-workspace-form') {
             const nameInput = document.getElementById('new-workspace-name') as HTMLInputElement;
             const name = nameInput.value.trim();
@@ -851,6 +848,14 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
     app.addEventListener('change', (e: Event) => {
         const target = e.target as HTMLElement;
+
+        if (target.matches('[data-change-role-for-member-id]')) {
+            const select = target as HTMLSelectElement;
+            const memberId = select.dataset.changeRoleForMemberId!;
+            const newRole = select.value as Role;
+            teamHandlers.handleChangeUserRole(memberId, newRole);
+            return;
+        }
 
         // This handles updates from the task detail sidebar (priority, status, dates, etc.)
         if (target.matches('.task-detail-sidebar *[data-field]') && state.ui.modal.type === 'taskDetail') {

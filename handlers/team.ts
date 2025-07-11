@@ -41,7 +41,7 @@ export async function handleCreateWorkspace(name: string) {
     }
     
     const ownedWorkspacesCount = state.workspaces.filter(w =>
-        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.roles.includes('owner'))
+        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
     ).length;
     const currentPlanId = state.activeWorkspaceId ? state.workspaces.find(w => w.id === state.activeWorkspaceId)!.subscription.planId : 'free';
     const planLimits = PLANS[currentPlanId];
@@ -61,7 +61,7 @@ export async function handleCreateWorkspace(name: string) {
         
         const [newWorkspaceRaw] = await apiPost('workspaces', workspacePayload);
         
-        const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, roles: ['owner'] as Role[] };
+        const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, role: 'owner' as Role };
         const [newMember] = await apiPost('workspace_members', memberPayload);
 
         const newWorkspace: Workspace = {
@@ -117,7 +117,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
     const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser!.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
-    const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.roles.includes('owner'));
+    const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');
     owners.forEach(owner => {
         createNotification('join_request', {
             userIdToNotify: owner.userId,
@@ -138,7 +138,7 @@ export async function handleApproveJoinRequest(requestId: string) {
         const [newMember] = await apiPost('workspace_members', {
             workspaceId: request.workspaceId,
             userId: request.userId,
-            roles: ['member']
+            role: 'member'
         });
 
         const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
@@ -186,7 +186,7 @@ export async function handleInviteUser(email: string, role: Role) {
         const [newMember] = await apiPost('workspace_members', {
             workspaceId: state.activeWorkspaceId,
             userId: user.id,
-            roles: [role],
+            role: role,
         });
         state.workspaceMembers.push(newMember);
         renderApp();
@@ -195,27 +195,23 @@ export async function handleInviteUser(email: string, role: Role) {
     }
 }
 
-export async function handleUpdateMemberRoles(form: HTMLFormElement) {
-    const memberId = form.dataset.memberId;
-    if (!memberId) return;
-
+export async function handleChangeUserRole(memberId: string, newRole: Role) {
     const member = state.workspaceMembers.find(m => m.id === memberId);
     if (!member) return;
     
-    const originalRoles = [...member.roles];
-    const newRoles = Array.from(form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked'))
-                           .map(checkbox => checkbox.value as Role);
-                           
-    member.roles = newRoles;
+    const originalRole = member.role;
+    if (originalRole === newRole) return;
+    
+    member.role = newRole; // Optimistic update
     renderApp();
 
     try {
-        await apiPut('workspace_members', { id: memberId, roles: newRoles });
+        await apiPut('workspace_members', { id: memberId, role: newRole });
     } catch (error) {
-        console.error("Failed to update user roles:", error);
-        member.roles = originalRoles;
+        console.error("Failed to update user role:", error);
+        member.role = originalRole; // Revert
         renderApp();
-        alert("Failed to update user roles.");
+        alert("Failed to update user role.");
     }
 }
 
@@ -224,8 +220,8 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
     if (memberIndex === -1) return;
 
     const memberToRemove = state.workspaceMembers[memberIndex];
-    if (memberToRemove.roles.includes('owner')) {
-        const ownerCount = state.workspaceMembers.filter(m => m.workspaceId === memberToRemove.workspaceId && m.roles.includes('owner')).length;
+    if (memberToRemove.role === 'owner') {
+        const ownerCount = state.workspaceMembers.filter(m => m.workspaceId === memberToRemove.workspaceId && m.role === 'owner').length;
         if (ownerCount <= 1) {
             alert(t('hr.cannot_remove_owner'));
             return;

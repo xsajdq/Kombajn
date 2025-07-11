@@ -22,7 +22,7 @@ export function BillingPage() {
 
     const ownedWorkspacesCount = state.workspaces.filter(w => {
         const membership = state.workspaceMembers.find(m => m.workspaceId === w.id && m.userId === state.currentUser?.id);
-        return membership && membership.roles.includes('owner');
+        return membership && membership.role === 'owner';
     }).length;
 
     const renderUsageMeter = (label: string, value: number, limit: number) => {

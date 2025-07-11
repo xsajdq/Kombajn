@@ -27,16 +27,16 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
     
     // Simplistic mapping from workspace role to project role for public projects
     // Owner and Admin get admin rights on all public projects.
-    if (workspaceMember.roles.includes('owner') || workspaceMember.roles.includes('admin')) {
+    if (workspaceMember.role === 'owner' || workspaceMember.role === 'admin') {
         return 'admin';
     }
-    if (workspaceMember.roles.includes('manager')) {
+    if (workspaceMember.role === 'manager') {
         return 'editor'; // Managers can edit public projects
     }
-    if (workspaceMember.roles.includes('member')) {
+    if (workspaceMember.role === 'member') {
         return 'editor'; // Members can also edit public projects
     }
-    if (workspaceMember.roles.includes('client')) {
+    if (workspaceMember.role === 'client') {
         return 'viewer';
     }
     

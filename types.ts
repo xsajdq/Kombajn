@@ -61,7 +61,7 @@ export interface WorkspaceMember {
     id: string; // Unique ID for the membership itself
     workspaceId: string;
     userId: string;
-    roles: Role[];
+    role: Role;
 }
 
 export type ProjectRole = 'admin' | 'editor' | 'commenter' | 'viewer';

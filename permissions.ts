@@ -29,29 +29,20 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function can(permission: Permission): boolean {
     const { currentUser, activeWorkspaceId, workspaceMembers } = state;
 
-    // Guard clauses for uninitialized state
     if (!currentUser || !activeWorkspaceId || !workspaceMembers || workspaceMembers.length === 0) {
         return false;
     }
 
-    // Find the current user's membership in the active workspace
     const member = workspaceMembers.find(m => m && m.userId === currentUser.id && m.workspaceId === activeWorkspaceId);
     
-    // Guard against a missing membership or malformed roles array
-    if (!member || !Array.isArray(member.roles)) {
+    if (!member || !member.role) {
         return false;
     }
 
-    // Build the complete set of permissions from all the user's roles.
-    // This is the single source of truth for all permission checks.
-    const userPermissions = new Set<Permission>();
-    for (const role of member.roles) {
-        const permissionsForRole = ROLE_PERMISSIONS[role];
-        if (permissionsForRole) {
-            permissionsForRole.forEach(p => userPermissions.add(p));
-        }
+    const permissionsForRole = ROLE_PERMISSIONS[member.role];
+    if (!permissionsForRole) {
+        return false;
     }
     
-    // Check if the resulting set has the required permission.
-    return userPermissions.has(permission);
+    return permissionsForRole.includes(permission);
 }
