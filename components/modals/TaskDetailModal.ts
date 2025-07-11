@@ -4,7 +4,7 @@ import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
 import { getCurrentUserRole } from '../../handlers/main.ts';
-import type { Task, CustomFieldValue, CustomFieldDefinition } from '../../types.ts';
+import type { Task, CustomFieldValue, CustomFieldDefinition, User } from '../../types.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
@@ -202,8 +202,18 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     const canManage = userRole === 'owner' || userRole === 'manager';
     const activeTab = state.ui.taskDetail.activeTab;
     
-    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
-    const assigneeId = taskAssignee ? taskAssignee.userId : '';
+    const assignedUserIds = new Set(state.taskAssignees.filter(a => a.taskId === task.id).map(a => a.userId));
+    const assignedUsers = state.users.filter(u => assignedUserIds.has(u.id));
+    
+    const workspaceMembers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter(Boolean) as User[];
+
+    const assignedTagIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
+    const assignedTags = state.tags.filter(t => assignedTagIds.has(t.id));
+    const availableTags = state.tags.filter(t => t.workspaceId === task.workspaceId);
+
 
     const renderCustomField = (fieldDef: CustomFieldDefinition) => {
         const fieldValue = customFieldValues.find(v => v.fieldId === fieldDef.id);
@@ -262,11 +272,11 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                 </div>
                 
             </div>
-            <div class="task-detail-sidebar">
+            <aside class="task-detail-sidebar">
                 <h4>${t('modals.details')}</h4>
                 <div class="form-group">
-                    <label for="detail-task-status">${t('modals.status')}</label>
-                    <select id="detail-task-status" class="form-control" data-field="status" ${!canManage ? 'disabled' : ''}>
+                    <label>${t('modals.status')}</label>
+                    <select class="form-control" data-field="status" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                         <option value="backlog" ${task.status === 'backlog' ? 'selected' : ''}>${t('modals.status_backlog')}</option>
                         <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${t('modals.status_todo')}</option>
                         <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>${t('modals.status_inprogress')}</option>
@@ -275,15 +285,50 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="detail-task-assignee">${t('modals.assignee')}</label>
-                    <select id="detail-task-assignee" class="form-control" data-field="assigneeId" ${!canManage ? 'disabled' : ''}>
-                        <option value="">${t('modals.unassigned')}</option>
-                        ${state.workspaceMembers.filter(m => m.workspaceId === task.workspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean).map(u => `<option value="${u!.id}" ${assigneeId === u!.id ? 'selected' : ''}>${u!.name || u!.initials}</option>`).join('')}
-                    </select>
+                    <label>${t('modals.assignees')}</label>
+                    <div class="multiselect-container" data-type="assignee" data-task-id="${task.id}">
+                        <div class="multiselect-display">
+                            ${assignedUsers.length > 0 ? assignedUsers.map(user => `
+                                <div class="avatar" title="${user.name || user.initials}">${user.initials}</div>
+                            `).join('') : `<span class="subtle-text">${t('modals.unassigned')}</span>`}
+                        </div>
+                        <div class="multiselect-dropdown hidden">
+                            ${workspaceMembers.map(user => `
+                                <label class="multiselect-list-item">
+                                    <input type="checkbox" value="${user.id}" ${assignedUserIds.has(user.id) ? 'checked' : ''}>
+                                    <div class="avatar">${user.initials}</div>
+                                    <span>${user.name || user.email}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="detail-task-priority">${t('modals.priority')}</label>
-                    <select id="detail-task-priority" class="form-control" data-field="priority" ${!canManage ? 'disabled' : ''}>
+                    <label>${t('modals.tags')}</label>
+                     <div class="multiselect-container" data-type="tag" data-task-id="${task.id}">
+                        <div class="multiselect-display tag-list">
+                            ${assignedTags.length > 0 ? assignedTags.map(tag => `
+                                <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color}; border-color: ${tag.color}40;">${tag.name}</div>
+                            `).join('') : `<span class="subtle-text">No tags</span>`}
+                        </div>
+                        <div class="multiselect-dropdown hidden">
+                            <form id="add-new-tag-form" class="multiselect-add-new" data-task-id="${task.id}">
+                                <input type="text" class="form-control" placeholder="Create a new tag...">
+                            </form>
+                            <div class="multiselect-list">
+                            ${availableTags.map(tag => `
+                                <label class="multiselect-list-item">
+                                    <input type="checkbox" value="${tag.id}" ${assignedTagIds.has(tag.id) ? 'checked' : ''}>
+                                    <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color};">${tag.name}</div>
+                                </label>
+                            `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>${t('modals.priority')}</label>
+                    <select class="form-control" data-field="priority" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                         <option value="">${t('modals.priority_none')}</option>
                         <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${t('modals.priority_low')}</option>
                         <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
@@ -291,16 +336,16 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="detail-task-startDate">${t('modals.start_date')}</label>
-                    <input type="date" id="detail-task-startDate" class="form-control" data-field="startDate" value="${task.startDate || ''}" ${!canManage ? 'disabled' : ''}>
+                    <label>${t('modals.start_date')}</label>
+                    <input type="date" class="form-control" data-field="startDate" value="${task.startDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                 </div>
                 <div class="form-group">
-                    <label for="detail-task-dueDate">${t('modals.due_date')}</label>
-                    <input type="date" id="detail-task-dueDate" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" ${!canManage ? 'disabled' : ''}>
+                    <label>${t('modals.due_date')}</label>
+                    <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                 </div>
                  <div class="form-group">
-                    <label for="detail-task-recurrence">${t('modals.repeat')}</label>
-                    <select id="detail-task-recurrence" class="form-control" data-field="recurrence" ${!canManage ? 'disabled' : ''}>
+                    <label>${t('modals.repeat')}</label>
+                    <select class="form-control" data-field="recurrence" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                         <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
                         <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
                         <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
@@ -312,7 +357,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     <h4>${t('modals.custom_fields')}</h4>
                     ${customFieldsForWorkspace.map(renderCustomField).join('')}
                 ` : ''}
-            </div>
+            </aside>
         </div>
     `;
 }

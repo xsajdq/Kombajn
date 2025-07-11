@@ -61,47 +61,11 @@ export async function handleAddTaskComment(taskId: string, content: string, succ
     }
 }
 
-export async function handleTaskDetailUpdate(taskId: string, field: keyof Task | 'assigneeId', value: any) {
+export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, value: any) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
-    // Special handling for assigneeId pseudo-field
-    if (field === 'assigneeId') {
-        const newAssigneeId = value || null;
-        const oldAssignees = state.taskAssignees.filter(a => a.taskId === taskId);
-
-        // Optimistic update
-        state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
-        if (newAssigneeId) {
-            state.taskAssignees.push({ taskId, userId: newAssigneeId, workspaceId: task.workspaceId });
-        }
-        renderApp();
-
-        try {
-            // Persist: delete old, insert new.
-            for (const oldAssignee of oldAssignees) {
-                await apiPost('task_assignees/delete', { taskId: oldAssignee.taskId, userId: oldAssignee.userId });
-            }
-            if (newAssigneeId) {
-                await apiPost('task_assignees', { taskId, userId: newAssigneeId, workspaceId: task.workspaceId });
-            }
-            
-            // Notify new assignee
-            if (newAssigneeId && newAssigneeId !== state.currentUser.id) {
-                await createNotification('new_assignment', { taskId, userIdToNotify: newAssigneeId, actorId: state.currentUser.id });
-            }
-        } catch (error) {
-            // Revert
-            state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
-            state.taskAssignees.push(...oldAssignees);
-            renderApp();
-            alert('Could not update assignee.');
-        }
-        return;
-    }
-
-    // Default handling for other fields
-    const oldValue = task[field as keyof Task];
+    const oldValue = task[field];
     if (oldValue === value) return; // No change
 
     (task as any)[field] = value;
@@ -127,6 +91,94 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task |
         renderApp();
     }
 }
+
+export async function handleToggleAssignee(taskId: string, userId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !state.currentUser) return;
+
+    const existingIndex = state.taskAssignees.findIndex(a => a.taskId === taskId && a.userId === userId);
+
+    if (existingIndex > -1) {
+        // --- REMOVE ASSIGNEE ---
+        const [removed] = state.taskAssignees.splice(existingIndex, 1);
+        renderApp(); // Optimistic update
+        try {
+            await apiPost('task_assignees/delete', { taskId: taskId, userId: userId });
+        } catch (error) {
+            console.error('Failed to remove assignee', error);
+            state.taskAssignees.splice(existingIndex, 0, removed); // Revert
+            renderApp();
+        }
+    } else {
+        // --- ADD ASSIGNEE ---
+        const newAssignee: TaskAssignee = { taskId, userId, workspaceId: task.workspaceId };
+        state.taskAssignees.push(newAssignee);
+        renderApp(); // Optimistic update
+        try {
+            const [saved] = await apiPost('task_assignees', { taskId, userId, workspaceId: task.workspaceId });
+            // The record from the DB doesn't have a unique ID, so we just trust our optimistic one.
+        } catch (error) {
+            console.error('Failed to add assignee', error);
+            state.taskAssignees = state.taskAssignees.filter(a => !(a.taskId === taskId && a.userId === userId)); // Revert
+            renderApp();
+        }
+    }
+}
+
+export async function handleToggleTag(taskId: string, tagId: string, newTagName?: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // --- CREATE NEW TAG ---
+    if (newTagName) {
+        const workspaceId = task.workspaceId;
+        const colors = ['#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#2ecc71', '#1abc9c', '#e67e22', '#34495e'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        try {
+            // Create the tag first
+            const [newTag] = await apiPost('tags', { name: newTagName, color, workspaceId });
+            state.tags.push(newTag);
+            
+            // Then link it to the task
+            const [newTaskTag] = await apiPost('task_tags', { taskId, tagId: newTag.id, workspaceId });
+            state.taskTags.push(newTaskTag);
+            renderApp();
+        } catch(error) {
+            console.error("Failed to create new tag", error);
+        }
+        return;
+    }
+
+    // --- TOGGLE EXISTING TAG ---
+    const existingIndex = state.taskTags.findIndex(tt => tt.taskId === taskId && tt.tagId === tagId);
+
+    if (existingIndex > -1) {
+        // Remove
+        const [removed] = state.taskTags.splice(existingIndex, 1);
+        renderApp();
+        try {
+            await apiPost('task_tags/delete', { taskId, tagId });
+        } catch (error) {
+            console.error("Failed to remove tag from task", error);
+            state.taskTags.splice(existingIndex, 0, removed); // Revert
+            renderApp();
+        }
+    } else {
+        // Add
+        const newTaskTag = { taskId, tagId, workspaceId: task.workspaceId };
+        state.taskTags.push(newTaskTag);
+        renderApp();
+        try {
+            await apiPost('task_tags', newTaskTag);
+        } catch (error) {
+            console.error("Failed to add tag to task", error);
+            state.taskTags = state.taskTags.filter(tt => !(tt.taskId === taskId && tt.tagId === tagId)); // Revert
+            renderApp();
+        }
+    }
+}
+
 
 export async function handleAddSubtask(parentTaskId: string, subtaskName: string) {
     const parentTask = state.tasks.find(t => t.id === parentTaskId);

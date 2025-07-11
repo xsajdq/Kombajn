@@ -79,7 +79,7 @@ const translations = {
             add_client_title: 'Add New Client', edit_client_title: 'Edit Client',
             company_name: 'Company Name', vat_id: 'VAT ID', contact_person: 'Contact Person', email: 'Email', phone: 'Phone',
             add_project_title: 'Add New Project', project_name: 'Project Name', assign_to_client: 'Assign to client', select_a_client: 'Select a client', hourly_rate: 'Default Hourly Rate (PLN)', privacy: 'Privacy', privacy_public: 'Public', privacy_public_desc: 'Everyone in the workspace can see this project.', privacy_private: 'Private', privacy_private_desc: 'Only invited members can see this project.', create_from_template: 'Create from Template', select_template: 'None (start fresh)',
-            add_task_title: 'Add New Task', task_name: 'Task Name', description: 'Description', project: 'Project', select_a_project: 'Select a project', assignee: 'Assignee', unassigned: 'Unassigned', start_date: 'Start Date', due_date: 'Due Date',
+            add_task_title: 'Add New Task', task_name: 'Task Name', description: 'Description', project: 'Project', select_a_project: 'Select a project', assignees: 'Assignees', unassigned: 'Unassigned', start_date: 'Start Date', due_date: 'Due Date',
             task_details_title: 'Task Details', status: 'Status', priority: 'Priority',
             status_backlog: 'Backlog', status_todo: 'To Do', status_inprogress: 'In Progress', status_inreview: 'In Review', status_done: 'Done',
             priority_none: 'None', priority_low: 'Low', priority_medium: 'Medium', priority_high: 'High',
@@ -102,7 +102,8 @@ const translations = {
             reject_request_title: 'Reject Request', rejection_reason: 'Reason for rejection (required)',
             status_pending: 'Pending', status_paid: 'Paid', status_overdue: 'Overdue', status_approved: 'Approved', status_rejected: 'Rejected',
             add_deal_title: 'Add New Deal', edit_deal_title: 'Edit Deal', deal_name: 'Deal Name', deal_client: 'Client', deal_value: 'Value (PLN)', deal_owner: 'Owner', deal_stage: 'Stage', deal_close_date: 'Expected Close Date',
-            adjust_vacation_title: 'Adjust Vacation Allowance', total_allowance_hours: 'Total Vacation Allowance (hours)'
+            adjust_vacation_title: 'Adjust Vacation Allowance', total_allowance_hours: 'Total Vacation Allowance (hours)',
+            tags: 'Tags',
         },
         misc: { not_applicable: 'N/A', no_project: 'No Project', no_client: 'No Client', edit: 'Edit', no_events_for_day: 'No events or tasks for this day.' },
         notifications: { title: 'Notifications', mark_all_read: 'Mark all as read', no_notifications: 'You have no notifications.', tab_new: 'New', tab_read: 'Read', no_new_notifications: 'You have no new notifications.', comment_added: '{user} commented on {taskName}', task_assigned: 'You have been assigned to task {taskName}', status_changed: 'Status for {taskName} was changed to {status}', user_mentioned: '{user} mentioned you in {taskName}', join_request: '{user} wants to join workspace {workspaceName}' },
@@ -202,7 +203,7 @@ const translations = {
             add_client_title: 'Dodaj Nowego Klienta', edit_client_title: 'Edytuj Klienta',
             company_name: 'Nazwa Firmy', vat_id: 'NIP', contact_person: 'Osoba Kontaktowa', email: 'E-mail', phone: 'Telefon',
             add_project_title: 'Dodaj Nowy Projekt', project_name: 'Nazwa Projektu', assign_to_client: 'Przypisz do klienta', select_a_client: 'Wybierz klienta', hourly_rate: 'Domyślna stawka godzinowa (PLN)', privacy: 'Prywatność', privacy_public: 'Publiczny', privacy_public_desc: 'Wszyscy w obszarze roboczym widzą ten projekt.', privacy_private: 'Prywatny', privacy_private_desc: 'Tylko zaproszeni członkowie widzą ten projekt.', create_from_template: 'Utwórz z szablonu', select_template: 'Brak (zacznij od zera)',
-            add_task_title: 'Dodaj Nowe Zadanie', task_name: 'Nazwa Zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', assignee: 'Przypisany', unassigned: 'Nieprzypisany', start_date: 'Data rozpoczęcia', due_date: 'Termin wykonania',
+            add_task_title: 'Dodaj Nowe Zadanie', task_name: 'Nazwa Zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', assignees: 'Przypisani', unassigned: 'Nieprzypisany', start_date: 'Data rozpoczęcia', due_date: 'Termin wykonania',
             task_details_title: 'Szczegóły Zadania', status: 'Status', priority: 'Priorytet',
             status_backlog: 'Backlog', status_todo: 'Do zrobienia', status_inprogress: 'W toku', status_inreview: 'Weryfikacja', status_done: 'Zakończone',
             priority_none: 'Brak', priority_low: 'Niski', priority_medium: 'Średni', priority_high: 'Wysoki',
@@ -226,7 +227,8 @@ const translations = {
             reject_request_title: 'Odrzuć wniosek', rejection_reason: 'Powód odrzucenia (wymagany)',
             status_pending: 'Oczekująca', status_paid: 'Opłacona', status_overdue: 'Zaległa', status_approved: 'Zatwierdzony', status_rejected: 'Odrzucony',
             add_deal_title: 'Dodaj nową szansę', edit_deal_title: 'Edytuj szansę', deal_name: 'Nazwa szansy', deal_client: 'Klient', deal_value: 'Wartość (PLN)', deal_owner: 'Opiekun', deal_stage: 'Etap', deal_close_date: 'Przewidywana data zamknięcia',
-            adjust_vacation_title: 'Dostosuj pulę urlopową', total_allowance_hours: 'Całkowita pula urlopowa (godziny)'
+            adjust_vacation_title: 'Dostosuj pulę urlopową', total_allowance_hours: 'Całkowita pula urlopowa (godziny)',
+            tags: 'Tagi'
         },
         misc: { not_applicable: 'B/D', no_project: 'Brak projektu', no_client: 'Brak klienta', edit: 'Edytuj', no_events_for_day: 'Brak wydarzeń i zadań na ten dzień.' },
         notifications: { title: 'Powiadomienia', mark_all_read: 'Oznacz wszystkie jako przeczytane', no_notifications: 'Nie masz żadnych powiadomień.', tab_new: 'Nowe', tab_read: 'Przeczytane', no_new_notifications: 'Nie masz nowych powiadomień.', comment_added: '{user} skomentował(a) {taskName}', task_assigned: 'Przydzielono Ci zadanie {taskName}', status_changed: 'Status dla {taskName} zmieniono na {status}', user_mentioned: '{user} wspomniał(a) o Tobie w {taskName}', join_request: '{user} chce dołączyć do obszaru roboczego {workspaceName}' },

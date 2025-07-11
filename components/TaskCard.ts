@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -5,10 +6,12 @@ import type { Task } from '../types.ts';
 
 export function renderTaskCard(task: Task) {
     const project = state.projects.find(p => p.id === task.projectId && p.workspaceId === state.activeWorkspaceId);
-    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
-    const assignee = taskAssignee ? state.users.find(u => u.id === taskAssignee.userId) : undefined;
+    const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const isRunning = !!state.activeTimers[task.id];
     const isAdvanced = state.ui.tasksKanbanMode === 'advanced';
+    
+    const taskTagsIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
+    const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
 
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
     const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
@@ -26,6 +29,13 @@ export function renderTaskCard(task: Task) {
                 ${task.priority ? `<span class="priority-badge priority-${task.priority}" title="${t('tasks.col_priority')}: ${t('tasks.priority_' + task.priority)}">${t('tasks.priority_' + task.priority)}</span>` : ''}
             </div>
             <p class="subtle-text task-card-project">${project ? project.name : t('misc.no_project')}</p>
+            
+            ${tags.length > 0 ? `
+                <div class="task-card-tags tag-list">
+                    ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
+                </div>
+            ` : ''}
+
             ${isAdvanced && descriptionSnippet ? `<p class="task-card-description subtle-text">${descriptionSnippet}</p>` : ''}
             
             <div class="task-meta-icons">
@@ -47,13 +57,15 @@ export function renderTaskCard(task: Task) {
                             <span>${formatDate(task.dueDate)}</span>
                         </div>
                     `: ''}
-                    ${assignee ? `
-                        <div class="avatar" title="${assignee.name || assignee.initials}">${assignee.initials}</div>
-                    ` : `
-                        <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
-                             <span class="material-icons-sharp icon-sm">person_outline</span>
-                        </div>
-                    `}
+                    <div class="avatar-stack">
+                        ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
+                            <div class="avatar" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
+                        `).join('') : `
+                            <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
+                                <span class="material-icons-sharp icon-sm">person_outline</span>
+                            </div>
+                        `}
+                    </div>
                  </div>
                  <div class="task-actions">
                     <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>

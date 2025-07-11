@@ -65,6 +65,9 @@
 .kanban-column-total-time { font-size: 0.9rem; font-weight: 500; color: var(--subtle-text-color); background-color: var(--light-color); padding: 0.1rem 0.5rem; border-radius: 6px; vertical-align: middle; margin-left: 0.5rem; }
 .dark-theme .kanban-column-total-time { background-color: var(--dark-color); color: var(--sidebar-text); }
 .kanban-header .btn-secondary { padding: 0.6rem 1rem; }
+.task-card-tags {
+    margin: 0.75rem 0 0.5rem;
+}
 
 /* TASK LIST VIEW */
 .task-list-container { padding: 0; }

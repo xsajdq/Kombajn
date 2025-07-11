@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -124,7 +125,7 @@ function renderListView(filteredTasks: Task[]) {
             <div class="task-list-header">
                 <div class="task-list-col">${t('tasks.col_task')}</div>
                 <div class="task-list-col">${t('tasks.col_project')}</div>
-                <div class="task-list-col">${t('tasks.col_assignee')}</div>
+                <div class="task-list-col">${t('modals.assignees')}</div>
                 <div class="task-list-col">${t('tasks.col_due_date')}</div>
                 <div class="task-list-col">${t('tasks.col_priority')}</div>
                 <div class="task-list-col">${t('tasks.col_status')}</div>
@@ -133,9 +134,11 @@ function renderListView(filteredTasks: Task[]) {
             <div class="task-list-body">
                 ${filteredTasks.map(task => {
                     const project = state.projects.find(p => p.id === task.projectId);
-                    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
-                    const assignee = taskAssignee ? state.users.find(u => u.id === taskAssignee.userId) : undefined;
+                    const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
                     const isRunning = !!state.activeTimers[task.id];
+
+                    const taskTagsIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
+                    const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
 
                     const subtasks = state.tasks.filter(t => t.parentId === task.id);
                     const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
@@ -147,6 +150,11 @@ function renderListView(filteredTasks: Task[]) {
                              <div class="task-list-col" data-label="${t('tasks.col_task')}">
                                 <div class="task-name-wrapper">
                                     <strong>${task.name}</strong>
+                                    ${tags.length > 0 ? `
+                                        <div class="tag-list" style="margin-top: 0.5rem;">
+                                            ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
+                                        </div>
+                                    ` : ''}
                                     <div class="task-meta-icons">
                                         ${subtasks.length > 0 ? `
                                             <span title="${t('modals.subtasks')}">
@@ -160,7 +168,17 @@ function renderListView(filteredTasks: Task[]) {
                                 </div>
                              </div>
                              <div class="task-list-col" data-label="${t('tasks.col_project')}">${project?.name || t('misc.not_applicable')}</div>
-                             <div class="task-list-col" data-label="${t('tasks.col_assignee')}">${assignee?.name || t('tasks.unassigned')}</div>
+                             <div class="task-list-col" data-label="${t('modals.assignees')}">
+                                <div class="avatar-stack">
+                                    ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
+                                        <div class="avatar" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
+                                    `).join('') : `
+                                        <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
+                                            <span class="material-icons-sharp icon-sm">person_outline</span>
+                                        </div>
+                                    `}
+                                </div>
+                             </div>
                              <div class="task-list-col" data-label="${t('tasks.col_due_date')}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
                              <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-badge priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
                              <div class="task-list-col" data-label="${t('tasks.col_status')}"><span class="status-badge status-${task.status}">${t('tasks.' + task.status)}</span></div>
