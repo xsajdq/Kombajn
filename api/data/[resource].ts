@@ -1,5 +1,4 @@
 
-
 // Plik: api/data/[resource].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
@@ -36,7 +35,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'POST': {
+            if (!bodyInSnakeCase) {
+                return res.status(400).json({ error: 'Request body is missing or empty.' });
+            }
             const payload = Array.isArray(bodyInSnakeCase) ? bodyInSnakeCase : [bodyInSnakeCase];
+            if (payload.length === 0) {
+                 return res.status(201).json([]);
+            }
             const { data, error } = await (supabase.from(resource) as any).insert(payload).select();
             if (error) throw error;
             return res.status(201).json(data);
@@ -61,7 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'DELETE': {
-            const { id } = req.body;
+             // Vercel's body parser might not work for DELETE, so we check query params too.
+            const id = req.body?.id || req.query.id;
             if (!id) return res.status(400).json({ error: 'ID is required for delete' });
 
             const query = (supabase.from(resource) as any).delete().eq('id', id);
