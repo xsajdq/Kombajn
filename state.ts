@@ -74,6 +74,7 @@ function getInitialState(): AppState {
         calendarEvents: [],
         expenses: [],
         deals: [],
+        dealNotes: [],
         workspaceJoinRequests: [],
         publicHolidays: [],
         ai: { loading: false, error: null, suggestedTasks: null },
@@ -86,6 +87,7 @@ function getInitialState(): AppState {
         ui: {
             openedClientId: null,
             openedProjectId: null,
+            openedDealId: null,
             openedProjectTab: 'tasks',
             isNotificationsOpen: false,
             notifications: { activeTab: 'new' },
@@ -104,6 +106,7 @@ function getInitialState(): AppState {
             activeChannelId: null,
             isWikiEditing: false,
             taskDetail: { activeTab: 'activity' },
+            dealDetail: { activeTab: 'activity' },
             modal: { isOpen: false, type: null, data: undefined, justOpened: false },
             reports: {
                 activeTab: 'productivity',

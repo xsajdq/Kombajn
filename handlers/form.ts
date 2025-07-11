@@ -12,6 +12,7 @@ import * as hrHandlers from './team.ts';
 import { handleWidgetConfigSave } from './dashboard.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import * as okrHandler from './okr.ts';
+import * as dealHandler from './deals.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -79,7 +80,7 @@ export async function handleFormSubmit() {
 
             const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
 
-            const taskData = {
+            const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
                 name: name,
@@ -87,8 +88,12 @@ export async function handleFormSubmit() {
                 status: state.settings.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
                 startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || null,
                 dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || null,
-                priority: (document.getElementById('taskPriority') as HTMLSelectElement).value || null,
+                priority: ((document.getElementById('taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
             };
+
+            if (data?.dealId) {
+                taskData.dealId = data.dealId;
+            }
 
             const [newTask] = await apiPost('tasks', taskData);
             state.tasks.push(newTask);

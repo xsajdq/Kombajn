@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getCurrentUserRole } from '../handlers/main.ts';
@@ -18,25 +19,21 @@ function renderDealCard(deal: Deal) {
     }
 
     return `
-        <div class="task-card" draggable="true" data-task-id="${deal.id}" role="button" tabindex="0" aria-label="${deal.name}">
-            <p class="task-card-name">${deal.name}</p>
-            <p class="subtle-text" style="margin-bottom: 0.75rem;">
-                <span class="material-icons-sharp icon-sm" style="vertical-align: bottom; font-size: 1.1rem; margin-right: 0.25rem;">business</span>
-                ${client?.name || t('misc.no_client')}
-            </p>
-            <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 1rem;">
-                ${formatCurrency(deal.value)}
+        <div class="deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true" data-task-id="${deal.id}">
+            <p class="deal-card-name">${deal.name}</p>
+            <p class="deal-card-value">${formatCurrency(deal.value)}</p>
+            <div class="deal-card-client">
+                <span class="material-icons-sharp icon-sm">business</span>
+                <span>${client?.name || t('misc.no_client')}</span>
             </div>
-            <div class="task-card-footer" style="margin-top: 0;">
-                <div class="task-meta">
-                    ${owner ? `
-                        <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
-                    ` : `
-                        <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
-                             <span class="material-icons-sharp icon-sm">person_outline</span>
-                        </div>
-                    `}
-                </div>
+            <div class="deal-card-footer">
+                ${owner ? `
+                    <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
+                ` : `
+                    <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
+                         <span class="material-icons-sharp icon-sm">person_outline</span>
+                    </div>
+                `}
             </div>
         </div>
     `;
@@ -74,10 +71,10 @@ export function SalesPage() {
                     const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
                     return `
-                        <div class="kanban-column" data-stage="${stage}">
-                            <h4>${t(`sales.stage_${stage}`)} (${columnDeals.length})</h4>
+                        <div class="kanban-column" data-stage="${stage}" data-stage-color="${stage}">
+                            <h4>${t(`sales.stage_${stage}`)}</h4>
                              <div class="subtle-text" style="font-weight: 600; padding: 0 0.5rem 1rem;">
-                                ${new Intl.NumberFormat('pl-PL').format(totalValue)} PLN
+                                ${new Intl.NumberFormat('pl-PL').format(totalValue)} PLN (${columnDeals.length})
                             </div>
                             <div class="kanban-tasks">
                                 ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="empty-kanban-column" style="padding:1rem; text-align:center; color: var(--subtle-text-color);">${t('sales.no_deals')}</div>`}

@@ -1,9 +1,11 @@
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
 import { ProjectDetailPanel } from './components/ProjectDetailPanel.ts';
 import { ClientDetailPanel } from './components/ClientDetailPanel.ts';
+import { DealDetailPanel } from './components/DealDetailPanel.ts';
 import { Modal } from './components/Modal.ts';
 import { AppHeader } from './components/AppHeader.ts';
 import { CommandPalette } from './components/CommandPalette.ts';
@@ -26,11 +28,11 @@ async function AppLayout() {
     }
     
     const pageContent = await router();
-    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen, onboarding } = state.ui;
+    const { openedProjectId, openedClientId, openedDealId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
     const userRole = getCurrentUserRole();
-    const isOverlayVisible = openedProjectId || openedClientId || modal.isOpen;
+    const isOverlayVisible = openedProjectId || openedClientId || openedDealId || modal.isOpen;
 
 
     if (!currentUser || !activeWorkspaceId) {
@@ -56,6 +58,10 @@ async function AppLayout() {
         ${openedClientId ? `
             <div class="side-panel-overlay"></div>
             ${ClientDetailPanel({ clientId: openedClientId })}
+        ` : ''}
+        ${openedDealId ? `
+            <div class="side-panel-overlay"></div>
+            ${DealDetailPanel({ dealId: openedDealId })}
         ` : ''}
         ${modal.isOpen ? Modal() : ''}
         ${isCommandPaletteOpen ? CommandPalette() : ''}
@@ -120,7 +126,7 @@ export async function renderApp() {
         state.ui.modal.justOpened = false;
     }
 
-    if (state.ui.openedProjectId || state.ui.openedClientId) {
+    if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
         const panel = document.querySelector<HTMLElement>('.side-panel');
         if (panel) {
             if (wasPanelOpen) {

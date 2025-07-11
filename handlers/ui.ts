@@ -1,3 +1,4 @@
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
@@ -21,6 +22,7 @@ export function openProjectPanel(projectId: string) {
     }
     state.ui.openedProjectId = projectId;
     state.ui.openedClientId = null;
+    state.ui.openedDealId = null;
     state.ui.openedProjectTab = 'tasks'; // Reset to default tab
     state.ui.isWikiEditing = false; // Ensure wiki edit mode is off
     renderApp();
@@ -32,6 +34,17 @@ export function openClientPanel(clientId: string) {
     }
     state.ui.openedClientId = clientId;
     state.ui.openedProjectId = null;
+    state.ui.openedDealId = null;
+    renderApp();
+}
+
+export function openDealPanel(dealId: string) {
+    if (document.activeElement instanceof HTMLElement) {
+        lastFocusedElement = document.activeElement;
+    }
+    state.ui.openedDealId = dealId;
+    state.ui.openedProjectId = null;
+    state.ui.openedClientId = null;
     renderApp();
 }
 
@@ -43,6 +56,10 @@ export function closeSidePanels(shouldRender = true) {
     }
     if (state.ui.openedClientId) {
         state.ui.openedClientId = null;
+        changed = true;
+    }
+    if (state.ui.openedDealId) {
+        state.ui.openedDealId = null;
         changed = true;
     }
     if (changed) {

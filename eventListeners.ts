@@ -28,6 +28,7 @@ import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
 import { subscribeToRealtimeUpdates } from './services/supabase.ts';
 import * as onboardingHandlers from './handlers/onboarding.ts';
 import * as okrHandlers from './handlers/okr.ts';
+import * as dealHandlers from './handlers/deals.ts';
 
 
 function parseContentEditable(element: HTMLElement): string {
@@ -179,7 +180,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 uiHandlers.toggleCommandPalette(false);
             } else if (state.ui.modal.isOpen) {
                 uiHandlers.closeModal();
-            } else if (state.ui.openedClientId || state.ui.openedProjectId) {
+            } else if (state.ui.openedClientId || state.ui.openedProjectId || state.ui.openedDealId) {
                 uiHandlers.closeSidePanels();
             } else if (document.querySelector('[data-editing="true"]')) {
                 // If an inline edit is active, cancel it.
@@ -412,6 +413,14 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 }
             }
             return;
+        } else if (target.id === 'add-deal-note-form') {
+            const dealId = target.dataset.dealId!;
+            const textarea = target.querySelector('textarea') as HTMLTextAreaElement;
+            const content = textarea.value.trim();
+            if (dealId && content) {
+                await dealHandlers.handleAddDealNote(dealId, content);
+                textarea.value = '';
+            }
         } else if (target.id === 'add-new-tag-form') {
             const taskId = target.dataset.taskId!;
             const input = target.querySelector('input')!;
@@ -497,6 +506,12 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
              taskHandlers.openTaskDetail(taskElement.dataset.taskId!);
             return;
         }
+        
+        const dealCard = target.closest<HTMLElement>('[data-deal-id]');
+        if (dealCard) {
+            uiHandlers.openDealPanel(dealCard.dataset.dealId!);
+            return;
+        }
 
         const calendarNav = target.closest<HTMLElement>('[data-calendar-nav]');
         if (calendarNav) {
@@ -542,8 +557,12 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         
         const sidePanelTab = target.closest<HTMLElement>('.side-panel-tab[data-tab]');
         if(sidePanelTab) {
-            state.ui.openedProjectTab = sidePanelTab.dataset.tab as any;
-            if (state.ui.openedProjectTab === 'wiki') { state.ui.isWikiEditing = false; }
+            if (state.ui.openedProjectId) {
+                state.ui.openedProjectTab = sidePanelTab.dataset.tab as any;
+                if (state.ui.openedProjectTab === 'wiki') { state.ui.isWikiEditing = false; }
+            } else if (state.ui.openedDealId) {
+                state.ui.dealDetail.activeTab = sidePanelTab.dataset.tab as any;
+            }
             renderApp();
             return;
         }

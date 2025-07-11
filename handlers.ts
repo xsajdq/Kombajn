@@ -20,3 +20,4 @@ export * from './handlers/dashboard.ts';
 export * from './handlers/user.ts';
 export * from './handlers/onboarding.ts';
 export * from './handlers/okr.ts';
+export * from './handlers/deals.ts';

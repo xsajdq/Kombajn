@@ -4,6 +4,7 @@ export * from './components/Sidebar.ts';
 export * from './components/TaskCard.ts';
 export * from './components/ProjectDetailPanel.ts';
 export * from './components/ClientDetailPanel.ts';
+export * from './components/DealDetailPanel.ts';
 export * from './components/Modal.ts';
 export * from './components/CommandPalette.ts';
 export * from './components/FloatingActionButton.ts';

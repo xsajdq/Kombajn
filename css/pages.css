@@ -69,6 +69,162 @@
     margin: 0.75rem 0 0.5rem;
 }
 
+/* --- NEW SALES BOARD STYLES --- */
+.sales-board {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+.sales-board .kanban-column h4 {
+    border-bottom: none;
+    position: relative;
+    padding-left: 0;
+    padding-bottom: 1.25rem;
+}
+.sales-board .kanban-column h4::before {
+    content: '';
+    position: absolute;
+    top: -1rem; /* Adjust based on column padding */
+    left: -1rem; /* Adjust based on column padding */
+    right: -1rem; /* Adjust based on column padding */
+    height: 4px;
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+/* Stage-specific colors */
+.sales-board [data-stage-color="lead"] h4::before { background-color: #A0AEC0; }
+.sales-board [data-stage-color="contacted"] h4::before { background-color: #63B3ED; }
+.sales-board [data-stage-color="demo"] h4::before { background-color: #4FD1C5; }
+.sales-board [data-stage-color="proposal"] h4::before { background-color: #F6E05E; }
+.sales-board [data-stage-color="won"] h4::before { background-color: #68D391; }
+.sales-board [data-stage-color="lost"] h4::before { background-color: #FC8181; }
+
+.deal-card {
+    background: var(--content-bg);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.deal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+.deal-card .deal-card-name {
+    font-weight: 600;
+}
+.deal-card .deal-card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+.deal-card .deal-card-client {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--subtle-text-color);
+    font-size: 0.9rem;
+}
+.deal-card .deal-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+.deal-card .deal-card-footer .avatar {
+    width: 28px;
+    height: 28px;
+}
+
+/* --- DEAL DETAIL PANEL --- */
+.deal-pipeline-visualizer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+.pipeline-stage {
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background-color: var(--light-color);
+    color: var(--subtle-text-color);
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.3s ease;
+}
+.pipeline-stage.active {
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+.deal-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.deal-kpi-item label {
+    font-size: 0.9rem;
+    color: var(--subtle-text-color);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+.deal-kpi-item .value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.deal-kpi-item .value .avatar {
+    width: 28px;
+    height: 28px;
+}
+.deal-activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.deal-note-item {
+    display: flex;
+    gap: 1rem;
+}
+.deal-note-item .avatar {
+    flex-shrink: 0;
+}
+.deal-note-item .note-content {
+    background-color: var(--light-color);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    flex-grow: 1;
+}
+.deal-note-item .note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+.add-deal-note-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
 /* TASK LIST VIEW */
 .task-list-container { padding: 0; }
 .task-list-header, .task-list-row { display: grid; grid-template-columns: 2fr 1fr auto 1fr 1fr 1fr auto; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); align-items: center; }
@@ -406,7 +562,7 @@
          font-size: 1.1rem;
     }
 
-    .kanban-board, .kanban-board.workflow-advanced {
+    .kanban-board, .kanban-board.workflow-advanced, .sales-board {
         grid-template-columns: 1fr;
     }
     .tasks-filter-bar {

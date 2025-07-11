@@ -82,11 +82,12 @@ export interface Task {
     workspaceId: string;
     name: string;
     projectId: string;
+    dealId?: string; // Link task to a sales deal
     status: 'backlog' | 'todo' | 'inprogress' | 'inreview' | 'done';
     description?: string;
     startDate?: string; // YYYY-MM-DD
     dueDate?: string; // YYYY-MM-DD
-    priority?: 'low' | 'medium' | 'high';
+    priority?: 'low' | 'medium' | 'high' | null;
     parentId?: string; // For subtasks
     recurrence?: 'none' | 'daily' | 'weekly' | 'monthly'; // For recurring tasks
 }
@@ -342,6 +343,15 @@ export interface Deal {
     createdAt: string; // ISO
 }
 
+export interface DealNote {
+    id: string;
+    workspaceId: string;
+    dealId: string;
+    userId: string;
+    content: string;
+    createdAt: string; // ISO
+}
+
 export interface WorkspaceJoinRequest {
     id: string;
     workspaceId: string;
@@ -390,6 +400,7 @@ export interface AppState {
     calendarEvents: CalendarEvent[];
     expenses: Expense[];
     deals: Deal[];
+    dealNotes: DealNote[];
     workspaceJoinRequests: WorkspaceJoinRequest[];
     publicHolidays: PublicHoliday[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
@@ -402,6 +413,7 @@ export interface AppState {
     ui: {
         openedClientId: string | null;
         openedProjectId: string | null;
+        openedDealId: string | null;
         openedProjectTab: 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
@@ -439,6 +451,9 @@ export interface AppState {
         isWikiEditing: boolean;
         taskDetail: {
             activeTab: 'activity' | 'subtasks' | 'dependencies' | 'attachments';
+        };
+        dealDetail: {
+            activeTab: 'activity' | 'tasks';
         };
         modal: {
             isOpen: boolean;

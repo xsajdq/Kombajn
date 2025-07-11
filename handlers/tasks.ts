@@ -86,8 +86,8 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
         if (field === 'status') {
             const assignees = state.taskAssignees.filter(a => a.taskId === taskId);
             for (const assignee of assignees) {
-                if (assignee.userId !== state.currentUser.id) {
-                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: finalValue, actorId: state.currentUser.id });
+                if (assignee.userId !== state.currentUser!.id) {
+                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: finalValue, actorId: state.currentUser!.id });
                 }
             }
             runAutomations('statusChange', { task });
