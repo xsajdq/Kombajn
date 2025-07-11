@@ -8,21 +8,23 @@ import type { Notification, Task, Deal } from '../types.ts';
 export let supabase: SupabaseClient | null = null;
 const channels: RealtimeChannel[] = [];
 
-// Initialize the Supabase client
+// Initialize the Supabase client by fetching config from the server
 export async function initSupabase() {
     if (supabase) return;
 
-    // These variables are injected at build time by esbuild.
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-        console.error("Supabase configuration is missing. The variables were not injected at build time.");
-        // This error will be caught by the top-level initializer in index.tsx
-        throw new Error("Supabase configuration missing.");
-    }
-    
     try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch Supabase config' }));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const { supabaseUrl, supabaseAnonKey } = await response.json();
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error("Supabase URL or Anon Key is missing in the server config response.");
+        }
+
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
                 persistSession: true,
@@ -34,13 +36,14 @@ export async function initSupabase() {
                 },
             },
         });
-        console.log("Supabase client initialized with session persistence.");
+        console.log("Supabase client initialized from API config.");
     } catch (error) {
         console.error("Supabase client initialization failed:", error);
-        // Re-throw to be caught by the top-level bootstrap function
+        // Re-throw to be caught by the top-level bootstrap function in index.tsx
         throw error;
     }
 }
+
 
 // Function to manage a single subscription, ensuring no duplicates
 function manageSubscription(channelName: string, config: any) {
