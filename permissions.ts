@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import type { Role, Permission } from './types.ts';
 
@@ -28,23 +29,21 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function can(permission: Permission): boolean {
     const { currentUser, activeWorkspaceId, workspaceMembers } = state;
 
+    // Guard clauses for uninitialized state
     if (!currentUser || !activeWorkspaceId || !workspaceMembers || workspaceMembers.length === 0) {
         return false;
     }
 
+    // Find the current user's membership in the active workspace
     const member = workspaceMembers.find(m => m && m.userId === currentUser.id && m.workspaceId === activeWorkspaceId);
     
+    // Guard against a missing membership or malformed roles array
     if (!member || !Array.isArray(member.roles)) {
         return false;
     }
 
-    // A direct check to ensure the 'owner' role grants all permissions.
-    // This bypasses the aggregation logic for the owner, providing a more robust guarantee.
-    if (member.roles.includes('owner')) {
-        return true;
-    }
-
-    // For all other roles, build the permission set and check.
+    // Build the complete set of permissions from all the user's roles.
+    // This is the single source of truth for all permission checks.
     const userPermissions = new Set<Permission>();
     for (const role of member.roles) {
         const permissionsForRole = ROLE_PERMISSIONS[role];
@@ -53,5 +52,6 @@ export function can(permission: Permission): boolean {
         }
     }
     
+    // Check if the resulting set has the required permission.
     return userPermissions.has(permission);
 }
