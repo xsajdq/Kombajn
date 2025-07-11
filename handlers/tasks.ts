@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
@@ -65,20 +66,28 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
-    const oldValue = task[field];
-    if (oldValue === value) return; // No change
+    // Convert empty string from form inputs to null for the database
+    const finalValue = value === '' ? null : value;
 
-    (task as any)[field] = value;
+    const oldValue = task[field];
+    // Also handle case where old value is null and new is empty string, which we consider no change
+    if (oldValue === finalValue || (oldValue === null && value === '')) {
+        return;
+    }
+    
+    // Optimistic update
+    (task as any)[field] = finalValue;
     renderApp();
 
     try {
-        await apiPut('tasks', { id: taskId, [field]: value });
+        // The API layer will handle converting camelCase field to snake_case for the database
+        await apiPut('tasks', { id: taskId, [field]: finalValue });
 
         if (field === 'status') {
             const assignees = state.taskAssignees.filter(a => a.taskId === taskId);
             for (const assignee of assignees) {
                 if (assignee.userId !== state.currentUser.id) {
-                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: value, actorId: state.currentUser.id });
+                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: finalValue, actorId: state.currentUser.id });
                 }
             }
             runAutomations('statusChange', { task });
