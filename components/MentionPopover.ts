@@ -20,7 +20,7 @@ export function MentionPopover() {
         });
 
     const targetRect = target.getBoundingClientRect();
-    const bottom = window.innerHeight - targetRect.top + 5;
+    const top = targetRect.bottom + 5; // Position below the input with a 5px gap
     const left = targetRect.left;
     const width = targetRect.width;
 
@@ -35,7 +35,7 @@ export function MentionPopover() {
         : `<div class="mention-item-empty">${t('command_palette.no_results')}</div>`;
 
     return `
-        <div class="mention-popover" style="bottom: ${bottom}px; left: ${left}px; width: ${width}px;">
+        <div class="mention-popover" style="top: ${top}px; left: ${left}px; width: ${width}px;">
             ${popoverContent}
         </div>
     `;
