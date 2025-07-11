@@ -1,4 +1,5 @@
 
+
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -10,10 +11,18 @@ const channels: RealtimeChannel[] = [];
 // Initialize the Supabase client
 export async function initSupabase() {
     if (supabase) return;
+
+    // These variables are injected at build time by esbuild.
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.error("Supabase configuration is missing. The variables were not injected at build time.");
+        // This error will be caught by the top-level initializer in index.tsx
+        throw new Error("Supabase configuration missing.");
+    }
+    
     try {
-        const response = await fetch('/api/config');
-        if (!response.ok) throw new Error('Failed to fetch Supabase config.');
-        const { supabaseUrl, supabaseAnonKey } = await response.json();
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
                 persistSession: true,
@@ -28,6 +37,8 @@ export async function initSupabase() {
         console.log("Supabase client initialized with session persistence.");
     } catch (error) {
         console.error("Supabase client initialization failed:", error);
+        // Re-throw to be caught by the top-level bootstrap function
+        throw error;
     }
 }
 

@@ -140,54 +140,62 @@ export async function bootstrapApp() {
 
 
 async function init() {
-    setupEventListeners(bootstrapApp);
-    window.addEventListener('hashchange', renderApp);
+    try {
+        setupEventListeners(bootstrapApp);
+        window.addEventListener('hashchange', renderApp);
 
-    // Initialize the Supabase client for realtime updates
-    await initSupabase();
+        // validateSession will call initSupabase if needed.
+        const user = await validateSession();
+        if (user) {
+            console.log("Session validated for user:", user);
+            state.currentUser = user;
+            await bootstrapApp();
+            // After bootstrapping, we have the user and workspace, so we can subscribe.
+            subscribeToRealtimeUpdates();
+        } else {
+            console.log("No valid session found. Showing auth page.");
+            state.currentPage = 'auth';
+            await renderApp();
+        }
+        
+        // Timer update interval
+        setInterval(() => {
+            if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
 
-    const user = await validateSession();
-    if (user) {
-        console.log("Session validated for user:", user);
-        state.currentUser = user;
-        await bootstrapApp();
-        // After bootstrapping, we have the user and workspace, so we can subscribe.
-        subscribeToRealtimeUpdates();
-    } else {
-        console.log("No valid session found. Showing auth page.");
-        state.currentPage = 'auth';
-        await renderApp();
-    }
-    
-    // Timer update interval
-    setInterval(() => {
-        if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
+            Object.keys(state.activeTimers).forEach(taskId => {
+                const task = state.tasks.find(t => t.id === taskId);
+                if (task) {
+                    const currentSeconds = getTaskCurrentTrackedSeconds(task);
+                    const formattedTime = formatDuration(currentSeconds);
+                     document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
+                        if (el.textContent !== formattedTime) {
+                           el.textContent = formattedTime;
+                        }
+                    });
+                }
+            });
 
-        Object.keys(state.activeTimers).forEach(taskId => {
-            const task = state.tasks.find(t => t.id === taskId);
-            if (task) {
-                const currentSeconds = getTaskCurrentTrackedSeconds(task);
-                const formattedTime = formatDuration(currentSeconds);
-                 document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
-                    if (el.textContent !== formattedTime) {
-                       el.textContent = formattedTime;
+            if (state.ui.openedProjectId) {
+                const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
+                if (projectTotalTimeEl) {
+                    const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
+                    const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+                    const formattedTotalTime = formatDuration(totalSeconds);
+                    if (projectTotalTimeEl.textContent !== formattedTotalTime) {
+                        projectTotalTimeEl.textContent = formattedTotalTime;
                     }
-                });
-            }
-        });
-
-        if (state.ui.openedProjectId) {
-            const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
-            if (projectTotalTimeEl) {
-                const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
-                const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
-                const formattedTotalTime = formatDuration(totalSeconds);
-                if (projectTotalTimeEl.textContent !== formattedTotalTime) {
-                    projectTotalTimeEl.textContent = formattedTotalTime;
                 }
             }
-        }
-    }, 1000);
+        }, 1000);
+    } catch (error) {
+        console.error("Application initialization failed:", error);
+        document.getElementById('app')!.innerHTML = `
+            <div class="empty-state">
+                <h3>Failed to load application data</h3>
+                <p>Could not initialize the application. Please check your connection and configuration.</p>
+            </div>
+        `;
+    }
 }
 
 init();
