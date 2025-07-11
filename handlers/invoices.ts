@@ -127,26 +127,3 @@ export function handleSendInvoiceByEmail(invoiceId: string) {
     saveState();
     renderApp();
 }
-
-export function handleAddInvoiceItem() {
-    if (state.ui.modal.type === 'addInvoice' && state.ui.modal.data) {
-        if (!state.ui.modal.data.items) {
-            state.ui.modal.data.items = [];
-        }
-        state.ui.modal.data.items.push({
-            id: Date.now(),
-            description: '',
-            quantity: 1,
-            unitPrice: 0,
-        });
-        renderApp();
-    }
-}
-
-export function handleRemoveInvoiceItem(itemElement: HTMLElement) {
-    if (state.ui.modal.type === 'addInvoice' && state.ui.modal.data?.items) {
-        const itemId = parseInt(itemElement.dataset.itemId!, 10);
-        state.ui.modal.data.items = state.ui.modal.data.items.filter((item: InvoiceLineItem) => item.id !== itemId);
-        renderApp();
-    }
-}

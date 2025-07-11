@@ -2,7 +2,6 @@
 
 
 
-
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -30,7 +29,7 @@ async function AppLayout() {
     }
     
     const pageContent = await router();
-    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen, onboarding, mention } = state.ui;
+    const { openedProjectId, openedClientId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
     const userRole = getCurrentUserRole();
@@ -65,7 +64,6 @@ async function AppLayout() {
         ${isCommandPaletteOpen ? CommandPalette() : ''}
         ${FloatingActionButton()}
         ${onboarding.isActive ? OnboardingGuide() : ''}
-        ${mention.target ? MentionPopover() : ''}
     `;
 }
 
@@ -153,5 +151,12 @@ export async function renderApp() {
 
     if (state.currentPage === 'dashboard') {
         initDashboardCharts();
+    }
+}
+
+export function renderMentionPopover() {
+    const container = document.getElementById('mention-popover-container');
+    if (container) {
+        container.innerHTML = MentionPopover();
     }
 }
