@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -95,7 +96,6 @@ export function ChatPage() {
                                 <span class="material-icons-sharp">send</span>
                             </button>
                         </form>
-                         <div id="mention-popover-container"></div>
                     </div>
                 ` : `
                     <div class="empty-state">

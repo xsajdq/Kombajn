@@ -1,7 +1,7 @@
 
 
 import { state, saveState } from './state.ts';
-import { renderApp, renderMentionPopover } from './app-renderer.ts';
+import { renderApp } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
 import type { InvoiceLineItem, Task, Role, PlanId, User, DateRangeFilter, CustomFieldType, Workspace, DashboardWidgetType } from '../types.ts';
 import { t } from './i18n.ts';
@@ -43,7 +43,7 @@ function handleMentionInput(input: HTMLInputElement) {
         state.ui.mention.query = null;
         state.ui.mention.target = null;
     }
-    renderMentionPopover();
+    renderApp();
 }
 
 function handleInsertMention(user: User, input: HTMLInputElement) {
@@ -60,7 +60,7 @@ function handleInsertMention(user: User, input: HTMLInputElement) {
     input.value = newText;
     state.ui.mention.query = null;
     state.ui.mention.target = null;
-    renderMentionPopover();
+    renderApp();
     input.focus();
     input.selectionStart = input.selectionEnd = textBeforeCursor.replace(mentionRegex, mentionTag).length;
 }
@@ -111,7 +111,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 activeIndex = (activeIndex + 1) % items.length;
                 if (state.ui.mention.target) {
                     state.ui.mention.activeIndex = activeIndex;
-                    renderMentionPopover();
+                    renderApp();
                 } else {
                     state.ui.commandPaletteActiveIndex = activeIndex;
                     renderApp();
@@ -122,7 +122,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 activeIndex = (activeIndex - 1 + items.length) % items.length;
                  if (state.ui.mention.target) {
                     state.ui.mention.activeIndex = activeIndex;
-                    renderMentionPopover();
+                    renderApp();
                 } else {
                     state.ui.commandPaletteActiveIndex = activeIndex;
                     renderApp();

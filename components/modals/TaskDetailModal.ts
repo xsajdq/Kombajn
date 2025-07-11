@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -99,7 +100,6 @@ function renderActivityTab(task: Task) {
             <input type="text" id="task-comment-input" class="form-control" placeholder="${t('modals.add_comment')}">
             <button type="button" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
         </div>
-        <div id="mention-popover-container"></div>
     `;
 }
 

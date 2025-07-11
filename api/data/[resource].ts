@@ -1,4 +1,5 @@
 
+
 // Plik: api/data/[resource].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
@@ -35,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'POST': {
-            const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
+            const payload = Array.isArray(bodyInSnakeCase) ? bodyInSnakeCase : [bodyInSnakeCase];
+            const { data, error } = await (supabase.from(resource) as any).insert(payload).select();
             if (error) throw error;
             return res.status(201).json(data);
         }
