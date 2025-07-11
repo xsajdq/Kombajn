@@ -32,7 +32,9 @@ export function can(permission: Permission): boolean {
     }
 
     const member = workspaceMembers.find(m => m.userId === currentUser.id && m.workspaceId === activeWorkspaceId);
-    if (!member) {
+    
+    // CRITICAL FIX: Ensure member and their roles array exist before trying to access them.
+    if (!member || !Array.isArray(member.roles)) {
         return false;
     }
 
