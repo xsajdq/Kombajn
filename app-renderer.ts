@@ -1,7 +1,4 @@
 
-
-
-
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -76,10 +73,18 @@ export async function renderApp() {
     // Check if a side panel is currently open before re-rendering
     const wasPanelOpen = !!document.querySelector('.side-panel.is-open');
 
-    const scrollableContent = document.querySelector('.content');
+    const mainContent = document.querySelector('.content');
+    const sidePanelContent = document.querySelector('.side-panel-content');
+
     const scrollPositions = {
-        top: scrollableContent?.scrollTop ?? 0,
-        left: scrollableContent?.scrollLeft ?? 0
+        main: {
+            top: mainContent?.scrollTop ?? 0,
+            left: mainContent?.scrollLeft ?? 0,
+        },
+        sidePanel: {
+            top: sidePanelContent?.scrollTop ?? 0,
+            left: sidePanelContent?.scrollLeft ?? 0
+        }
     };
     
     app.innerHTML = await AppLayout();
@@ -89,10 +94,16 @@ export async function renderApp() {
         return;
     }
     
-    const newScrollableContent = document.querySelector('.content');
-    if (newScrollableContent) {
-        newScrollableContent.scrollTop = scrollPositions.top;
-        newScrollableContent.scrollLeft = scrollPositions.left;
+    const newMainContent = document.querySelector('.content');
+    if (newMainContent) {
+        newMainContent.scrollTop = scrollPositions.main.top;
+        newMainContent.scrollLeft = scrollPositions.main.left;
+    }
+
+    const newSidePanelContent = document.querySelector('.side-panel-content');
+    if (newSidePanelContent) {
+        newSidePanelContent.scrollTop = scrollPositions.sidePanel.top;
+        newSidePanelContent.scrollLeft = scrollPositions.sidePanel.left;
     }
 
 
