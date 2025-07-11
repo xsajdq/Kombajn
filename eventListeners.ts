@@ -33,7 +33,7 @@ function handleMentionInput(input: HTMLInputElement) {
     const text = input.value;
     const cursorPos = input.selectionStart || 0;
     const textBeforeCursor = text.substring(0, cursorPos);
-    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    const mentionMatch = textBeforeCursor.match(/@([\w\s]*)$/);
 
     if (mentionMatch) {
         state.ui.mention.query = mentionMatch[1];
@@ -50,10 +50,10 @@ function handleInsertMention(user: User, input: HTMLInputElement) {
     const text = input.value;
     const cursorPos = input.selectionStart || 0;
     const textBeforeCursor = text.substring(0, cursorPos);
-    const mentionRegex = /@(\w*)$/;
+    const mentionRegex = /@([\w\s]*)$/;
     
-    // Format mention as `@[User Name](user:u1)`
-    const mentionTag = `@[${user.name || user.initials}](user:${user.id}) `;
+    // Format mention as `@User Name `
+    const mentionTag = `@${user.name || user.initials} `;
     
     const newText = textBeforeCursor.replace(mentionRegex, mentionTag) + text.substring(cursorPos);
     

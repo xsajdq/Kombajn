@@ -2,7 +2,7 @@
 
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue } from '../types.ts';
+import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, User } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
@@ -34,13 +34,21 @@ export async function handleAddTaskComment(taskId: string, input: HTMLInputEleme
         state.ui.mention = { query: null, target: null, activeIndex: 0 }; // Reset mention state
         renderApp();
 
-        // Handle notifications
-        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        // --- NEW MENTION NOTIFICATION LOGIC ---
         const mentionedUserIds = new Set<string>();
-        let match;
-        while ((match = mentionRegex.exec(trimmedContent)) !== null) {
-            mentionedUserIds.add(match[2]);
-        }
+        const workspaceUsers = state.workspaceMembers
+            .filter(m => m.workspaceId === task.workspaceId)
+            .map(m => state.users.find(u => u.id === m.userId))
+            .filter((u): u is User => u?.name !== undefined && u.name.trim() !== '');
+
+        workspaceUsers.forEach(user => {
+            // Check if the user's name is mentioned in the content
+            // Use a regex that ensures we're matching the full name preceded by @ and not followed by a word character
+            const mentionRegex = new RegExp(`@${user.name}(?!\\w)`, 'g');
+            if (mentionRegex.test(trimmedContent)) {
+                mentionedUserIds.add(user.id);
+            }
+        });
         
         // Notify mentioned users
         for (const userId of mentionedUserIds) {
