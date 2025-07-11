@@ -1,4 +1,5 @@
 
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -22,7 +23,7 @@ function renderActivityTab(task: Task) {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const renderActivityBody = (content: string) => {
-        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
         const html = content.replace(mentionRegex, `<strong style="color: var(--primary-color)">@$1</strong>`);
         return `<p>${html}</p>`;
     };

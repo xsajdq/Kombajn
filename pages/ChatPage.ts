@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -9,7 +10,7 @@ function renderChatMessage(message: ChatMessage) {
     if (!user) return '';
 
     const renderMessageBody = (content: string) => {
-        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
         const html = content.replace(mentionRegex, `<strong style="color: var(--primary-color)">@$1</strong>`);
         return `<p>${html}</p>`;
     };

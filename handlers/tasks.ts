@@ -35,7 +35,7 @@ export async function handleAddTaskComment(taskId: string, input: HTMLInputEleme
         renderApp();
 
         // Handle notifications
-        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
         const mentionedUserIds = new Set<string>();
         let match;
         while ((match = mentionRegex.exec(trimmedContent)) !== null) {
