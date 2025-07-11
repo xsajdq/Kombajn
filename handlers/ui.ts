@@ -94,7 +94,7 @@ export function showModal(type: AppState['ui']['modal']['type'], data?: any) {
     if (type === 'addInvoice') {
         // Ensure that items array exists for new invoices.
         if (!modalData.items) {
-            modalData.items = [{ id: Date.now(), description: '', quantity: 1, unitPrice: 0 }];
+            modalData.items = [{ id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 }];
         }
         // Initialize dates if they don't exist in the data
         if (!modalData.issueDate) {
