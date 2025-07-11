@@ -267,6 +267,16 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     });
 
 
+    app.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLElement;
+
+        // Handle mention input on designated rich text fields
+        if (target.matches('#chat-message-input, #task-comment-input')) {
+            handleMentionInput(target);
+        }
+    });
+
+
     app.addEventListener('submit', async (e: SubmitEvent) => {
         const target = e.target as HTMLElement;
         e.preventDefault();
