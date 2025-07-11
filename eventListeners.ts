@@ -147,19 +147,23 @@ function handleInsertMention(user: User, inputDiv: HTMLElement) {
 export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     const app = document.getElementById('app')!;
 
-    // This is the key fix. It prevents the input field from losing focus when
-    // the user clicks on a mention suggestion, which would otherwise clear the
-    // selection range needed to insert the mention.
     app.addEventListener('mousedown', (e) => {
         const target = e.target as HTMLElement;
+
         const mentionItem = target.closest('.mention-item');
         if (mentionItem) {
             e.preventDefault();
+            return; // Exit early to not interfere with other logic
         }
 
-        const multiSelect = target.closest('.multiselect-container');
-        if (multiSelect && (e.target as HTMLElement).closest('.multiselect-dropdown')) {
-            e.preventDefault();
+        const multiSelectDropdown = target.closest('.multiselect-dropdown');
+        if (multiSelectDropdown) {
+            // Prevent default ONLY if the target is NOT an input field.
+            // This allows checkboxes and list items to be clicked without losing focus on the main page,
+            // but allows the text input for creating tags to be focused.
+            if (target.tagName.toLowerCase() !== 'input') {
+                e.preventDefault();
+            }
         }
     });
     
@@ -807,7 +811,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         // --- Multi-select checkbox handling ---
         const multiSelectCheckbox = target.closest<HTMLInputElement>('.multiselect-list-item input[type="checkbox"]');
         if (multiSelectCheckbox) {
-            const container = multiSelectCheckbox.closest('.multiselect-container');
+            const container = multiSelectCheckbox.closest<HTMLElement>('.multiselect-container');
             if (container) {
                 const type = container.dataset.type;
                 const taskId = container.dataset.taskId;
