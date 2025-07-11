@@ -125,6 +125,17 @@ function handleInsertMention(user: User, inputDiv: HTMLElement) {
 
 export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     const app = document.getElementById('app')!;
+
+    // This is the key fix. It prevents the input field from losing focus when
+    // the user clicks on a mention suggestion, which would otherwise clear the
+    // selection range needed to insert the mention.
+    app.addEventListener('mousedown', (e) => {
+        const target = e.target as HTMLElement;
+        const mentionItem = target.closest('.mention-item');
+        if (mentionItem) {
+            e.preventDefault();
+        }
+    });
     
     // --- Global Keydown Listener ---
     window.addEventListener('keydown', (e: KeyboardEvent) => {
