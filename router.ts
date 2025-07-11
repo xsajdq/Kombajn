@@ -34,22 +34,25 @@ export async function router() {
     
     state.currentPage = (page || 'dashboard') as AppState['currentPage'];
 
+    // This router now guards every route with a permission check.
+    // If a user doesn't have permission, they are redirected to the dashboard.
+    // The sidebar logic in tandem with this prevents users from seeing or accessing unauthorized pages.
     switch (state.currentPage) {
-        case 'projects': return ProjectsPage();
-        case 'clients': return ClientsPage();
-        case 'tasks': return TasksPage();
-        case 'team-calendar': return await TeamCalendarPage();
-        case 'reports': return can('view_reports') ? ReportsPage() : DashboardPage();
-        case 'sales': return SalesPage();
-        case 'invoices': return can('manage_invoices') ? InvoicesPage() : DashboardPage();
-        case 'ai-assistant': return AIAssistantPage();
-        case 'settings': return SettingsPage();
-        case 'chat': return ChatPage();
-        case 'hr': return can('view_hr') ? await HRPage() : DashboardPage(); // Guard route
-        case 'billing': return can('manage_billing') ? BillingPage() : DashboardPage(); // Guard route
-        case 'auth': return AuthPage(); // Fallback case
+        case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
+        case 'clients':         return can('view_clients') ? ClientsPage() : DashboardPage();
+        case 'tasks':           return can('view_tasks') ? TasksPage() : DashboardPage();
+        case 'team-calendar':   return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
+        case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
+        case 'sales':           return can('view_sales') ? SalesPage() : DashboardPage();
+        case 'invoices':        return can('view_invoices') ? InvoicesPage() : DashboardPage();
+        case 'ai-assistant':    return can('view_ai_assistant') ? AIAssistantPage() : DashboardPage();
+        case 'settings':        return can('view_settings') ? SettingsPage() : DashboardPage();
+        case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();
+        case 'hr':              return can('view_hr') ? await HRPage() : DashboardPage();
+        case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
+        case 'auth':            return AuthPage(); // Fallback case
         case 'dashboard':
         default:
-            return DashboardPage();
+            return can('view_dashboard') ? DashboardPage() : ProjectsPage(); // Default to projects if dashboard is disabled
     }
 }

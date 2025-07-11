@@ -4,25 +4,35 @@ import { state } from './state.ts';
 import type { Role, Permission } from './types.ts';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-    owner: [ // Owner has all permissions explicitly listed
+    owner: [ // All permissions
         'manage_billing', 'view_hr', 'manage_roles', 'invite_users', 'remove_users', 'manage_workspace_settings',
-        'manage_projects', 'create_projects', 'manage_clients', 'manage_invoices', 'manage_deals', 'manage_tasks', 'manage_automations', 'view_reports'
+        'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks', 'manage_tasks', 'view_clients',
+        'manage_clients', 'view_sales', 'manage_deals', 'view_invoices', 'manage_invoices', 'view_reports',
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
     ],
     admin: [
         'view_hr', 'manage_roles', 'invite_users', 'remove_users', 'manage_workspace_settings',
-        'manage_projects', 'create_projects', 'manage_clients', 'manage_invoices', 'manage_deals', 'manage_tasks', 'manage_automations', 'view_reports'
+        'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks', 'manage_tasks', 'view_clients',
+        'manage_clients', 'view_sales', 'manage_deals', 'view_invoices', 'manage_invoices', 'view_reports',
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
     ],
     manager: [
-        'view_hr', 'invite_users', 'create_projects', 'manage_projects', 'manage_clients', 'manage_deals', 'manage_tasks', 'manage_automations', 'view_reports'
+        'view_hr', 'invite_users',
+        'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks',
+        'manage_tasks', 'view_clients', 'manage_clients', 'view_sales', 'manage_deals', 'view_reports',
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
     ],
     finance: [
-        'manage_invoices', 'view_reports'
+        'view_dashboard', 'view_invoices', 'manage_invoices', 'view_reports', 'view_settings'
     ],
     member: [
-        'manage_tasks' // Can manage tasks they are assigned to, specific checks will be in components
+        'view_dashboard', 'view_projects', 'view_tasks', 'manage_tasks', 'view_team_calendar', 'view_chat', 'view_settings', 'view_ai_assistant', 'view_clients'
     ],
     client: [
-        // Clients have very limited, specific access, usually handled by project privacy and ProjectRole
+        'view_dashboard',
+        'view_projects',
+        'view_tasks',
+        'view_settings'
     ],
 };
 

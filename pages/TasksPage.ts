@@ -14,7 +14,16 @@ let ganttChart: any = null;
 
 function getFilteredTasks(): Task[] {
     const { text, assigneeId, priority, projectId, status, dateRange } = state.ui.taskFilters;
-    const allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId); // Only show top-level tasks
+    let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
+
+    // --- NEW: Data Segregation for Clients ---
+    // If the current user is a client, only show them tasks from projects they are a member of.
+    const member = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId);
+    if (member && member.role === 'client' && state.currentUser) {
+        const clientProjectIds = new Set(state.projectMembers.filter(pm => pm.userId === state.currentUser!.id).map(pm => pm.projectId));
+        allTasks = allTasks.filter(task => clientProjectIds.has(task.projectId));
+    }
+    // --- END of new logic ---
 
     if (!text && !assigneeId && !priority && !projectId && !status && dateRange === 'all') {
         return allTasks;

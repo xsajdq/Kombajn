@@ -14,20 +14,35 @@ export interface User {
 export type Role = 'owner' | 'admin' | 'manager' | 'member' | 'finance' | 'client';
 
 export type Permission = 
+    // Billing
     | 'manage_billing'
+    // HR
     | 'view_hr'
     | 'manage_roles'
     | 'invite_users'
     | 'remove_users'
+    // Workspace
     | 'manage_workspace_settings'
+    // Main Entity Views
+    | 'view_dashboard'
+    | 'view_projects'
+    | 'view_tasks'
+    | 'view_clients'
+    | 'view_sales'
+    | 'view_invoices'
+    | 'view_reports'
+    | 'view_team_calendar'
+    | 'view_chat'
+    | 'view_ai_assistant'
+    | 'view_settings'
+    // Main Entity Management
     | 'manage_projects'
     | 'create_projects'
     | 'manage_clients'
     | 'manage_invoices'
     | 'manage_deals'
     | 'manage_tasks'
-    | 'manage_automations'
-    | 'view_reports';
+    | 'manage_automations';
 
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
