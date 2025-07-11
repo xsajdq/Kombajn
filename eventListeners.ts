@@ -97,13 +97,6 @@ function handleInsertMention(user: User, inputDiv: HTMLElement) {
         return;
     }
 
-    const textBeforeCursor = (cursorNode.textContent || '').substring(0, cursorOffset);
-    const atPosition = textBeforeCursor.lastIndexOf('@');
-
-    if (atPosition === -1) {
-        return; // Should not happen if popover is visible
-    }
-
     // --- Start of new logic ---
     const originalTextNode = cursorNode as Text;
     const parent = originalTextNode.parentNode;
@@ -120,7 +113,7 @@ function handleInsertMention(user: User, inputDiv: HTMLElement) {
     const spaceNode = document.createTextNode('\u00A0'); 
 
     // Get the parts of the text node we want to keep
-    const textBefore = originalTextNode.nodeValue!.substring(0, atPosition);
+    const textBefore = originalTextNode.nodeValue!.substring(0, originalTextNode.nodeValue!.lastIndexOf('@'));
     const textAfter = originalTextNode.nodeValue!.substring(cursorOffset);
     
     // Replace the original text node with the new structure
@@ -833,6 +826,17 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
     app.addEventListener('change', (e: Event) => {
         const target = e.target as HTMLElement;
 
+        // This handles updates from the task detail sidebar (priority, status, dates, etc.)
+        if (target.matches('.task-detail-sidebar *[data-field]') && state.ui.modal.type === 'taskDetail') {
+            const taskId = state.ui.modal.data?.taskId;
+            const field = target.dataset.field as keyof Task;
+            const value = (target as HTMLInputElement).value;
+            if (taskId && field) {
+                taskHandlers.handleTaskDetailUpdate(taskId, field, value);
+                return;
+            }
+        }
+        
         // --- Multi-select checkbox handling ---
         const multiSelectCheckbox = target.closest<HTMLInputElement>('.multiselect-list-item input[type="checkbox"]');
         if (multiSelectCheckbox) {
