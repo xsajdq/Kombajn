@@ -1,6 +1,7 @@
 
 
 
+
 /* COMPONENTS */
 .notification-wrapper {
     position: relative;
@@ -193,6 +194,46 @@
 /* RESPONSIVE */
 @media (max-width: 576px) {
   .modal-form-grid { grid-template-columns: 1fr; gap: 1rem; }
+}
+
+/* @Mentions Popover */
+.mention-popover {
+    position: absolute;
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius);
+    z-index: 1200;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+.mention-item:hover, .mention-item.active {
+    background-color: var(--primary-color);
+    color: var(--white-color);
+}
+.mention-item.active .subtle-text {
+    color: var(--white-color);
+    opacity: 0.8;
+}
+.mention-item .avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+}
+.mention-user {
+    font-weight: 500;
+}
+.mention-item-empty {
+    padding: 0.75rem;
+    color: var(--subtle-text-color);
+    text-align: center;
 }
 
 
