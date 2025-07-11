@@ -48,7 +48,7 @@ export function handleGenerateInvoiceItems() {
 
             if (totalHours > 0) {
                 newItems.push({
-                    id: Date.now() + Math.random(),
+                    id: (Date.now() + Math.random()).toString(),
                     description: t('invoices.generated_item_desc')
                         .replace('{projectName}', project.name)
                         .replace('{hours}', totalHours.toFixed(2)),
@@ -68,7 +68,7 @@ export function handleGenerateInvoiceItems() {
 
     unbilledExpenses.forEach(ex => {
         newItems.push({
-            id: Date.now() + Math.random(),
+            id: (Date.now() + Math.random()).toString(),
             description: t('invoices.generated_expense_desc').replace('{expenseDesc}', ex.description),
             quantity: 1,
             unitPrice: ex.amount,

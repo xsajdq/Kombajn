@@ -6,7 +6,7 @@ import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
@@ -15,7 +15,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -36,6 +36,8 @@ export async function fetchInitialData() {
         apiFetch('/api/data/objectives'),
         apiFetch('/api/data/key_results'),
         apiFetch('/api/data/deal_notes'),
+        apiFetch('/api/data/invoices'),
+        apiFetch('/api/data/invoice_line_items'),
     ]);
 
     // Populate state with fetched data
@@ -52,6 +54,21 @@ export async function fetchInitialData() {
     state.objectives = objectives;
     state.keyResults = keyResults;
     state.dealNotes = dealNotes;
+
+    // Stitch together invoices and their line items
+    const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
+    invoiceLineItems.forEach((item: InvoiceLineItem) => {
+        if (!lineItemsByInvoiceId.has(item.invoiceId)) {
+            lineItemsByInvoiceId.set(item.invoiceId, []);
+        }
+        lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
+    });
+
+    state.invoices = invoices.map((invoice: Invoice) => ({
+        ...invoice,
+        items: lineItemsByInvoiceId.get(invoice.id) || []
+    }));
+
     // Data from the API is now camelCase, but the Workspace type has a nested structure.
     // We still need to manually map this.
     state.workspaces = rawWorkspaces.map((w: any) => ({

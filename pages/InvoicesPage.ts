@@ -52,6 +52,31 @@ export function InvoicesPage() {
     const workspaceClients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
     const statuses = ['pending', 'paid', 'overdue'];
 
+    const summary = {
+        count: filteredInvoices.length,
+        totalAmount: filteredInvoices.reduce((sum, inv) => sum + calculateInvoiceTotal(inv), 0),
+        overdueAmount: filteredInvoices
+            .filter(inv => inv.effectiveStatus === 'overdue')
+            .reduce((sum, inv) => sum + calculateInvoiceTotal(inv), 0),
+    };
+
+    const summaryComponent = `
+        <div class="invoice-summary-grid">
+            <div class="card stat-card">
+                <h4>${t('invoices.title')}</h4>
+                <div class="stat-card-value">${summary.count}</div>
+            </div>
+            <div class="card stat-card">
+                <h4>${t('invoices.col_total')}</h4>
+                <div class="stat-card-value">${new Intl.NumberFormat('pl-PL').format(summary.totalAmount)} PLN</div>
+            </div>
+            <div class="card stat-card">
+                <h4>${t('invoices.status_overdue')}</h4>
+                <div class="stat-card-value overdue">${new Intl.NumberFormat('pl-PL').format(summary.overdueAmount)} PLN</div>
+            </div>
+        </div>
+    `;
+
     const filterBar = `
         <div id="invoice-filters-bar" class="card reports-filter-bar" style="margin-bottom: 1.5rem;">
             <div class="form-group">
@@ -88,6 +113,7 @@ export function InvoicesPage() {
                 </button>
             </h2>
             ${filterBar}
+            ${summaryComponent}
             ${filteredInvoices.length > 0 ? `
                 <div class="card invoice-list-container">
                      <div class="invoice-list-header">

@@ -166,7 +166,7 @@ export interface Notification {
     action: NotificationAction;
 }
 
-export interface InvoiceLineItem { id: number; description: string; quantity: number; unitPrice: number; }
+export interface InvoiceLineItem { id: string; invoiceId: string; description: string; quantity: number; unitPrice: number; }
 export interface Invoice {
     id: string;
     workspaceId: string;

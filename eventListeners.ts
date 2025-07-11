@@ -1,5 +1,4 @@
 
-
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -634,7 +633,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
         const addInvoiceItemBtn = target.closest<HTMLElement>('#add-invoice-item-btn');
         if (addInvoiceItemBtn) {
-            state.ui.modal.data.items.push({ id: Date.now(), description: '', quantity: 1, unitPrice: 0 });
+            state.ui.modal.data.items.push({ id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0 });
             renderApp();
             return;
         }
@@ -643,7 +642,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         if (removeInvoiceItemBtn) {
             const itemEditor = removeInvoiceItemBtn.closest<HTMLElement>('.invoice-item-editor');
             if(itemEditor) {
-                const itemId = parseInt(itemEditor.dataset.itemId!, 10);
+                const itemId = itemEditor.dataset.itemId!;
                 state.ui.modal.data.items = state.ui.modal.data.items.filter((i: InvoiceLineItem) => i.id !== itemId);
                 renderApp();
             }
