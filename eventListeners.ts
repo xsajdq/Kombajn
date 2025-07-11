@@ -32,16 +32,28 @@ function handleMentionInput(input: HTMLInputElement) {
     const text = input.value;
     const cursorPos = input.selectionStart || 0;
     const textBeforeCursor = text.substring(0, cursorPos);
-    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
 
-    if (mentionMatch) {
-        state.ui.mention.query = mentionMatch[1];
-        state.ui.mention.target = input;
-        state.ui.mention.activeIndex = 0;
+    const atPosition = textBeforeCursor.lastIndexOf('@');
+
+    // Condition to show popover:
+    // 1. An '@' exists.
+    // 2. It's either at the start of the text OR preceded by whitespace. (Avoids email matching)
+    // 3. The text between '@' and cursor doesn't contain a newline.
+    if (atPosition > -1 && (atPosition === 0 || /\s/.test(textBeforeCursor[atPosition - 1]))) {
+        const query = textBeforeCursor.substring(atPosition + 1);
+        if (query.includes('\n')) {
+             state.ui.mention.query = null;
+             state.ui.mention.target = null;
+        } else {
+             state.ui.mention.query = query;
+             state.ui.mention.target = input;
+             state.ui.mention.activeIndex = 0;
+        }
     } else {
         state.ui.mention.query = null;
         state.ui.mention.target = null;
     }
+    
     renderMentionPopover();
 }
 
@@ -49,19 +61,27 @@ function handleInsertMention(user: User, input: HTMLInputElement) {
     const text = input.value;
     const cursorPos = input.selectionStart || 0;
     const textBeforeCursor = text.substring(0, cursorPos);
-    const mentionRegex = /@(\w*)$/;
+
+    // Find the start of the mention query
+    const atPosition = textBeforeCursor.lastIndexOf('@');
+    if (atPosition === -1) return; // Should not happen
+
+    const textBeforeAt = textBeforeCursor.substring(0, atPosition);
     
     // Format mention as `@[User Name](user:u1)`
     const mentionTag = `@[${user.name || user.initials}](user:${user.id}) `;
     
-    const newText = textBeforeCursor.replace(mentionRegex, mentionTag) + text.substring(cursorPos);
+    const newText = textBeforeAt + mentionTag + text.substring(cursorPos);
     
     input.value = newText;
     state.ui.mention.query = null;
     state.ui.mention.target = null;
     renderMentionPopover();
     input.focus();
-    input.selectionStart = input.selectionEnd = textBeforeCursor.replace(mentionRegex, mentionTag).length;
+    
+    // Position cursor at the end of the inserted tag
+    const newCursorPosition = (textBeforeAt + mentionTag).length;
+    input.selectionStart = input.selectionEnd = newCursorPosition;
 }
 
 export function setupEventListeners(bootstrapCallback: () => Promise<void>) {

@@ -64,6 +64,7 @@ async function AppLayout() {
         ${isCommandPaletteOpen ? CommandPalette() : ''}
         ${FloatingActionButton()}
         ${onboarding.isActive ? OnboardingGuide() : ''}
+        <div id="mention-popover-container"></div>
     `;
 }
 

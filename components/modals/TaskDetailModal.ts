@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -82,7 +83,6 @@ function renderActivityTab(task: Task) {
             <input type="text" id="task-comment-input" class="form-control" placeholder="${t('modals.add_comment')}">
             <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
         </form>
-        <div id="mention-popover-container"></div>
     `;
 }
 
@@ -290,17 +290,4 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                  <div class="form-group">
                     <label for="detail-task-recurrence">${t('modals.repeat')}</label>
                     <select id="detail-task-recurrence" class="form-control" data-field="recurrence" ${!canManage ? 'disabled' : ''}>
-                        <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
-                        <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
-                        <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
-                        <option value="monthly" ${task.recurrence === 'monthly' ? 'selected' : ''}>${t('modals.repeat_monthly')}</option>
-                    </select>
-                </div>
-                ${customFieldsForWorkspace.length > 0 ? `
-                    <h4 style="margin-top: 2rem;">${t('modals.custom_fields')}</h4>
-                    ${customFieldsForWorkspace.map(renderCustomField).join('')}
-                ` : ''}
-            </div>
-        </div>
-    `;
-}
+                        <

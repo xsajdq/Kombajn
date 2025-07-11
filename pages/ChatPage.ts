@@ -77,7 +77,6 @@ export function ChatPage() {
                                 <span class="material-icons-sharp">send</span>
                             </button>
                         </form>
-                         <div id="mention-popover-container"></div>
                     </div>
                 ` : `
                     <div class="empty-state">
