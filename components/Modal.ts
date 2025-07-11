@@ -550,6 +550,52 @@ export function Modal() {
         `;
     }
 
+    if (state.ui.modal.type === 'addObjective') {
+        title = t('modals.add_objective_title');
+        body = `
+            <form id="objectiveForm">
+                <div class="form-group">
+                    <label for="objectiveTitle">${t('modals.objective_title')}</label>
+                    <input type="text" id="objectiveTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="objectiveDescription">${t('modals.description')}</label>
+                    <textarea id="objectiveDescription" class="form-control" rows="3"></textarea>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addKeyResult') {
+        title = t('modals.add_key_result_title');
+        body = `
+            <form id="keyResultForm">
+                <div class="form-group">
+                    <label for="krTitle">${t('modals.kr_title')}</label>
+                    <input type="text" id="krTitle" class="form-control" required>
+                </div>
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="krType">${t('modals.kr_type')}</label>
+                        <select id="krType" class="form-control">
+                            <option value="number">${t('modals.kr_type_number')}</option>
+                            <option value="percentage">${t('modals.kr_type_percentage')}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="krStartValue">${t('modals.kr_start')}</label>
+                        <input type="number" id="krStartValue" class="form-control" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="krTargetValue">${t('modals.kr_target')}</label>
+                        <input type="number" id="krTargetValue" class="form-control" required>
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+
     return `
         <div class="modal-overlay ${isOpening ? 'modal-overlay-opening' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-content ${isOpening ? 'modal-content-opening' : ''}" style="max-width: ${maxWidth}">

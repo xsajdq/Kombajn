@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -26,6 +27,7 @@ import * as auth from './services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from './pages/AuthPage.ts';
 import { subscribeToRealtimeUpdates } from './services/supabase.ts';
 import * as onboardingHandlers from './handlers/onboarding.ts';
+import * as okrHandlers from './handlers/okr.ts';
 
 
 function parseContentEditable(element: HTMLElement): string {
@@ -84,7 +86,7 @@ function handleMentionInput(inputDiv: HTMLElement) {
 
 function handleInsertMention(user: User, inputDiv: HTMLElement) {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    if (!selection || !selection.rangeCount || !selection.rangeCount) return;
 
     const range = selection.getRangeAt(0);
     const cursorNode = range.startContainer;
@@ -186,6 +188,9 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 uiHandlers.closeModal();
             } else if (state.ui.openedClientId || state.ui.openedProjectId) {
                 uiHandlers.closeSidePanels();
+            } else if (document.querySelector('[data-editing="true"]')) {
+                // If an inline edit is active, cancel it.
+                renderApp(); 
             }
             return;
         }
@@ -423,6 +428,13 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 input.value = ''; // Clear input
             }
             return;
+        } else if (target.id === 'update-kr-form') {
+            const krId = target.dataset.krId!;
+            const input = target.querySelector('input') as HTMLInputElement;
+            const value = parseFloat(input.value);
+            if (krId && !isNaN(value)) {
+                await okrHandlers.handleUpdateKeyResultValue(krId, value);
+            }
         }
     });
 
@@ -636,6 +648,19 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const user = state.users.find(u => u.id === userId);
             if(user && state.ui.mention.target) {
                 handleInsertMention(user, state.ui.mention.target as HTMLElement);
+            }
+            return;
+        }
+
+        const krValue = target.closest<HTMLElement>('.kr-value');
+        if (krValue) {
+            const krItem = krValue.closest<HTMLElement>('.key-result-item')!;
+            if (krItem.dataset.editing !== 'true') {
+                krItem.dataset.editing = 'true';
+                renderApp();
+                const input = krItem.querySelector('input');
+                input?.focus();
+                input?.select();
             }
             return;
         }

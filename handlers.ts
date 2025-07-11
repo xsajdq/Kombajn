@@ -1,9 +1,5 @@
 
 
-
-
-
-
 export * from './handlers/ai.ts';
 export * from './handlers/billing.ts';
 export * from './handlers/calendar.ts';
@@ -23,3 +19,4 @@ export * from './handlers/automations.ts';
 export * from './handlers/dashboard.ts';
 export * from './handlers/user.ts';
 export * from './handlers/onboarding.ts';
+export * from './handlers/okr.ts';

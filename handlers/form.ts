@@ -11,6 +11,7 @@ import * as timerHandlers from './timers.ts';
 import * as hrHandlers from './team.ts';
 import { handleWidgetConfigSave } from './dashboard.ts';
 import { apiPost, apiPut } from '../services/api.ts';
+import * as okrHandler from './okr.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -265,6 +266,28 @@ export async function handleFormSubmit() {
                 await hrHandlers.handleSetVacationAllowance(userId, hours);
                 return; // Handler closes modal
             }
+        }
+
+        if (type === 'addObjective') {
+            const projectId = data.projectId;
+            const title = (document.getElementById('objectiveTitle') as HTMLInputElement).value;
+            const description = (document.getElementById('objectiveDescription') as HTMLTextAreaElement).value;
+            if (projectId && title) {
+                await okrHandler.handleCreateObjective(projectId, title, description);
+            }
+            return; // Handler closes modal
+        }
+
+        if (type === 'addKeyResult') {
+            const objectiveId = data.objectiveId;
+            const title = (document.getElementById('krTitle') as HTMLInputElement).value;
+            const krType = (document.getElementById('krType') as HTMLSelectElement).value as 'number' | 'percentage';
+            const startValue = parseFloat((document.getElementById('krStartValue') as HTMLInputElement).value);
+            const targetValue = parseFloat((document.getElementById('krTargetValue') as HTMLInputElement).value);
+            if (objectiveId && title && !isNaN(startValue) && !isNaN(targetValue)) {
+                await okrHandler.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
+            }
+            return; // Handler closes modal
         }
 
         closeModal();

@@ -792,6 +792,79 @@
 .vacation-table-body .vacation-table-row:last-child {
     border-bottom: none;
 }
+
+/* OKR STYLES */
+.okr-card {
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+.okr-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.okr-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+.okr-header p {
+    color: var(--subtle-text-color);
+    margin: 0.25rem 0 0;
+}
+.key-results-list {
+    padding: 0.5rem 1.5rem;
+}
+.key-result-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.key-result-item:last-child {
+    border-bottom: none;
+}
+.kr-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+.kr-progress {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.kr-progress-bar {
+    flex-grow: 1;
+    height: 10px;
+    background-color: var(--light-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+.kr-progress-bar-inner {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+.kr-progress-text {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--subtle-text-color);
+    cursor: pointer;
+}
+.kr-current-value-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.kr-current-value-edit .form-control {
+    width: 100px;
+    padding: 0.25rem 0.5rem;
+    height: auto;
+}
+.okr-card-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
 @media (max-width: 1024px) {
     .hr-grid {
         grid-template-columns: 1fr;

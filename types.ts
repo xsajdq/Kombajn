@@ -402,7 +402,7 @@ export interface AppState {
     ui: {
         openedClientId: string | null;
         openedProjectId: string | null;
-        openedProjectTab: 'tasks' | 'wiki' | 'files' | 'access';
+        openedProjectTab: 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;

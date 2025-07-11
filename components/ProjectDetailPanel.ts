@@ -1,7 +1,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
-import type { Task, ProjectRole, Attachment } from '../types.ts';
+import type { Task, ProjectRole, Attachment, Objective, KeyResult } from '../types.ts';
 import { getCurrentUserRole, getUserProjectRole } from '../handlers/main.ts';
 
 declare const marked: any;
@@ -253,6 +253,67 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         `;
     };
 
+    const renderOkrsTab = () => {
+        const objectives = state.objectives.filter(o => o.projectId === projectId);
+        if (objectives.length === 0) {
+            return `<div class="side-panel-content">
+                <div class="empty-state">
+                    <span class="material-icons-sharp">track_changes</span>
+                    <h3>${t('panels.no_okrs_yet')}</h3>
+                    <p>${t('panels.no_okrs_yet')}</p>
+                    <button class="btn btn-primary" data-modal-target="addObjective" data-project-id="${projectId}">${t('modals.add_objective_title')}</button>
+                </div>
+            </div>`;
+        }
+
+        return `<div class="side-panel-content">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                <button class="btn btn-primary" data-modal-target="addObjective" data-project-id="${projectId}">${t('modals.add_objective_title')}</button>
+            </div>
+            ${objectives.map(obj => {
+                const keyResults = state.keyResults.filter(kr => kr.objectiveId === obj.id);
+                return `
+                <div class="okr-card">
+                    <div class="okr-header">
+                        <h4>${obj.title}</h4>
+                        ${obj.description ? `<p>${obj.description}</p>` : ''}
+                    </div>
+                    <div class="key-results-list">
+                        ${keyResults.map(kr => {
+                            const range = kr.targetValue - kr.startValue;
+                            const progress = range === 0 ? 100 : Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
+                            const isEditing = (document.querySelector(`.key-result-item[data-kr-id="${kr.id}"]`) as HTMLElement)?.dataset.editing === 'true';
+                            const valueSuffix = kr.type === 'percentage' ? '%' : '';
+
+                            return `
+                                <div class="key-result-item" data-kr-id="${kr.id}" ${isEditing ? 'data-editing="true"' : ''}>
+                                    <p class="kr-title">${kr.title}</p>
+                                    <div class="kr-progress">
+                                        <div class="kr-progress-bar">
+                                            <div class="kr-progress-bar-inner" style="width: ${progress}%;"></div>
+                                        </div>
+                                        ${isEditing ? `
+                                            <form id="update-kr-form" class="kr-current-value-edit" data-kr-id="${kr.id}">
+                                                <input type="number" class="form-control" value="${kr.currentValue}" step="any" required>
+                                                <button type="submit" class="btn-icon"><span class="material-icons-sharp">check</span></button>
+                                            </form>
+                                        ` : `
+                                            <span class="kr-progress-text kr-value" role="button">
+                                                ${kr.currentValue}${valueSuffix} / ${kr.targetValue}${valueSuffix}
+                                            </span>
+                                        `}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="okr-card-footer">
+                        <button class="btn btn-link" data-modal-target="addKeyResult" data-objective-id="${obj.id}">+ ${t('panels.add_key_result')}</button>
+                    </div>
+                </div>
+            `}).join('')}
+        </div>`;
+    };
     
     let tabContent = '';
     switch(openedProjectTab) {
@@ -260,6 +321,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         case 'wiki': tabContent = renderWikiTab(); break;
         case 'files': tabContent = renderFilesTab(); break;
         case 'access': tabContent = renderAccessTab(); break;
+        case 'okrs': tabContent = renderOkrsTab(); break;
     }
 
     return `
@@ -283,6 +345,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             </div>
             <div class="side-panel-tabs" role="tablist" aria-label="Project sections">
                 <div class="side-panel-tab ${openedProjectTab === 'tasks' ? 'active' : ''}" data-tab="tasks" role="tab" aria-selected="${openedProjectTab === 'tasks'}">${t('panels.tab_tasks')}</div>
+                <div class="side-panel-tab ${openedProjectTab === 'okrs' ? 'active' : ''}" data-tab="okrs" role="tab" aria-selected="${openedProjectTab === 'okrs'}">${t('panels.tab_okrs')}</div>
                 <div class="side-panel-tab ${openedProjectTab === 'wiki' ? 'active' : ''}" data-tab="wiki" role="tab" aria-selected="${openedProjectTab === 'wiki'}">${t('panels.tab_wiki')}</div>
                 <div class="side-panel-tab ${openedProjectTab === 'files' ? 'active' : ''}" data-tab="files" role="tab" aria-selected="${openedProjectTab === 'files'}">${t('panels.tab_files')}</div>
                 ${project.privacy === 'private' ? `<div class="side-panel-tab ${openedProjectTab === 'access' ? 'active' : ''}" data-tab="access" role="tab" aria-selected="${openedProjectTab === 'access'}">${t('panels.tab_access')}</div>` : ''}
