@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import type { User } from '../types.ts';
 
@@ -16,14 +15,15 @@ export function MentionPopover() {
     
     const targetRect = target.getBoundingClientRect();
 
-    // Position the popover just above the input field, aligned to the left.
-    // Using fixed positioning relative to the viewport is more robust.
-    const top = targetRect.top;
+    // Reworked positioning to be more robust, especially inside modals.
+    // Calculate position from the bottom of the viewport to avoid transform issues.
+    const bottom = window.innerHeight - targetRect.top + 5; // 5px gap above the input
     const left = targetRect.left;
     const width = targetRect.width;
 
+    // Use inline styles for dynamic positioning. The rest is in index.css.
     return `
-        <div class="mention-popover" style="top: ${top}px; left: ${left}px; width: ${width}px; transform: translateY(-100%); margin-top: -5px;">
+        <div class="mention-popover" style="bottom: ${bottom}px; left: ${left}px; width: ${width}px;">
             ${workspaceMembers.map((user, index) => `
                 <div class="mention-item ${index === state.ui.mention.activeIndex ? 'active' : ''}" data-mention-id="${user.id}" data-mention-name="${user.name || user.initials}">
                     <div class="avatar">${user.initials}</div>
