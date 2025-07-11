@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -144,22 +145,25 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
     app.addEventListener('mousedown', (e) => {
         const target = e.target as HTMLElement;
+        const tagName = target.tagName.toLowerCase();
+
+        // If the target is an editable element, let the default browser behavior happen.
+        // This prevents the element from losing focus.
+        if (tagName === 'input' || tagName === 'textarea' || target.isContentEditable) {
+            return;
+        }
 
         const mentionItem = target.closest('.mention-item');
         if (mentionItem) {
             e.preventDefault();
-            return; // Exit early to not interfere with other logic
+            return;
         }
 
         const multiSelectDropdown = target.closest('.multiselect-dropdown');
         if (multiSelectDropdown) {
-            // Prevent default ONLY if the target is NOT an input-like field.
-            // This allows checkboxes and list items to be clicked without losing focus on the main page,
-            // but allows text inputs/areas for creating tags etc. to be focused.
-            const tagName = target.tagName.toLowerCase();
-            if (tagName !== 'input' && tagName !== 'textarea') {
-                e.preventDefault();
-            }
+            // For other interactive elements inside a dropdown (like list items),
+            // prevent default to keep the original input focused.
+            e.preventDefault();
         }
     });
     
