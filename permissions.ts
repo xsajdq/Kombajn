@@ -27,18 +27,28 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 
 export function can(permission: Permission): boolean {
     const { currentUser, activeWorkspaceId, workspaceMembers } = state;
+
+    // Most fundamental checks. If these aren't set, no permissions can be checked.
     if (!currentUser || !activeWorkspaceId) {
         return false;
     }
 
-    const member = workspaceMembers.find(m => m.userId === currentUser.id && m.workspaceId === activeWorkspaceId);
+    // CRITICAL FIX FOR RACE CONDITION:
+    // Explicitly check if the workspaceMembers array has been populated from the API.
+    // The initial state is an empty array. If it's still empty when `can` is called,
+    // it means data hasn't loaded yet, so we cannot determine permissions.
+    if (!workspaceMembers || workspaceMembers.length === 0) {
+        return false;
+    }
+
+    const member = workspaceMembers.find(m => m && m.userId === currentUser.id && m.workspaceId === activeWorkspaceId);
     
-    // CRITICAL FIX: Ensure member and their roles array exist before trying to access them.
+    // Defensive check for data integrity.
     if (!member || !Array.isArray(member.roles)) {
         return false;
     }
 
-    // Owner role always has all permissions
+    // Owner role always has all permissions.
     if (member.roles.includes('owner')) {
         return true;
     }
