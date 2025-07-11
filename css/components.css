@@ -141,7 +141,7 @@
 .avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background-color: var(--light-color); color: var(--subtle-text-color); display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); }
 
 /* MODAL & FORM */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1060; }
 .modal-content { background: var(--content-bg); padding: 2rem; border-radius: var(--border-radius); width: 90%; max-width: 650px; box-shadow: var(--shadow-lg); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
 .modal-header h3 { font-size: 1.5rem; color: var(--dark-color); }
