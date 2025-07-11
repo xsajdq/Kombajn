@@ -1,11 +1,10 @@
 
 
-
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
 import { getCurrentUserRole } from '../../handlers/main.ts';
-import type { Task, CustomFieldValue, CustomFieldDefinition, User } from '../../types.ts';
+import type { Task, CustomFieldValue, CustomFieldDefinition } from '../../types.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
@@ -24,26 +23,9 @@ function renderActivityTab(task: Task) {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const renderActivityBody = (content: string) => {
-        let processedContent = content;
-        const workspaceUsers = state.workspaceMembers
-            .filter(m => m.workspaceId === state.activeWorkspaceId)
-            .map(m => state.users.find(u => u.id === m.userId))
-            .filter((u): u is User => u?.name !== undefined && u.name.trim() !== '');
-        
-        // Sort users by name length (desc) to match longer names first ("Marek Kowalski" before "Marek")
-        workspaceUsers.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0));
-
-        workspaceUsers.forEach(user => {
-            if (user.name) {
-                // Create a regex for this specific user's name, preceded by @
-                const mentionRegex = new RegExp(`@${user.name}(?!\\w)`, 'g');
-                processedContent = processedContent.replace(
-                    mentionRegex,
-                    `<strong style="color: var(--primary-color)">@${user.name}</strong>`
-                );
-            }
-        });
-        return `<p>${processedContent}</p>`;
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-zA-Z0-9]+)\)/g;
+        const html = content.replace(mentionRegex, `<strong style="color: var(--primary-color)">@$1</strong>`);
+        return `<p>${html}</p>`;
     };
     
     return `
@@ -96,10 +78,11 @@ function renderActivityTab(task: Task) {
                 }
             }).join('') : `<p class="subtle-text">${t('modals.no_activity')}</p>`}
         </div>
-        <div id="add-comment-form" class="add-comment-form">
+        <form id="add-comment-form" class="add-comment-form">
             <input type="text" id="task-comment-input" class="form-control" placeholder="${t('modals.add_comment')}">
-            <button type="button" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
-        </div>
+            <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
+        </form>
+        <div id="mention-popover-container"></div>
     `;
 }
 
