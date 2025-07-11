@@ -12,17 +12,15 @@ export function openTaskDetail(taskId: string) {
     showModal('taskDetail', { taskId });
 }
 
-export async function handleAddTaskComment(taskId: string, input: HTMLInputElement) {
-    const content = input.value;
-    const trimmedContent = content.trim();
-    if (!trimmedContent || !state.currentUser) return;
+export async function handleAddTaskComment(taskId: string, content: string, successCallback: () => void) {
+    if (!content || !state.currentUser) return;
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const newCommentPayload: Omit<Comment, 'id'|'createdAt'> = {
         workspaceId: task.workspaceId,
         taskId,
-        content: trimmedContent,
+        content: content, // Content is already trimmed and parsed
         userId: state.currentUser.id,
     };
 
@@ -30,15 +28,14 @@ export async function handleAddTaskComment(taskId: string, input: HTMLInputEleme
         const [savedComment] = await apiPost('comments', newCommentPayload);
         state.comments.push(savedComment);
         
-        input.value = ''; // Clear the input field
-        state.ui.mention = { query: null, target: null, activeIndex: 0 }; // Reset mention state
+        successCallback(); // Clear the input field
         renderApp();
 
         // Handle notifications
         const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
         const mentionedUserIds = new Set<string>();
         let match;
-        while ((match = mentionRegex.exec(trimmedContent)) !== null) {
+        while ((match = mentionRegex.exec(content)) !== null) {
             mentionedUserIds.add(match[2]);
         }
         

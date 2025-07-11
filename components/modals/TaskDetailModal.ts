@@ -24,7 +24,7 @@ function renderActivityTab(task: Task) {
 
     const renderActivityBody = (content: string) => {
         const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-        const html = content.replace(mentionRegex, `<strong style="color: var(--primary-color)">@$1</strong>`);
+        const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
         return `<p>${html}</p>`;
     };
     
@@ -79,7 +79,16 @@ function renderActivityTab(task: Task) {
             }).join('') : `<p class="subtle-text">${t('modals.no_activity')}</p>`}
         </div>
         <form id="add-comment-form" class="add-comment-form">
-            <input type="text" id="task-comment-input" class="form-control" placeholder="${t('modals.add_comment')}">
+            <div class="rich-text-input-container">
+                <div
+                    id="task-comment-input"
+                    class="rich-text-input"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    data-placeholder="${t('modals.add_comment')}"
+                ></div>
+            </div>
             <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
         </form>
     `;

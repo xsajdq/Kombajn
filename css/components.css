@@ -1,7 +1,3 @@
-
-
-
-
 /* COMPONENTS */
 .notification-wrapper {
     position: relative;
@@ -191,11 +187,6 @@
 .fab:hover { background-color: var(--primary-hover-color); transform: scale(1.05); }
 .fab .material-icons-sharp { font-size: 2rem; }
 
-/* RESPONSIVE */
-@media (max-width: 576px) {
-  .modal-form-grid { grid-template-columns: 1fr; gap: 1rem; }
-}
-
 /* @Mentions Popover */
 .mention-popover {
     position: absolute;
@@ -234,6 +225,48 @@
     padding: 0.75rem;
     color: var(--subtle-text-color);
     text-align: center;
+}
+
+/* --- RICH TEXT INPUT FOR MENTIONS --- */
+.rich-text-input-container {
+    position: relative;
+    width: 100%;
+}
+.chat-form .rich-text-input-container, .add-comment-form .rich-text-input-container {
+    flex-grow: 1;
+}
+.rich-text-input {
+    min-height: 44px; /* Match form-control padding + line-height */
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: border-color 0.2s;
+    line-height: 1.5;
+}
+.rich-text-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+.rich-text-input[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--subtle-text-color);
+    pointer-events: none;
+    display: block;
+}
+.mention-chip {
+    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    color: var(--primary-color);
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    display: inline;
+    white-space: nowrap;
+}
+.mention-chip[contenteditable="false"] {
+    cursor: default;
 }
 
 
@@ -303,7 +336,6 @@
 .activity-body { background-color: var(--background-color); border-radius: var(--border-radius); padding: 0.75rem 1rem; }
 .timelog-comment { font-style: italic; }
 .add-comment-form { display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
-#task-comment-input { flex-grow: 1; }
 
 .subtask-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .subtask-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 6px; }
@@ -364,4 +396,9 @@
 
 .project-header-menu.hidden {
     display: none;
+}
+
+/* RESPONSIVE */
+@media (max-width: 576px) {
+  .modal-form-grid { grid-template-columns: 1fr; gap: 1rem; }
 }

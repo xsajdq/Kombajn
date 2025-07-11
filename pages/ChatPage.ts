@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -11,7 +12,7 @@ function renderChatMessage(message: ChatMessage) {
 
     const renderMessageBody = (content: string) => {
         const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-        const html = content.replace(mentionRegex, `<strong style="color: var(--primary-color)">@$1</strong>`);
+        const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
         return `<p>${html}</p>`;
     };
 
@@ -51,12 +52,12 @@ export function ChatPage() {
     return `
         <div class="chat-layout">
             <aside class="chat-sidebar">
-                <h3>${t('chat.channels')}</h3>
+                <h3>${t('sidebar.chat')}</h3>
                 <ul class="channel-list">
                     ${channels.map(channel => `
                         <li class="channel-item ${channel.id === activeChannelId ? 'active' : ''}" data-channel-id="${channel.id}">
                             <span class="material-icons-sharp">${channel.projectId ? 'folder' : 'public'}</span>
-                            <span>${channel.projectId ? channel.name : t('chat.general_channel')}</span>
+                            <span>${channel.name}</span>
                         </li>
                     `).join('')}
                 </ul>
@@ -64,7 +65,7 @@ export function ChatPage() {
             <main class="chat-main">
                 ${activeChannel ? `
                     <div class="chat-header">
-                        <h4>${activeChannel.projectId ? activeChannel.name : t('chat.general_channel')}</h4>
+                        <h4>${activeChannel.name}</h4>
                     </div>
                     <div class="message-list">
                         <div class="message-list-inner">
@@ -73,7 +74,9 @@ export function ChatPage() {
                     </div>
                     <div class="chat-form-container">
                         <form id="chat-form" class="chat-form">
-                            <input type="text" id="chat-message-input" class="form-control" placeholder="${t('chat.send_a_message')}" autocomplete="off">
+                            <div class="rich-text-input-container">
+                                <div id="chat-message-input" class="rich-text-input" contenteditable="true" role="textbox" aria-multiline="false" data-placeholder="${t('modals.add_comment')}"></div>
+                            </div>
                             <button type="submit" class="btn btn-primary" id="chat-send-btn">
                                 <span class="material-icons-sharp">send</span>
                             </button>

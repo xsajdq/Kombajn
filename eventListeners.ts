@@ -28,25 +28,50 @@ import { subscribeToRealtimeUpdates } from './services/supabase.ts';
 import * as onboardingHandlers from './handlers/onboarding.ts';
 
 
-function handleMentionInput(input: HTMLInputElement) {
-    const text = input.value;
-    const cursorPos = input.selectionStart || 0;
-    const textBeforeCursor = text.substring(0, cursorPos);
+function parseContentEditable(element: HTMLElement): string {
+    let content = '';
+    element.childNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            content += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as HTMLElement;
+            if (el.classList.contains('mention-chip')) {
+                const userId = el.dataset.userId;
+                const userName = el.textContent?.substring(1); // Remove '@'
+                if (userId && userName) {
+                    content += `@[${userName}](user:${userId})`;
+                }
+            } else {
+                 content += node.textContent;
+            }
+        }
+    });
+    return content;
+}
 
+function handleMentionInput(inputDiv: HTMLElement) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (!range.startContainer.textContent) {
+        state.ui.mention.query = null;
+        state.ui.mention.target = null;
+        renderMentionPopover();
+        return;
+    }
+    
+    const textBeforeCursor = range.startContainer.textContent.substring(0, range.startOffset);
     const atPosition = textBeforeCursor.lastIndexOf('@');
 
-    // Condition to show popover:
-    // 1. An '@' exists.
-    // 2. It's either at the start of the text OR preceded by whitespace. (Avoids email matching)
-    // 3. The text between '@' and cursor doesn't contain a newline.
     if (atPosition > -1 && (atPosition === 0 || /\s/.test(textBeforeCursor[atPosition - 1]))) {
         const query = textBeforeCursor.substring(atPosition + 1);
-        if (query.includes('\n')) {
+        if (query.includes('\n') || query.includes(' ')) {
              state.ui.mention.query = null;
              state.ui.mention.target = null;
         } else {
              state.ui.mention.query = query;
-             state.ui.mention.target = input;
+             state.ui.mention.target = inputDiv;
              state.ui.mention.activeIndex = 0;
         }
     } else {
@@ -57,31 +82,45 @@ function handleMentionInput(input: HTMLInputElement) {
     renderMentionPopover();
 }
 
-function handleInsertMention(user: User, input: HTMLInputElement) {
-    const text = input.value;
-    const cursorPos = input.selectionStart || 0;
-    const textBeforeCursor = text.substring(0, cursorPos);
+function handleInsertMention(user: User, inputDiv: HTMLElement) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
 
-    // Find the start of the mention query
+    const range = selection.getRangeAt(0).cloneRange();
+    const textBeforeCursor = range.startContainer.textContent?.substring(0, range.startOffset) || '';
     const atPosition = textBeforeCursor.lastIndexOf('@');
-    if (atPosition === -1) return; // Should not happen
+    if (atPosition === -1) return;
 
-    const textBeforeAt = textBeforeCursor.substring(0, atPosition);
-    
-    // Format mention as `@[User Name](user:u1)`
-    const mentionTag = `@[${user.name || user.initials}](user:${user.id}) `;
-    
-    const newText = textBeforeAt + mentionTag + text.substring(cursorPos);
-    
-    input.value = newText;
+    // Set range to encompass the @query text
+    range.setStart(range.startContainer, atPosition);
+    range.setEnd(range.startContainer, range.startOffset);
+    range.deleteContents();
+
+    // Create the mention chip
+    const mentionChip = document.createElement('span');
+    mentionChip.className = 'mention-chip';
+    mentionChip.setAttribute('contenteditable', 'false');
+    mentionChip.dataset.userId = user.id;
+    mentionChip.textContent = `@${user.name || user.initials}`;
+
+    // Create a space node to follow the chip, for continued typing
+    const spaceNode = document.createTextNode('\u00A0'); // Non-breaking space
+
+    range.insertNode(spaceNode);
+    range.insertNode(mentionChip);
+
+    // Move cursor after the space
+    range.setStartAfter(spaceNode);
+    range.collapse(true);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // Clean up mention state
     state.ui.mention.query = null;
     state.ui.mention.target = null;
     renderMentionPopover();
-    input.focus();
-    
-    // Position cursor at the end of the inserted tag
-    const newCursorPosition = (textBeforeAt + mentionTag).length;
-    input.selectionStart = input.selectionEnd = newCursorPosition;
+    inputDiv.focus();
 }
 
 export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
@@ -156,7 +195,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                     if (state.ui.mention.target) {
                          const userId = activeItem.dataset.mentionId!;
                         const user = state.users.find(u => u.id === userId);
-                        if(user) handleInsertMention(user, state.ui.mention.target as HTMLInputElement);
+                        if(user) handleInsertMention(user, state.ui.mention.target as HTMLElement);
                     } else {
                         commandHandlers.executeCommand(activeItem.dataset.commandId!);
                     }
@@ -167,7 +206,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
 
         // Global shortcuts (only when not in an input)
-        if (e.target instanceof HTMLElement && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        if (e.target instanceof HTMLElement && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && !(e.target as HTMLElement).isContentEditable) {
             if (e.key === 'n') {
                 e.preventDefault();
                 uiHandlers.showModal('addTask');
@@ -314,18 +353,24 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 automationHandlers.handleAddAutomation(projectId, triggerStatus, actionUser);
             }
         } else if (target.id === 'chat-form') {
-            const input = document.getElementById('chat-message-input') as HTMLInputElement;
-            const content = input.value.trim();
-            if (content && state.ui.activeChannelId) {
-                mainHandlers.handleSendMessage(state.ui.activeChannelId, content);
-                input.value = '';
+            const inputDiv = document.getElementById('chat-message-input') as HTMLElement;
+            if (inputDiv && state.ui.activeChannelId) {
+                const content = parseContentEditable(inputDiv);
+                if (content.trim()) {
+                    mainHandlers.handleSendMessage(state.ui.activeChannelId, content.trim());
+                    inputDiv.innerHTML = ''; // Clear input on send
+                }
             }
         } else if (target.id === 'add-comment-form') {
             const taskId = state.ui.modal.data.taskId;
-            const input = document.getElementById('task-comment-input') as HTMLInputElement;
-            if (taskId && input && input.value.trim()) {
-                // handleAddTaskComment clears the input on success
-                await taskHandlers.handleAddTaskComment(taskId, input);
+            const inputDiv = document.getElementById('task-comment-input') as HTMLElement;
+            if (taskId && inputDiv) {
+                const content = parseContentEditable(inputDiv);
+                if (content.trim()) {
+                    await taskHandlers.handleAddTaskComment(taskId, content.trim(), () => {
+                        inputDiv.innerHTML = '';
+                    });
+                }
             }
             return;
         }
@@ -599,7 +644,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const user = state.users.find(u => u.id === userId);
             // Ensure we have a target input field stored in the state
             if(user && state.ui.mention.target) {
-                handleInsertMention(user, state.ui.mention.target as HTMLInputElement);
+                handleInsertMention(user, state.ui.mention.target as HTMLElement);
             }
             return;
         }
@@ -825,11 +870,11 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
     // Listener for inputs that need real-time updates or state changes
     app.addEventListener('input', (e: Event) => {
-        const target = e.target as HTMLInputElement;
+        const target = e.target as HTMLElement;
 
         // Command Palette Input
         if (target.id === 'command-palette-input') {
-            state.ui.commandPaletteQuery = target.value;
+            state.ui.commandPaletteQuery = (target as HTMLInputElement).value;
             state.ui.commandPaletteActiveIndex = 0; // Reset index on new query
             renderApp(); // This is a bit heavy, could be optimized to only render the palette
             target.focus();
@@ -838,7 +883,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
         
         // Invoice client change handler (special case that needs a full modal re-render)
         if (target.id === 'invoiceClient') {
-            state.ui.modal.data.clientId = target.value;
+            state.ui.modal.data.clientId = (target as HTMLInputElement).value;
             state.ui.modal.data.items = [];
             state.ui.modal.data.sourceLogIds = [];
             state.ui.modal.data.sourceExpenseIds = [];
@@ -855,11 +900,11 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
             // Handle date fields
             if (target.id === 'invoiceIssueDate') {
-                modalData.issueDate = target.value;
+                modalData.issueDate = (target as HTMLInputElement).value;
                 return; // State updated, no re-render needed.
             }
             if (target.id === 'invoiceDueDate') {
-                modalData.dueDate = target.value;
+                modalData.dueDate = (target as HTMLInputElement).value;
                 return; // State updated, no re-render needed.
             }
 
@@ -867,14 +912,14 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             const itemEditor = target.closest<HTMLElement>('.invoice-item-editor');
             if (itemEditor) {
                 const itemId = parseInt(itemEditor.dataset.itemId!, 10);
-                const field = target.dataset.field as keyof InvoiceLineItem;
+                const field = (target as HTMLInputElement).dataset.field as keyof InvoiceLineItem;
                 const item = modalData.items.find((i: InvoiceLineItem) => i.id === itemId);
 
                 if (item) {
                     if (field === 'description') {
-                        item.description = target.value;
+                        item.description = (target as HTMLInputElement).value;
                     } else { // quantity or unitPrice
-                        const value = parseFloat(target.value) || 0;
+                        const value = parseFloat((target as HTMLInputElement).value) || 0;
                         if (field === 'quantity') item.quantity = value;
                         if (field === 'unitPrice') item.unitPrice = value;
 
