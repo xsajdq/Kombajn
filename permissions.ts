@@ -28,11 +28,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function can(permission: Permission): boolean {
     const { currentUser, activeWorkspaceId, workspaceMembers } = state;
 
-    if (!currentUser || !activeWorkspaceId) {
-        return false;
-    }
-
-    if (!workspaceMembers || workspaceMembers.length === 0) {
+    if (!currentUser || !activeWorkspaceId || !workspaceMembers || workspaceMembers.length === 0) {
         return false;
     }
 
@@ -42,8 +38,13 @@ export function can(permission: Permission): boolean {
         return false;
     }
 
-    // This is the correct, robust implementation.
-    // We build the user's total permissions from ALL their roles.
+    // A direct check to ensure the 'owner' role grants all permissions.
+    // This bypasses the aggregation logic for the owner, providing a more robust guarantee.
+    if (member.roles.includes('owner')) {
+        return true;
+    }
+
+    // For all other roles, build the permission set and check.
     const userPermissions = new Set<Permission>();
     for (const role of member.roles) {
         const permissionsForRole = ROLE_PERMISSIONS[role];
