@@ -76,12 +76,13 @@ export async function handleFormSubmit() {
             const projectId = (document.getElementById('taskProject') as HTMLSelectElement).value;
             if (!name || !projectId) return;
 
+            const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
+
             const taskData = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
                 name: name,
                 description: (document.getElementById('taskDescription') as HTMLTextAreaElement).value,
-                assigneeId: (document.getElementById('taskAssignee') as HTMLSelectElement).value || null,
                 status: state.settings.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
                 startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || null,
                 dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || null,
@@ -90,8 +91,19 @@ export async function handleFormSubmit() {
 
             const [newTask] = await apiPost('tasks', taskData);
             state.tasks.push(newTask);
-            if (newTask.assigneeId && state.currentUser && newTask.assigneeId !== state.currentUser.id) {
-                await createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: newTask.assigneeId, actorId: state.currentUser.id });
+            
+            if (assigneeId) {
+                const assigneeData = {
+                    workspaceId: activeWorkspaceId,
+                    taskId: newTask.id,
+                    userId: assigneeId
+                };
+                const [newTaskAssignee] = await apiPost('task_assignees', assigneeData);
+                state.taskAssignees.push(newTaskAssignee);
+            }
+
+            if (assigneeId && state.currentUser && assigneeId !== state.currentUser.id) {
+                await createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: assigneeId, actorId: state.currentUser.id });
             }
         }
         

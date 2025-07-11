@@ -16,7 +16,8 @@ function destroyCharts() {
 }
 
 function renderMyTasksWidget(widget: DashboardWidget) {
-    const tasks = state.tasks.filter(task => task.assigneeId === state.currentUser?.id && task.status !== 'done');
+    const myAssignedTaskIds = new Set(state.taskAssignees.filter(a => a.userId === state.currentUser?.id).map(a => a.taskId));
+    const tasks = state.tasks.filter(task => myAssignedTaskIds.has(task.id) && task.status !== 'done');
     const content = tasks.length > 0
         ? `<ul class="widget-task-list">${tasks.map(task => `
             <li class="clickable" data-task-id="${task.id}" role="button" tabindex="0">
@@ -145,9 +146,10 @@ export function initDashboardCharts() {
          if (widget.type === 'teamWorkload') {
             const tasks = state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.status !== 'done');
             const workload = tasks.reduce((acc, task) => {
-                if (task.assigneeId) {
-                    acc[task.assigneeId] = (acc[task.assigneeId] || 0) + 1;
-                }
+                const assignees = state.taskAssignees.filter(a => a.taskId === task.id);
+                assignees.forEach(assignee => {
+                    acc[assignee.userId] = (acc[assignee.userId] || 0) + 1;
+                });
                 return acc;
             }, {} as Record<string, number>);
 

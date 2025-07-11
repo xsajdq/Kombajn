@@ -2,7 +2,7 @@
 
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue } from '../types.ts';
+import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
@@ -39,6 +39,8 @@ export async function handleAddTaskComment(taskId: string, content: string, succ
             mentionedUserIds.add(match[2]);
         }
         
+        const assignees = state.taskAssignees.filter(a => a.taskId === task.id);
+
         // Notify mentioned users
         for (const userId of mentionedUserIds) {
             if (userId !== state.currentUser.id) {
@@ -46,9 +48,11 @@ export async function handleAddTaskComment(taskId: string, content: string, succ
             }
         }
 
-        // Notify assignee if they weren't the commenter or mentioned
-        if (task.assigneeId && task.assigneeId !== state.currentUser.id && !mentionedUserIds.has(task.assigneeId)) {
-            await createNotification('new_comment', { taskId, userIdToNotify: task.assigneeId, actorId: state.currentUser.id });
+        // Notify all assignees if they weren't the commenter or mentioned
+        for (const assignee of assignees) {
+             if (assignee.userId !== state.currentUser.id && !mentionedUserIds.has(assignee.userId)) {
+                await createNotification('new_comment', { taskId, userIdToNotify: assignee.userId, actorId: state.currentUser.id });
+            }
         }
 
     } catch (error) {
@@ -57,36 +61,70 @@ export async function handleAddTaskComment(taskId: string, content: string, succ
     }
 }
 
-export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, value: any) {
+export async function handleTaskDetailUpdate(taskId: string, field: keyof Task | 'assigneeId', value: any) {
     const task = state.tasks.find(t => t.id === taskId);
-    if (task && state.currentUser) {
-        const oldValue = task[field];
-        if (oldValue === value) return; // No change
+    if (!task || !state.currentUser) return;
+
+    // Special handling for assigneeId pseudo-field
+    if (field === 'assigneeId') {
+        const newAssigneeId = value || null;
+        const oldAssignees = state.taskAssignees.filter(a => a.taskId === taskId);
 
         // Optimistic update
-        // @ts-ignore
-        task[field] = value;
+        state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
+        if (newAssigneeId) {
+            state.taskAssignees.push({ taskId, userId: newAssigneeId, workspaceId: task.workspaceId });
+        }
         renderApp();
 
         try {
-            await apiPut('tasks', { id: taskId, [field]: value });
-
-            if (field === 'assigneeId' && value && value !== state.currentUser.id) {
-                await createNotification('new_assignment', { taskId, userIdToNotify: value, actorId: state.currentUser.id });
-            } else if (field === 'status') {
-                 if (task.assigneeId && task.assigneeId !== state.currentUser.id) {
-                     await createNotification('status_change', { taskId, userIdToNotify: task.assigneeId, newStatus: value, actorId: state.currentUser.id });
-                }
-                runAutomations('statusChange', { task });
+            // Persist: delete old, insert new.
+            for (const oldAssignee of oldAssignees) {
+                await apiPost('task_assignees/delete', { taskId: oldAssignee.taskId, userId: oldAssignee.userId });
+            }
+            if (newAssigneeId) {
+                await apiPost('task_assignees', { taskId, userId: newAssigneeId, workspaceId: task.workspaceId });
+            }
+            
+            // Notify new assignee
+            if (newAssigneeId && newAssigneeId !== state.currentUser.id) {
+                await createNotification('new_assignment', { taskId, userIdToNotify: newAssigneeId, actorId: state.currentUser.id });
             }
         } catch (error) {
-            console.error(`Failed to update task field ${field}:`, error);
-            alert(`Could not update task. Reverting change.`);
             // Revert
-            // @ts-ignore
-            task[field] = oldValue;
+            state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
+            state.taskAssignees.push(...oldAssignees);
             renderApp();
+            alert('Could not update assignee.');
         }
+        return;
+    }
+
+    // Default handling for other fields
+    const oldValue = task[field as keyof Task];
+    if (oldValue === value) return; // No change
+
+    (task as any)[field] = value;
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, [field]: value });
+
+        if (field === 'status') {
+            const assignees = state.taskAssignees.filter(a => a.taskId === taskId);
+            for (const assignee of assignees) {
+                if (assignee.userId !== state.currentUser.id) {
+                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: value, actorId: state.currentUser.id });
+                }
+            }
+            runAutomations('statusChange', { task });
+        }
+    } catch (error) {
+        console.error(`Failed to update task field ${field}:`, error);
+        alert(`Could not update task. Reverting change.`);
+        // Revert
+        (task as any)[field] = oldValue;
+        renderApp();
     }
 }
 

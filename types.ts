@@ -84,7 +84,6 @@ export interface Task {
     projectId: string;
     status: 'backlog' | 'todo' | 'inprogress' | 'inreview' | 'done';
     description?: string;
-    assigneeId?: string;
     startDate?: string; // YYYY-MM-DD
     dueDate?: string; // YYYY-MM-DD
     priority?: 'low' | 'medium' | 'high';
@@ -97,6 +96,25 @@ export interface TaskDependency {
     workspaceId: string;
     blockingTaskId: string; // The task that must be completed first
     blockedTaskId: string;  // The task that is waiting
+}
+
+export interface TaskAssignee {
+    taskId: string;
+    userId: string;
+    workspaceId: string;
+}
+
+export interface Tag {
+    id: string;
+    workspaceId: string;
+    name: string;
+    color?: string;
+}
+
+export interface TaskTag {
+    taskId: string;
+    tagId: string;
+    workspaceId: string;
 }
 
 export interface Attachment {
@@ -349,6 +367,9 @@ export interface AppState {
     clients: Client[];
     projects: Project[];
     tasks: Task[];
+    taskAssignees: TaskAssignee[];
+    tags: Tag[];
+    taskTags: TaskTag[];
     dependencies: TaskDependency[];
     timeLogs: TimeLog[];
     comments: Comment[];

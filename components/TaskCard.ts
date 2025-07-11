@@ -5,7 +5,8 @@ import type { Task } from '../types.ts';
 
 export function renderTaskCard(task: Task) {
     const project = state.projects.find(p => p.id === task.projectId && p.workspaceId === state.activeWorkspaceId);
-    const assignee = state.users.find(u => u.id === task.assigneeId);
+    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
+    const assignee = taskAssignee ? state.users.find(u => u.id === taskAssignee.userId) : undefined;
     const isRunning = !!state.activeTimers[task.id];
     const isAdvanced = state.ui.tasksKanbanMode === 'advanced';
 

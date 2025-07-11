@@ -12,7 +12,9 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
     const automationsForProject = state.automations.filter(a => a.projectId === task.projectId);
 
     let changed = false;
-    let newAssigneeId = task.assigneeId;
+    
+    const existingAssignee = state.taskAssignees.find(a => a.taskId === task.id);
+    let newAssigneeId: string | null = existingAssignee ? existingAssignee.userId : null;
 
     automationsForProject.forEach(automation => {
         if (automation.trigger.type === 'statusChange' && automation.trigger.status === task.status) {
@@ -24,14 +26,30 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
     });
 
     if (changed) {
-        task.assigneeId = newAssigneeId;
+        const oldAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
+        // Optimistic update
+        state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
+        if (newAssigneeId) {
+            state.taskAssignees.push({ taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
+        }
         renderApp();
+        
         try {
             // Persist the change triggered by the automation
-            await apiPut('tasks', { id: task.id, assigneeId: newAssigneeId });
+            // Delete old assignees
+            for (const old of oldAssignees) {
+                await apiPost('task_assignees/delete', { taskId: old.taskId, userId: old.userId });
+            }
+            // Add new assignee
+            if (newAssigneeId) {
+                await apiPost('task_assignees', { taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
+            }
         } catch (error) {
             console.error("Failed to persist automation-triggered change:", error);
             // Optionally revert the state change here
+            state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
+            state.taskAssignees.push(...oldAssignees);
+            renderApp();
         }
     }
 }

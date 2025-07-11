@@ -70,8 +70,13 @@ export async function handleDrop(e: DragEvent) {
                 // Persist the change to the backend
                 await apiPut('tasks', { id: task.id, status: newStatus });
                 
-                if ((newStatus === 'inreview' || newStatus === 'done') && task.assigneeId && task.assigneeId !== state.currentUser.id) {
-                    createNotification('status_change', { taskId: draggedItemId, userIdToNotify: task.assigneeId, newStatus, actorId: state.currentUser.id });
+                const assignees = state.taskAssignees.filter(a => a.taskId === task.id);
+                if ((newStatus === 'inreview' || newStatus === 'done') && assignees.length > 0) {
+                    for (const assignee of assignees) {
+                        if (assignee.userId !== state.currentUser.id) {
+                            createNotification('status_change', { taskId: draggedItemId, userIdToNotify: assignee.userId, newStatus, actorId: state.currentUser.id });
+                        }
+                    }
                 }
                 
                 runAutomations('statusChange', { task });

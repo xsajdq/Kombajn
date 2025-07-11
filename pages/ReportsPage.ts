@@ -28,7 +28,11 @@ function getFilteredData() {
     const filteredTasks = state.tasks.filter(t => {
         if (t.workspaceId !== activeWorkspaceId) return false;
         if (!filteredProjectIds.has(t.projectId)) return false;
-        if (userId !== 'all' && t.assigneeId !== userId) return false;
+        
+        if (userId !== 'all') {
+            const isAssigned = state.taskAssignees.some(a => a.taskId === t.id && a.userId === userId);
+            if (!isAssigned) return false;
+        }
         
         const client = state.projects.find(p => p.id === t.projectId)?.clientId;
         if (finalClientId && client !== finalClientId) return false;
@@ -85,7 +89,8 @@ function renderProductivityReports(tasks: Task[], timeLogs: TimeLog[]) {
 
     // User Activity Data
     const userActivity = workspaceUsers.map(user => {
-        const completedTasks = tasks.filter(t => t.assigneeId === user.id && t.status === 'done');
+        const assignedTaskIds = new Set(state.taskAssignees.filter(a => a.userId === user.id).map(a => a.taskId));
+        const completedTasks = tasks.filter(t => assignedTaskIds.has(t.id) && t.status === 'done');
         const trackedTime = timeLogs
             .filter(tl => tl.userId === user.id)
             .reduce((sum, log) => sum + log.trackedSeconds, 0);

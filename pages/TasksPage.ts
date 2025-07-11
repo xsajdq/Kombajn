@@ -34,7 +34,7 @@ function getFilteredTasks(): Task[] {
 
     return allTasks.filter(task => {
         const textMatch = !text || task.name.toLowerCase().includes(text.toLowerCase()) || (task.description && task.description.toLowerCase().includes(text.toLowerCase()));
-        const assigneeMatch = !assigneeId || task.assigneeId === assigneeId;
+        const assigneeMatch = !assigneeId || state.taskAssignees.some(a => a.taskId === task.id && a.userId === assigneeId);
         const priorityMatch = !priority || task.priority === priority;
         const projectMatch = !projectId || task.projectId === projectId;
         const statusMatch = !status || task.status === status;
@@ -133,7 +133,8 @@ function renderListView(filteredTasks: Task[]) {
             <div class="task-list-body">
                 ${filteredTasks.map(task => {
                     const project = state.projects.find(p => p.id === task.projectId);
-                    const assignee = state.users.find(u => u.id === task.assigneeId);
+                    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
+                    const assignee = taskAssignee ? state.users.find(u => u.id === taskAssignee.userId) : undefined;
                     const isRunning = !!state.activeTimers[task.id];
 
                     const subtasks = state.tasks.filter(t => t.parentId === task.id);

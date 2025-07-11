@@ -201,6 +201,9 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     const userRole = getCurrentUserRole();
     const canManage = userRole === 'owner' || userRole === 'manager';
     const activeTab = state.ui.taskDetail.activeTab;
+    
+    const taskAssignee = state.taskAssignees.find(a => a.taskId === task.id);
+    const assigneeId = taskAssignee ? taskAssignee.userId : '';
 
     const renderCustomField = (fieldDef: CustomFieldDefinition) => {
         const fieldValue = customFieldValues.find(v => v.fieldId === fieldDef.id);
@@ -275,7 +278,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     <label for="detail-task-assignee">${t('modals.assignee')}</label>
                     <select id="detail-task-assignee" class="form-control" data-field="assigneeId" ${!canManage ? 'disabled' : ''}>
                         <option value="">${t('modals.unassigned')}</option>
-                        ${state.workspaceMembers.filter(m => m.workspaceId === task.workspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean).map(u => `<option value="${u!.id}" ${task.assigneeId === u!.id ? 'selected' : ''}>${u!.name || u!.initials}</option>`).join('')}
+                        ${state.workspaceMembers.filter(m => m.workspaceId === task.workspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean).map(u => `<option value="${u!.id}" ${assigneeId === u!.id ? 'selected' : ''}>${u!.name || u!.initials}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">

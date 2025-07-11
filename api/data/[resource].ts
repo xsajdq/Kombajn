@@ -1,9 +1,10 @@
 
+
 // Plik: api/data/[resource].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
 
-const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items'];
+const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resource = req.query.resource as string;
@@ -59,9 +60,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(data);
         }
         case 'DELETE': {
-            const { id } = req.body;
-            if (!id) return res.status(400).json({ error: 'ID is required for delete' });
+            const body = req.body;
+             // Handle composite key deletion for join tables
+            if (resource === 'task_assignees' || resource === 'task_tags') {
+                const { taskId, userId, tagId } = body;
+                let query = (supabase.from(resource) as any).delete().eq('task_id', taskId);
+                if (userId) query = query.eq('user_id', userId);
+                if (tagId) query = query.eq('tag_id', tagId);
+                
+                const { error } = await query;
+                if (error) throw error;
+                return res.status(204).send(undefined);
+            }
 
+            // Original logic for single ID deletion
+            const { id } = body;
+            if (!id) return res.status(400).json({ error: 'ID is required for delete' });
+            
             const query = (supabase.from(resource) as any).delete().eq('id', id);
 
             // Add an ownership check for dashboard widgets for extra security

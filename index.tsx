@@ -15,7 +15,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -30,6 +30,9 @@ export async function fetchInitialData() {
         apiFetch('/api/data/notifications'),
         apiFetch('/api/data/dashboard_widgets'),
         apiFetch('/api/data/comments'),
+        apiFetch('/api/data/task_assignees'),
+        apiFetch('/api/data/tags'),
+        apiFetch('/api/data/task_tags'),
     ]);
 
     // Populate state with fetched data
@@ -40,6 +43,9 @@ export async function fetchInitialData() {
     state.deals = deals;
     state.timeLogs = timeLogs;
     state.comments = comments;
+    state.taskAssignees = taskAssignees;
+    state.tags = tags;
+    state.taskTags = taskTags;
     // Data from the API is now camelCase, but the Workspace type has a nested structure.
     // We still need to manually map this.
     state.workspaces = rawWorkspaces.map((w: any) => ({
