@@ -1,7 +1,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 function renderDetailItem(icon: string, label: string, value: string | undefined) {
     return `
@@ -20,8 +20,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
     const client = state.clients.find(c => c.id === clientId && c.workspaceId === state.activeWorkspaceId);
     if (!client) return '';
     const associatedProjects = state.projects.filter(p => p.clientId === clientId && p.workspaceId === state.activeWorkspaceId);
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_clients');
 
     return `
         <div class="side-panel" role="region" aria-label="Client Details Panel">

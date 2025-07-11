@@ -3,7 +3,7 @@
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
-import { getCurrentUserRole } from '../../handlers/main.ts';
+import { can } from '../../permissions.ts';
 import type { Task, CustomFieldValue, CustomFieldDefinition, User } from '../../types.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -159,8 +159,7 @@ function renderDependenciesTab(task: Task) {
 
 function renderAttachmentsTab(task: Task) {
     const attachments = state.attachments.filter(a => a.taskId === task.id);
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_tasks');
 
     return `
         <div class="task-detail-section">
@@ -198,8 +197,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     const project = state.projects.find(p => p.id === task.projectId);
     const customFieldsForWorkspace = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
     const customFieldValues = state.customFieldValues.filter(cfv => cfv.taskId === taskId);
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_tasks');
     const activeTab = state.ui.taskDetail.activeTab;
     
     const assignedUserIds = new Set(state.taskAssignees.filter(a => a.taskId === task.id).map(a => a.userId));
@@ -344,20 +342,4 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                 </div>
                  <div class="form-group">
-                    <label>${t('modals.repeat')}</label>
-                    <select class="form-control" data-field="recurrence" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                        <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
-                        <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
-                        <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
-                        <option value="monthly" ${task.recurrence === 'monthly' ? 'selected' : ''}>${t('modals.repeat_monthly')}</option>
-                    </select>
-                </div>
-                ${customFieldsForWorkspace.length > 0 ? `
-                    <hr style="margin: 1.5rem 0; border-color: var(--border-color);">
-                    <h4>${t('modals.custom_fields')}</h4>
-                    ${customFieldsForWorkspace.map(renderCustomField).join('')}
-                ` : ''}
-            </aside>
-        </div>
-    `;
-}
+                    <label>${t('modals.repeat')

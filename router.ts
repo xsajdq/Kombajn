@@ -14,9 +14,9 @@ import { BillingPage } from './pages/BillingPage.ts';
 import { ChatPage } from './pages/ChatPage.ts';
 import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage } from './pages/SalesPage.ts';
-import { getCurrentUserRole } from './handlers/main.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
+import { can } from './permissions.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -33,24 +33,20 @@ export async function router() {
     const [page] = path.split('/').filter(p => p);
     
     state.currentPage = (page || 'dashboard') as AppState['currentPage'];
-    
-    const userRole = getCurrentUserRole();
-    const canAccessTeam = userRole === 'owner' || userRole === 'manager';
-    const canAccessBilling = userRole === 'owner';
 
     switch (state.currentPage) {
         case 'projects': return ProjectsPage();
         case 'clients': return ClientsPage();
         case 'tasks': return TasksPage();
         case 'team-calendar': return await TeamCalendarPage();
-        case 'reports': return ReportsPage();
+        case 'reports': return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales': return SalesPage();
-        case 'invoices': return InvoicesPage();
+        case 'invoices': return can('manage_invoices') ? InvoicesPage() : DashboardPage();
         case 'ai-assistant': return AIAssistantPage();
         case 'settings': return SettingsPage();
         case 'chat': return ChatPage();
-        case 'hr': return canAccessTeam ? await HRPage() : DashboardPage(); // Guard route
-        case 'billing': return canAccessBilling ? BillingPage() : DashboardPage(); // Guard route
+        case 'hr': return can('view_hr') ? await HRPage() : DashboardPage(); // Guard route
+        case 'billing': return can('manage_billing') ? BillingPage() : DashboardPage(); // Guard route
         case 'auth': return AuthPage(); // Fallback case
         case 'dashboard':
         default:

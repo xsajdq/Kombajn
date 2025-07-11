@@ -7,12 +7,6 @@ import { t } from '../i18n.ts';
 import { apiPost } from '../services/api.ts';
 
 
-export function getCurrentUserRole(): Role | null {
-    if (!state.currentUser || !state.activeWorkspaceId) return null;
-    const member = state.workspaceMembers.find(m => m.userId === state.currentUser!.id && m.workspaceId === state.activeWorkspaceId);
-    return member ? member.role : null;
-}
-
 export function getUserProjectRole(userId: string, projectId: string): ProjectRole | null {
     if (!userId || !projectId) return null;
 
@@ -30,18 +24,23 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
 
     const workspaceMember = state.workspaceMembers.find(wm => wm.workspaceId === project.workspaceId && wm.userId === userId);
     if (!workspaceMember) return null;
-
-    switch (workspaceMember.role) {
-        case 'owner':
-        case 'manager':
-            return 'admin';
-        case 'member':
-            return 'editor';
-        case 'client':
-            return 'viewer';
-        default:
-            return null;
+    
+    // Simplistic mapping from workspace role to project role for public projects
+    // Owner and Admin get admin rights on all public projects.
+    if (workspaceMember.roles.includes('owner') || workspaceMember.roles.includes('admin')) {
+        return 'admin';
     }
+    if (workspaceMember.roles.includes('manager')) {
+        return 'editor'; // Managers can edit public projects
+    }
+    if (workspaceMember.roles.includes('member')) {
+        return 'editor'; // Members can also edit public projects
+    }
+    if (workspaceMember.roles.includes('client')) {
+        return 'viewer';
+    }
+    
+    return null;
 }
 
 export async function handleSaveProjectAsTemplate(projectId: string) {

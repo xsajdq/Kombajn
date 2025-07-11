@@ -11,7 +11,24 @@ export interface User {
     vacationAllowanceHours?: number; // Total vacation hours for the year
 }
 
-export type Role = 'owner' | 'manager' | 'member' | 'client';
+export type Role = 'owner' | 'admin' | 'manager' | 'member' | 'finance' | 'client';
+
+export type Permission = 
+    | 'manage_billing'
+    | 'view_hr'
+    | 'manage_roles'
+    | 'invite_users'
+    | 'remove_users'
+    | 'manage_workspace_settings'
+    | 'manage_projects'
+    | 'create_projects'
+    | 'manage_clients'
+    | 'manage_invoices'
+    | 'manage_deals'
+    | 'manage_tasks'
+    | 'manage_automations'
+    | 'view_reports';
+
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due';
@@ -44,7 +61,7 @@ export interface WorkspaceMember {
     id: string; // Unique ID for the membership itself
     workspaceId: string;
     userId: string;
-    role: Role;
+    roles: Role[];
 }
 
 export type ProjectRole = 'admin' | 'editor' | 'commenter' | 'viewer';
@@ -240,6 +257,7 @@ export type Command = {
     action: () => void;
     icon?: string;
     shortcut?: string;
+    permission?: Permission;
 };
 
 export type DateRangeFilter = 'all' | 'today' | 'tomorrow' | 'yesterday' | 'this_week' | 'overdue';

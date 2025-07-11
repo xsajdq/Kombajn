@@ -3,7 +3,6 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import type { Deal, Task } from '../types.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
 
 function renderActivityTab(deal: Deal) {
     const notes = state.dealNotes

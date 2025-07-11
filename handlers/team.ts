@@ -1,7 +1,5 @@
 
 
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -43,7 +41,7 @@ export async function handleCreateWorkspace(name: string) {
     }
     
     const ownedWorkspacesCount = state.workspaces.filter(w =>
-        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.role === 'owner')
+        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser!.id && m.roles.includes('owner'))
     ).length;
     const currentPlanId = state.activeWorkspaceId ? state.workspaces.find(w => w.id === state.activeWorkspaceId)!.subscription.planId : 'free';
     const planLimits = PLANS[currentPlanId];
@@ -63,7 +61,7 @@ export async function handleCreateWorkspace(name: string) {
         
         const [newWorkspaceRaw] = await apiPost('workspaces', workspacePayload);
         
-        const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, role: 'owner' as const };
+        const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, roles: ['owner'] as Role[] };
         const [newMember] = await apiPost('workspace_members', memberPayload);
 
         const newWorkspace: Workspace = {
@@ -119,7 +117,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
     const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser!.id, status: 'pending' });
     state.workspaceJoinRequests.push(newRequest);
 
-    const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');
+    const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.roles.includes('owner'));
     owners.forEach(owner => {
         createNotification('join_request', {
             userIdToNotify: owner.userId,
@@ -140,7 +138,7 @@ export async function handleApproveJoinRequest(requestId: string) {
         const [newMember] = await apiPost('workspace_members', {
             workspaceId: request.workspaceId,
             userId: request.userId,
-            role: 'member'
+            roles: ['member']
         });
 
         const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
@@ -172,11 +170,6 @@ export async function handleRejectJoinRequest(requestId: string) {
 export async function handleInviteUser(email: string, role: Role) {
     if (!state.activeWorkspaceId || !state.currentUser) return;
     
-    // This is a simplified invite. A real system would send an email.
-    // Here we assume the user exists or will be created. We just create the membership.
-    // For simplicity, we can't create a profile for a non-existent user here.
-    // This part of the logic remains a simplified local representation.
-    // A better approach would be an API endpoint that handles the invitation logic.
     const user = state.users.find(u => u.email === email);
     if (!user) {
         alert(`User with email ${email} not found. Please ask them to sign up first.`);
@@ -193,7 +186,7 @@ export async function handleInviteUser(email: string, role: Role) {
         const [newMember] = await apiPost('workspace_members', {
             workspaceId: state.activeWorkspaceId,
             userId: user.id,
-            role,
+            roles: [role],
         });
         state.workspaceMembers.push(newMember);
         renderApp();
@@ -202,19 +195,27 @@ export async function handleInviteUser(email: string, role: Role) {
     }
 }
 
-export async function handleChangeUserRole(memberId: string, newRole: Role) {
+export async function handleUpdateMemberRoles(form: HTMLFormElement) {
+    const memberId = form.dataset.memberId;
+    if (!memberId) return;
+
     const member = state.workspaceMembers.find(m => m.id === memberId);
-    if (member) {
-        const originalRole = member.role;
-        member.role = newRole;
+    if (!member) return;
+    
+    const originalRoles = [...member.roles];
+    const newRoles = Array.from(form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked'))
+                           .map(checkbox => checkbox.value as Role);
+                           
+    member.roles = newRoles;
+    renderApp();
+
+    try {
+        await apiPut('workspace_members', { id: memberId, roles: newRoles });
+    } catch (error) {
+        console.error("Failed to update user roles:", error);
+        member.roles = originalRoles;
         renderApp();
-        try {
-            await apiPut('workspace_members', { id: memberId, role: newRole });
-        } catch(error) {
-            member.role = originalRole;
-            renderApp();
-            alert("Failed to change user role.");
-        }
+        alert("Failed to update user roles.");
     }
 }
 
@@ -223,8 +224,8 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
     if (memberIndex === -1) return;
 
     const memberToRemove = state.workspaceMembers[memberIndex];
-    if (memberToRemove.role === 'owner') {
-        const ownerCount = state.workspaceMembers.filter(m => m.workspaceId === memberToRemove.workspaceId && m.role === 'owner').length;
+    if (memberToRemove.roles.includes('owner')) {
+        const ownerCount = state.workspaceMembers.filter(m => m.workspaceId === memberToRemove.workspaceId && m.roles.includes('owner')).length;
         if (ownerCount <= 1) {
             alert(t('hr.cannot_remove_owner'));
             return;

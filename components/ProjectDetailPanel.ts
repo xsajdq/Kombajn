@@ -2,7 +2,8 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import type { Task, ProjectRole, Attachment, Objective, KeyResult } from '../types.ts';
-import { getCurrentUserRole, getUserProjectRole } from '../handlers/main.ts';
+import { getUserProjectRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 declare const marked: any;
 declare const DOMPurify: any;

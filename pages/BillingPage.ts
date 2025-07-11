@@ -2,11 +2,10 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS } from '../utils.ts';
 import type { PlanId } from '../types.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 export function BillingPage() {
-    const userRole = getCurrentUserRole();
-    if (userRole !== 'owner') {
+    if (!can('manage_billing')) {
         return `<div class="empty-state">
             <span class="material-icons-sharp">lock</span>
             <h3>${t('billing.access_denied')}</h3>
@@ -23,7 +22,7 @@ export function BillingPage() {
 
     const ownedWorkspacesCount = state.workspaces.filter(w => {
         const membership = state.workspaceMembers.find(m => m.workspaceId === w.id && m.userId === state.currentUser?.id);
-        return membership && membership.role === 'owner';
+        return membership && membership.roles.includes('owner');
     }).length;
 
     const renderUsageMeter = (label: string, value: number, limit: number) => {

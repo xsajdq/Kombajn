@@ -10,7 +10,6 @@ import { Modal } from './components/Modal.ts';
 import { AppHeader } from './components/AppHeader.ts';
 import { CommandPalette } from './components/CommandPalette.ts';
 import { FloatingActionButton } from './components/FloatingActionButton.ts';
-import { getCurrentUserRole } from './handlers/main.ts';
 import { MentionPopover } from './components/MentionPopover.ts';
 import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
 import { AuthPage } from './pages/AuthPage.ts';
@@ -31,7 +30,6 @@ async function AppLayout() {
     const { openedProjectId, openedClientId, openedDealId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
-    const userRole = getCurrentUserRole();
     const isOverlayVisible = openedProjectId || openedClientId || openedDealId || modal.isOpen;
 
 
@@ -44,7 +42,7 @@ async function AppLayout() {
     }
 
     return `
-        ${Sidebar({ userRole })}
+        ${Sidebar()}
         <div class="main-content-container" ${isOverlayVisible ? 'aria-hidden="true"' : ''}>
             ${AppHeader({ currentUser, activeWorkspaceId })}
             <main class="content">

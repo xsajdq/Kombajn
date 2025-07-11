@@ -1,7 +1,8 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 
 function renderDealCard(deal: Deal) {
@@ -40,8 +41,7 @@ function renderDealCard(deal: Deal) {
 }
 
 export function SalesPage() {
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_deals');
 
     const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
     

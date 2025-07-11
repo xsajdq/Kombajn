@@ -1,11 +1,10 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 export function ClientsPage() {
     const clients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_clients');
 
     return `
     <div>

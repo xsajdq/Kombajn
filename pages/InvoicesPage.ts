@@ -2,7 +2,7 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS } from '../utils.ts';
 import type { Invoice } from '../types.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 function getFilteredInvoices() {
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
@@ -38,8 +38,7 @@ export function InvoicesPage() {
     const usage = getUsage(activeWorkspace.id);
     const planLimits = PLANS[activeWorkspace.subscription.planId];
     const canCreateInvoice = usage.invoicesThisMonth < planLimits.invoices;
-    const userRole = getCurrentUserRole();
-    const canManage = (userRole === 'owner' || userRole === 'manager');
+    const canManage = can('manage_invoices');
     const canCreate = canManage && canCreateInvoice;
 
     const filteredInvoices = getFilteredInvoices();

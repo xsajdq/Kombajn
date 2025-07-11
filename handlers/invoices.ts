@@ -49,6 +49,7 @@ export function handleGenerateInvoiceItems() {
             if (totalHours > 0) {
                 newItems.push({
                     id: (Date.now() + Math.random()).toString(),
+                    invoiceId: '', // Dummy ID to satisfy type, will be replaced on save
                     description: t('invoices.generated_item_desc')
                         .replace('{projectName}', project.name)
                         .replace('{hours}', totalHours.toFixed(2)),
@@ -69,6 +70,7 @@ export function handleGenerateInvoiceItems() {
     unbilledExpenses.forEach(ex => {
         newItems.push({
             id: (Date.now() + Math.random()).toString(),
+            invoiceId: '', // Dummy ID
             description: t('invoices.generated_expense_desc').replace('{expenseDesc}', ex.description),
             quantity: 1,
             unitPrice: ex.amount,

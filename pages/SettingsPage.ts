@@ -3,14 +3,15 @@
 
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
+import { can } from '../permissions.ts';
 
 export function SettingsPage() {
     const { activeTab } = state.ui.settings;
-    const userRole = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId)?.role;
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_workspace_settings');
 
     const renderGeneralSettings = () => `
         <div class="setting-item">

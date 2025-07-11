@@ -4,7 +4,7 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
 import { formatDuration, camelToSnake } from '../utils.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 declare const Chart: any;
 
@@ -181,8 +181,7 @@ export function DashboardPage() {
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     const gridCols = workspace?.dashboardGridColumns || 12;
     
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
+    const canManage = can('manage_workspace_settings');
 
     return `
         <div>

@@ -3,7 +3,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS } from '../utils.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 
 export function ProjectsPage() {
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
@@ -12,8 +12,7 @@ export function ProjectsPage() {
     const usage = getUsage(activeWorkspace.id);
     const planLimits = PLANS[activeWorkspace.subscription.planId];
     const canCreateProject = usage.projects < planLimits.projects;
-    const userRole = getCurrentUserRole();
-    const canManage = (userRole === 'owner' || userRole === 'manager') && canCreateProject;
+    const isAllowedToCreate = can('create_projects');
     
     const projects = state.projects.filter(p => {
         if (p.workspaceId !== state.activeWorkspaceId) return false;
@@ -27,7 +26,7 @@ export function ProjectsPage() {
     <div>
         <h2>
             <span>${t('projects.title')}</span>
-            <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!canManage ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+            <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                 <span class="material-icons-sharp">add</span> ${t('projects.new_project')}
             </button>
         </h2>
@@ -87,7 +86,7 @@ export function ProjectsPage() {
                 <span class="material-icons-sharp">folder_off</span>
                 <h3>${t('projects.no_projects_yet')}</h3>
                 <p>${t('projects.no_projects_desc')}</p>
-                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!canManage ? 'disabled' : ''}>
+                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''}>
                     ${t('projects.create_project')}
                 </button>
             </div>

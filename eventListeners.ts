@@ -28,6 +28,7 @@ import { subscribeToRealtimeUpdates } from './services/supabase.ts';
 import * as onboardingHandlers from './handlers/onboarding.ts';
 import * as okrHandlers from './handlers/okr.ts';
 import * as dealHandlers from './handlers/deals.ts';
+import { can } from './permissions.ts';
 
 
 function parseContentEditable(element: HTMLElement): string {
@@ -360,6 +361,9 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 teamHandlers.handleInviteUser(email, role);
                 emailInput.value = ''; // Clear form
             }
+        } else if (target.classList.contains('update-member-roles-form')) {
+            await teamHandlers.handleUpdateMemberRoles(target as HTMLFormElement);
+            return;
         } else if (target.id === 'create-workspace-form') {
             const nameInput = document.getElementById('new-workspace-name') as HTMLInputElement;
             const name = nameInput.value.trim();
@@ -531,7 +535,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
                 } else {
                     if (view === 'month') current_date.setMonth(current_date.getMonth() + 1);
                     else if (view === 'week') current_date.setDate(current_date.getDate() + 7);
-                    else current_date.setDate(current_date.getDate() + 1);
+                    else current_date.setDate(current_date.getDate() - 1);
                 }
                 state.ui.teamCalendarDate = current_date.toISOString().slice(0, 10);
             } else { // 'main' calendar (task calendar)
@@ -890,10 +894,6 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
             reader.readAsDataURL(file);
             return;
         }
-
-        // Role Selector
-        const roleSelector = target.closest<HTMLSelectElement>('select[data-member-id]');
-        if (roleSelector) { teamHandlers.handleChangeUserRole(roleSelector.dataset.memberId!, roleSelector.value as Role); return; }
         
         // Theme & Language Switchers
         const themeSwitcher = target.closest<HTMLSelectElement>('#theme-switcher');

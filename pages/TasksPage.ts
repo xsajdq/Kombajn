@@ -1,10 +1,11 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User } from '../types.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 
 declare const Gantt: any;
@@ -395,9 +396,6 @@ export function TasksPage() {
         </div>
     `;
 
-    const userRole = getCurrentUserRole();
-    const canManage = userRole === 'owner' || userRole === 'manager';
-
     return `
         <div>
             <div class="kanban-header">
@@ -413,11 +411,11 @@ export function TasksPage() {
                         <span class="material-icons-sharp">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>
                     </button>
-                    <button class="btn btn-secondary" data-modal-target="automations" ${!canManage ? 'disabled' : ''}>
+                    <button class="btn btn-secondary" data-modal-target="automations" ${!can('manage_automations') ? 'disabled' : ''}>
                         <span class="material-icons-sharp">smart_toy</span>
                         <span>${t('tasks.automations_button_text')}</span>
                     </button>
-                    <button class="btn btn-primary" data-modal-target="addTask" ${!canManage ? 'disabled' : ''}>
+                    <button class="btn btn-primary" data-modal-target="addTask" ${!can('manage_tasks') ? 'disabled' : ''}>
                         <span class="material-icons-sharp">add</span> ${t('tasks.new_task')}
                     </button>
                 </div>

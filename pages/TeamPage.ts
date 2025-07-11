@@ -1,17 +1,15 @@
 
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
 import type { Role, User, WorkspaceMember, TimeOffRequest } from '../types.ts';
-import { getCurrentUserRole } from '../handlers/main.ts';
+import { can } from '../permissions.ts';
 import { PLANS } from '../utils.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 
 export async function HRPage() {
-    const userRole = getCurrentUserRole();
-    if (userRole !== 'owner' && userRole !== 'manager') {
+    if (!can('view_hr')) {
         return `<div class="empty-state">
             <span class="material-icons-sharp">lock</span>
             <h3>${t('hr.access_denied')}</h3>
@@ -73,14 +71,18 @@ function renderEmployeesTab() {
         .map(m => ({ member: m, user: state.users.find(u => u.id === m.userId)! }))
         .filter(item => item.user);
 
-    const roles: Role[] = ['owner', 'manager', 'member', 'client'];
+    const ALL_ROLES: Role[] = ['admin', 'manager', 'member', 'finance', 'client'];
 
     const ownedWorkspacesCount = state.workspaces.filter(w =>
-        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser?.id && m.role === 'owner')
+        state.workspaceMembers.some(m => m.workspaceId === w.id && m.userId === state.currentUser?.id && m.roles.includes('owner'))
     ).length;
 
     const planLimits = PLANS[activeWorkspace.subscription.planId];
     const canCreateWorkspace = ownedWorkspacesCount < planLimits.workspaces;
+
+    const canManageRoles = can('manage_roles');
+    const canInviteUsers = can('invite_users');
+    const canRemoveUsers = can('remove_users');
 
     return `
         <div class="hr-grid">
@@ -90,22 +92,44 @@ function renderEmployeesTab() {
                         <h3>${t('hr.members_in')} ${activeWorkspace.name}</h3>
                     </div>
                     <div class="member-list">
-                        ${members.map(({ member, user }) => `
-                            <div class="member-item" data-modal-target="employeeDetail" data-user-id="${user.id}">
+                        ${members.map(({ member, user }) => {
+                            const isCurrentUserOwner = member.roles.includes('owner');
+                            const isSelf = user.id === state.currentUser?.id;
+                            return `
+                            <div class="member-item">
                                 <div class="avatar">${user.initials}</div>
-                                <div class="member-info">
-                                    <strong>${user.name || user.initials} ${user.id === state.currentUser?.id ? `<span class="subtle-text">${t('hr.you')}</span>` : ''}</strong>
+                                <div class="member-info" data-modal-target="employeeDetail" data-user-id="${user.id}">
+                                    <strong>${user.name || user.initials} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
                                     <p>${user.email || t('misc.not_applicable')}</p>
+                                    <div class="member-roles">
+                                        ${member.roles.map(role => `<span class="status-badge status-backlog">${t(`hr.role_${role}`)}</span>`).join('')}
+                                    </div>
                                 </div>
                                 <div class="member-actions">
-                                     <span class="status-badge status-backlog">${t('hr.role_' + member.role)}</span>
+                                    ${canManageRoles && !isCurrentUserOwner ? `
+                                        <form class="update-member-roles-form" data-member-id="${member.id}">
+                                            <div class="member-roles-editor">
+                                                ${ALL_ROLES.map(role => `
+                                                    <label>
+                                                        <input type="checkbox" name="roles" value="${role}" ${member.roles.includes(role) ? 'checked' : ''}>
+                                                        ${t(`hr.role_${role}`)}
+                                                    </label>
+                                                `).join('')}
+                                            </div>
+                                            <button type="submit" class="btn btn-secondary btn-sm">${t('modals.save')}</button>
+                                        </form>
+                                    ` : ''}
+                                     ${canRemoveUsers && !isCurrentUserOwner ? `
+                                        <button class="btn-icon" data-remove-member-id="${member.id}" title="${t('hr.remove')}"><span class="material-icons-sharp">person_remove</span></button>
+                                    ` : ''}
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             </div>
             <div class="management-sidebar">
+                ${canInviteUsers ? `
                 <div class="card">
                     <h4>${t('hr.invite_member')}</h4>
                     <form id="invite-user-form">
@@ -116,12 +140,13 @@ function renderEmployeesTab() {
                         <div class="form-group" style="margin-top: 1rem;">
                             <label for="invite-role">${t('hr.select_role')}</label>
                             <select id="invite-role" class="form-control">
-                                ${roles.filter(r => r !== 'owner').map(r => `<option value="${r}">${t('hr.role_' + r)}</option>`).join('')}
+                                ${ALL_ROLES.map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">${t('hr.invite')}</button>
                     </form>
                 </div>
+                ` : ''}
                 <div class="card">
                      <h4>${t('hr.create_workspace_title')}</h4>
                      <form id="create-workspace-form">
