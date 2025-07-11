@@ -10,7 +10,14 @@ export function MentionPopover() {
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId && m.userId !== state.currentUser?.id) // Filter out current user
         .map(m => state.users.find(u => u.id === m.userId))
-        .filter((u): u is User => u !== undefined && (u.name?.toLowerCase().includes(query.toLowerCase()) || u.initials.toLowerCase().includes(query.toLowerCase())));
+        .filter((u): u is User => {
+            if (!u) return false;
+            const queryLower = query.toLowerCase();
+            const nameMatch = u.name ? u.name.toLowerCase().includes(queryLower) : false;
+            // The DB allows initials to be null, so we must check for its existence before calling a method on it.
+            const initialsMatch = u.initials ? u.initials.toLowerCase().includes(queryLower) : false;
+            return nameMatch || initialsMatch;
+        });
 
     const targetRect = target.getBoundingClientRect();
     const bottom = window.innerHeight - targetRect.top + 5;
