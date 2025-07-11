@@ -19,7 +19,7 @@ function renderDealCard(deal: Deal) {
     }
 
     return `
-        <div class="deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true" data-task-id="${deal.id}">
+        <div class="deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true">
             <p class="deal-card-name">${deal.name}</p>
             <p class="deal-card-value">${formatCurrency(deal.value)}</p>
             <div class="deal-card-client">

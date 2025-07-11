@@ -1,5 +1,4 @@
 
-
 import { state } from './state.ts';
 
 const translations = {
@@ -79,7 +78,7 @@ const translations = {
             add_client_title: 'Add New Client', edit_client_title: 'Edit Client',
             company_name: 'Company Name', vat_id: 'VAT ID', contact_person: 'Contact Person', email: 'Email', phone: 'Phone',
             add_project_title: 'Add New Project', project_name: 'Project Name', assign_to_client: 'Assign to client', select_a_client: 'Select a client', hourly_rate: 'Default Hourly Rate (PLN)', privacy: 'Privacy', privacy_public: 'Public', privacy_public_desc: 'Everyone in the workspace can see this project.', privacy_private: 'Private', privacy_private_desc: 'Only invited members can see this project.', create_from_template: 'Create from Template', select_template: 'None (start fresh)',
-            add_task_title: 'Add New Task', task_name: 'Task Name', description: 'Description', project: 'Project', select_a_project: 'Select a project', assignees: 'Assignees', unassigned: 'Unassigned', start_date: 'Start Date', due_date: 'Due Date',
+            add_task_title: 'Add New Task', task_name: 'Task Name', description: 'Description', project: 'Project', select_a_project: 'Select a project', select_a_project_error: 'You must select a project to create a task.', assignees: 'Assignees', unassigned: 'Unassigned', start_date: 'Start Date', due_date: 'Due Date',
             task_details_title: 'Task Details', status: 'Status', priority: 'Priority',
             status_backlog: 'Backlog', status_todo: 'To Do', status_inprogress: 'In Progress', status_inreview: 'In Review', status_done: 'Done',
             priority_none: 'None', priority_low: 'Low', priority_medium: 'Medium', priority_high: 'High',
@@ -204,7 +203,7 @@ const translations = {
             add_client_title: 'Dodaj Nowego Klienta', edit_client_title: 'Edytuj Klienta',
             company_name: 'Nazwa Firmy', vat_id: 'NIP', contact_person: 'Osoba Kontaktowa', email: 'E-mail', phone: 'Telefon',
             add_project_title: 'Dodaj Nowy Projekt', project_name: 'Nazwa Projektu', assign_to_client: 'Przypisz do klienta', select_a_client: 'Wybierz klienta', hourly_rate: 'Domyślna stawka godzinowa (PLN)', privacy: 'Prywatność', privacy_public: 'Publiczny', privacy_public_desc: 'Wszyscy w obszarze roboczym widzą ten projekt.', privacy_private: 'Prywatny', privacy_private_desc: 'Tylko zaproszeni członkowie widzą ten projekt.', create_from_template: 'Utwórz z szablonu', select_template: 'Brak (zacznij od zera)',
-            add_task_title: 'Dodaj Nowe Zadanie', task_name: 'Nazwa Zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', assignees: 'Przypisani', unassigned: 'Nieprzypisany', start_date: 'Data rozpoczęcia', due_date: 'Termin wykonania',
+            add_task_title: 'Dodaj Nowe Zadanie', task_name: 'Nazwa Zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', select_a_project_error: 'Musisz wybrać projekt, aby utworzyć zadanie.', assignees: 'Przypisani', unassigned: 'Nieprzypisany', start_date: 'Data rozpoczęcia', due_date: 'Termin wykonania',
             task_details_title: 'Szczegóły Zadania', status: 'Status', priority: 'Priorytet',
             status_backlog: 'Backlog', status_todo: 'Do zrobienia', status_inprogress: 'W toku', status_inreview: 'Weryfikacja', status_done: 'Zakończone',
             priority_none: 'Brak', priority_low: 'Niski', priority_medium: 'Średni', priority_high: 'Wysoki',

@@ -1,5 +1,4 @@
 
-
 import { state, saveState } from './state.ts';
 import { renderApp, renderMentionPopover } from './app-renderer.ts';
 import { handleAiTaskGeneration, generateInvoicePDF } from './services.ts';
@@ -154,10 +153,11 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
         const multiSelectDropdown = target.closest('.multiselect-dropdown');
         if (multiSelectDropdown) {
-            // Prevent default ONLY if the target is NOT an input field.
+            // Prevent default ONLY if the target is NOT an input-like field.
             // This allows checkboxes and list items to be clicked without losing focus on the main page,
-            // but allows the text input for creating tags to be focused.
-            if (target.tagName.toLowerCase() !== 'input') {
+            // but allows text inputs/areas for creating tags etc. to be focused.
+            const tagName = target.tagName.toLowerCase();
+            if (tagName !== 'input' && tagName !== 'textarea') {
                 e.preventDefault();
             }
         }

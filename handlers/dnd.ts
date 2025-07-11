@@ -10,19 +10,33 @@ let draggedItemId: string | null = null;
 let draggedItemType: 'task' | 'deal' | null = null;
 
 export function handleDragStart(e: DragEvent) {
-    const itemCard = (e.target as HTMLElement).closest<HTMLElement>('.task-card');
-    if (itemCard && e.dataTransfer) {
-        // Determine if we're dragging a task or a deal by looking at the parent board
-        draggedItemType = itemCard.closest('.sales-board') ? 'deal' : 'task';
-        draggedItemId = itemCard.dataset.taskId!; // Both use data-task-id for now
+    const target = e.target as HTMLElement;
+    const taskCard = target.closest<HTMLElement>('.task-card');
+    const dealCard = target.closest<HTMLElement>('.deal-card');
+
+    let itemCard: HTMLElement | null = null;
+    let id: string | undefined;
+
+    if (taskCard) {
+        itemCard = taskCard;
+        draggedItemType = 'task';
+        id = itemCard.dataset.taskId;
+    } else if (dealCard) {
+        itemCard = dealCard;
+        draggedItemType = 'deal';
+        id = itemCard.dataset.dealId;
+    }
+
+    if (itemCard && id && e.dataTransfer) {
+        draggedItemId = id;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', draggedItemId);
-        setTimeout(() => itemCard.classList.add('dragging'), 0);
+        setTimeout(() => itemCard!.classList.add('dragging'), 0);
     }
 }
 
 export function handleDragEnd(e: DragEvent) {
-    const itemCard = (e.target as HTMLElement).closest('.task-card');
+    const itemCard = (e.target as HTMLElement).closest('.task-card, .deal-card');
     if (itemCard) {
         itemCard.classList.remove('dragging');
     }

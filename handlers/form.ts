@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -76,7 +75,11 @@ export async function handleFormSubmit() {
         if (type === 'addTask') {
             const name = (document.getElementById('taskName') as HTMLInputElement).value;
             const projectId = (document.getElementById('taskProject') as HTMLSelectElement).value;
-            if (!name || !projectId) return;
+            if (!name) return;
+            if (!projectId) {
+                alert(t('modals.select_a_project_error'));
+                return;
+            }
 
             const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
 
