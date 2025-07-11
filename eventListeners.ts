@@ -637,7 +637,7 @@ export function setupEventListeners(bootstrapCallback: () => Promise<void>) {
 
         const addInvoiceItemBtn = target.closest<HTMLElement>('#add-invoice-item-btn');
         if (addInvoiceItemBtn) {
-            state.ui.modal.data.items.push({ id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0 });
+            state.ui.modal.data.items.push({ id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 });
             renderApp();
             return;
         }
