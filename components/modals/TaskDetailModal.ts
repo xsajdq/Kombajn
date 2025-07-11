@@ -342,4 +342,19 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                     <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                 </div>
                  <div class="form-group">
-                    <label>${t('modals.repeat')
+                    <label>${t('modals.repeat')}</label>
+                    <select class="form-control" data-field="recurrence" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                        <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
+                        <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
+                        <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
+                        <option value="monthly" ${task.recurrence === 'monthly' ? 'selected' : ''}>${t('modals.repeat_monthly')}</option>
+                    </select>
+                </div>
+                ${customFieldsForWorkspace.length > 0 ? `
+                    <h4 style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">${t('modals.custom_fields')}</h4>
+                    ${customFieldsForWorkspace.map(renderCustomField).join('')}
+                ` : ''}
+            </aside>
+        </div>
+    `;
+}
