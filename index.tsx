@@ -189,10 +189,11 @@ async function init() {
         }, 1000);
     } catch (error) {
         console.error("Application initialization failed:", error);
+        const errorMessage = (error as Error).message || 'Could not initialize the application. Please check your connection and configuration.';
         document.getElementById('app')!.innerHTML = `
             <div class="empty-state">
                 <h3>Failed to load application data</h3>
-                <p>Could not initialize the application. Please check your connection and configuration.</p>
+                <p>${errorMessage}</p>
             </div>
         `;
     }
