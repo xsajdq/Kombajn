@@ -14,12 +14,17 @@ export async function initSupabase() {
 
     try {
         const response = await fetch('/api/config');
+        
+        // Try to get a JSON body regardless of response status
+        const responseBody = await response.json().catch(() => null);
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch Supabase config' }));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            // Use the specific error from the backend if available, otherwise use a generic message.
+            const errorMessage = responseBody?.error || `Failed to fetch config with status: ${response.status}`;
+            throw new Error(errorMessage);
         }
         
-        const { supabaseUrl, supabaseAnonKey } = await response.json();
+        const { supabaseUrl, supabaseAnonKey } = responseBody;
 
         if (!supabaseUrl || !supabaseAnonKey) {
             throw new Error("Supabase URL or Anon Key is missing in the server config response.");
