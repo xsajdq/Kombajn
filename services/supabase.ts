@@ -4,7 +4,7 @@ import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Notification, Task, Deal } from '../types.ts';
 
-let supabase: SupabaseClient | null = null;
+export let supabase: SupabaseClient | null = null;
 const channels: RealtimeChannel[] = [];
 
 // Initialize the Supabase client
@@ -15,13 +15,17 @@ export async function initSupabase() {
         if (!response.ok) throw new Error('Failed to fetch Supabase config.');
         const { supabaseUrl, supabaseAnonKey } = await response.json();
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+            },
             realtime: {
                 params: {
                     eventsPerSecond: 10,
                 },
             },
         });
-        console.log("Supabase client initialized for Realtime.");
+        console.log("Supabase client initialized with session persistence.");
     } catch (error) {
         console.error("Supabase client initialization failed:", error);
     }

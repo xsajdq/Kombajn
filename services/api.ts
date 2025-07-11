@@ -1,10 +1,15 @@
+
 // File: services/api.ts
 import { keysToCamel } from '../utils.ts';
-
-const TOKEN_KEY = 'kombajn_auth_token';
+import { supabase } from './supabase.ts';
 
 export async function apiFetch(resource: string, options: RequestInit = {}) {
-    const token = localStorage.getItem(TOKEN_KEY);
+    if (!supabase) {
+        throw new Error("Supabase client is not initialized.");
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
     const headers = new Headers(options.headers || {});
     
     if (token) {
@@ -32,9 +37,6 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
     }));
 
     if (!response.ok) {
-        // The calling function should handle any non-ok response.
-        // Forcing a reload here creates a bad user experience and potential loops.
-        // The `validateSession` function, for instance, already catches this error and clears the token.
         throw new Error(data.error || `Request to ${resource} failed with status ${response.status}`);
     }
 
