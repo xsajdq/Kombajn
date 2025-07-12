@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -189,10 +190,11 @@ export function SettingsPage() {
     
     const renderIntegrationsSettings = () => {
         const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.workspaceId === state.activeWorkspaceId);
+        const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.workspaceId === state.activeWorkspaceId);
 
         const integrations = [
             { provider: 'slack', title: t('integrations.slack_title'), desc: t('integrations.slack_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/slack-new-logo.svg', enabled: true, instance: slackIntegration },
-            { provider: 'google_drive', title: t('integrations.google_drive_title'), desc: t('integrations.google_drive_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/google-drive-2.svg', enabled: false },
+            { provider: 'google_drive', title: t('integrations.google_drive_title'), desc: t('integrations.google_drive_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/google-drive-2.svg', enabled: true, instance: googleDriveIntegration },
             { provider: 'github', title: t('integrations.github_title'), desc: t('integrations.github_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/github-icon-1.svg', enabled: false },
             { provider: 'figma', title: t('integrations.figma_title'), desc: t('integrations.figma_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/figma-1.svg', enabled: false },
         ];
@@ -200,30 +202,40 @@ export function SettingsPage() {
         return `
             <h4>${t('settings.tab_integrations')}</h4>
             <div class="integrations-grid">
-                ${integrations.map(int => `
-                    <div class="integration-card ${!int.enabled ? 'coming-soon' : ''}">
-                        <div class="integration-card-header">
-                            <div class="integration-card-logo">
-                                <img src="${int.logo}" alt="${int.title} logo">
-                                <h4>${int.title}</h4>
+                ${integrations.map(int => {
+                    let connectionStatus = '';
+                    if (int.instance?.isActive) {
+                        if (int.provider === 'slack') {
+                            connectionStatus = t('integrations.connected_to').replace('{workspaceName}', int.instance.settings.slackWorkspaceName || 'Slack');
+                        } else if (int.provider === 'google_drive') {
+                            connectionStatus = t('integrations.connected_as').replace('{email}', int.instance.settings.googleUserEmail || '');
+                        }
+                    }
+
+                    return `
+                        <div class="integration-card ${!int.enabled ? 'coming-soon' : ''}">
+                            <div class="integration-card-header">
+                                <div class="integration-card-logo">
+                                    <img src="${int.logo}" alt="${int.title} logo">
+                                    <h4>${int.title}</h4>
+                                </div>
+                                <span class="integration-status-badge ${int.instance?.isActive ? 'active' : ''} ${!int.enabled ? 'coming-soon-badge' : ''}">
+                                    ${int.instance?.isActive ? 'Connected' : (!int.enabled ? t('integrations.coming_soon') : 'Not Connected')}
+                                </span>
                             </div>
-                            <span class="integration-status-badge ${int.instance?.isActive ? 'active' : ''} ${!int.enabled ? 'coming-soon-badge' : ''}">
-                                ${int.instance?.isActive ? 'Connected' : (!int.enabled ? t('integrations.coming_soon') : 'Not Connected')}
-                            </span>
+                            <p>${int.desc}</p>
+                            <div class="integration-card-footer">
+                                ${int.enabled ? (
+                                    int.instance?.isActive 
+                                    ? `
+                                        <p class="integration-connection-status">${connectionStatus}</p>
+                                        <button class="btn btn-secondary" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>
+                                    `
+                                    : `<button class="btn btn-primary" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
+                                ) : ''}
+                            </div>
                         </div>
-                        <p>${int.desc}</p>
-                        <div class="integration-card-footer">
-                            ${int.enabled ? (
-                                int.instance?.isActive 
-                                ? `
-                                    <p class="integration-connection-status">${t('integrations.connected_to').replace('{workspaceName}', int.instance.settings.slackWorkspaceName || 'Slack')}</p>
-                                    <button class="btn btn-secondary" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>
-                                `
-                                : `<button class="btn btn-primary" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
-                            ) : ''}
-                        </div>
-                    </div>
-                `).join('')}
+                    `}).join('')}
             </div>
         `;
     };

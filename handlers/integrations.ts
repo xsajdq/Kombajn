@@ -1,20 +1,36 @@
 
 
+
 import { state } from '../state.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Integration } from '../types.ts';
 
-export async function connectIntegration(provider: 'slack') {
+export async function connectIntegration(provider: 'slack' | 'google_drive') {
     const { activeWorkspaceId, currentUser } = state;
     if (!activeWorkspaceId || !currentUser) return;
 
-    // Simulate OAuth flow & user mapping
-    const mockSlackUserId = `U${currentUser.id.substring(0, 8).toUpperCase()}`;
-    const mockSlackWorkspaceName = 'Kombajn Dev';
-    const mockAccessToken = `xoxb-mock-token-${Date.now()}`;
-
     const existingIntegration = state.integrations.find(i => i.workspaceId === activeWorkspaceId && i.provider === provider);
+
+    let settings = {};
+    if (provider === 'slack') {
+        // Simulate OAuth flow & user mapping for Slack
+        const mockSlackUserId = `U${currentUser.id.substring(0, 8).toUpperCase()}`;
+        const mockSlackWorkspaceName = 'Kombajn Dev';
+        const mockAccessToken = `xoxb-mock-token-${Date.now()}`;
+        settings = { accessToken: mockAccessToken, slackWorkspaceName: mockSlackWorkspaceName };
+        
+        // Map the user in our DB by updating their profile
+        const [updatedProfile] = await apiPut('profiles', { id: currentUser.id, slackUserId: mockSlackUserId });
+        currentUser.slackUserId = updatedProfile.slackUserId;
+
+    } else if (provider === 'google_drive') {
+        // Simulate OAuth flow for Google Drive
+        const mockGoogleUserEmail = currentUser.email;
+        const mockAccessToken = `ya29.mock-gdrive-token-${Date.now()}`;
+        settings = { accessToken: mockAccessToken, googleUserEmail: mockGoogleUserEmail };
+    }
+
 
     try {
         if (existingIntegration) {
@@ -22,7 +38,7 @@ export async function connectIntegration(provider: 'slack') {
             const payload = { 
                 id: existingIntegration.id, 
                 isActive: true, 
-                settings: { accessToken: mockAccessToken, slackWorkspaceName: mockSlackWorkspaceName }
+                settings
             };
             const [updated] = await apiPut('integrations', payload);
             existingIntegration.isActive = updated.isActive;
@@ -33,15 +49,11 @@ export async function connectIntegration(provider: 'slack') {
                 workspaceId: activeWorkspaceId,
                 provider,
                 isActive: true,
-                settings: { accessToken: mockAccessToken, slackWorkspaceName: mockSlackWorkspaceName },
+                settings,
             };
             const [created] = await apiPost('integrations', payload);
             state.integrations.push(created);
         }
-
-        // Map the user in our DB by updating their profile
-        const [updatedProfile] = await apiPut('profiles', { id: currentUser.id, slackUserId: mockSlackUserId });
-        currentUser.slackUserId = updatedProfile.slackUserId;
 
         renderApp();
     } catch (error) {
@@ -50,7 +62,7 @@ export async function connectIntegration(provider: 'slack') {
     }
 }
 
-export async function disconnectIntegration(provider: 'slack') {
+export async function disconnectIntegration(provider: 'slack' | 'google_drive') {
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 

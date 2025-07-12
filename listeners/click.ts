@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -353,6 +354,13 @@ export async function handleClick(e: MouseEvent) {
     // Attachments
     const deleteAttachmentBtn = target.closest<HTMLElement>('.delete-attachment-btn');
     if(deleteAttachmentBtn) { taskHandlers.handleRemoveAttachment(deleteAttachmentBtn.dataset.attachmentId!); return; }
+    const attachGoogleDriveBtn = target.closest<HTMLElement>('#attach-google-drive-btn');
+    if (attachGoogleDriveBtn) {
+        const taskId = attachGoogleDriveBtn.dataset.taskId!;
+        taskHandlers.handleAttachGoogleDriveFile(taskId);
+        return;
+    }
+
 
     // Dependencies
     const deleteDependencyBtn = target.closest<HTMLElement>('.delete-dependency-btn');
@@ -444,13 +452,13 @@ export async function handleClick(e: MouseEvent) {
     // Integrations
     const connectIntegrationBtn = target.closest<HTMLElement>('[data-connect-provider]');
     if (connectIntegrationBtn) {
-        const provider = connectIntegrationBtn.dataset.connectProvider as 'slack';
+        const provider = connectIntegrationBtn.dataset.connectProvider as 'slack' | 'google_drive';
         if (provider) { await integrationHandlers.connectIntegration(provider); }
         return;
     }
     const disconnectIntegrationBtn = target.closest<HTMLElement>('[data-disconnect-provider]');
     if (disconnectIntegrationBtn) {
-        const provider = disconnectIntegrationBtn.dataset.disconnectProvider as 'slack';
+        const provider = disconnectIntegrationBtn.dataset.disconnectProvider as 'slack' | 'google_drive';
         if (provider) { await integrationHandlers.disconnectIntegration(provider); }
         return;
     }

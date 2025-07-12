@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -158,10 +159,17 @@ export interface Attachment {
     projectId: string; // All attachments belong to a project
     taskId?: string; // Optionally, to a specific task
     fileName: string;
-    fileType: string;
-    fileSize: number; // in bytes
+    fileType?: string;
+    fileSize?: number; // in bytes
     createdAt: string; // ISO
+    
+    // New fields for integrations
+    provider: 'native' | 'google_drive';
+    externalUrl?: string; // Link to the file (e.g., Google Drive link)
+    fileId?: string; // ID of the file in the external service
+    iconUrl?: string; // URL for the file type icon
 }
+
 export interface TimeLog {
     id: string;
     workspaceId: string;
@@ -403,11 +411,12 @@ export interface PublicHoliday {
 export interface Integration {
     id: string;
     workspaceId: string;
-    provider: 'slack';
+    provider: 'slack' | 'google_drive';
     isActive: boolean;
     settings: {
         accessToken?: string;
         slackWorkspaceName?: string;
+        googleUserEmail?: string;
     };
 }
 

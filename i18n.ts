@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state.ts';
 
 const translations = {
@@ -79,6 +80,7 @@ const translations = {
             disconnect: 'Disconnect',
             coming_soon: 'Coming soon',
             connected_to: 'Connected to {workspaceName}',
+            connected_as: 'Connected as {email}',
         },
         hr: {
             title: 'HR',
@@ -108,6 +110,7 @@ const translations = {
             subtasks: 'Subtasks', attachments: 'Attachments', dependencies: 'Dependencies',
             add_subtask: 'Add a new subtask...', add_dependency: 'Add dependency (task must be completed first)', select_task: 'Select a task', blocked_by: 'Blocked by', blocking: 'Blocking',
             add_attachment: 'Add attachment',
+            attach_from_drive: 'Attach from Google Drive',
             repeat: 'Repeat', repeat_none: 'Does not repeat', repeat_daily: 'Daily', repeat_weekly: 'Weekly', repeat_monthly: 'Monthly',
             custom_fields: 'Custom Fields',
             add_manual_time_log_title: 'Add Manual Time Log', add_time_log_button: 'Add Time', time_to_log: 'Time to Log (e.g., 1h 30m)', time_placeholder: 'e.g., 2h 30m', date_worked: 'Date Worked',
@@ -210,7 +213,7 @@ const translations = {
         integrations: {
             slack_title: 'Slack',
             slack_desc: 'Wysyłaj powiadomienia o aktualizacjach zadań i wzmiankach na swoje kanały Slack.',
-            google_drive_title: 'Google Drive',
+            google_drive_title: 'Dysk Google',
             google_drive_desc: 'Dołączaj pliki z Dysku Google bezpośrednio do swoich zadań.',
             github_title: 'GitHub',
             github_desc: 'Łącz pull requesty i commity z zadaniami, aby zautomatyzować pracę.',
@@ -220,6 +223,7 @@ const translations = {
             disconnect: 'Rozłącz',
             coming_soon: 'Wkrótce',
             connected_to: 'Połączono z {workspaceName}',
+            connected_as: 'Połączono jako {email}',
         },
         hr: {
             title: 'Kadry',
@@ -249,6 +253,7 @@ const translations = {
             subtasks: 'Podzadania', attachments: 'Załączniki', dependencies: 'Zależności',
             add_subtask: 'Dodaj nowe podzadanie...', add_dependency: 'Dodaj zależność (zadanie musi być ukończone jako pierwsze)', select_task: 'Wybierz zadanie', blocked_by: 'Blokowane przez', blocking: 'Blokuje',
             add_attachment: 'Dodaj załącznik',
+            attach_from_drive: 'Dołącz z Dysku Google',
             repeat: 'Powtarzaj', repeat_none: 'Nie powtarza się', repeat_daily: 'Codziennie', repeat_weekly: 'Tygodniowo', repeat_monthly: 'Miesięcznie',
             custom_fields: 'Pola niestandardowe',
             add_manual_time_log_title: 'Dodaj ręczny wpis czasu', add_time_log_button: 'Dodaj czas', time_to_log: 'Czas do zaraportowania (np. 1h 30m)', time_placeholder: 'np. 2h 30m', date_worked: 'Data pracy',

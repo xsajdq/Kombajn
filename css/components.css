@@ -346,6 +346,64 @@
 .subtask-item:hover .delete-subtask-btn { visibility: visible; }
 .add-subtask-form { margin-bottom: 1rem; }
 
+/* ATTACHMENTS */
+.attachment-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    border: 1px solid transparent;
+}
+.attachment-item .material-icons-sharp {
+    color: var(--primary-color);
+}
+.attachment-icon-external {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+.attachment-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+.attachment-info strong, .attachment-info a {
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+.attachment-info a:hover {
+    text-decoration: underline;
+    color: var(--primary-color);
+}
+.attachment-info p {
+    margin: 0;
+}
+.delete-attachment-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.attachment-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+
 /* MINIMAL THEME OVERRIDES */
 .minimal-theme .btn { font-weight: 700; transition: all 0.2s ease-in-out, transform 0.2s ease; }
 .minimal-theme .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lg); }

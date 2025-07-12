@@ -1,10 +1,11 @@
 
 
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
 import { can } from '../../permissions.ts';
-import type { Task, CustomFieldValue, CustomFieldDefinition, User } from '../../types.ts';
+import type { Task, CustomFieldValue, CustomFieldDefinition, User, Attachment } from '../../types.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
@@ -160,30 +161,51 @@ function renderDependenciesTab(task: Task) {
 function renderAttachmentsTab(task: Task) {
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const canManage = can('manage_tasks');
+    const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.isActive && i.workspaceId === task.workspaceId);
 
     return `
         <div class="task-detail-section">
-            <div class="task-detail-section-header">
-                <h4>${t('modals.attachments')}</h4>
-                 <label for="attachment-file-input" class="btn btn-secondary btn-sm" ${!canManage ? 'disabled' : ''}>
-                     <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span>
-                     ${t('modals.add_attachment')}
+            <div class="attachment-controls">
+                <label for="attachment-file-input" class="btn btn-secondary btn-sm" ${!canManage ? 'disabled' : ''}>
+                    <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span>
+                    ${t('modals.add_attachment')}
                 </label>
                 <input type="file" id="attachment-file-input" class="hidden" data-task-id="${task.id}">
+                 <button id="attach-google-drive-btn" class="btn btn-secondary btn-sm" data-task-id="${task.id}" ${!googleDriveIntegration ? 'disabled' : ''} title="${!googleDriveIntegration ? 'Connect Google Drive in Settings' : ''}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 0.5rem;"><path d="M19.46 8.19L12.02 16.32L9.24 13.31L14.77 7.14H9.42V5H17.77V13.79H15.77V8.54L10.39 14.56L12.02 16.32L21.46 6.19L19.46 8.19Z"></path><path d="M8.28,11.47,4.8,15.24h14.4l-3.05-4.07-2.6,3.47-3.87-5.16Z"></path></svg>
+                    ${t('modals.attach_from_drive')}
+                </button>
             </div>
             <ul class="attachment-list">
-            ${attachments.map(att => `
-                <li class="attachment-item">
-                    <span class="material-icons-sharp">description</span>
-                    <div class="attachment-info">
-                        <strong>${att.fileName}</strong>
-                        <p class="subtle-text">${formatBytes(att.fileSize)}</p>
-                    </div>
-                    <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" title="${t('modals.remove_item')}">
-                        <span class="material-icons-sharp" style="color: var(--danger-color)">delete</span>
-                    </button>
-                </li>
-            `).join('')}
+            ${attachments.map(att => {
+                if (att.provider === 'google_drive') {
+                    return `
+                        <li class="attachment-item">
+                            <img src="${att.iconUrl}" class="attachment-icon-external" alt="Google Drive file">
+                            <div class="attachment-info">
+                                <a href="${att.externalUrl}" target="_blank" rel="noopener noreferrer"><strong>${att.fileName}</strong></a>
+                                <p class="subtle-text">Google Drive</p>
+                            </div>
+                            <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" title="${t('modals.remove_item')}">
+                                <span class="material-icons-sharp" style="color: var(--danger-color)">delete</span>
+                            </button>
+                        </li>
+                    `;
+                } else { // native
+                     return `
+                        <li class="attachment-item">
+                            <span class="material-icons-sharp">description</span>
+                            <div class="attachment-info">
+                                <strong>${att.fileName}</strong>
+                                <p class="subtle-text">${att.fileSize ? formatBytes(att.fileSize) : ''}</p>
+                            </div>
+                            <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" title="${t('modals.remove_item')}">
+                                <span class="material-icons-sharp" style="color: var(--danger-color)">delete</span>
+                            </button>
+                        </li>
+                    `;
+                }
+            }).join('')}
             </ul>
         </div>
     `;

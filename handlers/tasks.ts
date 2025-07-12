@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
@@ -250,13 +251,14 @@ export async function handleAddAttachment(taskId: string, file: File) {
     
     // In a real app, this would first upload to a storage service (like Supabase Storage)
     // and then save the URL/path to the database. We'll just save metadata for now.
-    const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
+    const newAttachmentPayload: Partial<Attachment> = {
         workspaceId: task.workspaceId,
         projectId: task.projectId,
         taskId: taskId,
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
+        provider: 'native'
     };
 
     try {
@@ -266,6 +268,42 @@ export async function handleAddAttachment(taskId: string, file: File) {
     } catch(error) {
         console.error("Failed to add attachment:", error);
         alert("Could not add attachment.");
+    }
+}
+
+export async function handleAttachGoogleDriveFile(taskId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // This is a simulation of the Google Picker API response.
+    // In a real implementation, you would use the Google Picker API
+    // to let the user select a file, and it would return this data.
+    const pickedFile = {
+        id: `gdrive_${Date.now()}`,
+        name: 'My Important Document.gdoc',
+        mimeType: 'application/vnd.google-apps.document',
+        iconUrl: 'https://ssl.gstatic.com/docs/docos/images/favicon_v1.ico',
+        url: 'https://docs.google.com/document/d/mock_id_for_demo/edit',
+    };
+
+    const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt' | 'fileSize' | 'fileType'> = {
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        taskId: taskId,
+        fileName: pickedFile.name,
+        provider: 'google_drive',
+        externalUrl: pickedFile.url,
+        fileId: pickedFile.id,
+        iconUrl: pickedFile.iconUrl,
+    };
+
+    try {
+        const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
+        state.attachments.push(savedAttachment);
+        renderApp();
+    } catch (error) {
+        console.error("Failed to attach Google Drive file:", error);
+        alert("Could not attach the Google Drive file. Please try again.");
     }
 }
 

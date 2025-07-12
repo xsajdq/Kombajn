@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -87,6 +86,7 @@ export async function handleFileUpload(projectId: string, file: File, taskId?: s
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
+        provider: 'native',
     };
     
     try {
