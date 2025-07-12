@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -276,8 +277,15 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     return `
         <div class="task-detail-modal-layout">
             <div class="task-detail-main">
-                <p class="subtle-text" style="margin-bottom: 0.5rem;">${project?.name || t('misc.no_project')}</p>
-                <h3 style="margin-bottom: 1rem; font-size: 1.8rem; font-weight: 700;">${task.name}</h3>
+                <div class="task-detail-main-header">
+                    <div>
+                        <p class="subtle-text" style="margin-bottom: 0.5rem;">${project?.name || t('misc.no_project')}</p>
+                        <h3 class="task-detail-title" style="margin-bottom: 1rem;">${task.name}</h3>
+                    </div>
+                     <button class="btn-icon" data-copy-link="tasks/${task.id}" title="${t('misc.copy_link')}">
+                        <span class="material-icons-sharp">link</span>
+                    </button>
+                </div>
                 ${task.description ? `<p class="task-detail-description">${task.description}</p>` : ''}
 
                 <div class="task-detail-tabs">

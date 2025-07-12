@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -26,6 +27,9 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
         <div class="side-panel" role="region" aria-label="Client Details Panel">
             <div class="side-panel-header">
                 <h2>${client.name}</h2>
+                <button class="btn-icon" data-copy-link="clients/${client.id}" title="${t('misc.copy_link')}">
+                    <span class="material-icons-sharp">link</span>
+                </button>
                  <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
                     <span class="material-icons-sharp">close</span>
                 </button>

@@ -2,13 +2,19 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import { apiPost, apiPut, apiFetch } from '../services/api.ts';
+
+// Declare Google API types to satisfy TypeScript
+declare const gapi: any;
+declare const google: any;
 
 export function openTaskDetail(taskId: string) {
     showModal('taskDetail', { taskId });
@@ -271,39 +277,73 @@ export async function handleAddAttachment(taskId: string, file: File) {
     }
 }
 
+let pickerApiLoaded = false;
+async function loadPickerApi() {
+    if (pickerApiLoaded) return;
+    return new Promise((resolve) => {
+        gapi.load('picker', { 'callback': () => {
+            pickerApiLoaded = true;
+            resolve(true);
+        }});
+    });
+}
+
 export async function handleAttachGoogleDriveFile(taskId: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // This is a simulation of the Google Picker API response.
-    // In a real implementation, you would use the Google Picker API
-    // to let the user select a file, and it would return this data.
-    const pickedFile = {
-        id: `gdrive_${Date.now()}`,
-        name: 'My Important Document.gdoc',
-        mimeType: 'application/vnd.google-apps.document',
-        iconUrl: 'https://ssl.gstatic.com/docs/docos/images/favicon_v1.ico',
-        url: 'https://docs.google.com/document/d/mock_id_for_demo/edit',
-    };
-
-    const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt' | 'fileSize' | 'fileType'> = {
-        workspaceId: task.workspaceId,
-        projectId: task.projectId,
-        taskId: taskId,
-        fileName: pickedFile.name,
-        provider: 'google_drive',
-        externalUrl: pickedFile.url,
-        fileId: pickedFile.id,
-        iconUrl: pickedFile.iconUrl,
-    };
-
     try {
-        const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
-        state.attachments.push(savedAttachment);
-        renderApp();
+        // Fetch the OAuth token from our secure backend endpoint
+        const { token, developerKey, clientId } = await apiFetch(`/api/integrations/token?provider=google_drive&workspaceId=${task.workspaceId}`);
+        if (!token || !developerKey || !clientId) {
+            throw new Error('Missing necessary credentials from backend to show picker.');
+        }
+
+        await loadPickerApi();
+
+        const pickerCallback = async (data: any) => {
+            if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                const doc = data[google.picker.Response.DOCUMENTS][0];
+                const pickedFile = {
+                    id: doc[google.picker.Document.ID],
+                    name: doc[google.picker.Document.NAME],
+                    mimeType: doc[google.picker.Document.MIME_TYPE],
+                    iconUrl: doc[google.picker.Document.ICON_URL],
+                    url: doc[google.picker.Document.URL],
+                };
+
+                const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt' | 'fileSize' | 'fileType'> = {
+                    workspaceId: task.workspaceId,
+                    projectId: task.projectId,
+                    taskId: taskId,
+                    fileName: pickedFile.name,
+                    provider: 'google_drive',
+                    externalUrl: pickedFile.url,
+                    fileId: pickedFile.id,
+                    iconUrl: pickedFile.iconUrl,
+                };
+                
+                const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
+                state.attachments.push(savedAttachment);
+                renderApp();
+            }
+        };
+
+        const view = new google.picker.View(google.picker.ViewId.DOCS);
+        const picker = new google.picker.PickerBuilder()
+            .enableFeature(google.picker.Feature.NAV_HIDDEN)
+            .setAppId(clientId)
+            .setOAuthToken(token)
+            .addView(view)
+            .setDeveloperKey(developerKey)
+            .setCallback(pickerCallback)
+            .build();
+        
+        picker.setVisible(true);
+
     } catch (error) {
-        console.error("Failed to attach Google Drive file:", error);
-        alert("Could not attach the Google Drive file. Please try again.");
+        console.error("Error setting up Google Picker:", error);
+        alert(`Could not open Google Drive picker. Please ensure the integration is connected and API keys are set up correctly. Error: ${(error as Error).message}`);
     }
 }
 

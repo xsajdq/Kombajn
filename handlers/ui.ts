@@ -1,9 +1,31 @@
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
 
 let lastFocusedElement: HTMLElement | null = null;
+
+export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'deal', id: string) {
+    let path = '';
+    switch(type) {
+        case 'task': path = `/tasks/${id}`; showModal('taskDetail', { taskId: id }); break;
+        case 'project': path = `/projects/${id}`; openProjectPanel(id); break;
+        case 'client': path = `/clients/${id}`; openClientPanel(id); break;
+        case 'deal': path = `/sales/${id}`; openDealPanel(id); break;
+    }
+    if (path && window.location.pathname !== path) {
+        history.pushState({ id }, '', path);
+    }
+}
+
+function updateUrlOnPanelClose() {
+    // When a panel closes, revert the URL to the main page URL for that section
+    const newPath = `/${state.currentPage}`;
+    if (window.location.pathname !== newPath) {
+        history.pushState({}, '', newPath);
+    }
+}
 
 export function toggleCommandPalette(force?: boolean) {
     state.ui.isCommandPaletteOpen = force ?? !state.ui.isCommandPaletteOpen;
@@ -64,6 +86,7 @@ export function closeSidePanels(shouldRender = true) {
     }
     if (changed) {
         state.ui.isWikiEditing = false; // Reset wiki edit state when any panel closes
+        updateUrlOnPanelClose(); // Update URL when panel is closed
     }
     if (changed && shouldRender) {
         const panel = document.querySelector<HTMLElement>('.side-panel');
@@ -112,10 +135,17 @@ export function showModal(type: AppState['ui']['modal']['type'], data?: any) {
 
 export function closeModal(shouldRender = true) {
     if(state.ui.modal.isOpen){
+        const modalType = state.ui.modal.type;
         state.ui.modal = { isOpen: false, type: null, data: undefined, justOpened: false };
         // Reset mention state when any modal closes
         state.ui.mention = { query: null, target: null, activeIndex: 0 };
         saveState();
+
+        // Update URL if a detail modal was closed
+        if (modalType === 'taskDetail') {
+            updateUrlOnPanelClose();
+        }
+
         if (shouldRender) {
             renderApp();
         }

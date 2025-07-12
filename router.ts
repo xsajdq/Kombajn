@@ -17,6 +17,7 @@ import { SalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
+import { openClientPanel, openDealPanel, openProjectPanel, showModal } from './handlers/ui.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -29,10 +30,25 @@ export async function router() {
         return AuthPage({ isSetup: true });
     }
 
-    const path = window.location.hash.slice(1) || '/';
-    const [page] = path.split('/').filter(p => p);
+    const path = window.location.pathname || '/';
+    const pathSegments = path.split('/').filter(p => p);
+    const [page, id] = pathSegments;
     
     state.currentPage = (page || 'dashboard') as AppState['currentPage'];
+
+    // This part handles opening a detail view from a direct URL load (deep linking)
+    if (id) {
+        // We use a timeout to ensure the main page render has started
+        // before we try to open a panel/modal on top of it.
+        setTimeout(() => {
+            switch (page) {
+                case 'projects': openProjectPanel(id); break;
+                case 'clients': openClientPanel(id); break;
+                case 'tasks': showModal('taskDetail', { taskId: id }); break;
+                case 'sales': openDealPanel(id); break;
+            }
+        }, 100);
+    }
 
     // This router now guards every route with a permission check.
     // If a user doesn't have permission, they are redirected to the dashboard.

@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -93,10 +94,30 @@ export async function handleClick(e: MouseEvent) {
     if (!target.closest('.project-header-menu-container') && document.querySelector('.project-header-menu')) { mainHandlers.closeProjectMenu(); }
 
     const navLink = target.closest('a');
-    if (navLink && navLink.href.includes('#/')) {
+    if (navLink && navLink.pathname !== window.location.pathname) {
         e.preventDefault();
-        const newHash = navLink.hash;
-        if (window.location.hash !== newHash) { window.location.hash = newHash; }
+        history.pushState({}, '', navLink.href);
+        renderApp();
+        return;
+    }
+    
+    // Copy link button
+    const copyLinkBtn = target.closest<HTMLElement>('[data-copy-link]');
+    if (copyLinkBtn) {
+        const path = copyLinkBtn.dataset.copyLink;
+        if (path) {
+            const url = `${window.location.origin}/${path}`;
+            navigator.clipboard.writeText(url).then(() => {
+                const icon = copyLinkBtn.querySelector('.material-icons-sharp');
+                const originalText = icon?.textContent;
+                copyLinkBtn.title = t('misc.copied');
+                if (icon) icon.textContent = 'check';
+                setTimeout(() => {
+                    copyLinkBtn.title = t('misc.copy_link');
+                    if(icon) icon.textContent = originalText || 'link';
+                }, 2000);
+            });
+        }
         return;
     }
 
@@ -117,13 +138,13 @@ export async function handleClick(e: MouseEvent) {
 
     const taskElement = target.closest<HTMLElement>('[data-task-id].clickable');
     if (taskElement) {
-         taskHandlers.openTaskDetail(taskElement.dataset.taskId!);
+        uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
         return;
     }
     
     const dealCard = target.closest<HTMLElement>('[data-deal-id]');
     if (dealCard) {
-        uiHandlers.openDealPanel(dealCard.dataset.dealId!);
+        uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
         return;
     }
 
@@ -202,12 +223,15 @@ export async function handleClick(e: MouseEvent) {
     const projectCard = target.closest<HTMLElement>('[data-project-id][role="button"]');
     if (projectCard && !projectCard.closest('.side-panel') && !projectCard.closest('[data-modal-target]')) {
         const insidePanel = target.closest('.side-panel');
-        if (!insidePanel) { uiHandlers.openProjectPanel(projectCard.dataset.projectId!); }
+        if (!insidePanel) { uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!); }
         return;
     }
 
     const clientCard = target.closest<HTMLElement>('[data-client-id][role="button"]');
-    if (clientCard && !clientCard.closest('[data-modal-target]')) { uiHandlers.openClientPanel(clientCard.dataset.clientId!); return; }
+    if (clientCard && !clientCard.closest('[data-modal-target]')) { 
+        uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!); 
+        return; 
+    }
 
     if (target.closest('.btn-close-panel') || target.matches('.side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
 
@@ -221,7 +245,12 @@ export async function handleClick(e: MouseEvent) {
                 data[dataKey] = modalTrigger.dataset[key];
             }
         }
-        uiHandlers.showModal(modalType, data);
+        // Special case for task detail modal to update URL
+        if (modalType === 'taskDetail' && data.taskId) {
+            uiHandlers.updateUrlAndShowDetail('task', data.taskId);
+        } else {
+            uiHandlers.showModal(modalType, data);
+        }
         return;
     }
     

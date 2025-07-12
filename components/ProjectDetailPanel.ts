@@ -344,6 +344,9 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         <div class="side-panel" role="region" aria-label="Project Details Panel">
             <div class="side-panel-header">
                 <h2>${project.name}</h2>
+                <button class="btn-icon" data-copy-link="projects/${project.id}" title="${t('misc.copy_link')}">
+                    <span class="material-icons-sharp">link</span>
+                </button>
                 <div class="project-header-menu-container">
                     <button class="btn-icon" id="project-menu-toggle" aria-label="Project actions menu">
                         <span class="material-icons-sharp">more_vert</span>

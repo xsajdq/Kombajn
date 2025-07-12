@@ -127,7 +127,7 @@ export async function bootstrapApp() {
         await fetchInitialData();
         // Sync the URL with the state determined by the data before rendering.
         // This prevents race conditions where the router sees an old URL.
-        window.location.hash = `#/${state.currentPage}`;
+        history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
@@ -144,7 +144,8 @@ export async function bootstrapApp() {
 async function init() {
     try {
         setupEventListeners(bootstrapApp);
-        window.addEventListener('hashchange', renderApp);
+        // Use popstate for path-based routing instead of hash-based
+        window.addEventListener('popstate', renderApp);
 
         // validateSession will call initSupabase if needed.
         const user = await validateSession();
