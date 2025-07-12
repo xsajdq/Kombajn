@@ -1,7 +1,5 @@
 
-
-
-import { state } from './state.ts';
+import { state } from './state';
 
 const translations = {
     en: {
@@ -294,16 +292,16 @@ const translations = {
 
 export function t(key: string): string {
     const lang = state.settings.language;
-    const keys = key.split('.');
-    let result: any = translations[lang];
+    const path = key.split('.');
+    let current: any = translations[lang as keyof typeof translations];
 
-    for (const k of keys) {
-        result = result?.[k];
-        if (result === undefined) {
+    for (const segment of path) {
+        if (typeof current !== 'object' || current === null || current[segment] === undefined) {
             console.warn(`Translation not found for key: ${key} in language: ${lang}`);
             return key;
         }
+        current = current[segment];
     }
 
-    return result as string;
+    return String(current);
 }

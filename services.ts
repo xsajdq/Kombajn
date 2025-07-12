@@ -5,19 +5,16 @@ import { t } from './i18n.ts';
 import { formatDate } from './utils.ts';
 import { renderApp } from "./app-renderer.ts";
 import type { AiSuggestedTask } from './types.ts';
-import { apiPost } from "./services/api.ts";
+import { apiFetch } from "./services/api.ts";
 
 declare const jspdf: any;
-
-// The API_KEY is no longer needed on the client-side.
-// All calls go through our secure backend API.
 
 export async function handleAiTaskGeneration(promptText: string) {
     state.ai = { loading: true, error: null, suggestedTasks: null };
     renderApp();
 
     try {
-        const response = await fetch('/api/generate-tasks', {
+        const response = await fetch('/api/actions?action=generate-tasks', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -162,7 +159,10 @@ export function generateInvoicePDF(invoiceId: string) {
 
 export async function sendSlackNotification(userId: string, message: string, workspaceId: string) {
     try {
-        await apiPost('/api/notify/slack', { userId, message, workspaceId });
+        await apiFetch('/api/actions?action=notify-slack', {
+            method: 'POST',
+            body: JSON.stringify({ userId, message, workspaceId }),
+        });
     } catch (error) {
         // Silently fail for now, but log the error.
         // We don't want to block the UI for a failed notification.
