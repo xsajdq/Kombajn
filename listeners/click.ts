@@ -39,6 +39,33 @@ export async function handleClick(e: MouseEvent) {
         document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
     }
 
+    // Handle Tags Filter Dropdown
+    const tagsFilterToggle = target.closest('#task-filter-tags-toggle');
+    if (tagsFilterToggle) {
+        const dropdown = document.getElementById('task-filter-tags-dropdown');
+        dropdown?.classList.toggle('hidden');
+        return;
+    }
+    const tagsFilterItem = target.closest('.multiselect-dropdown-item');
+    if (tagsFilterItem && target.closest('#task-filter-tags-dropdown')) {
+        const checkbox = tagsFilterItem.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        if (checkbox && e.target !== checkbox) {
+            checkbox.checked = !checkbox.checked;
+        }
+        const tagId = checkbox.value;
+        const selectedTagIds = new Set(state.ui.taskFilters.tagIds);
+        if (checkbox.checked) {
+            selectedTagIds.add(tagId);
+        } else {
+            selectedTagIds.delete(tagId);
+        }
+        state.ui.taskFilters.tagIds = Array.from(selectedTagIds);
+        renderApp();
+        // Do not return, let other logic handle closing if needed.
+    } else if (!target.closest('#task-filter-tags-container')) {
+        document.getElementById('task-filter-tags-dropdown')?.classList.add('hidden');
+    }
+
     // Onboarding
     if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
     if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
@@ -306,7 +333,7 @@ export async function handleClick(e: MouseEvent) {
     // Task Filters
     if (target.closest('#toggle-filters-btn')) { uiHandlers.toggleTaskFilters(); return; }
     if (target.closest('#reset-task-filters')) {
-        state.ui.taskFilters = { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all' };
+        state.ui.taskFilters = { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [] };
         renderApp();
         return;
     }

@@ -98,7 +98,7 @@ function getInitialState(): AppState {
             tasksViewMode: 'board',
             tasksKanbanMode: 'simple',
             isTaskFilterOpen: false,
-            taskFilters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all' },
+            taskFilters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [] },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',

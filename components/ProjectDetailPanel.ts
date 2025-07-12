@@ -49,6 +49,24 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         const members = state.projectMembers.filter(pm => pm.projectId === project.id);
         const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
 
+        const budgetHours = project.budgetHours;
+        let budgetCardHtml = '';
+        if (budgetHours && budgetHours > 0) {
+            const totalBudgetSeconds = budgetHours * 3600;
+            const budgetUsagePercentage = Math.min((totalTrackedSeconds / totalBudgetSeconds) * 100, 100);
+            budgetCardHtml = `
+                <div class="card stat-card">
+                    <h4>Budget</h4>
+                    <div class="kpi-progress-bar">
+                        <div class="kpi-progress-bar-inner" style="width: ${budgetUsagePercentage}%; background-color: ${budgetUsagePercentage > 100 ? 'var(--danger-color)' : 'var(--primary-color)'};"></div>
+                    </div>
+                    <span class="kpi-progress-text">
+                        ${formatDuration(totalTrackedSeconds)} / ${formatDuration(totalBudgetSeconds)}
+                    </span>
+                </div>
+            `;
+        }
+
         const renderTaskList = (tasks: Task[], title: string) => tasks.length === 0 ? '' : `
             <div class="project-task-group">
                 <h5>${title} (${tasks.length})</h5>
@@ -91,10 +109,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                         <h4>${t('panels.tasks_overdue')}</h4>
                         <div class="stat-card-value ${overdueTasksCount > 0 ? 'overdue' : ''}">${overdueTasksCount}</div>
                     </div>
-                    <div class="card stat-card">
-                        <h4>${t('panels.total_time_tracked')}</h4>
-                        <div class="stat-card-value project-total-time">${formatDuration(totalTrackedSeconds)}</div>
-                    </div>
+                    ${budgetCardHtml}
                     <div class="card stat-card">
                          <h4>${t('panels.team')}</h4>
                          <div class="kpi-avatar-stack">

@@ -13,20 +13,13 @@ declare const Gantt: any;
 let ganttChart: any = null;
 
 function getFilteredTasks(): Task[] {
-    const { text, assigneeId, priority, projectId, status, dateRange } = state.ui.taskFilters;
+    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.taskFilters;
     let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
 
-    // --- NEW: Data Segregation for Clients ---
-    // If the current user is a client, only show them tasks from projects they are a member of.
     const member = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId);
     if (member && member.role === 'client' && state.currentUser) {
         const clientProjectIds = new Set(state.projectMembers.filter(pm => pm.userId === state.currentUser!.id).map(pm => pm.projectId));
         allTasks = allTasks.filter(task => clientProjectIds.has(task.projectId));
-    }
-    // --- END of new logic ---
-
-    if (!text && !assigneeId && !priority && !projectId && !status && dateRange === 'all') {
-        return allTasks;
     }
     
     const now = new Date();
@@ -42,8 +35,7 @@ function getFilteredTasks(): Task[] {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-
-    return allTasks.filter(task => {
+    let filtered = allTasks.filter(task => {
         const textMatch = !text || task.name.toLowerCase().includes(text.toLowerCase()) || (task.description && task.description.toLowerCase().includes(text.toLowerCase()));
         const assigneeMatch = !assigneeId || state.taskAssignees.some(a => a.taskId === task.id && a.userId === assigneeId);
         const priorityMatch = !priority || task.priority === priority;
@@ -53,31 +45,32 @@ function getFilteredTasks(): Task[] {
         let dateMatch = true;
         if (dateRange !== 'all') {
             if (!task.dueDate) {
-                dateMatch = false; // Tasks without a due date don't match specific date filters
+                dateMatch = false;
             } else {
-                 const dueDate = new Date(task.dueDate + 'T00:00:00'); // Use T00:00:00 to avoid timezone issues
+                 const dueDate = new Date(task.dueDate + 'T00:00:00');
                  switch (dateRange) {
-                    case 'today':
-                        dateMatch = dueDate.getTime() === today.getTime();
-                        break;
-                    case 'tomorrow':
-                        dateMatch = dueDate.getTime() === tomorrow.getTime();
-                        break;
-                    case 'yesterday':
-                         dateMatch = dueDate.getTime() === yesterday.getTime();
-                        break;
-                    case 'this_week':
-                        dateMatch = dueDate >= startOfWeek && dueDate <= endOfWeek;
-                        break;
-                    case 'overdue':
-                        dateMatch = dueDate < today && task.status !== 'done';
-                        break;
+                    case 'today': dateMatch = dueDate.getTime() === today.getTime(); break;
+                    case 'tomorrow': dateMatch = dueDate.getTime() === tomorrow.getTime(); break;
+                    case 'yesterday': dateMatch = dueDate.getTime() === yesterday.getTime(); break;
+                    case 'this_week': dateMatch = dueDate >= startOfWeek && dueDate <= endOfWeek; break;
+                    case 'overdue': dateMatch = dueDate < today && task.status !== 'done'; break;
                 }
             }
         }
 
         return textMatch && assigneeMatch && priorityMatch && projectMatch && statusMatch && dateMatch;
     });
+
+    if (tagIds && tagIds.length > 0) {
+        const tasksWithMatchingTags = new Set(
+            state.taskTags
+                .filter(tt => tagIds.includes(tt.tagId))
+                .map(tt => tt.taskId)
+        );
+        filtered = filtered.filter(task => tasksWithMatchingTags.has(task.id));
+    }
+    
+    return filtered;
 }
 
 
@@ -342,8 +335,8 @@ export function TasksPage() {
         }
     }
     
-    const { text, assigneeId, priority, projectId, status, dateRange } = state.ui.taskFilters;
-    const filtersActive = !!(text || assigneeId || priority || projectId || status || dateRange !== 'all');
+    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.taskFilters;
+    const filtersActive = !!(text || assigneeId || priority || projectId || status || dateRange !== 'all' || tagIds.length > 0);
 
     const workspaceUsers = state.workspaceMembers
         .filter(m => m.workspaceId === activeWorkspaceId)
@@ -351,6 +344,7 @@ export function TasksPage() {
         .filter(Boolean) as User[];
     
     const workspaceProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId);
+    const workspaceTags = state.tags.filter(t => t.workspaceId === activeWorkspaceId);
     const statuses: Task['status'][] = ['backlog', 'todo', 'inprogress', 'inreview', 'done'];
 
 
@@ -370,6 +364,20 @@ export function TasksPage() {
                     <option value="">${t('tasks.all_assignees')}</option>
                     ${workspaceUsers.map(u => `<option value="${u.id}" ${assigneeId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
                 </select>
+            </div>
+            <div class="form-group task-filter-multiselect" id="task-filter-tags-container">
+                <button type="button" class="form-control" id="task-filter-tags-toggle">
+                    <span>${tagIds.length > 0 ? `${tagIds.length} Tags` : 'All Tags'}</span>
+                    <span class="material-icons-sharp">arrow_drop_down</span>
+                </button>
+                <div id="task-filter-tags-dropdown" class="multiselect-dropdown hidden">
+                    ${workspaceTags.map(tag => `
+                        <label class="multiselect-dropdown-item">
+                            <input type="checkbox" value="${tag.id}" ${tagIds.includes(tag.id) ? 'checked' : ''}>
+                            <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color};">${tag.name}</div>
+                        </label>
+                    `).join('')}
+                </div>
             </div>
             <div class="form-group">
                 <select id="task-filter-priority" class="form-control">

@@ -69,6 +69,47 @@
     margin: 0.75rem 0 0.5rem;
 }
 
+/* --- NEW TAGS FILTER --- */
+.task-filter-multiselect {
+    position: relative;
+}
+.task-filter-multiselect .form-control {
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.task-filter-multiselect .multiselect-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-top: 4px;
+    z-index: 10;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: var(--shadow-md);
+}
+.multiselect-dropdown.hidden {
+    display: none;
+}
+.multiselect-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+.multiselect-dropdown-item:hover {
+    background-color: var(--light-color);
+}
+.multiselect-dropdown-item input {
+    margin-right: 0.75rem;
+}
+
 /* --- NEW SALES BOARD STYLES --- */
 .sales-board {
     display: grid;

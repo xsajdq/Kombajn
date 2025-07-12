@@ -72,23 +72,29 @@ export function Modal() {
                     <label for="projectName">${t('modals.project_name')}</label>
                     <input type="text" id="projectName" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label for="projectClient">${t('modals.assign_to_client')}</label>
-                    <select id="projectClient" class="form-control" required>
-                        <option value="">${t('modals.select_a_client')}</option>
-                        ${workspaceClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="projectTemplate">${t('modals.create_from_template')}</label>
-                    <select id="projectTemplate" class="form-control">
-                        <option value="">${t('modals.select_template')}</option>
-                        ${templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-                    </select>
-                </div>
-                 <div class="form-group">
-                    <label for="projectHourlyRate">${t('modals.hourly_rate')}</label>
-                    <input type="number" id="projectHourlyRate" class="form-control" placeholder="e.g. 100" min="0" step="0.01">
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="projectClient">${t('modals.assign_to_client')}</label>
+                        <select id="projectClient" class="form-control" required>
+                            <option value="">${t('modals.select_a_client')}</option>
+                            ${workspaceClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectTemplate">${t('modals.create_from_template')}</label>
+                        <select id="projectTemplate" class="form-control">
+                            <option value="">${t('modals.select_template')}</option>
+                            ${templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectHourlyRate">${t('modals.hourly_rate')}</label>
+                        <input type="number" id="projectHourlyRate" class="form-control" placeholder="e.g. 100" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectBudgetHours">Budget (hours)</label>
+                        <input type="number" id="projectBudgetHours" class="form-control" placeholder="e.g. 100" min="0">
+                    </div>
                 </div>
                 <div class="form-group" style="margin-top:1rem;">
                     <label>${t('modals.privacy')}</label>

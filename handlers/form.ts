@@ -66,6 +66,7 @@ export async function handleFormSubmit() {
                 wikiContent: '',
                 hourlyRate: parseFloat((document.getElementById('projectHourlyRate') as HTMLInputElement).value) || null,
                 privacy: (document.querySelector('input[name="privacy"]:checked') as HTMLInputElement).value as Project['privacy'],
+                budgetHours: parseFloat((document.getElementById('projectBudgetHours') as HTMLInputElement).value) || null,
             };
             
             const [newProject] = await apiPost('projects', projectData);

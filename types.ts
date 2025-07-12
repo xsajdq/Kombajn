@@ -108,6 +108,7 @@ export interface Project {
     wikiContent: string;
     hourlyRate?: number;
     privacy: 'public' | 'private';
+    budgetHours?: number;
 }
 export interface Task {
     id: string;
@@ -470,6 +471,7 @@ export interface AppState {
             projectId: string;
             status: string;
             dateRange: DateRangeFilter;
+            tagIds: string[];
         };
         invoiceFilters: {
             clientId: string;
