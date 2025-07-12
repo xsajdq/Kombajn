@@ -41,7 +41,7 @@ export async function router() {
         // We use a timeout to ensure the main page render has started
         // before we try to open a panel/modal on top of it.
         setTimeout(() => {
-            switch (page) {
+            switch (state.currentPage) {
                 case 'projects': openProjectPanel(id); break;
                 case 'clients': openClientPanel(id); break;
                 case 'tasks': showModal('taskDetail', { taskId: id }); break;
