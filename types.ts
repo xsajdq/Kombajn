@@ -399,6 +399,15 @@ export interface PublicHoliday {
     name: string;
 }
 
+export interface Integration {
+    id: string;
+    workspaceId: string;
+    provider: 'slack';
+    isActive: boolean;
+    settings: {
+        webhookUrl?: string;
+    };
+}
 
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
@@ -437,6 +446,7 @@ export interface AppState {
     dealNotes: DealNote[];
     workspaceJoinRequests: WorkspaceJoinRequest[];
     publicHolidays: PublicHoliday[];
+    integrations: Integration[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -507,7 +517,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations';
         };
         dashboard: {
             isEditing: boolean;

@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -23,6 +24,7 @@ import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as onboardingHandlers from '../handlers/onboarding.ts';
 import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
+import * as integrationHandlers from '../handlers/integrations.ts';
 
 
 export async function handleClick(e: MouseEvent) {
@@ -436,6 +438,26 @@ export async function handleClick(e: MouseEvent) {
         const { taskId, trackedSeconds } = state.ui.modal.data;
         const comment = (document.getElementById('timelog-comment') as HTMLTextAreaElement).value.trim();
         await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment);
+        return;
+    }
+    
+    // Integrations
+    const connectIntegrationBtn = target.closest<HTMLElement>('[data-connect-provider]');
+    if (connectIntegrationBtn) {
+        const provider = connectIntegrationBtn.dataset.connectProvider as 'slack';
+        if (provider) { await integrationHandlers.connectIntegration(provider); }
+        return;
+    }
+    const disconnectIntegrationBtn = target.closest<HTMLElement>('[data-disconnect-provider]');
+    if (disconnectIntegrationBtn) {
+        const provider = disconnectIntegrationBtn.dataset.disconnectProvider as 'slack';
+        if (provider) { await integrationHandlers.disconnectIntegration(provider); }
+        return;
+    }
+    const saveIntegrationBtn = target.closest<HTMLElement>('[data-save-integration-settings]');
+    if (saveIntegrationBtn) {
+        const provider = saveIntegrationBtn.dataset.saveIntegrationSettings as 'slack';
+        if (provider) { await integrationHandlers.saveIntegrationSettings(provider); }
         return;
     }
 }

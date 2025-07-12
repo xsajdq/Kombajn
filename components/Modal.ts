@@ -113,6 +113,20 @@ export function Modal() {
                        </label>
                     </div>
                 </div>
+                <div id="project-members-section" class="form-group project-members-section-container collapsed" style="margin-top: 1rem;">
+                    <label>${t('modals.invite_members')}</label>
+                    <div class="project-member-checkbox-list">
+                        ${workspaceMembers.map(user => {
+                            const isCreator = user!.id === state.currentUser?.id;
+                            return `
+                            <label class="project-member-checkbox-item">
+                                <input type="checkbox" name="project_members" value="${user!.id}" ${isCreator ? 'checked disabled' : ''}>
+                                <div class="avatar">${user!.initials}</div>
+                                <span>${user!.name || user!.email} ${isCreator ? `(${t('hr.you')})` : ''}</span>
+                            </label>
+                        `}).join('')}
+                    </div>
+                </div>
             </form>
         `;
     }

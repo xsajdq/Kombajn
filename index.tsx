@@ -6,7 +6,7 @@ import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
@@ -15,7 +15,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems, integrations
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -38,6 +38,7 @@ export async function fetchInitialData() {
         apiFetch('/api/data/deal_notes'),
         apiFetch('/api/data/invoices'),
         apiFetch('/api/data/invoice_line_items'),
+        apiFetch('/api/data/integrations'),
     ]);
 
     // Populate state with fetched data
@@ -54,6 +55,7 @@ export async function fetchInitialData() {
     state.objectives = objectives;
     state.keyResults = keyResults;
     state.dealNotes = dealNotes;
+    state.integrations = integrations;
 
     // Stitch together invoices and their line items
     const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();

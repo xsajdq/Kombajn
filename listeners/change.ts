@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task } from '../types.ts';
@@ -103,5 +104,18 @@ export function handleChange(e: Event) {
             if (workspace) { workspace.companyLogo = event.target?.result as string; teamHandlers.handleSaveWorkspaceSettings(); }
         };
         reader.readAsDataURL(file);
+    }
+
+    // Add Project Modal - Privacy toggle
+    if (target.matches('input[name="privacy"]') && (target as HTMLInputElement).form?.id === 'projectForm') {
+        const membersSection = document.getElementById('project-members-section');
+        if (membersSection) {
+            if ((target as HTMLInputElement).value === 'private') {
+                membersSection.classList.remove('collapsed');
+            } else {
+                membersSection.classList.add('collapsed');
+            }
+        }
+        return;
     }
 }

@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -190,6 +186,56 @@ export function SettingsPage() {
             </form>
         `;
     };
+    
+    const renderIntegrationsSettings = () => {
+        const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.workspaceId === state.activeWorkspaceId);
+
+        const integrations = [
+            { provider: 'slack', title: t('integrations.slack_title'), desc: t('integrations.slack_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/slack-new-logo.svg', enabled: true, instance: slackIntegration },
+            { provider: 'google_drive', title: t('integrations.google_drive_title'), desc: t('integrations.google_drive_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/google-drive-2.svg', enabled: false },
+            { provider: 'github', title: t('integrations.github_title'), desc: t('integrations.github_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/github-icon-1.svg', enabled: false },
+            { provider: 'figma', title: t('integrations.figma_title'), desc: t('integrations.figma_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/figma-1.svg', enabled: false },
+        ];
+
+        return `
+            <h4>${t('settings.tab_integrations')}</h4>
+            <div class="integrations-grid">
+                ${integrations.map(int => `
+                    <div class="integration-card ${!int.enabled ? 'coming-soon' : ''}">
+                        <div class="integration-card-header">
+                            <div class="integration-card-logo">
+                                <img src="${int.logo}" alt="${int.title} logo">
+                                <h4>${int.title}</h4>
+                            </div>
+                            <span class="integration-status-badge ${int.instance?.isActive ? 'active' : ''} ${!int.enabled ? 'coming-soon-badge' : ''}">
+                                ${int.instance?.isActive ? t('integrations.connect')+'ed' : (!int.enabled ? t('integrations.coming_soon') : '')}
+                            </span>
+                        </div>
+                        <p>${int.desc}</p>
+                        ${int.enabled && int.instance?.isActive ? `
+                            <div class="integration-config-form">
+                                <div class="form-group">
+                                    <label for="slack-webhook-url">${t('integrations.webhook_url_label')}</label>
+                                    <input type="url" id="slack-webhook-url" class="form-control" placeholder="${t('integrations.webhook_url_placeholder')}" value="${int.instance.settings.webhookUrl || ''}">
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="integration-card-footer">
+                            ${int.enabled ? (
+                                int.instance?.isActive 
+                                ? `
+                                    <button class="btn btn-secondary" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>
+                                    <button class="btn btn-primary" data-save-integration-settings="${int.provider}">${t('modals.save')}</button>
+                                `
+                                : `<button class="btn btn-primary" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
+                            ) : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    };
+
 
     let tabContent = '';
     switch (activeTab) {
@@ -205,6 +251,9 @@ export function SettingsPage() {
         case 'workspace':
             if (canManage) tabContent = renderWorkspaceSettings();
             break;
+        case 'integrations':
+            if (canManage) tabContent = renderIntegrationsSettings();
+            break;
     }
 
     return `
@@ -213,8 +262,9 @@ export function SettingsPage() {
         <div class="settings-tabs">
             <div class="setting-tab ${activeTab === 'general' ? 'active' : ''}" data-tab="general">${t('settings.tab_general')}</div>
             <div class="setting-tab ${activeTab === 'profile' ? 'active' : ''}" data-tab="profile">${t('settings.tab_profile')}</div>
-            ${canManage ? `<div class="setting-tab ${activeTab === 'customFields' ? 'active' : ''}" data-tab="customFields">${t('settings.tab_custom_fields')}</div>` : ''}
             ${canManage ? `<div class="setting-tab ${activeTab === 'workspace' ? 'active' : ''}" data-tab="workspace">${t('settings.tab_workspace')}</div>` : ''}
+            ${canManage ? `<div class="setting-tab ${activeTab === 'integrations' ? 'active' : ''}" data-tab="integrations">${t('settings.tab_integrations')}</div>` : ''}
+            ${canManage ? `<div class="setting-tab ${activeTab === 'customFields' ? 'active' : ''}" data-tab="customFields">${t('settings.tab_custom_fields')}</div>` : ''}
         </div>
         <div class="card">
             ${tabContent}

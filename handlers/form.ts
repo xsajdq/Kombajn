@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -71,6 +72,35 @@ export async function handleFormSubmit() {
             
             const [newProject] = await apiPost('projects', projectData);
             state.projects.push(newProject);
+
+            // ALWAYS add the creator as admin
+            const creatorMember: Omit<ProjectMember, 'id'> = {
+                projectId: newProject.id,
+                userId: state.currentUser.id,
+                role: 'admin'
+            };
+            const [savedCreatorMember] = await apiPost('project_members', creatorMember);
+            state.projectMembers.push(savedCreatorMember);
+
+
+            // If project is private, add selected members
+            if (newProject.privacy === 'private') {
+                const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
+                const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
+
+                const membersToAdd: Omit<ProjectMember, 'id'>[] = memberIds
+                    .filter(id => id !== state.currentUser!.id) // Don't re-add creator
+                    .map(userId => ({
+                        projectId: newProject.id,
+                        userId: userId,
+                        role: 'editor' // Default role for invited members
+                    }));
+
+                if (membersToAdd.length > 0) {
+                    const savedMembers = await apiPost('project_members', membersToAdd);
+                    state.projectMembers.push(...savedMembers);
+                }
+            }
         }
 
         if (type === 'addTask') {
