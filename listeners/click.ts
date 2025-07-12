@@ -454,10 +454,4 @@ export async function handleClick(e: MouseEvent) {
         if (provider) { await integrationHandlers.disconnectIntegration(provider); }
         return;
     }
-    const saveIntegrationBtn = target.closest<HTMLElement>('[data-save-integration-settings]');
-    if (saveIntegrationBtn) {
-        const provider = saveIntegrationBtn.dataset.saveIntegrationSettings as 'slack';
-        if (provider) { await integrationHandlers.saveIntegrationSettings(provider); }
-        return;
-    }
 }

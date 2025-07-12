@@ -208,24 +208,16 @@ export function SettingsPage() {
                                 <h4>${int.title}</h4>
                             </div>
                             <span class="integration-status-badge ${int.instance?.isActive ? 'active' : ''} ${!int.enabled ? 'coming-soon-badge' : ''}">
-                                ${int.instance?.isActive ? t('integrations.connect')+'ed' : (!int.enabled ? t('integrations.coming_soon') : '')}
+                                ${int.instance?.isActive ? 'Connected' : (!int.enabled ? t('integrations.coming_soon') : 'Not Connected')}
                             </span>
                         </div>
                         <p>${int.desc}</p>
-                        ${int.enabled && int.instance?.isActive ? `
-                            <div class="integration-config-form">
-                                <div class="form-group">
-                                    <label for="slack-webhook-url">${t('integrations.webhook_url_label')}</label>
-                                    <input type="url" id="slack-webhook-url" class="form-control" placeholder="${t('integrations.webhook_url_placeholder')}" value="${int.instance.settings.webhookUrl || ''}">
-                                </div>
-                            </div>
-                        ` : ''}
                         <div class="integration-card-footer">
                             ${int.enabled ? (
                                 int.instance?.isActive 
                                 ? `
+                                    <p class="integration-connection-status">${t('integrations.connected_to').replace('{workspaceName}', int.instance.settings.slackWorkspaceName || 'Slack')}</p>
                                     <button class="btn btn-secondary" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>
-                                    <button class="btn btn-primary" data-save-integration-settings="${int.provider}">${t('modals.save')}</button>
                                 `
                                 : `<button class="btn btn-primary" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
                             ) : ''}

@@ -6,6 +6,7 @@ import type { Notification, Task, NotificationType } from '../types.ts';
 import { t } from '../i18n.ts';
 import { openTaskDetail } from './tasks.ts';
 import { apiPost, apiPut } from '../services/api.ts';
+import { sendSlackNotification } from '../services.ts';
 
 export async function createNotification(
     type: NotificationType,
@@ -64,6 +65,17 @@ export async function createNotification(
         try {
             const [savedNotification] = await apiPost('notifications', newNotificationPayload);
             state.notifications.unshift(savedNotification);
+
+            // Send Slack notification if integration is active
+            const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.isActive && i.workspaceId === targetWorkspaceId);
+            if (slackIntegration) {
+                const userToNotify = state.users.find(u => u.id === data.userIdToNotify);
+                // Only send if the user has their Slack account linked
+                if (userToNotify?.slackUserId) {
+                    sendSlackNotification(data.userIdToNotify, text, targetWorkspaceId);
+                }
+            }
+            
             // Re-render only if the notification bell is visible
             if (document.getElementById('notification-bell')) {
                 renderApp();

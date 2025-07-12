@@ -5,6 +5,7 @@ import { t } from './i18n.ts';
 import { formatDate } from './utils.ts';
 import { renderApp } from "./app-renderer.ts";
 import type { AiSuggestedTask } from './types.ts';
+import { apiPost } from "./services/api.ts";
 
 declare const jspdf: any;
 
@@ -156,5 +157,15 @@ export function generateInvoicePDF(invoiceId: string) {
         };
     } else {
         generatePdfContent();
+    }
+}
+
+export async function sendSlackNotification(userId: string, message: string, workspaceId: string) {
+    try {
+        await apiPost('/api/notify/slack', { userId, message, workspaceId });
+    } catch (error) {
+        // Silently fail for now, but log the error.
+        // We don't want to block the UI for a failed notification.
+        console.error("Failed to send Slack notification:", error);
     }
 }

@@ -78,8 +78,7 @@ const translations = {
             connect: 'Connect',
             disconnect: 'Disconnect',
             coming_soon: 'Coming soon',
-            webhook_url_label: 'Slack Webhook URL',
-            webhook_url_placeholder: 'https://hooks.slack.com/services/...',
+            connected_to: 'Connected to {workspaceName}',
         },
         hr: {
             title: 'HR',
@@ -220,8 +219,7 @@ const translations = {
             connect: 'Połącz',
             disconnect: 'Rozłącz',
             coming_soon: 'Wkrótce',
-            webhook_url_label: 'Adres URL Webhooka Slack',
-            webhook_url_placeholder: 'https://hooks.slack.com/services/...',
+            connected_to: 'Połączono z {workspaceName}',
         },
         hr: {
             title: 'Kadry',

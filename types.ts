@@ -6,6 +6,7 @@ export interface User {
     email?: string;
     avatarUrl?: string; // URL to an image
     initials: string;
+    slackUserId?: string;
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
     vacationAllowanceHours?: number; // Total vacation hours for the year
@@ -405,7 +406,8 @@ export interface Integration {
     provider: 'slack';
     isActive: boolean;
     settings: {
-        webhookUrl?: string;
+        accessToken?: string;
+        slackWorkspaceName?: string;
     };
 }
 
