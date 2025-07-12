@@ -38,6 +38,11 @@ export function toggleCommandPalette(force?: boolean) {
     }
 }
 
+export function toggleTaskFilters(force?: boolean) {
+    state.ui.isTaskFilterOpen = force ?? !state.ui.isTaskFilterOpen;
+    renderApp();
+}
+
 export function openProjectPanel(projectId: string) {
     if (document.activeElement instanceof HTMLElement) {
         lastFocusedElement = document.activeElement;
@@ -154,10 +159,4 @@ export function closeModal(shouldRender = true) {
             lastFocusedElement = null;
         }
     }
-}
-
-export function toggleTaskFilters(force?: boolean) {
-    state.ui.isTaskFilterOpen = force ?? !state.ui.isTaskFilterOpen;
-    // This UI state is ephemeral, no need to save it to localStorage
-    renderApp();
 }

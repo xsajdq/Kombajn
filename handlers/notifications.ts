@@ -112,7 +112,7 @@ export async function handleNotificationClick(notificationId: string) {
         openTaskDetail(notification.action.taskId);
     } else if (notification.action.type === 'viewJoinRequests') {
         state.ui.hr.activeTab = 'requests';
-        window.location.hash = '#/hr';
+        history.pushState({}, '', '/hr');
         renderApp();
     }
     else {

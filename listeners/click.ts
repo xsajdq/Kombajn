@@ -1,7 +1,5 @@
 
 
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -142,7 +140,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const dealCard = target.closest<HTMLElement>('[data-deal-id]');
+    const dealCard = target.closest<HTMLElement>('[data-deal-id].deal-card');
     if (dealCard) {
         uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
         return;

@@ -2,7 +2,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
 
 export async function handleUpdateProfile(form: HTMLFormElement) {
@@ -98,7 +98,7 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
     if (statusEl) statusEl.textContent = 'Saving...';
     
     try {
-        await apiPost('/api/auth/update-password', { newPassword });
+        await apiFetch('/api/auth/update-password', { method: 'POST', body: JSON.stringify({ newPassword }) });
         
         if (statusEl) {
             statusEl.textContent = t('settings.password_updated');

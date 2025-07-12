@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { apiPut } from '../services/api.ts';
@@ -17,7 +18,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step0_content'),
     },
     {
-        targetSelector: '.nav-item a[href="#/projects"]',
+        targetSelector: '.nav-item a[href="/projects"]',
         title: t('onboarding.step1_title'),
         content: t('onboarding.step1_content'),
     },
@@ -26,30 +27,34 @@ export const onboardingSteps: OnboardingStep[] = [
         title: t('onboarding.step2_title'),
         content: t('onboarding.step2_content'),
         preAction: () => {
-            window.location.hash = '#/projects';
+            history.pushState({}, '', '/projects');
+            renderApp();
         }
     },
     {
-        targetSelector: '.nav-item a[href="#/tasks"]',
+        targetSelector: '.nav-item a[href="/tasks"]',
         title: t('onboarding.step3_title'),
         content: t('onboarding.step3_content'),
         preAction: () => {
-            window.location.hash = '#/tasks';
+            history.pushState({}, '', '/tasks');
+            renderApp();
         }
     },
     {
-        targetSelector: '.nav-item a[href="#/settings"]',
+        targetSelector: '.nav-item a[href="/settings"]',
         title: t('onboarding.step4_title'),
         content: t('onboarding.step4_content'),
         preAction: () => {
-            window.location.hash = '#/settings';
+            history.pushState({}, '', '/settings');
+            renderApp();
         }
     },
     {
         title: t('onboarding.step5_title'),
         content: t('onboarding.step5_content'),
         preAction: () => {
-            window.location.hash = '#/dashboard';
+            history.pushState({}, '', '/dashboard');
+            renderApp();
         }
     }
 ];
@@ -70,12 +75,8 @@ export function nextStep() {
         
         if (nextStepConfig.preAction) {
             nextStepConfig.preAction();
-        }
-
-        state.ui.onboarding.step = nextStepIndex;
-        // The preAction might have changed the hash, which triggers renderApp.
-        // If not, we trigger it manually.
-        if (!nextStepConfig.preAction) {
+        } else {
+            state.ui.onboarding.step = nextStepIndex;
             renderApp();
         }
     }
