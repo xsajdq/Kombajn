@@ -17,7 +17,7 @@ export function handleWorkspaceSwitch(workspaceId: string) {
         localStorage.setItem('activeWorkspaceId', workspaceId);
         closeSidePanels(false);
         state.currentPage = 'dashboard';
-        window.location.hash = '#/dashboard';
+        history.pushState({}, '', '/dashboard');
         renderApp();
         // Re-subscribe to realtime channels for the new workspace context
         subscribeToRealtimeUpdates();
@@ -79,7 +79,7 @@ export async function handleCreateWorkspace(name: string) {
         state.activeWorkspaceId = newWorkspace.id;
         state.currentPage = 'dashboard';
         localStorage.setItem('activeWorkspaceId', newWorkspace.id);
-        window.location.hash = '#/dashboard';
+        history.pushState({}, '', '/dashboard');
         
         renderApp();
 

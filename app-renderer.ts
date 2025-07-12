@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -11,7 +12,9 @@ import { AppHeader } from './components/AppHeader.ts';
 import { CommandPalette } from './components/CommandPalette.ts';
 import { FloatingActionButton } from './components/FloatingActionButton.ts';
 import { MentionPopover } from './components/MentionPopover.ts';
-import { initReportsPage, initTasksPage, initDashboardCharts } from './pages.ts';
+import { initReportsPage } from './pages/ReportsPage.ts';
+import { initTasksPage } from './pages/TasksPage.ts';
+import { initDashboardCharts } from './pages/DashboardPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
 
