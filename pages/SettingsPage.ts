@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -206,9 +207,9 @@ export function SettingsPage() {
                     let connectionStatus = '';
                     if (int.instance?.isActive) {
                         if (int.provider === 'slack') {
-                            connectionStatus = t('integrations.connected_to').replace('{workspaceName}', int.instance.settings.slackWorkspaceName || 'Slack');
+                            connectionStatus = t('integrations.connected_to').replace('{workspaceName}', int.instance?.settings?.slackWorkspaceName || 'Slack');
                         } else if (int.provider === 'google_drive') {
-                            connectionStatus = t('integrations.connected_as').replace('{email}', int.instance.settings.googleUserEmail || '');
+                            connectionStatus = t('integrations.connected_as').replace('{email}', int.instance?.settings?.googleUserEmail || '');
                         }
                     }
 
