@@ -1,4 +1,5 @@
-// api/auth/callback/google.ts
+
+// api/_handlers/auth/callback-google.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../../_lib/supabaseAdmin';
 

@@ -1,4 +1,5 @@
-// api/auth/connect/google.ts
+
+// api/_handlers/auth/connect-google.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {

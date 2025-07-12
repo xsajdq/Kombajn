@@ -304,7 +304,7 @@ export function t(key: string): string {
         return findTranslation(nextObj, rest);
     };
 
-    const translationObject = translations[lang];
+    const translationObject = (translations as any)[lang];
     const result = findTranslation(translationObject, keys);
 
     if (result === undefined) {

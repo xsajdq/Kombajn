@@ -1,4 +1,5 @@
-// api/auth/callback/slack.ts
+
+// api/_handlers/auth/callback-slack.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../../_lib/supabaseAdmin';
 

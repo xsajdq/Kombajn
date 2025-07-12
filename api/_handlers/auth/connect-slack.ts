@@ -1,4 +1,5 @@
-// api/auth/connect/slack.ts
+
+// api/_handlers/auth/connect-slack.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {

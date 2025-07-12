@@ -1,6 +1,7 @@
-// api/auth/update-password.ts
+
+// api/_handlers/auth/update-password.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
+import { getSupabaseAdmin } from '../../_lib/supabaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
