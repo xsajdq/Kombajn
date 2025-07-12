@@ -292,16 +292,25 @@ const translations = {
 
 export function t(key: string): string {
     const lang = state.settings.language;
-    const path = key.split('.');
-    let current: any = translations[lang as keyof typeof translations];
-
-    for (const segment of path) {
-        if (typeof current !== 'object' || current === null || current[segment] === undefined) {
-            console.warn(`Translation not found for key: ${key} in language: ${lang}`);
-            return key;
+    const keys = key.split('.');
+    
+    // A recursive helper to safely traverse the translation object
+    const findTranslation = (obj: any, path: string[]): string | undefined => {
+        if (!obj || path.length === 0) {
+            return typeof obj === 'string' ? obj : undefined;
         }
-        current = current[segment];
-    }
+        const [currentKey, ...rest] = path;
+        const nextObj = obj[currentKey];
+        return findTranslation(nextObj, rest);
+    };
 
-    return String(current);
+    const translationObject = translations[lang];
+    const result = findTranslation(translationObject, keys);
+
+    if (result === undefined) {
+        console.warn(`Translation not found for key: ${key} in language: ${lang}`);
+        return key; // Fallback to the key itself
+    }
+    
+    return result;
 }
