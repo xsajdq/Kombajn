@@ -1,6 +1,8 @@
 
 
 
+
+
 export interface User {
     id: string;
     name?: string;
@@ -415,7 +417,13 @@ export interface Integration {
     isActive: boolean;
     settings: {
         accessToken?: string;
+        refreshToken?: string;
+        tokenExpiry?: number; // Unix timestamp in seconds
+        // Slack specific
         slackWorkspaceName?: string;
+        slackTeamId?: string;
+        slackBotUserId?: string;
+        // Google specific
         googleUserEmail?: string;
     };
 }
