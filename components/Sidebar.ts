@@ -40,7 +40,7 @@ export function Sidebar() {
             const isActive = state.currentPage === item.id;
             return `
             <li class="nav-item">
-              <a href="#/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+              <a href="/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
                 <span class="material-icons-sharp">${item.icon}</span>
                 <span class="nav-text">${item.text}</span>
               </a>
@@ -55,7 +55,7 @@ export function Sidebar() {
                 const isActive = state.currentPage === item.id;
                 return `
                 <li class="nav-item">
-                  <a href="#/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+                  <a href="/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
                     <span class="material-icons-sharp">${item.icon}</span>
                     <span class="nav-text">${item.text}</span>
                   </a>
