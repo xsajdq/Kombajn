@@ -1,5 +1,4 @@
 
-
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -13,7 +12,7 @@ export async function initSupabase() {
     if (supabase) return;
 
     try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/app-config');
         
         // Try to get a JSON body regardless of response status
         const responseBody = await response.json().catch(() => null);

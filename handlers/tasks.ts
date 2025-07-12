@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
@@ -294,7 +289,7 @@ export async function handleAttachGoogleDriveFile(taskId: string) {
 
     try {
         // Fetch the OAuth token from our secure backend endpoint
-        const { token, developerKey, clientId } = await apiFetch(`/api/integrations/token?provider=google_drive&workspaceId=${task.workspaceId}`);
+        const { token, developerKey, clientId } = await apiFetch(`/api/app-config?action=token&provider=google_drive&workspaceId=${task.workspaceId}`);
         if (!token || !developerKey || !clientId) {
             throw new Error('Missing necessary credentials from backend to show picker.');
         }
