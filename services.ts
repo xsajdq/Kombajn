@@ -14,20 +14,12 @@ export async function handleAiTaskGeneration(promptText: string) {
     renderApp();
 
     try {
-        const response = await fetch('/api/actions?action=generate-tasks', {
+        const response = await apiFetch('/api/actions?action=generate-tasks', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({ promptText }),
         });
 
-        if (!response.ok) {
-            const errorResult = await response.json();
-            throw new Error(errorResult.error || 'Failed to generate tasks from AI.');
-        }
-
-        const parsedData = await response.json() as AiSuggestedTask[];
+        const parsedData = response as AiSuggestedTask[];
 
         if (Array.isArray(parsedData) && parsedData.every(item => typeof item.name === 'string' && typeof item.description === 'string')) {
             state.ai.suggestedTasks = parsedData;
