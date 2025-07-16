@@ -1,486 +1,1778 @@
-/* COMPONENTS */
-.notification-wrapper {
-    position: relative;
+@import url('themes.css');
+@import url('layout.css');
+@import url('components.css');
+@import url('pages.css');
+@import url('onboarding.css');--- START OF FILE handlers/reports.ts ---
+
+
+import { t } from '../i18n.ts';
+
+declare const jspdf: any;
+
+function tableToCSV(table: HTMLTableElement): string {
+    let csv = [];
+    const rows = table.querySelectorAll("tr");
+    
+    for (const row of rows) {
+        const rowData: string[] = [];
+        const cols = row.querySelectorAll("td, th");
+        for (const col of cols) {
+            // Clean up text content and handle potential commas
+            let text = col.textContent?.trim().replace(/"/g, '""') ?? '';
+            if (text.includes(',')) {
+                text = `"${text}"`;
+            }
+            rowData.push(text);
+        }
+        csv.push(rowData.join(","));
+    }
+    
+    return csv.join("\n");
 }
-#notification-bell {
-    position: relative;
+
+function downloadFile(content: string, fileName: string, mimeType: string) {
+     const blob = new Blob([content], { type: mimeType });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
-.notification-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background-color: var(--danger-color);
-    color: var(--white-color);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 700;
-    border: 2px solid var(--content-bg);
+
+export function handleExportCsv(e: MouseEvent) {
+    const table = (e.target as HTMLElement).closest('.card')?.querySelector('table');
+    if (!table) { 
+        alert('Could not find table to export.'); 
+        return; 
+    }
+    const title = (e.target as HTMLElement).closest('.card')?.querySelector('h4')?.textContent || 'report';
+    const csvContent = tableToCSV(table);
+    const fileName = `${title.replace(/\s/g, '_').toLowerCase()}.csv`;
+    downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
 }
-.notifications-popover {
-    position: absolute;
-    top: calc(100% + 12px);
-    right: 0;
-    width: 380px;
-    background-color: var(--content-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    z-index: 1100;
+
+export function handleExportPdf(e: MouseEvent) {
+    const table = (e.target as HTMLElement).closest('.card')?.querySelector('table');
+    const title = (e.target as HTMLElement).closest('.card')?.querySelector('h4')?.textContent || 'Report';
+    if (!table) { 
+        alert('Could not find table to export.'); 
+        return;
+    }
+    
+    const { jsPDF } = jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+
+    (doc as any).autoTable({ 
+        html: table, 
+        startY: 30,
+        theme: 'grid',
+        headStyles: { fillColor: [44, 62, 80] } // Dark gray color
+    });
+    
+    doc.save(`${title.replace(/\s/g, '_').toLowerCase()}.pdf`);
+}--- START OF FILE handlers/automations.ts ---
+
+
+
+import { state } from '../state.ts';
+import { renderApp } from '../app-renderer.ts';
+import type { Task, Automation } from '../types.ts';
+import { apiPost, apiPut } from '../services/api.ts';
+
+export async function runAutomations(triggerType: 'statusChange', data: { task: Task }) {
+    if (triggerType !== 'statusChange') return;
+
+    const { task } = data;
+    const automationsForProject = state.automations.filter(a => a.projectId === task.projectId);
+
+    let changed = false;
+    
+    const existingAssignee = state.taskAssignees.find(a => a.taskId === task.id);
+    let newAssigneeId: string | null = existingAssignee ? existingAssignee.userId : null;
+
+    automationsForProject.forEach(automation => {
+        if (automation.trigger.type === 'statusChange' && automation.trigger.status === task.status) {
+            if (automation.action.type === 'assignUser') {
+                newAssigneeId = automation.action.userId;
+                changed = true;
+            }
+        }
+    });
+
+    if (changed) {
+        const oldAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
+        // Optimistic update
+        state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
+        if (newAssigneeId) {
+            state.taskAssignees.push({ taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
+        }
+        renderApp();
+        
+        try {
+            // Persist the change triggered by the automation
+            // Delete old assignees
+            for (const old of oldAssignees) {
+                await apiPost('task_assignees/delete', { taskId: old.taskId, userId: old.userId });
+            }
+            // Add new assignee
+            if (newAssigneeId) {
+                await apiPost('task_assignees', { taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
+            }
+        } catch (error) {
+            console.error("Failed to persist automation-triggered change:", error);
+            // Optionally revert the state change here
+            state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
+            state.taskAssignees.push(...oldAssignees);
+            renderApp();
+        }
+    }
+}
+
+export async function handleAddAutomation(projectId: string, triggerStatus: Task['status'], actionUserId: string) {
+    if (!state.activeWorkspaceId) return;
+
+    const newAutomationPayload: Omit<Automation, 'id'> = {
+        workspaceId: state.activeWorkspaceId,
+        projectId,
+        trigger: {
+            type: 'statusChange',
+            status: triggerStatus,
+        },
+        action: {
+            type: 'assignUser',
+            userId: actionUserId,
+        },
+    };
+
+    try {
+        const [savedAutomation] = await apiPost('automations', newAutomationPayload);
+        state.automations.push(savedAutomation);
+        renderApp();
+    } catch(error) {
+        console.error("Failed to add automation:", error);
+        alert("Could not add automation.");
+    }
+}
+
+export async function handleDeleteAutomation(automationId: string) {
+    const automationIndex = state.automations.findIndex(a => a.id === automationId);
+    if (automationIndex === -1) return;
+
+    const [removedAutomation] = state.automations.splice(automationIndex, 1);
+    renderApp();
+
+    try {
+        await apiPost('automations/delete', { id: automationId });
+    } catch (error) {
+        state.automations.splice(automationIndex, 0, removedAutomation);
+        renderApp();
+        alert("Could not delete automation.");
+    }
+}--- START OF FILE handlers/dashboard.ts ---
+
+
+
+import { state } from '../state.ts';
+import { renderApp } from '../app-renderer.ts';
+import { showModal, closeModal } from './ui.ts';
+import type { DashboardWidget, DashboardWidgetType } from '../types.ts';
+import { apiFetch, apiPost, apiPut } from '../services/api.ts';
+
+export function toggleEditMode() {
+    state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
+    renderApp();
+}
+
+export async function addWidget(type: DashboardWidgetType) {
+    if (!state.currentUser || !state.activeWorkspaceId) return;
+
+    const userWidgets = state.dashboardWidgets.filter(w => 
+        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
+    );
+    
+    const maxSortOrder = userWidgets.reduce((max, w) => Math.max(max, w.sortOrder || 0), 0);
+
+    const newWidgetPayload = {
+        userId: state.currentUser.id,
+        workspaceId: state.activeWorkspaceId,
+        type,
+        x: 0,
+        y: 0,
+        w: 6, 
+        h: 4,
+        sortOrder: maxSortOrder + 1,
+        config: {}
+    };
+    
+    try {
+        const [savedWidget] = await apiPost('dashboard_widgets', newWidgetPayload);
+        state.dashboardWidgets.push(savedWidget);
+        closeModal();
+    } catch (error) {
+        console.error("Failed to add widget:", error);
+        alert("Could not add widget.");
+    }
+}
+
+export async function removeWidget(widgetId: string) {
+    const widgetIndex = state.dashboardWidgets.findIndex(w => w.id === widgetId);
+    if (widgetIndex === -1) return;
+
+    const [removedWidget] = state.dashboardWidgets.splice(widgetIndex, 1);
+    renderApp();
+    try {
+        await apiFetch(`/api/data/dashboard_widgets`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: widgetId }),
+        });
+    } catch (error) {
+        state.dashboardWidgets.splice(widgetIndex, 0, removedWidget);
+        renderApp();
+        alert("Could not remove widget.");
+    }
+}
+
+export function showConfigureWidgetModal(widgetId: string) {
+    const widget = state.dashboardWidgets.find(w => w.id === widgetId);
+    if (widget) {
+        showModal('configureWidget', { widget });
+    }
+}
+
+export async function handleWidgetConfigSave(widgetId: string) {
+    const widget = state.dashboardWidgets.find(w => w.id === widgetId);
+    if (!widget) return;
+
+    const originalConfig = { ...widget.config };
+    let newConfig = { ...originalConfig };
+
+    if (widget.type === 'projectStatus') {
+        const select = document.getElementById('widget-project-select') as HTMLSelectElement;
+        if (select) {
+            newConfig.projectId = select.value;
+        }
+    }
+    
+    widget.config = newConfig;
+
+    try {
+        await apiPut('dashboard_widgets', { id: widgetId, config: newConfig });
+        closeModal();
+    } catch(error) {
+        widget.config = originalConfig; // Revert
+        alert("Failed to save widget configuration.");
+        renderApp();
+    }
+}
+
+// DND Handlers
+let draggedWidgetId: string | null = null;
+
+export function handleWidgetDragStart(e: DragEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.classList.contains('widget-card') || !state.ui.dashboard.isEditing) return;
+    draggedWidgetId = target.dataset.widgetId!;
+    target.classList.add('dragging');
+    e.dataTransfer!.effectAllowed = 'move';
+}
+
+export function handleWidgetDragEnd(e: DragEvent) {
+    const target = e.target as HTMLElement;
+    if (target.classList) {
+        target.classList.remove('dragging');
+    }
+    document.querySelectorAll('.widget-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    draggedWidgetId = null;
+}
+
+export function handleWidgetDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (!state.ui.dashboard.isEditing) return;
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
+    if (target && target.dataset.widgetId !== draggedWidgetId) {
+        document.querySelectorAll('.widget-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+    }
+}
+
+export async function handleWidgetDrop(e: DragEvent) {
+    e.preventDefault();
+    if (!state.ui.dashboard.isEditing) return;
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
+    if (!dropTargetElement || !draggedWidgetId) return;
+
+    const dropTargetId = dropTargetElement.dataset.widgetId!;
+    dropTargetElement.classList.remove('drag-over');
+
+    const userWidgets = state.dashboardWidgets.filter(w => w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    
+    const draggedIndex = userWidgets.findIndex(w => w.id === draggedWidgetId);
+    const targetIndex = userWidgets.findIndex(w => w.id === dropTargetId);
+
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+        return;
+    }
+
+    const originalWidgets = JSON.parse(JSON.stringify(state.dashboardWidgets));
+    
+    const [draggedItem] = userWidgets.splice(draggedIndex, 1);
+    userWidgets.splice(targetIndex, 0, draggedItem);
+    
+    userWidgets.forEach((widget, index) => {
+        const globalWidget = state.dashboardWidgets.find(w => w.id === widget.id);
+        if (globalWidget) {
+            globalWidget.sortOrder = index;
+        }
+    });
+
+    renderApp();
+
+    try {
+        await Promise.all(
+            userWidgets.map((widget, index) =>
+                apiPut('dashboard_widgets', {
+                    id: widget.id,
+                    sortOrder: index,
+                })
+            )
+        );
+    } catch (error) {
+        console.error("Could not save widget order:", error);
+        alert("Could not save the new widget layout.");
+        state.dashboardWidgets = originalWidgets;
+        renderApp();
+    }
+}
+
+export async function handleGridColumnsChange(columns: number) {
+    if (!state.activeWorkspaceId) return;
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!workspace) return;
+    
+    const originalColumns = workspace.dashboardGridColumns;
+    workspace.dashboardGridColumns = columns;
+    renderApp();
+
+    try {
+        await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: columns });
+    } catch (error) {
+        console.error("Failed to save grid column preference:", error);
+        workspace.dashboardGridColumns = originalColumns;
+        renderApp();
+        alert("Could not save your grid layout preference.");
+    }
+}
+
+export async function handleWidgetResize(widgetId: string, direction: 'increase' | 'decrease') {
+    const widget = state.dashboardWidgets.find(w => w.id === widgetId);
+    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!widget || !workspace) return;
+    
+    const gridCols = workspace.dashboardGridColumns || 12;
+    const originalWidth = widget.w;
+    
+    let newWidth = widget.w + (direction === 'increase' ? 1 : -1);
+    newWidth = Math.max(1, Math.min(newWidth, gridCols)); // Clamp between 1 and max columns
+
+    if (newWidth === originalWidth) return;
+
+    widget.w = newWidth;
+    renderApp();
+
+    try {
+        await apiPut('dashboard_widgets', { id: widget.id, w: newWidth });
+    } catch (error) {
+        console.error("Failed to save widget width:", error);
+        alert("Could not save widget size.");
+        widget.w = originalWidth;
+        renderApp();
+    }
+}--- START OF FILE pages/ChatPage.ts ---
+
+
+
+
+import { state } from '../state.ts';
+import { t } from '../i18n.ts';
+import { formatDate } from '../utils.ts';
+import type { Channel, ChatMessage, User } from '../types.ts';
+
+function renderChatMessage(message: ChatMessage) {
+    const user = state.users.find(u => u.id === message.userId);
+    if (!user) return '';
+
+    const renderMessageBody = (content: string) => {
+        const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
+        const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
+        return `<p>${html}</p>`;
+    };
+
+    return `
+        <div class="message-item">
+            <div class="avatar">${user.initials}</div>
+            <div class="message-content">
+                <div class="message-header">
+                    <strong>${user.name}</strong>
+                    <span class="time">${formatDate(message.createdAt, { hour: 'numeric', minute: 'numeric' })}</span>
+                </div>
+                <div class="message-body">
+                    ${renderMessageBody(message.content)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+export function ChatPage() {
+    const { activeWorkspaceId, currentUser } = state;
+    const { activeChannelId } = state.ui;
+    if (!activeWorkspaceId || !currentUser) {
+        return `<p>Loading...</p>`;
+    }
+
+    const channels = state.channels
+        .filter(c => c.workspaceId === activeWorkspaceId)
+        .sort((a, b) => (a.projectId ? 1 : -1) - (b.projectId ? 1 : -1) || a.name.localeCompare(b.name));
+    
+    const activeChannel = channels.find(c => c.id === activeChannelId);
+    
+    const messages = state.chatMessages
+        .filter(m => m.channelId === activeChannelId)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    return `
+        <div class="chat-layout">
+            <aside class="chat-sidebar">
+                <h3>${t('sidebar.chat')}</h3>
+                <ul class="channel-list">
+                    ${channels.map(channel => `
+                        <li class="channel-item ${channel.id === activeChannelId ? 'active' : ''}" data-channel-id="${channel.id}">
+                            <span class="material-icons-sharp">${channel.projectId ? 'folder' : 'public'}</span>
+                            <span>${channel.name}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </aside>
+            <main class="chat-main">
+                ${activeChannel ? `
+                    <div class="chat-header">
+                        <h4>${activeChannel.name}</h4>
+                    </div>
+                    <div class="message-list">
+                        <div class="message-list-inner">
+                            ${messages.map(renderChatMessage).join('')}
+                        </div>
+                    </div>
+                    <div class="chat-form-container">
+                        <form id="chat-form" class="chat-form">
+                            <div class="rich-text-input-container">
+                                <div id="chat-message-input" class="rich-text-input" contenteditable="true" role="textbox" aria-multiline="false" data-placeholder="${t('modals.add_comment')}"></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="chat-send-btn">
+                                <span class="material-icons-sharp">send</span>
+                            </button>
+                        </form>
+                    </div>
+                ` : `
+                    <div class="empty-state">
+                        <p>Select a channel to start chatting.</p>
+                    </div>
+                `}
+            </main>
+        </div>
+    `;
+}--- START OF FILE pages/TeamCalendarPage.ts ---
+
+
+
+import { state } from '../state.ts';
+import { t } from '../i18n.ts';
+import type { Task, TimeOffRequest, CalendarEvent } from '../types.ts';
+import { fetchPublicHolidays } from '../handlers/calendar.ts';
+import { formatDate } from '../utils.ts';
+
+function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
+    let className = 'team-calendar-item';
+    let text = '';
+    let handler = '';
+    let title = '';
+
+    if ('status' in item && 'projectId' in item) { // Task
+        className += ` type-task clickable priority-${item.priority || 'low'}`;
+        text = item.name;
+        handler = `data-task-id="${item.id}"`;
+        title = item.name;
+    } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
+        const user = state.users.find(u => u.id === item.userId);
+        const userName = user?.name || user?.initials || 'User';
+        const colorIndex = item.userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 8;
+        className += ` type-timeoff color-${colorIndex}`;
+        text = `${userName}`;
+        title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
+        handler = `title="${title}"`;
+    } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
+        const event = item as CalendarEvent;
+        className += ` type-${event.type || 'event'}`;
+        text = event.title;
+        title = `${t(`team_calendar.${event.type || 'event'}`)}: ${event.title}`;
+        handler = `title="${title}"`;
+    } else if ('name' in item && 'date' in item) { // PublicHoliday
+        className += ' type-public-holiday';
+        text = item.name;
+        title = `${t('team_calendar.public_holiday')}: ${item.name}`;
+        handler = `title="${title}"`;
+    }
+
+    return `<div class="${className}" ${handler}>${text}</div>`;
+}
+
+// New helper to get all items for a given date string (YYYY-MM-DD)
+function getItemsForDay(dayDateString: string) {
+    const dayDate = new Date(dayDateString + 'T12:00:00Z');
+    const items: (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[] = [];
+    
+    // Tasks with due date
+    items.push(...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.dueDate === dayDateString));
+    
+    // Time off requests spanning this day
+    items.push(...state.timeOffRequests.filter(to => {
+        if (to.workspaceId !== state.activeWorkspaceId || to.status !== 'approved') return false;
+        const start = new Date(to.startDate + 'T00:00:00Z');
+        const end = new Date(to.endDate + 'T23:59:59Z');
+        return dayDate >= start && dayDate <= end;
+    }));
+    
+    // Calendar events spanning this day
+    items.push(...state.calendarEvents.filter(e => {
+        if (e.workspaceId !== state.activeWorkspaceId) return false;
+        const start = new Date(e.startDate + 'T00:00:00Z');
+        const end = new Date(e.endDate + 'T23:59:59Z');
+        return dayDate >= start && dayDate <= end;
+    }));
+    
+    // Public holidays
+    items.push(...state.publicHolidays.filter(h => h.date === dayDateString));
+    
+    return items;
+}
+
+
+// --- MONTH VIEW ---
+function renderMonthView(year: number, month: number) {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    // Sunday is 0, so we adjust to make Monday 0
+    const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7; 
+    const today = new Date();
+
+    let daysHtml = '';
+    for (let i = 0; i < firstDayIndex; i++) {
+        daysHtml += `<div class="calendar-day other-month"></div>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = today.getFullYear() === year && today.getMonth() === month - 1 && today.getDate() === day;
+        const itemsForDay = getItemsForDay(dayDateString);
+
+        daysHtml += `
+            <div class="calendar-day ${isToday ? 'today' : ''}">
+                <div class="day-number">${day}</div>
+                <div class="calendar-items">
+                    ${itemsForDay.map(renderCalendarItem).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    const totalCells = firstDayIndex + daysInMonth;
+    const remainingCells = (7 - (totalCells % 7)) % 7;
+    for (let i = 0; i < remainingCells; i++) {
+        daysHtml += `<div class="calendar-day other-month"></div>`;
+    }
+
+    return `
+        <div class="calendar-grid-month">
+            <div class="calendar-weekday">${t('calendar.weekdays.mon')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.tue')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.wed')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.thu')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.fri')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.sat')}</div>
+            <div class="calendar-weekday">${t('calendar.weekdays.sun')}</div>
+            ${daysHtml}
+        </div>
+    `;
+}
+
+// --- WEEK VIEW ---
+function renderWeekView(currentDate: Date) {
+    const weekDays: Date[] = [];
+    const dayOfWeek = (currentDate.getDay() + 6) % 7; // Monday = 0
+    const startDate = new Date(currentDate);
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        weekDays.push(d);
+    }
+
+    let daysHtml = '';
+    for (const dayDate of weekDays) {
+        const dayDateString = dayDate.toISOString().slice(0, 10);
+        const itemsForDay = getItemsForDay(dayDateString);
+        daysHtml += `
+            <div class="week-view-day-column">
+                <div class="week-view-day-header">
+                    <strong>${t(`calendar.weekdays.${dayDate.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
+                    <span>${dayDate.getDate()}</span>
+                </div>
+                <div class="calendar-items">
+                    ${itemsForDay.map(renderCalendarItem).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    return `<div class="calendar-grid-week">${daysHtml}</div>`;
+}
+
+// --- DAY VIEW ---
+function renderDayView(currentDate: Date) {
+    const dayDateString = currentDate.toISOString().slice(0, 10);
+    const itemsForDay = getItemsForDay(dayDateString);
+    
+    return `
+        <div class="day-view-list">
+            ${itemsForDay.length > 0
+                ? itemsForDay.map(renderCalendarItem).join('')
+                : `<div class="empty-state" style="padding: 2rem; border: none;"><p>${t('misc.no_events_for_day')}</p></div>`
+            }
+        </div>
+    `;
+}
+
+export async function TeamCalendarPage() {
+    const { teamCalendarDate, teamCalendarView } = state.ui;
+    const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+
+    // Fetch holidays for current, previous and next year to handle navigation
+    await Promise.all([
+        fetchPublicHolidays(year - 1),
+        fetchPublicHolidays(year),
+        fetchPublicHolidays(year + 1)
+    ]);
+    
+    let viewTitle = '';
+    let viewContent = '';
+
+    switch (teamCalendarView) {
+        case 'month':
+            viewTitle = currentDate.toLocaleString(state.settings.language, { month: 'long', year: 'numeric' });
+            viewContent = renderMonthView(year, month);
+            break;
+        case 'week':
+            const weekStart = new Date(currentDate);
+            const dayOfWeek = (weekStart.getDay() + 6) % 7;
+            weekStart.setDate(weekStart.getDate() - dayOfWeek);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            viewTitle = `${formatDate(weekStart.toISOString())} - ${formatDate(weekEnd.toISOString())}`;
+            viewContent = renderWeekView(currentDate);
+            break;
+        case 'day':
+            viewTitle = formatDate(currentDate.toISOString(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            viewContent = renderDayView(currentDate);
+            break;
+    }
+    
+    return `
+        <div>
+            <div class="kanban-header">
+                <h2>${t('team_calendar.title')}</h2>
+                <div>
+                     <button class="btn btn-secondary" data-modal-target="addTimeOffRequest">
+                        <span class="material-icons-sharp">flight_takeoff</span>
+                        ${t('team_calendar.add_leave')}
+                    </button>
+                    <button class="btn btn-primary" data-modal-target="addCalendarEvent">
+                        <span class="material-icons-sharp">add</span> ${t('team_calendar.add_event')}
+                    </button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="calendar-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button class="btn-icon" data-calendar-nav="prev" data-target-calendar="team" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
+                        <button class="btn-icon" data-calendar-nav="next" data-target-calendar="team" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
+                         <h4 class="calendar-title">${viewTitle}</h4>
+                    </div>
+                    <div class="view-switcher">
+                        <button class="btn btn-secondary" data-team-calendar-view="month" ${teamCalendarView === 'month' ? 'disabled' : ''}>${t('calendar.month_view')}</button>
+                        <button class="btn btn-secondary" data-team-calendar-view="week" ${teamCalendarView === 'week' ? 'disabled' : ''}>${t('calendar.week_view')}</button>
+                        <button class="btn btn-secondary" data-team-calendar-view="day" ${teamCalendarView === 'day' ? 'disabled' : ''}>${t('calendar.day_view')}</button>
+                    </div>
+                </div>
+                ${viewContent}
+            </div>
+        </div>
+    `;
+}--- START OF FILE pages/SalesPage.ts ---
+
+
+
+import { state } from '../state.ts';
+import { t } from '../i18n.ts';
+import { can } from '../permissions.ts';
+import type { Deal } from '../types.ts';
+
+function renderDealCard(deal: Deal) {
+    const client = state.clients.find(c => c.id === deal.clientId);
+    const owner = state.users.find(u => u.id === deal.ownerId);
+
+    // Format currency to be more readable
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat(state.settings.language === 'pl' ? 'pl-PL' : 'en-US', {
+            style: 'currency',
+            currency: 'PLN', // Assuming PLN for now
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(value);
+    }
+
+    return `
+        <div class="deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true">
+            <p class="deal-card-name">${deal.name}</p>
+            <p class="deal-card-value">${formatCurrency(deal.value)}</p>
+            <div class="deal-card-client">
+                <span class="material-icons-sharp icon-sm">business</span>
+                <span>${client?.name || t('misc.no_client')}</span>
+            </div>
+            <div class="deal-card-footer">
+                ${owner ? `
+                    <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
+                ` : `
+                    <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
+                         <span class="material-icons-sharp icon-sm">person_outline</span>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+export function SalesPage() {
+    const canManage = can('manage_deals');
+
+    const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
+    
+    const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
+
+    const dealsByStage: { [key in Deal['stage']]: Deal[] } = {
+        lead: [], contacted: [], demo: [], proposal: [], won: [], lost: [],
+    };
+
+    deals.forEach(deal => {
+        if (dealsByStage[deal.stage]) {
+            dealsByStage[deal.stage].push(deal);
+        }
+    });
+
+    return `
+        <div>
+            <div class="kanban-header">
+                <h2>${t('sales.title')}</h2>
+                <button class="btn btn-primary" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
+                    <span class="material-icons-sharp">add</span> ${t('sales.new_deal')}
+                </button>
+            </div>
+            <div class="sales-board">
+                ${stages.map(stage => {
+                    const columnDeals = dealsByStage[stage];
+                    const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
+
+                    return `
+                        <div class="kanban-column" data-stage="${stage}" data-stage-color="${stage}">
+                            <h4>${t(`sales.stage_${stage}`)}</h4>
+                             <div class="subtle-text" style="font-weight: 600; padding: 0 0.5rem 1rem;">
+                                ${new Intl.NumberFormat('pl-PL').format(totalValue)} PLN (${columnDeals.length})
+                            </div>
+                            <div class="kanban-tasks">
+                                ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="empty-kanban-column" style="padding:1rem; text-align:center; color: var(--subtle-text-color);">${t('sales.no_deals')}</div>`}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}--- START OF FILE api/data/[resource].ts ---
+
+
+// Plik: api/data/[resource].ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
+
+const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts'];
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const resource = req.query.resource as string;
+
+  try {
+    const supabase = getSupabaseAdmin();
+    
+    // 1. Authenticate FIRST for all requests.
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'Authentication token required.' });
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+        return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
+    }
+    
+    // 2. Validate resource
+    if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) {
+        return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
+    }
+    
+    const bodyInSnakeCase = req.body ? keysToSnake(req.body) : req.body;
+
+    switch (req.method) {
+        case 'GET': {
+            const { data, error } = await (supabase.from(resource) as any).select('*');
+            if (error) throw error;
+            return res.status(200).json(data);
+        }
+        case 'POST': {
+            const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
+            if (error) throw error;
+            return res.status(201).json(data);
+        }
+        case 'PUT': {
+            const recordToUpdate = { ...bodyInSnakeCase };
+            const id = recordToUpdate.id; 
+            if (id) delete recordToUpdate.id;
+            const updateData = recordToUpdate;
+
+            if (!id) return res.status(400).json({ error: 'ID is required for update' });
+            
+            const query = (supabase.from(resource) as any).update(updateData).eq('id', id);
+
+            // Add an ownership check for dashboard widgets for extra security
+            if (resource === 'dashboard_widgets') {
+                query.eq('user_id', user.id);
+            }
+
+            const { data, error } = await query.select();
+            if (error) throw error;
+            return res.status(200).json(data);
+        }
+        case 'DELETE': {
+            const body = req.body;
+             // Handle composite key deletion for join tables
+            if (resource === 'task_assignees' || resource === 'task_tags') {
+                const { taskId, userId, tagId } = body;
+                let query = (supabase.from(resource) as any).delete().eq('task_id', taskId);
+                if (userId) query = query.eq('user_id', userId);
+                if (tagId) query = query.eq('tag_id', tagId);
+                
+                const { error } = await query;
+                if (error) throw error;
+                return res.status(204).send(undefined);
+            }
+
+            // Original logic for single ID deletion
+            const { id } = body;
+            if (!id) return res.status(400).json({ error: 'ID is required for delete' });
+            
+            const query = (supabase.from(resource) as any).delete().eq('id', id);
+
+            // Add an ownership check for dashboard widgets for extra security
+            if (resource === 'dashboard_widgets') {
+                query.eq('user_id', user.id);
+            }
+
+            const { error } = await query;
+            if (error) throw error;
+            
+            return res.status(204).send(undefined);
+        }
+        default:
+            res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+            return res.status(405).end('Method Not Allowed');
+    }
+  } catch(error: any) {
+     console.error(`Error with resource ${resource}:`, error);
+     const errorMessage = error.message || 'An internal server error occurred.';
+     return res.status(500).json({ error: errorMessage });
+  }
+}--- START OF FILE services/api.ts ---
+
+
+// File: services/api.ts
+import { keysToCamel } from '../utils.ts';
+import { supabase } from './supabase.ts';
+
+export async function apiFetch(resource: string, options: RequestInit = {}) {
+    if (!supabase) {
+        throw new Error("Supabase client is not initialized.");
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
+    const headers = new Headers(options.headers || {});
+    
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+    if (!headers.has('Content-Type') && options.body) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    // Combine headers with the rest of the options without spreading the top-level object
+    const finalOptions: RequestInit = {
+        ...options,
+        headers: headers
+    };
+
+    const response = await fetch(resource, finalOptions);
+
+    if (response.status === 204) { // Handle No Content response
+        return null;
+    }
+
+    // Try to parse JSON body, which may exist for both success and error responses
+    const data = await response.json().catch(() => ({ 
+        error: `Request to ${resource} failed with status ${response.status}: ${response.statusText}` 
+    }));
+
+    if (!response.ok) {
+        throw new Error(data.error || `Request to ${resource} failed with status ${response.status}`);
+    }
+
+    return keysToCamel(data);
+}
+
+
+export function apiPost(resource: string, body: any) {
+    return apiFetch(`/api/data/${resource}`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
+}
+
+export function apiPut(resource: string, body: any) {
+    return apiFetch(`/api/data/${resource}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+    });
+}--- START OF FILE services/auth.ts ---
+
+
+// File: services/auth.ts
+import { state } from '../state.ts';
+import { renderApp } from '../app-renderer.ts';
+import type { User } from '../types.ts';
+import { apiFetch } from './api.ts';
+import { unsubscribeAll, supabase, initSupabase } from './supabase.ts';
+
+export async function login(email: string, password: string): Promise<void> {
+    const data = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+    });
+
+    if (!supabase) throw new Error("Supabase client not initialized.");
+
+    // The backend API returns a session object. We set it in the client.
+    // The apiFetch function has already converted snake_case to camelCase.
+    await supabase.auth.setSession({
+        access_token: data.session.accessToken,
+        refresh_token: data.session.refreshToken,
+    });
+    
+    state.currentUser = data.user;
+}
+
+export async function signup(name: string, email: string, password: string): Promise<void> {
+    const data = await apiFetch('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password })
+    });
+    
+    if (!supabase) throw new Error("Supabase client not initialized.");
+
+    // The backend API returns a session object. We set it in the client.
+    await supabase.auth.setSession({
+        access_token: data.session.accessToken,
+        refresh_token: data.session.refreshToken,
+    });
+    state.currentUser = data.user;
+}
+
+export async function logout(): Promise<void> {
+    await unsubscribeAll();
+    
+    if (supabase) {
+        await supabase.auth.signOut();
+    }
+    
+    state.currentUser = null;
+    state.currentPage = 'auth';
+    // Reset state to initial to clear all user data
+    Object.assign(state, {
+        ...state, // keep settings
+        currentPage: 'auth',
+        currentUser: null,
+        activeWorkspaceId: null,
+        workspaces: [],
+        workspaceMembers: [],
+        users: [],
+        // Reset all data arrays
+        clients: [], projects: [], tasks: [], timeLogs: [], invoices: [],
+        comments: [], notifications: [], deals: [], // etc.
+    });
+    renderApp();
+}
+
+export async function validateSession(): Promise<User | null> {
+    if (!supabase) {
+        // This can happen on first load, ensure supabase is initialized
+        await initSupabase();
+    }
+    if (!supabase) {
+        console.error("Supabase client could not be initialized.");
+        return null;
+    }
+    
+    // getSession() will automatically use the refresh token if the access token is expired
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+        return null; // No active session
+    }
+
+    try {
+        // Session exists on the client. Now verify with our backend and get full profile data.
+        // apiFetch will automatically use the valid token from the session.
+        const data = await apiFetch('/api/auth/user');
+        return data.user;
+    } catch (e) {
+        console.error('Session validation failed on backend, signing out.', e);
+        // If our backend rejects the token, the session is invalid.
+        await supabase.auth.signOut();
+        return null;
+    }
+}--- START OF FILE pages/AuthPage.ts ---
+
+
+import { t } from '../i18n.ts';
+import { state } from '../state.ts';
+
+function renderSetupPage() {
+    const { currentUser, workspaceJoinRequests, workspaces } = state;
+    if (!currentUser) return '';
+
+    const pendingRequest = workspaceJoinRequests.find(r => r.userId === currentUser.id && r.status === 'pending');
+
+    if (pendingRequest) {
+        const workspaceName = workspaces.find(w => w.id === pendingRequest.workspaceId)?.name || 'a workspace';
+        return `
+            <div class="card" style="max-width: 550px; width: 100%; text-align: center;">
+                <h3>${t('setup.request_pending_title')}</h3>
+                <p style="margin-top: 1rem; line-height: 1.6;">${t('setup.request_pending_message').replace('{workspaceName}', workspaceName)}</p>
+                <button class="btn btn-secondary" style="margin-top: 1.5rem;" data-logout-button>Log Out</button>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="card" style="max-width: 800px; width: 100%;">
+            <h2 style="text-align: center; margin-bottom: 2rem;">${t('setup.title')}, ${currentUser.name || currentUser.initials}!</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+                
+                <div class="setup-option-card">
+                    <h4>${t('setup.create_workspace_header')}</h4>
+                    <form id="create-workspace-setup-form" novalidate>
+                        <div class="form-group">
+                            <label for="new-workspace-name-setup" class="sr-only">${t('setup.create_workspace_placeholder')}</label>
+                            <input type="text" id="new-workspace-name-setup" class="form-control" required placeholder="${t('setup.create_workspace_placeholder')}">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">${t('setup.create_workspace_button')}</button>
+                    </form>
+                </div>
+                
+                <div class="setup-option-card">
+                    <h4>${t('setup.join_workspace_header')}</h4>
+                    <form id="join-workspace-setup-form" novalidate>
+                        <div class="form-group">
+                            <label for="join-workspace-name-setup" class="sr-only">${t('setup.join_workspace_placeholder')}</label>
+                            <input type="text" id="join-workspace-name-setup" class="form-control" required placeholder="${t('setup.join_workspace_placeholder')}">
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">${t('setup.join_workspace_button')}</button>
+                    </form>
+                </div>
+
+            </div>
+             <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-link" data-logout-button>Log Out</button>
+            </div>
+        </div>
+    `;
+}
+
+export function AuthPage({ isSetup = false } = {}) {
+    const content = isSetup ? renderSetupPage() : `
+        <div class="card" style="max-width: 450px; width: 100%; padding: 0;">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-auth-tab="login">Login</button>
+                <button class="auth-tab" data-auth-tab="register">Register</button>
+            </div>
+            <div id="auth-form-container" style="padding: 2rem;">
+                ${renderLoginForm()}
+            </div>
+        </div>
+    `;
+    
+    return `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; padding: 1rem; background-color: var(--background-color);">
+            ${content}
+        </div>
+    `;
+}
+
+export function renderLoginForm() {
+    return `
+        <form id="loginForm" novalidate>
+            <h3 style="text-align: center; margin-bottom: 1.5rem;">Welcome Back</h3>
+            <div id="login-error" class="auth-error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" class="form-control" required autocomplete="email">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="form-control" required autocomplete="current-password">
+            </div>
+            <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Log In</button>
+        </form>
+    `;
+}
+
+export function renderRegisterForm() {
+    return `
+        <form id="registerForm" novalidate>
+            <h3 style="text-align: center; margin-bottom: 1.5rem;">Create Account</h3>
+            <div id="register-error" class="auth-error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="registerName">Full Name</label>
+                <input type="text" id="registerName" class="form-control" required autocomplete="name">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="registerEmail">Email</label>
+                <input type="email" id="registerEmail" class="form-control" required autocomplete="email">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="registerPassword">Password (min. 6 characters)</label>
+                <input type="password" id="registerPassword" class="form-control" required minlength="6" autocomplete="new-password">
+            </div>
+            <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Register</button>
+        </form>
+    `;
+}--- START OF FILE package.json ---
+
+{
+  "name": "kombajn-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Teamwork Kombajn Application",
+  "scripts": {
+    "build": "mkdir -p public/css && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html public/ && cp css/*.css public/css/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^0.14.0",
+    "@supabase/supabase-js": "^2.50.3",
+    "@vercel/node": "^5.3.4",
+    "esbuild": "^0.20.2"
+  },
+  "devDependencies": {
+  }
+}--- START OF FILE vercel.json ---
+
+
+{
+  "rewrites": [
+    { "source": "/((?!api/)[^\\.]*)", "destination": "/index.html" }
+  ]
+}--- START OF FILE tsconfig.json ---
+
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "public", ".vercel"]
+}--- START OF FILE api/_lib/supabaseAdmin.ts ---
+
+
+
+
+
+// api/_lib/supabaseAdmin.ts
+import { createClient } from '@supabase/supabase-js';
+
+let supabaseAdmin: any;
+
+export function getSupabaseAdmin() {
+    if (supabaseAdmin) {
+        return supabaseAdmin;
+    }
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+        console.error('Supabase credentials are not set in environment variables.');
+        throw new Error('Server configuration error: Database credentials are missing.');
+    }
+    // The admin client uses the service_role key, which bypasses RLS.
+    // Be careful with queries using this client.
+    supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    });
+    return supabaseAdmin;
+}
+
+// List of keys that are intentionally camelCase in the database and should not be converted.
+const CAMEL_CASE_EXCEPTIONS = new Set([
+  'planHistory',
+  'contractInfoNotes',
+  'employmentInfoNotes',
+]);
+
+function camelToSnake(str: string): string {
+    // If the key is a known exception, return it as is.
+    if (CAMEL_CASE_EXCEPTIONS.has(str)) {
+        return str;
+    }
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+function convertKeys(obj: any, converter: (key: string) => string): any {
+    if (Array.isArray(obj)) {
+        return obj.map(v => convertKeys(v, converter));
+    } else if (obj !== null && typeof obj === 'object' && obj.constructor === Object) {
+        return Object.keys(obj).reduce((acc, key) => {
+            acc[converter(key)] = convertKeys(obj[key], converter);
+            return acc;
+        }, {} as any);
+    }
+    return obj;
+}
+
+export const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);--- START OF FILE handlers/user.ts ---
+
+// handlers/user.ts
+
+import { state } from '../state.ts';
+import { t } from '../i18n.ts';
+import { apiFetch, apiPost, apiPut } from '../services/api.ts';
+import { renderApp } from '../app-renderer.ts';
+
+export async function handleUpdateProfile(form: HTMLFormElement) {
+    if (!state.currentUser) return;
+
+    const nameInput = form.querySelector('#profile-full-name') as HTMLInputElement;
+    const avatarInput = form.querySelector('#avatar-upload') as HTMLInputElement;
+    const statusEl = document.getElementById('profile-update-status');
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    if (button) button.disabled = true;
+    if (statusEl) statusEl.textContent = 'Saving...';
+
+    const payload: { id: string; name: string; avatarUrl?: string } = {
+        id: state.currentUser.id,
+        name: name,
+    };
+
+    try {
+        if (avatarInput.files && avatarInput.files[0]) {
+            const file = avatarInput.files[0];
+            const reader = new FileReader();
+            payload.avatarUrl = await new Promise((resolve, reject) => {
+                reader.onload = event => resolve(event.target?.result as string);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        const [updatedProfile] = await apiPut('profiles', payload);
+
+        // Update state
+        state.currentUser.name = updatedProfile.name;
+        state.currentUser.avatarUrl = updatedProfile.avatarUrl;
+        const userInList = state.users.find(u => u.id === state.currentUser!.id);
+        if (userInList) {
+            userInList.name = updatedProfile.name;
+            userInList.avatarUrl = updatedProfile.avatarUrl;
+        }
+
+        if (statusEl) {
+            statusEl.textContent = t('settings.profile_updated');
+            statusEl.style.color = 'var(--success-color)';
+        }
+        
+        renderApp();
+
+    } catch (error) {
+        console.error("Profile update failed:", error);
+        if (statusEl) {
+            statusEl.textContent = t('settings.error_updating_profile');
+            statusEl.style.color = 'var(--danger-color)';
+        }
+    } finally {
+        if (button) button.disabled = false;
+        setTimeout(() => {
+            if (statusEl) statusEl.textContent = '';
+        }, 3000);
+    }
+}
+
+export async function handleUpdatePassword(form: HTMLFormElement) {
+    const newPasswordEl = form.querySelector('#password-new') as HTMLInputElement;
+    const confirmPasswordEl = form.querySelector('#password-confirm') as HTMLInputElement;
+    const statusEl = document.getElementById('password-update-status');
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    const newPassword = newPasswordEl.value;
+    const confirmPassword = confirmPasswordEl.value;
+
+    if (statusEl) statusEl.textContent = '';
+
+    if (newPassword.length < 6) {
+        if (statusEl) {
+            statusEl.textContent = 'Password must be at least 6 characters.';
+            statusEl.style.color = 'var(--danger-color)';
+        }
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        if (statusEl) {
+            statusEl.textContent = t('settings.password_mismatch');
+            statusEl.style.color = 'var(--danger-color)';
+        }
+        return;
+    }
+
+    if (button) button.disabled = true;
+    if (statusEl) statusEl.textContent = 'Saving...';
+    
+    try {
+        await apiFetch('/api/auth/update-password', { method: 'POST', body: JSON.stringify({ newPassword }) });
+        
+        if (statusEl) {
+            statusEl.textContent = t('settings.password_updated');
+            statusEl.style.color = 'var(--success-color)';
+        }
+        form.reset();
+    } catch (error) {
+        console.error("Password update failed:", error);
+        if (statusEl) {
+            statusEl.textContent = (error as Error).message || t('settings.error_updating_password');
+            statusEl.style.color = 'var(--danger-color)';
+        }
+    } finally {
+        if (button) button.disabled = false;
+        setTimeout(() => {
+            if (statusEl) statusEl.textContent = '';
+        }, 3000);
+    }
+}--- START OF FILE services/supabase.ts ---
+
+
+import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
+import { state } from '../state.ts';
+import { renderApp } from '../app-renderer.ts';
+import type { Notification, Task, Deal } from '../types.ts';
+
+export let supabase: SupabaseClient | null = null;
+const channels: RealtimeChannel[] = [];
+
+// Initialize the Supabase client by fetching config from the server
+export async function initSupabase() {
+    if (supabase) return;
+
+    try {
+        const response = await fetch('/api/app-config');
+        
+        // Try to get a JSON body regardless of response status
+        const responseBody = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            // Use the specific error from the backend if available, otherwise use a generic message.
+            const errorMessage = responseBody?.error || `Failed to fetch config with status: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+        
+        const { supabaseUrl, supabaseAnonKey } = responseBody;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error("Supabase URL or Anon Key is missing in the server config response.");
+        }
+
+        supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+            },
+            realtime: {
+                params: {
+                    eventsPerSecond: 10,
+                },
+            },
+        });
+        console.log("Supabase client initialized from API config.");
+    } catch (error) {
+        console.error("Supabase client initialization failed:", error);
+        // Re-throw to be caught by the top-level bootstrap function in index.tsx
+        throw error;
+    }
+}
+
+
+// Function to manage a single subscription, ensuring no duplicates
+function manageSubscription(channelName: string, config: any) {
+    if (!supabase) return;
+    
+    // First, remove any existing channel with the same name to avoid duplicates
+    const existingChannel = channels.find(c => c.topic === channelName);
+    if (existingChannel) {
+        supabase.removeChannel(existingChannel);
+        channels.splice(channels.indexOf(existingChannel), 1);
+    }
+    
+    // Create and store the new channel
+    const channel = supabase.channel(channelName).on(
+        'postgres_changes',
+        config,
+        config.callback
+    ).subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+            console.log(`Successfully subscribed to ${channelName}`);
+        }
+    });
+    
+    channels.push(channel);
+}
+
+// Subscribe to all relevant real-time updates based on current state
+export function subscribeToRealtimeUpdates() {
+    if (!supabase || !state.currentUser || !state.activeWorkspaceId) {
+        console.log("Skipping realtime subscription: user or workspace not ready.");
+        return;
+    }
+
+    // Notifications for the current user
+    manageSubscription(`realtime:notifications:${state.currentUser.id}`, {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${state.currentUser.id}`,
+        callback: (payload: any) => {
+            console.log('Realtime: New notification received!', payload);
+            const newNotification = payload.new as Notification;
+            state.notifications.unshift(newNotification);
+            renderApp();
+        }
+    });
+
+    // Task updates for the current workspace
+    manageSubscription(`realtime:tasks:${state.activeWorkspaceId}`, {
+        event: '*', // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'tasks',
+        filter: `workspace_id=eq.${state.activeWorkspaceId}`,
+        callback: (payload: any) => {
+            console.log('Realtime: Task change received!', payload);
+            const eventType = payload.eventType;
+            const record = (eventType === 'DELETE' ? payload.old : payload.new) as Task;
+            const index = state.tasks.findIndex(t => t.id === record.id);
+
+            if (eventType === 'UPDATE') {
+                if (index > -1) state.tasks[index] = { ...state.tasks[index], ...record };
+            } else if (eventType === 'INSERT') {
+                if (index === -1) state.tasks.push(record);
+            } else if (eventType === 'DELETE') {
+                if (index > -1) state.tasks.splice(index, 1);
+            }
+            renderApp();
+        }
+    });
+
+    // Deal updates for the current workspace
+    manageSubscription(`realtime:deals:${state.activeWorkspaceId}`, {
+        event: '*', // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'deals',
+        filter: `workspace_id=eq.${state.activeWorkspaceId}`,
+        callback: (payload: any) => {
+            console.log('Realtime: Deal change received!', payload);
+            const eventType = payload.eventType;
+            const record = (eventType === 'DELETE' ? payload.old : payload.new) as Deal;
+            const index = state.deals.findIndex(d => d.id === record.id);
+
+            if (eventType === 'UPDATE') {
+                if (index > -1) state.deals[index] = { ...state.deals[index], ...record };
+            } else if (eventType === 'INSERT') {
+                if (index === -1) state.deals.push(record);
+            } else if (eventType === 'DELETE') {
+                if (index > -1) state.deals.splice(index, 1);
+            }
+            renderApp();
+        }
+    });
+}
+
+// Unsubscribe from all channels on logout
+export async function unsubscribeAll() {
+    if (supabase) {
+        await supabase.removeAllChannels();
+        channels.length = 0; // Clear the array
+        console.log("Unsubscribed from all realtime channels.");
+    }
+}--- START OF FILE css/themes.css ---
+
+:root {
+  --primary-color: #4a90e2;
+  --primary-hover-color: #357ABD;
+  --dark-color: #2c3e50;
+  --light-color: #ecf0f1;
+  --background-color: #f4f7fa;
+  --content-bg: var(--white-color);
+  --text-color: #34495e;
+  --subtle-text-color: #7f8c8d;
+  --border-color: #dfe6e9;
+  --white-color: #ffffff;
+  --danger-color: #e74c3c;
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #4a90e2;
+  --priority-high: #e74c3c;
+  --priority-medium: #f39c12;
+  --priority-low: #3498db;
+  --status-backlog-color: #636e72;
+  --status-inreview-color: #8e44ad;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --border-radius: 8px;
+}
+
+.dark-theme {
+  --primary-color: #58a6ff;
+  --primary-hover-color: #79b8ff;
+  --dark-color: #e6edf3;
+  --light-color: #2d333b;
+  --background-color: #0d1117;
+  --content-bg: #161b22;
+  --text-color: #c9d1d9;
+  --subtle-text-color: #8b949e;
+  --border-color: #30363d;
+  --sidebar-bg: #161b22;
+  --sidebar-text: #8b949e;
+  --sidebar-active: #58a6ff;
+  --priority-high: #f87171;
+  --priority-medium: #fbbf24;
+  --priority-low: #60a5fa;
+}
+
+/* --- NEW MINIMAL THEME --- */
+.minimal-theme {
+  --primary-color: #4A5568; /* Slate 600 */
+  --primary-hover-color: #2D3748; /* Slate 800 */
+  --dark-color: #1A202C; /* Slate 900 */
+  --light-color: #EDF2F7; /* Slate 200 */
+  --background-color: #F7FAFC; /* Slate 50 */
+  --content-bg: #FFFFFF;
+  --text-color: #2D3748; /* Slate 800 */
+  --subtle-text-color: #718096; /* Slate 500 */
+  --border-color: #E2E8F0; /* Slate 300 */
+  --white-color: #FFFFFF;
+  --danger-color: #E53E3E; /* Red 600 */
+  --success-color: #38A169; /* Green 600 */
+  --warning-color: #D69E2E; /* Yellow 600 */
+  --sidebar-bg: var(--background-color);
+  --sidebar-text: #4A5568; /* Slate 600 */
+  --sidebar-active: #1A202C; /* Slate 900 */
+  --priority-high: #E53E3E;
+  --priority-medium: #D69E2E;
+  --priority-low: #4299E1; /* Blue 500 */
+  --status-backlog-color: #A0AEC0; /* Slate 400 */
+  --status-inreview-color: #9F7AEA; /* Purple 500 */
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  --border-radius: 8px;
+}--- START OF FILE css/layout.css ---
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#app { 
+  display: flex; 
+  min-height: 100vh;
+  position: relative;
+}
+
+/* LAYOUT */
+.sidebar {
+  width: 250px;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, background-color 0.2s ease, border-color 0.2s ease;
+  border-right: 1px solid var(--border-color);
+  z-index: 100;
+  flex-shrink: 0;
+}
+.sidebar-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+.sidebar-header .material-icons-sharp { font-size: 2.5rem; color: var(--primary-color); }
+.sidebar-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--dark-color); }
+
+.nav-list { list-style-type: none; flex-grow: 1; display: flex; flex-direction: column; }
+.nav-item a { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1rem; border-radius: var(--border-radius); text-decoration: none; color: var(--sidebar-text); font-weight: 500; transition: all 0.2s ease; margin-bottom: 0.5rem; }
+.nav-item a:hover { background-color: rgba(127, 127, 127, 0.1); color: var(--dark-color); }
+.nav-item a.active { background-color: var(--primary-color); color: var(--white-color); font-weight: 600; }
+.nav-item .material-icons-sharp { font-size: 1.5rem; }
+.nav-heading { font-size: 0.8rem; text-transform: uppercase; color: var(--subtle-text-color); padding: 0 1rem; margin: 1.5rem 0 0.5rem; }
+.sidebar-footer { margin-top: auto; }
+
+.main-content-container {
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* To contain border-radius */
+    flex-grow: 1;
+    overflow: hidden;
 }
-.notifications-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
+
+.content { flex-grow: 1; padding: 2rem 3rem; overflow-y: auto; }
+.content h2 { font-size: 2rem; font-weight: 700; color: var(--dark-color); margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+.content h3 { font-size: 1.5rem; font-weight: 600; color: var(--dark-color); margin-bottom: 1rem; }
+
+/* HEADER, WORKSPACE SWITCHER & NOTIFICATIONS */
+.app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-.notifications-header h4 {
-    margin: 0;
-    font-size: 1.1rem;
-}
-.notifications-tabs {
-    display: flex;
+    padding: 1rem 3rem;
     border-bottom: 1px solid var(--border-color);
-}
-.notification-tab {
-    flex: 1;
-    text-align: center;
-    padding: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    color: var(--subtle-text-color);
-    margin-bottom: -1px; /* Overlap the main border */
-    transition: all 0.2s ease;
-}
-.notification-tab:hover {
-    color: var(--text-color);
-}
-.notification-tab.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
-}
-.notifications-body {
-    max-height: 400px;
-    overflow-y: auto;
-}
-.notification-list {
-    list-style: none;
-}
-.notification-item {
-    padding: 1rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.2s ease;
-}
-.notification-item:last-child {
-    border-bottom: none;
-}
-.notification-item:hover {
-    background-color: var(--light-color);
-}
-.notification-item.unread {
-    background-color: color-mix(in srgb, var(--primary-color) 8%, transparent);
-}
-.notification-item-icon {
+    background-color: var(--content-bg);
     flex-shrink: 0;
-    color: var(--primary-color);
-}
-.notification-item-content p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-.notification-item-content .time {
-    font-size: 0.8rem;
-    color: var(--subtle-text-color);
-    margin-top: 0.25rem;
-}
-.no-notifications {
-    padding: 2rem;
-    text-align: center;
-    color: var(--subtle-text-color);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--border-radius); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease-in-out, transform 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
-.btn-primary { background-color: var(--primary-color); color: var(--white-color); }
-.btn-primary:hover:not(:disabled) { background-color: var(--primary-hover-color); box-shadow: var(--shadow-md); }
-.btn-secondary { background-color: var(--light-color); color: var(--dark-color); border: 1px solid var(--border-color); }
-.btn-secondary:hover:not(:disabled) { background-color: var(--border-color); }
-.btn-link { background: none; border: none; color: var(--primary-color); font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 0; }
-.btn-link:hover { text-decoration: underline; }
-.btn-icon { background: transparent; border: none; color: var(--subtle-text-color); cursor: pointer; padding: 0.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
-.btn-icon:hover { background-color: var(--light-color); color: var(--dark-color); }
-.btn-icon.active { color: var(--primary-color); background-color: color-mix(in srgb, var(--primary-color) 15%, transparent); }
-.btn-icon[data-copy-link] {
-}
-
-/* SIDE PANEL & OVERLAY */
-.side-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 60%;
-    max-width: 800px;
-    height: 100%;
-    background-color: var(--content-bg);
-    z-index: 1010;
-    box-shadow: var(--shadow-lg);
+.header-left {
     display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    border-left: 1px solid var(--border-color);
-}
-.side-panel.no-transition {
-    transition: none;
-}
-.side-panel.is-open {
-    transform: translateX(0);
-}
-.side-panel-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    z-index: 1005;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.4s ease, visibility 0.4s ease;
-}
-.side-panel.is-open + .side-panel-overlay {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* MODAL & OVERLAY */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.6);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 2rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    gap: 1rem;
 }
-.modal-overlay.is-open {
-    opacity: 1;
-    visibility: visible;
-}
-.modal-content {
-    background-color: var(--content-bg);
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    width: 100%;
-    max-height: 90vh;
+.workspace-switcher {
     display: flex;
-    flex-direction: column;
-    transform: scale(0.95);
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-}
-.modal-overlay.is-open .modal-content {
-    transform: scale(1);
-    opacity: 1;
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
+    gap: 0.5rem;
 }
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.5rem;
+.workspace-switcher .form-control {
+    min-width: 200px;
     font-weight: 600;
 }
-.modal-body {
-    padding: 1.5rem 0;
-    overflow-y: auto;
-    flex-grow: 1;
-}
-.modal-footer {
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
+.header-right {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     gap: 1rem;
 }
 
-/* FORMS */
-.form-group {
-    margin-bottom: 1.5rem;
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+    .side-panel { width: 80%; }
 }
-.form-group:last-child {
-    margin-bottom: 0;
-}
-.form-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-    background-color: var(--content-bg);
-    color: var(--text-color);
-    font-size: 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.form-control:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
-}
-textarea.form-control {
-    resize: vertical;
-    min-height: 80px;
-}
-.modal-form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem 1.5rem;
-}
-.form-group-inline {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    margin-top: 0.5rem;
-}
-.form-group-inline input[type="radio"] {
-    margin-top: 5px;
-}
-.form-group-inline p {
-    margin: 0.25rem 0 0;
+@media (max-width: 768px) {
+  .sidebar { width: 70px; }
+  .sidebar-header h1, .sidebar .nav-text { display: none; }
+  .content { padding: 1.5rem; }
+  .app-header { flex-direction: column; gap: 1rem; align-items: stretch; padding: 1rem 1.5rem; }
+  .side-panel { width: 95%; }
 }
 
-/* AVATAR */
-.avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--primary-color);
-    color: var(--white-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* MINIMAL THEME OVERRIDES */
+.minimal-theme .sidebar {
+    padding: 2rem 1.5rem;
+    border-right-color: transparent; /* Remove border to blend */
+}
+.minimal-theme .sidebar-header .material-icons-sharp { color: var(--dark-color); }
+.minimal-theme .sidebar-header h1 { color: var(--dark-color); }
+.minimal-theme .nav-item a {
+    color: var(--sidebar-text);
+    font-weight: 600;
+}
+.minimal-theme .nav-item a:hover {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+}
+.minimal-theme .nav-item a.active {
+    background-color: transparent;
+    color: var(--sidebar-active);
     font-weight: 700;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    flex-shrink: 0;
-    overflow: hidden;
 }
-.avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.minimal-theme .content {
+    padding: 2.5rem 4rem;
 }
-.avatar-placeholder {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: var(--light-color);
-    color: var(--subtle-text-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed var(--border-color);
-}
-
-
-/* SIDE PANEL SPECIFIC STYLES */
-.side-panel-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
+.minimal-theme h2 { font-weight: 800; letter-spacing: -0.02em; }
+.minimal-theme h3 { font-weight: 700; }
+.minimal-theme .app-header {
+    background-color: transparent;
     border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem 4rem;
 }
-.side-panel-header h2 {
-    margin: 0;
-    flex-grow: 1;
-    font-size: 1.5rem;
-}
-.side-panel-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
-}
-.side-panel-content .card {
-    margin-bottom: 1.5rem;
-}
-.side-panel-content .card:last-child {
-    margin-bottom: 0;
-}
-.side-panel-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 1.5rem;
-}
-.side-panel-tab {
-    padding: 1rem;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    font-weight: 600;
-    color: var(--subtle-text-color);
-    transition: all 0.2s ease;
-}
-.side-panel-tab:hover {
-    color: var(--text-color);
-}
-.side-panel-tab.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
-}
-
-/* COMMAND PALETTE */
-.command-palette-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    z-index: 1050;
-    display: flex;
-    justify-content: center;
-    padding-top: 15vh;
-}
-.command-palette {
-    width: 100%;
-    max-width: 600px;
-    background-color: var(--content-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: min-content;
-    max-height: 70vh;
-}
-.command-palette-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-.command-palette-input-wrapper .material-icons-sharp {
-    color: var(--subtle-text-color);
-}
-#command-palette-input {
-    border: none;
-    padding: 1.25rem 0;
-    font-size: 1.1rem;
-}
-#command-palette-input:focus {
-    box-shadow: none;
-}
-.command-palette-list {
-    overflow-y: auto;
-    padding: 0.5rem;
-}
-.command-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-}
-.command-item.active {
-    background-color: var(--primary-color);
-    color: var(--white-color);
-}
-.command-item.active .command-icon, .command-item.active .command-shortcut {
-    color: var(--white-color);
-}
-.command-icon {
-    color: var(--subtle-text-color);
-}
-.command-text {
-    flex-grow: 1;
-}
-.command-shortcut {
-    color: var(--subtle-text-color);
-    font-size: 0.9rem;
-    border: 1px solid var(--border-color);
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-}
-.empty-command-list {
-    padding: 2rem;
-    text-align: center;
-    color: var(--subtle-text-color);
-}
-
-/* MENTION POPOVER */
-.mention-popover {
-    position: absolute;
-    background-color: var(--content-bg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-lg);
-    border-radius: var(--border-radius);
-    z-index: 1200;
-    max-height: 250px;
-    overflow-y: auto;
-}
-.mention-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-}
-.mention-item.active, .mention-item:hover {
-    background-color: var(--light-color);
-}
-.mention-item .avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
-}
-.mention-user {
-    font-weight: 600;
-}
-.mention-item-empty {
-    padding: 1rem;
-    text-align: center;
-    color: var(--subtle-text-color);
-}
-.mention-chip {
-    background-color: color-mix(in srgb, var(--primary-color) 15%, transparent);
-    color: var(--primary-color);
-    font-weight: 600;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
+@media (max-width: 768px) {
+    .minimal-theme .content { padding: 1.5rem; }
+    .minimal-theme .app-header { padding: 1rem 1.5rem; }
 }
