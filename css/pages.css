@@ -1,5 +1,4 @@
 
-
 /* DASHBOARD */
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .dashboard-header > div { display: flex; gap: 1rem; align-items: center; }
@@ -578,9 +577,27 @@
     transform: translateX(100%);
     transition: transform 0.3s ease;
     padding: 2rem;
+    display: flex;
+    flex-direction: column;
 }
 .hr-invite-flyout.is-open {
     transform: translateX(0);
+}
+.hr-invite-flyout-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.hr-invite-flyout-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
 }
 .hr-invite-flyout-content h4 {
     margin-bottom: 2rem;
@@ -652,6 +669,134 @@
     border-radius: 3px;
 }
 
+/* SETTINGS PAGE */
+.settings-page-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 2.5rem;
+    align-items: flex-start;
+}
+.settings-nav-menu h3 {
+    padding: 0 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+}
+.settings-nav-menu ul {
+    list-style: none;
+}
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    font-weight: 500;
+    color: var(--subtle-text-color);
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+.settings-nav-item:hover {
+    background-color: var(--light-color);
+    color: var(--text-color);
+}
+.settings-nav-item.active {
+    background-color: var(--light-color);
+    color: var(--text-color);
+    font-weight: 600;
+}
+.dark-theme .settings-nav-item.active, .dark-theme .settings-nav-item:hover {
+    background-color: var(--dark-color);
+    color: var(--white-color);
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.setting-item:first-child {
+    padding-top: 0;
+}
+.setting-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.setting-item h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.profile-settings-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+.integrations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+.integration-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.integration-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+.integration-card-logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.integration-card-logo img {
+    width: 40px;
+    height: 40px;
+}
+.integration-card-logo h4 { margin: 0; }
+.integration-status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid;
+}
+.integration-status-badge.active {
+    color: var(--success-color);
+    border-color: var(--success-color);
+    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
+}
+.integration-status-badge:not(.active) {
+    color: var(--subtle-text-color);
+    border-color: var(--border-color);
+}
+.integration-card p {
+    color: var(--subtle-text-color);
+    flex-grow: 1;
+}
+.integration-card-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.integration-connection-status {
+    font-size: 0.875rem;
+    color: var(--subtle-text-color);
+}
+
+
 /* RESPONSIVE OVERRIDES */
 @media (max-width: 1200px) {
     .task-detail-modal-layout { grid-template-columns: 1fr; max-height: calc(90vh - 120px); }
@@ -673,4 +818,5 @@
     .project-grid, .clients-grid { grid-template-columns: 1fr; }
     .client-detail-grid { grid-template-columns: 1fr; }
     .hr-requests-grid { grid-template-columns: 1fr; }
+    .settings-page-layout { grid-template-columns: 1fr; }
 }
