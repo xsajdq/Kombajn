@@ -1,10 +1,9 @@
-
 // File: services/auth.ts
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';
-import { unsubscribeAll, supabase, initSupabase } from './supabase.ts';
+import { supabase } from './supabase.ts';
 
 export async function login(email: string, password: string): Promise<void> {
     const data = await apiFetch('/api/auth/login', {
@@ -21,7 +20,7 @@ export async function login(email: string, password: string): Promise<void> {
         refresh_token: data.session.refreshToken,
     });
     
-    state.currentUser = data.user;
+    // The onAuthStateChange listener will now handle the rest
 }
 
 export async function signup(name: string, email: string, password: string): Promise<void> {
@@ -37,60 +36,15 @@ export async function signup(name: string, email: string, password: string): Pro
         access_token: data.session.accessToken,
         refresh_token: data.session.refreshToken,
     });
-    state.currentUser = data.user;
+    // The onAuthStateChange listener will now handle the rest
 }
 
 export async function logout(): Promise<void> {
-    await unsubscribeAll();
-    
     if (supabase) {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error logging out:', error);
+        }
     }
-    
-    state.currentUser = null;
-    state.currentPage = 'auth';
-    // Reset state to initial to clear all user data
-    Object.assign(state, {
-        ...state, // keep settings
-        currentPage: 'auth',
-        currentUser: null,
-        activeWorkspaceId: null,
-        workspaces: [],
-        workspaceMembers: [],
-        users: [],
-        // Reset all data arrays
-        clients: [], projects: [], tasks: [], timeLogs: [], invoices: [],
-        comments: [], notifications: [], deals: [], // etc.
-    });
-    renderApp();
-}
-
-export async function validateSession(): Promise<User | null> {
-    if (!supabase) {
-        // This can happen on first load, ensure supabase is initialized
-        await initSupabase();
-    }
-    if (!supabase) {
-        console.error("Supabase client could not be initialized.");
-        return null;
-    }
-    
-    // getSession() will automatically use the refresh token if the access token is expired
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-        return null; // No active session
-    }
-
-    try {
-        // Session exists on the client. Now verify with our backend and get full profile data.
-        // apiFetch will automatically use the valid token from the session.
-        const data = await apiFetch('/api/auth/user');
-        return data.user;
-    } catch (e) {
-        console.error('Session validation failed on backend, signing out.', e);
-        // If our backend rejects the token, the session is invalid.
-        await supabase.auth.signOut();
-        return null;
-    }
+    // The onAuthStateChange listener will handle UI updates and state clearing.
 }
