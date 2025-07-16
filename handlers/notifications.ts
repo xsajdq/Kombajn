@@ -63,8 +63,9 @@ export async function createNotification(
             action: action,
         };
         try {
-            const [savedNotification] = await apiPost('notifications', newNotificationPayload);
-            state.notifications.unshift(savedNotification);
+            // The API call will trigger a realtime event for the recipient.
+            // The creator of the notification does not need to see it in their UI.
+            await apiPost('notifications', newNotificationPayload);
 
             // Send Slack notification if integration is active
             const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.isActive && i.workspaceId === targetWorkspaceId);
@@ -74,11 +75,6 @@ export async function createNotification(
                 if (userToNotify?.slackUserId) {
                     sendSlackNotification(data.userIdToNotify, text, targetWorkspaceId);
                 }
-            }
-            
-            // Re-render only if the notification bell is visible
-            if (document.getElementById('notification-bell')) {
-                renderApp();
             }
         } catch (error) {
             console.error("Failed to create notification:", error);
