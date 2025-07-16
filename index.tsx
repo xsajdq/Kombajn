@@ -146,9 +146,12 @@ async function init() {
             throw new Error("Supabase client failed to initialize.");
         }
 
+        // Use onAuthStateChange as the single source of truth for session management.
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
-            if (event === 'SIGNED_IN' && session) {
+
+            // This block handles both direct login and session restoration on page load.
+            if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
                 try {
                     // It's crucial to verify the session with our backend and get the full profile
                     const { user } = await apiFetch('/api/auth/user');
@@ -157,25 +160,19 @@ async function init() {
                     await bootstrapApp();
                     subscribeToRealtimeUpdates();
                 } catch (error) {
-                    console.error('Error during signed-in flow:', error);
-                    // If backend verification fails, treat as logged out
+                    console.error('Error during session validation/bootstrap:', error);
+                    // If backend verification fails or bootstrap fails, treat as logged out.
                     await supabase.auth.signOut();
                 }
-            } else if (event === 'SIGNED_OUT') {
+            } else if (event === 'SIGNED_OUT' || !session) {
+                // This block handles both explicit sign-out and the initial state where there is no session.
                 await unsubscribeAll();
                 state.currentUser = null;
                 state.currentPage = 'auth';
-                // Consider resetting more of the state here if needed
+                // Reset any sensitive state here before rendering the auth page.
                 await renderApp();
             }
         });
-
-        // Initial check for a session on page load
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            state.currentPage = 'auth';
-            await renderApp();
-        }
         
         // Timer update interval
         setInterval(() => {
