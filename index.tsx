@@ -1,3 +1,4 @@
+
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -9,85 +10,66 @@ import { startOnboarding } from './handlers/onboarding.ts';
 
 
 export async function fetchInitialData() {
-    console.log("Fetching initial data from server...");
+    console.log("Fetching initial data from server via bootstrap...");
     
-    const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems, integrations, clientContacts, expenses
-    ] = await Promise.all([
-        apiFetch('/api/data/profiles'),
-        apiFetch('/api/data/projects'),
-        apiFetch('/api/data/clients'),
-        apiFetch('/api/data/tasks'),
-        apiFetch('/api/data/deals'),
-        apiFetch('/api/data/time_logs'),
-        apiFetch('/api/data/workspaces'),
-        apiFetch('/api/data/workspace_members'),
-        apiFetch('/api/data/task_dependencies'),
-        apiFetch('/api/data/workspace_join_requests'),
-        apiFetch('/api/data/notifications'),
-        apiFetch('/api/data/dashboard_widgets'),
-        apiFetch('/api/data/comments'),
-        apiFetch('/api/data/task_assignees'),
-        apiFetch('/api/data/tags'),
-        apiFetch('/api/data/task_tags'),
-        apiFetch('/api/data/objectives'),
-        apiFetch('/api/data/key_results'),
-        apiFetch('/api/data/deal_notes'),
-        apiFetch('/api/data/invoices'),
-        apiFetch('/api/data/invoice_line_items'),
-        apiFetch('/api/data/integrations'),
-        apiFetch('/api/data/client_contacts'),
-        apiFetch('/api/data/expenses'),
-    ]);
+    // A single, optimized, and secure API call to get all necessary data
+    const data = await apiFetch('/api/bootstrap');
 
+    if (!data) {
+        throw new Error("Bootstrap data is null or undefined.");
+    }
+    
     // Populate state with fetched data
-    state.users = profiles; 
-    state.projects = projects;
-    state.tasks = tasks;
-    state.deals = deals;
-    state.timeLogs = timeLogs;
-    state.comments = comments;
-    state.taskAssignees = taskAssignees;
-    state.tags = tags;
-    state.taskTags = taskTags;
-    state.objectives = objectives;
-    state.keyResults = keyResults;
-    state.dealNotes = dealNotes;
-    state.integrations = integrations;
-    state.clientContacts = clientContacts;
-    state.expenses = expenses;
+    state.users = data.profiles || [];
+    state.projects = data.projects || [];
+    state.tasks = data.tasks || [];
+    state.deals = data.deals || [];
+    state.timeLogs = data.timeLogs || [];
+    state.comments = data.comments || [];
+    state.taskAssignees = data.taskAssignees || [];
+    state.tags = data.tags || [];
+    state.taskTags = data.taskTags || [];
+    state.objectives = data.objectives || [];
+    state.keyResults = data.keyResults || [];
+    state.dealNotes = data.dealNotes || [];
+    state.integrations = data.integrations || [];
+    state.clientContacts = data.clientContacts || [];
+    state.expenses = data.expenses || [];
+    state.workspaceMembers = data.workspaceMembers || [];
+    state.dependencies = data.dependencies || [];
+    state.workspaceJoinRequests = data.workspaceJoinRequests || [];
+    state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     // Stitch together clients and their contacts
     const contactsByClientId = new Map<string, ClientContact[]>();
-    clientContacts.forEach((contact: ClientContact) => {
+    (data.clientContacts || []).forEach((contact: ClientContact) => {
         if (!contactsByClientId.has(contact.clientId)) {
             contactsByClientId.set(contact.clientId, []);
         }
         contactsByClientId.get(contact.clientId)!.push(contact);
     });
     
-    state.clients = clients.map((client: Client) => ({
+    state.clients = (data.clients || []).map((client: Client) => ({
         ...client,
         contacts: contactsByClientId.get(client.id) || []
     }));
 
     // Stitch together invoices and their line items
     const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
-    invoiceLineItems.forEach((item: InvoiceLineItem) => {
+    (data.invoiceLineItems || []).forEach((item: InvoiceLineItem) => {
         if (!lineItemsByInvoiceId.has(item.invoiceId)) {
             lineItemsByInvoiceId.set(item.invoiceId, []);
         }
         lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
     });
 
-    state.invoices = invoices.map((invoice: Invoice) => ({
+    state.invoices = (data.invoices || []).map((invoice: Invoice) => ({
         ...invoice,
         items: lineItemsByInvoiceId.get(invoice.id) || []
     }));
 
-    // Data from the API is now camelCase, but the Workspace type has a nested structure.
-    // We still need to manually map this.
-    state.workspaces = rawWorkspaces.map((w: any) => ({
+    // Manually map workspace structure
+    state.workspaces = (data.workspaces || []).map((w: any) => ({
         ...w,
         subscription: {
             planId: w.subscriptionPlanId,
@@ -95,17 +77,11 @@ export async function fetchInitialData() {
         },
         planHistory: w.planHistory || []
     }));
-    // All API data is now automatically converted to camelCase.
-    state.workspaceMembers = rawWorkspaceMembers;
-    state.dependencies = dependencies;
-    state.workspaceJoinRequests = workspaceJoinRequests;
 
     // Merge fetched notifications with any that have arrived via realtime, to prevent overwriting.
     const existingNotificationIds = new Set(state.notifications.map(n => n.id));
-    const newNotificationsFromFetch = notifications.filter((n: Notification) => !existingNotificationIds.has(n.id));
+    const newNotificationsFromFetch = (data.notifications || []).filter((n: Notification) => !existingNotificationIds.has(n.id));
     state.notifications.push(...newNotificationsFromFetch);
-
-    state.dashboardWidgets = dashboardWidgets.sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     // Set the active workspace based on the current user's memberships
     const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
