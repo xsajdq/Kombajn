@@ -93,23 +93,40 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
         const renderTaskList = (tasks: Task[], title: string) => tasks.length === 0 ? '' : `
             <div class="project-task-group">
-                <h5>${title} (${tasks.length})</h5>
-                <ul class="task-list-panel">
+                <h5 class="project-task-group-header">${title} (${tasks.length})</h5>
+                <ul class="project-task-list">
                     ${tasks.map(task => {
-                        const isRunning = !!state.activeTimers[task.id];
+                        const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+                        const commentsCount = state.comments.filter(c => c.taskId === task.id).length;
+                        const attachmentsCount = state.attachments.filter(a => a.taskId === task.id).length;
+
                         return `
-                        <li class="task-item-panel clickable" data-task-id="${task.id}" role="button" tabindex="0" aria-label="View task ${task.name}">
-                            <div class="task-details">
-                                <span>${task.name}</span>
+                        <li class="project-task-list-item clickable" data-task-id="${task.id}" role="button" tabindex="0">
+                            <div class="task-priority-dot priority-${task.priority || 'low'}"></div>
+                            <div class="project-task-list-item-main">
+                                <p class="task-name">${task.name}</p>
+                                <div class="task-meta-info">
+                                    ${commentsCount > 0 ? `
+                                        <div class="stat-item" title="${commentsCount} comments">
+                                            <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
+                                            <span>${commentsCount}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${attachmentsCount > 0 ? `
+                                        <div class="stat-item" title="${attachmentsCount} attachments">
+                                            <span class="material-icons-sharp icon-sm">attachment</span>
+                                            <span>${attachmentsCount}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
-                             <div class="task-actions">
-                                <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                                <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                                    <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
-                                </button>
+                            <div class="avatar-stack">
+                                ${assignees.slice(0, 3).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                                ${assignees.length > 3 ? `<div class="avatar more-avatar">+${assignees.length - 3}</div>` : ''}
                             </div>
                         </li>
-                    `}).join('')}
+                        `
+                    }).join('')}
                 </ul>
             </div>
         `;
@@ -281,12 +298,42 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             </div>
             ${objectives.map(obj => {
                 const keyResults = state.keyResults.filter(kr => kr.objectiveId === obj.id);
+                const progressValues = keyResults.map(kr => {
+                    const range = kr.targetValue - kr.startValue;
+                    if (range === 0) return kr.currentValue >= kr.targetValue ? 100 : 0;
+                    return Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
+                });
+                const overallProgress = progressValues.length > 0 ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length : 0;
+                const circumference = 30 * 2 * Math.PI;
+
                 return `
                 <div class="okr-card">
-                    <div class="okr-header">
-                        <h4>${obj.title}</h4>
-                        ${obj.description ? `<p>${obj.description}</p>` : ''}
+                    <div class="okr-objective-header">
+                        <div class="okr-objective-icon">
+                            <span class="material-icons-sharp">flag</span>
+                        </div>
+                        <div class="okr-objective-details">
+                            <h4>${obj.title}</h4>
+                            ${obj.description ? `<p>${obj.description}</p>` : ''}
+                        </div>
+                        <div class="okr-objective-progress">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg"
+                                    d="M18 2.0845
+                                    a 15.9155 15.9155 0 0 1 0 31.831
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                                <path class="circle"
+                                    stroke-dasharray="${overallProgress}, 100"
+                                    d="M18 2.0845
+                                    a 15.9155 15.9155 0 0 1 0 31.831
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                                />
+                            </svg>
+                            <div class="progress-percentage">${Math.round(overallProgress)}%</div>
+                        </div>
                     </div>
+
                     <div class="key-results-list">
                         ${keyResults.map(kr => {
                             const range = kr.targetValue - kr.startValue;
