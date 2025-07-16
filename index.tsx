@@ -1,12 +1,10 @@
-
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
-import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
 import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
-import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
+import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
 
@@ -165,19 +163,40 @@ export async function bootstrapApp() {
 async function init() {
     try {
         setupEventListeners(bootstrapApp);
-        // Use popstate for path-based routing instead of hash-based
         window.addEventListener('popstate', renderApp);
 
-        // validateSession will call initSupabase if needed.
-        const user = await validateSession();
-        if (user) {
-            console.log("Session validated for user:", user);
-            state.currentUser = user;
-            await bootstrapApp();
-            // After bootstrapping, we have the user and workspace, so we can subscribe.
-            subscribeToRealtimeUpdates();
-        } else {
-            console.log("No valid session found. Showing auth page.");
+        await initSupabase();
+        if (!supabase) {
+            throw new Error("Supabase client failed to initialize.");
+        }
+
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`Auth event: ${event}`);
+            if (event === 'SIGNED_IN' && session) {
+                try {
+                    // It's crucial to verify the session with our backend and get the full profile
+                    const { user } = await apiFetch('/api/auth/user');
+                    state.currentUser = user;
+                    
+                    await bootstrapApp();
+                    subscribeToRealtimeUpdates();
+                } catch (error) {
+                    console.error('Error during signed-in flow:', error);
+                    // If backend verification fails, treat as logged out
+                    await supabase.auth.signOut();
+                }
+            } else if (event === 'SIGNED_OUT') {
+                await unsubscribeAll();
+                state.currentUser = null;
+                state.currentPage = 'auth';
+                // Consider resetting more of the state here if needed
+                await renderApp();
+            }
+        });
+
+        // Initial check for a session on page load
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
             state.currentPage = 'auth';
             await renderApp();
         }
