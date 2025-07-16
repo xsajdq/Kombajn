@@ -226,7 +226,7 @@ export interface Notification {
     text: string;
     createdAt: string; // ISO 8601
     isRead: boolean;
-    action: NotificationAction;
+    action: NotificationAction | null;
 }
 
 export interface InvoiceLineItem { id: string; invoiceId: string; description: string; quantity: number; unitPrice: number; }
