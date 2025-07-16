@@ -104,9 +104,9 @@ export async function handleNotificationClick(notificationId: string) {
 
     state.ui.isNotificationsOpen = false;
 
-    if (notification.action.type === 'viewTask' && notification.action.taskId) {
+    if (notification.action?.type === 'viewTask' && notification.action.taskId) {
         openTaskDetail(notification.action.taskId);
-    } else if (notification.action.type === 'viewJoinRequests') {
+    } else if (notification.action?.type === 'viewJoinRequests') {
         state.ui.hr.activeTab = 'requests';
         history.pushState({}, '', '/hr');
         renderApp();
