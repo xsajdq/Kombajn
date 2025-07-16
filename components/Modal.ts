@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
@@ -34,7 +35,6 @@ export function Modal() {
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => state.users.find(u => u.id === m.userId))
         .filter(Boolean);
-    const isOpening = state.ui.modal.justOpened;
     
     const defaultFooter = `
         <button class="btn btn-secondary btn-close-modal">${t('modals.cancel')}</button>
@@ -689,8 +689,8 @@ export function Modal() {
 
 
     return `
-        <div class="modal-overlay ${isOpening ? 'modal-overlay-opening' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div class="modal-content ${isOpening ? 'modal-content-opening' : ''}" style="max-width: ${maxWidth}">
+        <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="modal-content" style="max-width: ${maxWidth}">
                 <div class="modal-header">
                     <h3 id="modal-title">${title}</h3>
                     <button class="btn-icon btn-close-modal" aria-label="${t('panels.close')}"><span class="material-icons-sharp">close</span></button>
