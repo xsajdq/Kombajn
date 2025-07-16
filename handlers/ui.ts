@@ -50,7 +50,7 @@ export function openProjectPanel(projectId: string) {
     state.ui.openedProjectId = projectId;
     state.ui.openedClientId = null;
     state.ui.openedDealId = null;
-    state.ui.openedProjectTab = 'tasks'; // Reset to default tab
+    state.ui.openedProjectTab = 'overview'; // Reset to default tab
     state.ui.isWikiEditing = false; // Ensure wiki edit mode is off
     renderApp();
 }

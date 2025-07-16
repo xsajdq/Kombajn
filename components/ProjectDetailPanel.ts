@@ -1,6 +1,6 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
 import type { Task, ProjectRole, Attachment, Objective, KeyResult } from '../types.ts';
 import { getUserProjectRole } from '../handlers/main.ts';
 import { can } from '../permissions.ts';
@@ -21,17 +21,68 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
     const project = state.projects.find(p => p.id === projectId && p.workspaceId === state.activeWorkspaceId);
     if (!project) return '';
 
-    const client = state.clients.find(c => c.id === project.clientId && c.workspaceId === state.activeWorkspaceId);
-    const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
-    const totalTrackedSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
     const { openedProjectTab } = state.ui;
-    
     const projectRole = getUserProjectRole(state.currentUser?.id || '', projectId);
     const canManageProject = projectRole === 'admin';
     const canEditProject = canManageProject || projectRole === 'editor';
-    
+
+    const renderOverviewTab = () => {
+        const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
+        const totalTrackedSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+        const today = new Date().toISOString().slice(0, 10);
+        const overdueTasksCount = projectTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
+
+        const budgetHours = project.budgetHours;
+        const totalBudgetSeconds = budgetHours ? budgetHours * 3600 : 0;
+        const timeBudgetUsagePercentage = totalBudgetSeconds > 0 ? Math.min((totalTrackedSeconds / totalBudgetSeconds) * 100, 100) : 0;
+
+        const budgetCost = project.budgetCost;
+        const actualCost = project.hourlyRate ? (totalTrackedSeconds / 3600) * project.hourlyRate : null;
+        const costBudgetUsagePercentage = (budgetCost && actualCost) ? Math.min((actualCost / budgetCost) * 100, 100) : 0;
+        const profitability = (budgetCost && actualCost) ? budgetCost - actualCost : null;
+
+        const profitabilityClass = profitability === null ? '' : (profitability >= 0 ? 'positive' : 'negative');
+        
+        return `
+            <div class="side-panel-content">
+                <div class="project-overview-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">${t('panels.budget_time')}</div>
+                        <div class="kpi-value">${formatDuration(totalTrackedSeconds)} / ${formatDuration(totalBudgetSeconds)}</div>
+                        <div class="kpi-progress-bar">
+                             <div class="kpi-progress-bar-inner" style="width: ${timeBudgetUsagePercentage}%;"></div>
+                        </div>
+                    </div>
+                     <div class="kpi-card">
+                        <div class="kpi-label">${t('panels.budget_cost')}</div>
+                        <div class="kpi-value">${formatCurrency(actualCost)} / ${formatCurrency(budgetCost)}</div>
+                         <div class="kpi-progress-bar">
+                             <div class="kpi-progress-bar-inner cost-bar" style="width: ${costBudgetUsagePercentage}%;"></div>
+                        </div>
+                    </div>
+                     <div class="kpi-card">
+                        <div class="kpi-label">${t('panels.profitability')}</div>
+                        <div class="kpi-value ${profitabilityClass}">${formatCurrency(profitability)}</div>
+                        <div class="kpi-sub-value">${t('misc.not_applicable')}</div>
+                    </div>
+                     <div class="kpi-card">
+                        <div class="kpi-label">${t('panels.tasks_overdue')}</div>
+                        <div class="kpi-value overdue">${overdueTasksCount}</div>
+                        <div class="kpi-sub-value">${t('misc.not_applicable')}</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 1.5rem;">
+                    <h4>Project Wiki Preview</h4>
+                    <div class="project-wiki-view">
+                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + '...')) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
 
     const renderTasksTab = () => {
+        const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
         const tasksByStatus = {
             backlog: projectTasks.filter(t => t.status === 'backlog'),
             todo: projectTasks.filter(t => t.status === 'todo'),
@@ -39,33 +90,6 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             inreview: projectTasks.filter(t => t.status === 'inreview'),
             done: projectTasks.filter(t => t.status === 'done'),
         };
-
-        const totalTasks = projectTasks.length;
-        const completedTasks = tasksByStatus.done.length;
-        const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-        const todoTasksCount = tasksByStatus.todo.length;
-        const today = new Date().toISOString().slice(0, 10);
-        const overdueTasksCount = projectTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
-        const members = state.projectMembers.filter(pm => pm.projectId === project.id);
-        const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
-
-        const budgetHours = project.budgetHours;
-        let budgetCardHtml = '';
-        if (budgetHours && budgetHours > 0) {
-            const totalBudgetSeconds = budgetHours * 3600;
-            const budgetUsagePercentage = Math.min((totalTrackedSeconds / totalBudgetSeconds) * 100, 100);
-            budgetCardHtml = `
-                <div class="card stat-card">
-                    <h4>Budget</h4>
-                    <div class="kpi-progress-bar">
-                        <div class="kpi-progress-bar-inner" style="width: ${budgetUsagePercentage}%; background-color: ${budgetUsagePercentage > 100 ? 'var(--danger-color)' : 'var(--primary-color)'};"></div>
-                    </div>
-                    <span class="kpi-progress-text">
-                        ${formatDuration(totalTrackedSeconds)} / ${formatDuration(totalBudgetSeconds)}
-                    </span>
-                </div>
-            `;
-        }
 
         const renderTaskList = (tasks: Task[], title: string) => tasks.length === 0 ? '' : `
             <div class="project-task-group">
@@ -91,39 +115,8 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         `;
 
         return `
-            <div class="side-panel-content project-dashboard">
-                 <div class="project-dashboard-grid">
-                    <div class="card stat-card" style="grid-column: 1 / -1;">
-                        <h4>${t('panels.progress')}</h4>
-                        <div class="kpi-progress-bar">
-                            <div class="kpi-progress-bar-inner" style="width: ${progress}%;"></div>
-                        </div>
-                        <span class="kpi-progress-text">${Math.round(progress)}%</span>
-                    </div>
-
-                    <div class="card stat-card">
-                        <h4>${t('panels.tasks_todo')}</h4>
-                        <div class="stat-card-value">${todoTasksCount}</div>
-                    </div>
-                    <div class="card stat-card">
-                        <h4>${t('panels.tasks_overdue')}</h4>
-                        <div class="stat-card-value ${overdueTasksCount > 0 ? 'overdue' : ''}">${overdueTasksCount}</div>
-                    </div>
-                    ${budgetCardHtml}
-                    <div class="card stat-card">
-                         <h4>${t('panels.team')}</h4>
-                         <div class="kpi-avatar-stack">
-                            ${memberUsers.slice(0, 5).map(u => u ? `
-                                <div class="avatar" title="${u.name || u.initials}">
-                                    ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}">` : u.initials}
-                                </div>
-                            ` : '').join('')}
-                            ${memberUsers.length > 5 ? `<div class="avatar more-avatar">+${memberUsers.length - 5}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-top: 2rem;">
+            <div class="side-panel-content">
+                <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4>${t('panels.tasks')}</h4>
                         <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
@@ -333,6 +326,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
     
     let tabContent = '';
     switch(openedProjectTab) {
+        case 'overview': tabContent = renderOverviewTab(); break;
         case 'tasks': tabContent = renderTasksTab(); break;
         case 'wiki': tabContent = renderWikiTab(); break;
         case 'files': tabContent = renderFilesTab(); break;
@@ -363,6 +357,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 </button>
             </div>
             <div class="side-panel-tabs" role="tablist" aria-label="Project sections">
+                <div class="side-panel-tab ${openedProjectTab === 'overview' ? 'active' : ''}" data-tab="overview" role="tab" aria-selected="${openedProjectTab === 'overview'}">${t('panels.project_overview')}</div>
                 <div class="side-panel-tab ${openedProjectTab === 'tasks' ? 'active' : ''}" data-tab="tasks" role="tab" aria-selected="${openedProjectTab === 'tasks'}">${t('panels.tab_tasks')}</div>
                 <div class="side-panel-tab ${openedProjectTab === 'okrs' ? 'active' : ''}" data-tab="okrs" role="tab" aria-selected="${openedProjectTab === 'okrs'}">${t('panels.tab_okrs')}</div>
                 <div class="side-panel-tab ${openedProjectTab === 'wiki' ? 'active' : ''}" data-tab="wiki" role="tab" aria-selected="${openedProjectTab === 'wiki'}">${t('panels.tab_wiki')}</div>
