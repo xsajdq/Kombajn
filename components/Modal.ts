@@ -1,11 +1,12 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
-import { camelToSnake, formatCurrency, formatDate } from '../utils.ts';
+import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration } from '../utils.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -322,9 +323,17 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addManualTimeLog') {
+        const task = state.tasks.find(t => t.id === modalData.taskId);
+        const totalTrackedSeconds = task ? getTaskTotalTrackedSeconds(task.id) : 0;
+        const formattedTime = formatDuration(totalTrackedSeconds);
+
         title = t('modals.add_manual_time_log_title');
         maxWidth = '500px';
         body = `
+            <div class="manual-log-header">
+                <p>${t('modals.task_name')}: <strong>${task?.name || '...'}</strong></p>
+                <p>${t('panels.total_time_tracked')}: <strong>${formattedTime}</strong></p>
+            </div>
             <form id="manualTimeLogForm">
                 <div class="form-group">
                     <label for="timeLogAmount">${t('modals.time_to_log')}</label>

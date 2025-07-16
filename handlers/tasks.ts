@@ -187,6 +187,28 @@ export async function handleToggleSubtaskStatus(subtaskId: string) {
     }
 }
 
+export async function handleToggleProjectTaskStatus(taskId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    const oldStatus = task.status;
+    
+    // Optimistic update
+    task.status = newStatus;
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, status: newStatus });
+    } catch (error) {
+        console.error('Failed to toggle project task status', error);
+        // Revert on failure
+        task.status = oldStatus;
+        renderApp();
+        alert('Could not update task status.');
+    }
+}
+
 export async function handleDeleteSubtask(subtaskId: string) {
     const subtaskIndex = state.tasks.findIndex(t => t.id === subtaskId);
     if (subtaskIndex === -1) return;

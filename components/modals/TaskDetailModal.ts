@@ -133,16 +133,28 @@ function renderSubtasksTab(task: Task) {
             <form id="add-subtask-form" class="add-subtask-form" data-parent-task-id="${task.id}">
                 <input type="text" class="form-control" placeholder="${t('modals.add_subtask')}" required>
             </form>
-            <ul class="subtask-list">
-            ${subtasks.map(st => `
-                <li class="subtask-item ${st.status === 'done' ? 'done' : ''}">
-                    <input type="checkbox" class="form-control subtask-checkbox" data-subtask-id="${st.id}" ${st.status === 'done' ? 'checked' : ''} style="width: auto;">
-                    <span class="subtask-name">${st.name}</span>
+            <ul class="subtask-list-enhanced">
+            ${subtasks.map(st => {
+                 const assignees = state.taskAssignees.filter(a => a.taskId === st.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+                const isDone = st.status === 'done';
+                return `
+                <li class="subtask-item-enhanced clickable" data-task-id="${st.id}" role="button" tabindex="0">
+                    <div class="subtask-status-toggle">
+                       <input type="checkbox" class="subtask-checkbox" data-subtask-id="${st.id}" ${isDone ? 'checked' : ''}>
+                    </div>
+                    <div class="subtask-name ${isDone ? 'done' : ''}">${st.name}</div>
+                    <div class="subtask-meta">
+                        ${st.dueDate ? `<span class="subtask-duedate">${formatDate(st.dueDate)}</span>` : '<div></div>'}
+                        <div class="avatar-stack">
+                           ${assignees.slice(0, 2).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                           ${assignees.length > 2 ? `<div class="avatar more-avatar">+${assignees.length - 2}</div>` : ''}
+                        </div>
+                    </div>
                     <button class="btn-icon delete-subtask-btn" data-subtask-id="${st.id}" title="${t('modals.remove_item')}">
                         <span class="material-icons-sharp">delete_outline</span>
                     </button>
                 </li>
-            `).join('')}
+            `}).join('')}
             </ul>
         </div>
     `;

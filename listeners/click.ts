@@ -24,6 +24,7 @@ import * as onboardingHandlers from '../handlers/onboarding.ts';
 import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
+import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -168,6 +169,14 @@ export async function handleClick(e: MouseEvent) {
         state.ui.tasksViewMode = viewSwitcher.dataset.viewMode as any; 
         renderApp(); 
         return; 
+    }
+
+    const taskStatusCheckbox = target.closest<HTMLInputElement>('.task-status-checkbox');
+    if (taskStatusCheckbox) {
+        e.stopPropagation(); // Prevent opening the task detail modal.
+        const taskId = taskStatusCheckbox.dataset.taskId!;
+        taskHandlers.handleToggleProjectTaskStatus(taskId);
+        return;
     }
 
     const taskElement = target.closest<HTMLElement>('[data-task-id].clickable');
@@ -345,7 +354,13 @@ export async function handleClick(e: MouseEvent) {
     const taskDetailTab = target.closest<HTMLElement>('.task-detail-tab[data-tab]');
     if (taskDetailTab) {
         const tab = taskDetailTab.dataset.tab as any;
-        if (tab) { state.ui.taskDetail.activeTab = tab; renderApp(); }
+        if (tab && state.ui.taskDetail.activeTab !== tab) {
+            state.ui.taskDetail.activeTab = tab;
+            const modalBody = document.querySelector('.modal-body');
+            if (modalBody && state.ui.modal.data?.taskId) {
+                modalBody.innerHTML = TaskDetailModal({ taskId: state.ui.modal.data.taskId });
+            }
+        }
         return;
     }
     const mentionItem = target.closest<HTMLElement>('.mention-item');
@@ -370,6 +385,33 @@ export async function handleClick(e: MouseEvent) {
         }
         return;
     }
+    
+    const subtaskCheckbox = target.closest<HTMLInputElement>('.subtask-checkbox');
+    if (subtaskCheckbox) {
+        taskHandlers.handleToggleSubtaskStatus(subtaskCheckbox.dataset.subtaskId!);
+        return;
+    }
+
+    const deleteSubtaskBtn = target.closest<HTMLElement>('.delete-subtask-btn');
+    if (deleteSubtaskBtn) {
+        taskHandlers.handleDeleteSubtask(deleteSubtaskBtn.dataset.subtaskId!);
+        return;
+    }
+    
+    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced');
+    if (subtaskItem) {
+        // This check prevents the click handler from firing when the checkbox or delete button is clicked.
+        if (target.closest('.subtask-checkbox') || target.closest('.delete-subtask-btn')) {
+            return;
+        }
+        const subtaskId = subtaskItem.dataset.taskId;
+        if (subtaskId) {
+            uiHandlers.closeModal(false);
+            uiHandlers.showModal('taskDetail', { taskId: subtaskId });
+        }
+        return;
+    }
+
 
     // Global buttons that might be anywhere
     if (target.closest('#fab-new-task')) { uiHandlers.showModal('addTask'); return; }
@@ -424,12 +466,6 @@ export async function handleClick(e: MouseEvent) {
     // Custom Fields
     const deleteCustomFieldBtn = target.closest<HTMLElement>('.delete-custom-field-btn');
     if (deleteCustomFieldBtn) { taskHandlers.handleDeleteCustomFieldDefinition(deleteCustomFieldBtn.dataset.fieldId!); return; }
-
-    // Subtasks
-    const subtaskCheckbox = target.closest<HTMLInputElement>('.subtask-checkbox');
-    if (subtaskCheckbox) { taskHandlers.handleToggleSubtaskStatus(subtaskCheckbox.dataset.subtaskId!); return; }
-    const deleteSubtaskBtn = target.closest<HTMLElement>('.delete-subtask-btn');
-    if (deleteSubtaskBtn) { taskHandlers.handleDeleteSubtask(deleteSubtaskBtn.dataset.subtaskId!); return; }
 
     // Attachments
     const deleteAttachmentBtn = target.closest<HTMLElement>('.delete-attachment-btn');

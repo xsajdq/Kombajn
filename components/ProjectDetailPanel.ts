@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
@@ -83,53 +84,19 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
     const renderTasksTab = () => {
         const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
-        const tasksByStatus = {
-            backlog: projectTasks.filter(t => t.status === 'backlog'),
-            todo: projectTasks.filter(t => t.status === 'todo'),
-            inprogress: projectTasks.filter(t => t.status === 'inprogress'),
-            inreview: projectTasks.filter(t => t.status === 'inreview'),
-            done: projectTasks.filter(t => t.status === 'done'),
-        };
 
-        const renderTaskList = (tasks: Task[], title: string) => tasks.length === 0 ? '' : `
-            <div class="project-task-group">
-                <h5 class="project-task-group-header">${title} (${tasks.length})</h5>
-                <ul class="project-task-list">
-                    ${tasks.map(task => {
-                        const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-                        const commentsCount = state.comments.filter(c => c.taskId === task.id).length;
-                        const attachmentsCount = state.attachments.filter(a => a.taskId === task.id).length;
-
-                        return `
-                        <li class="project-task-list-item clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                            <div class="task-priority-dot priority-${task.priority || 'none'}"></div>
-                            <div class="project-task-list-item-main">
-                                <p class="task-name">${task.name}</p>
-                                <div class="task-meta-info">
-                                    ${commentsCount > 0 ? `
-                                        <div class="stat-item" title="${commentsCount} comments">
-                                            <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
-                                            <span>${commentsCount}</span>
-                                        </div>
-                                    ` : ''}
-                                    ${attachmentsCount > 0 ? `
-                                        <div class="stat-item" title="${attachmentsCount} attachments">
-                                            <span class="material-icons-sharp icon-sm">attachment</span>
-                                            <span>${attachmentsCount}</span>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            <div class="avatar-stack">
-                                ${assignees.slice(0, 3).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
-                                ${assignees.length > 3 ? `<div class="avatar more-avatar">+${assignees.length - 3}</div>` : ''}
-                            </div>
-                        </li>
-                        `
-                    }).join('')}
-                </ul>
-            </div>
-        `;
+        const statusOrder: Task['status'][] = ['inprogress', 'inreview', 'todo', 'backlog', 'done'];
+        const sortedTasks = [...projectTasks].sort((a, b) => {
+            const statusA = statusOrder.indexOf(a.status);
+            const statusB = statusOrder.indexOf(b.status);
+            if (statusA !== statusB) {
+                return statusA - statusB;
+            }
+            // Optional: further sort by due date within the same status
+            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            return dateA - dateB;
+        });
 
         return `
             <div class="side-panel-content">
@@ -140,13 +107,28 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                             <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span> ${t('panels.add_task')}
                         </button>
                     </div>
-                    ${renderTaskList(tasksByStatus.inprogress, t('tasks.inprogress'))}
-                    ${renderTaskList(tasksByStatus.inreview, t('tasks.inreview'))}
-                    ${renderTaskList(tasksByStatus.todo, t('tasks.todo'))}
-                    ${renderTaskList(tasksByStatus.backlog, t('tasks.backlog'))}
-                    ${renderTaskList(tasksByStatus.done, t('tasks.done'))}
+                    <ul class="project-tasks-list-minimal">
+                        ${sortedTasks.map(task => {
+                            const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+                            const isDone = task.status === 'done';
+                            return `
+                                <li class="project-task-item-minimal clickable" data-task-id="${task.id}" role="button" tabindex="0">
+                                    <input type="checkbox" class="task-status-checkbox" data-task-id="${task.id}" ${isDone ? 'checked' : ''}>
+                                    <p class="task-name ${isDone ? 'is-done' : ''}">${task.name}</p>
+                                    <div class="task-meta">
+                                        ${task.dueDate ? `<span class="task-due-date">${formatDate(task.dueDate)}</span>` : '<span></span>'}
+                                        <div class="avatar-stack">
+                                            ${assignees.slice(0, 3).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                                            ${assignees.length > 3 ? `<div class="avatar more-avatar">+${assignees.length - 3}</div>` : ''}
+                                        </div>
+                                    </div>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
                 </div>
-            </div>`;
+            </div>
+        `;
     };
 
     const renderWikiTab = () => {
