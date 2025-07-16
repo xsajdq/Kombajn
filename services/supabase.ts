@@ -3,6 +3,7 @@ import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabas
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Notification, Task, Deal } from '../types.ts';
+import { keysToCamel } from '../utils.ts';
 
 export let supabase: SupabaseClient | null = null;
 const channels: RealtimeChannel[] = [];
@@ -98,7 +99,7 @@ export function subscribeToRealtimeUpdates() {
         filter: `user_id=eq.${state.currentUser.id}`,
         callback: (payload: any) => {
             console.log('Realtime: New notification received!', payload);
-            const newNotification = payload.new as Notification;
+            const newNotification = keysToCamel(payload.new) as Notification;
             state.notifications.unshift(newNotification);
             renderApp();
         }
@@ -113,7 +114,7 @@ export function subscribeToRealtimeUpdates() {
         callback: (payload: any) => {
             console.log('Realtime: Task change received!', payload);
             const eventType = payload.eventType;
-            const record = (eventType === 'DELETE' ? payload.old : payload.new) as Task;
+            const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Task;
             const index = state.tasks.findIndex(t => t.id === record.id);
 
             if (eventType === 'UPDATE') {
@@ -136,7 +137,7 @@ export function subscribeToRealtimeUpdates() {
         callback: (payload: any) => {
             console.log('Realtime: Deal change received!', payload);
             const eventType = payload.eventType;
-            const record = (eventType === 'DELETE' ? payload.old : payload.new) as Deal;
+            const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Deal;
             const index = state.deals.findIndex(d => d.id === record.id);
 
             if (eventType === 'UPDATE') {
