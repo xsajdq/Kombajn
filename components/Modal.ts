@@ -134,14 +134,14 @@ export function Modal() {
                        <input type="radio" id="privacy-public" name="privacy" value="public" checked>
                        <label for="privacy-public">
                             <strong>${t('modals.privacy_public')}</strong>
-                            <p class="subtle-text">${t('modals.privacy_public_desc')}</p>
+                            <p>${t('modals.privacy_public_desc')}</p>
                         </label>
                     </div>
                      <div class="form-group-inline">
                        <input type="radio" id="privacy-private" name="privacy" value="private">
                        <label for="privacy-private">
                             <strong>${t('modals.privacy_private')}</strong>
-                            <p class="subtle-text">${t('modals.privacy_private_desc')}</p>
+                            <p>${t('modals.privacy_private_desc')}</p>
                        </label>
                     </div>
                 </div>
@@ -154,7 +154,7 @@ export function Modal() {
                             <label class="project-member-checkbox-item">
                                 <input type="checkbox" name="project_members" value="${user!.id}" ${isCreator ? 'checked disabled' : ''}>
                                 <div class="avatar">${user!.initials}</div>
-                                <span>${user!.name || user!.email} ${isCreator ? `(${t('hr.you')})` : ''}</span>
+                                <span>${user!.name || user!.initials} ${isCreator ? `(${t('hr.you')})` : ''}</span>
                             </label>
                         `}).join('')}
                     </div>

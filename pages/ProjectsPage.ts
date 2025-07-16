@@ -57,6 +57,8 @@ export function ProjectsPage() {
                                     </div>
                                     <span class="progress-text">${Math.round(progress)}%</span>
                                 </div>
+                            </div>
+                            <div class="project-card-footer">
                                 <div class="avatar-stack">
                                      ${memberUsers.slice(0, 4).map(u => u ? `
                                         <div class="avatar" title="${u.name || u.initials}">
@@ -67,18 +69,18 @@ export function ProjectsPage() {
                                         <div class="avatar more-avatar">+${memberUsers.length - 4}</div>
                                     ` : ''}
                                 </div>
-                            </div>
-                            <div class="project-card-footer">
-                                <div class="project-stat-pill" title="${t('projects.members')}">
-                                    <span class="material-icons-sharp icon-sm">group</span>
-                                    <span>${members.length}</span>
-                                </div>
-                                ${overdueTasks > 0 ? `
-                                    <div class="project-stat-pill overdue-pill" title="${t('projects.overdue_tasks')}">
-                                        <span class="material-icons-sharp icon-sm">error_outline</span>
-                                        <span>${overdueTasks}</span>
+                                <div class="project-card-stats">
+                                    <div class="project-stat-pill" title="${t('projects.members')}">
+                                        <span class="material-icons-sharp icon-sm">group</span>
+                                        <span>${members.length}</span>
                                     </div>
-                                ` : ''}
+                                    ${overdueTasks > 0 ? `
+                                        <div class="project-stat-pill overdue-pill" title="${t('projects.overdue_tasks')}">
+                                            <span class="material-icons-sharp icon-sm">error_outline</span>
+                                            <span>${overdueTasks}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     `;

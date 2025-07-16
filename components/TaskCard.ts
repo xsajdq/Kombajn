@@ -13,13 +13,13 @@ export function renderTaskCard(task: Task) {
     const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
 
     const checklist = task.checklist || [];
-    const completedChecklistItems = checklist.filter(c => c.completed).length;
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const comments = state.comments.filter(c => c.taskId === task.id);
 
-    const descriptionSnippet = task.description
-        ? (task.description.length > 100 ? task.description.substring(0, 97) + '...' : task.description)
-        : '';
+    // Show top 3 checklist items, and a counter for the rest.
+    const checklistPreviewItems = checklist.slice(0, 3);
+    const remainingChecklistCount = checklist.length - checklistPreviewItems.length;
+
 
     return `
         <div class="task-card clickable" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
@@ -29,13 +29,7 @@ export function renderTaskCard(task: Task) {
                     <span class="material-icons-sharp">more_vert</span>
                 </button>
             </div>
-            ${descriptionSnippet ? `<p class="task-card-description">${descriptionSnippet}</p>` : ''}
             
-            <div class="task-card-meta-row">
-                ${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : ''}
-                ${task.dueDate ? `<div class="task-card-duedate"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate)}</span></div>` : ''}
-            </div>
-
             ${tags.length > 0 ? `
                 <div class="task-card-tags">
                     ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
@@ -43,16 +37,26 @@ export function renderTaskCard(task: Task) {
             ` : ''}
 
             ${checklist.length > 0 ? `
-                <div class="task-card-subtasks">
-                    <div class="kpi-progress-bar" style="height: 6px; margin-bottom: 0.5rem;">
-                         <div class="kpi-progress-bar-inner" style="width: ${(completedChecklistItems / checklist.length) * 100}%;"></div>
-                    </div>
-                    <label class="task-card-subtasks-header">${t('tasks.subtasks')} ${completedChecklistItems}/${checklist.length}</label>
+                <div class="task-card-checklist">
+                    <label>${t('modals.checklist')}</label>
+                    <ul class="task-card-checklist-items">
+                        ${checklistPreviewItems.map(item => `
+                            <li class="task-card-checklist-item ${item.completed ? 'completed' : ''}">
+                                <span class="checklist-item-checkbox"></span>
+                                <span class="checklist-item-text">${item.text}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    ${remainingChecklistCount > 0 ? `
+                        <p class="checklist-more-items">+${remainingChecklistCount} more items</p>
+                    ` : ''}
                 </div>
             `: ''}
 
             <div class="task-card-footer">
-                 <div class="task-card-meta-stats">
+                 <div class="task-card-meta">
+                    ${task.priority ? `<span class="priority-label priority-${task.priority}" title="${t('tasks.priority_' + task.priority)}">${t('tasks.priority_' + task.priority)}</span>` : ''}
+                    ${task.dueDate ? `<div class="stat-item" title="${t('tasks.col_due_date')}"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate)}</span></div>` : ''}
                     ${comments.length > 0 ? `<div class="stat-item" title="${comments.length} comments">
                          <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
                          <span>${comments.length}</span>
