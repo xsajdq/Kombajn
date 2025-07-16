@@ -1,7 +1,4 @@
 
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -104,7 +101,12 @@ export function SettingsPage() {
         const fieldTypes: CustomFieldType[] = ['text', 'number', 'date', 'checkbox'];
 
         return `
-            <h4>${t('settings.tab_custom_fields')}</h4>
+            <div class="setting-item">
+                <div>
+                    <h4>${t('settings.tab_custom_fields')}</h4>
+                    <p class="subtle-text">Add custom fields to your tasks to capture more specific information.</p>
+                </div>
+            </div>
             <div class="card" style="margin-top: 1rem;">
                 ${customFields.length > 0 ? customFields.map(field => `
                     <div class="setting-item">
@@ -137,48 +139,52 @@ export function SettingsPage() {
         
         return `
             <form id="workspace-settings-form">
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-                    <div>
-                        <h4>${t('settings.company_details')}</h4>
-                        <div class="form-group">
-                            <label for="companyName">${t('settings.company_name')}</label>
-                            <input type="text" id="companyName" data-field="companyName" class="form-control" value="${workspace.companyName || ''}">
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                        <div>
+                            <h4>${t('settings.company_details')}</h4>
+                            <div class="form-group">
+                                <label for="companyName">${t('settings.company_name')}</label>
+                                <input type="text" id="companyName" data-field="companyName" class="form-control" value="${workspace.companyName || ''}">
+                            </div>
+                            <div class="form-group" style="margin-top:1rem;">
+                                <label for="companyAddress">${t('settings.company_address')}</label>
+                                <textarea id="companyAddress" data-field="companyAddress" class="form-control" rows="3">${workspace.companyAddress || ''}</textarea>
+                            </div>
+                            <div class="form-group" style="margin-top:1rem;">
+                                <label for="companyVatId">${t('settings.company_vat_id')}</label>
+                                <input type="text" id="companyVatId" data-field="companyVatId" class="form-control" value="${workspace.companyVatId || ''}">
+                            </div>
+                             <div class="form-group" style="margin-top:1rem;">
+                                <label for="companyEmail">${t('settings.company_email')}</label>
+                                <input type="email" id="companyEmail" data-field="companyEmail" class="form-control" value="${workspace.companyEmail || ''}">
+                            </div>
                         </div>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label for="companyAddress">${t('settings.company_address')}</label>
-                            <textarea id="companyAddress" data-field="companyAddress" class="form-control" rows="3">${workspace.companyAddress || ''}</textarea>
-                        </div>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label for="companyVatId">${t('settings.company_vat_id')}</label>
-                            <input type="text" id="companyVatId" data-field="companyVatId" class="form-control" value="${workspace.companyVatId || ''}">
-                        </div>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label for="companyEmail">${t('settings.company_email')}</label>
-                            <input type="email" id="companyEmail" data-field="companyEmail" class="form-control" value="${workspace.companyEmail || ''}">
-                        </div>
-                        <h4 style="margin-top:2rem;">${t('settings.bank_details')}</h4>
-                        <div class="form-group">
-                            <label for="companyBankName">${t('settings.bank_name')}</label>
-                            <input type="text" id="companyBankName" data-field="companyBankName" class="form-control" value="${workspace.companyBankName || ''}">
-                        </div>
-                         <div class="form-group" style="margin-top:1rem;">
-                            <label for="companyBankAccount">${t('settings.bank_account')}</label>
-                            <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="form-control" value="${workspace.companyBankAccount || ''}">
+                        <div>
+                            <h4>${t('settings.company_logo')}</h4>
+                            <div class="form-group">
+                                 <label>${t('settings.logo_preview')}</label>
+                                 <div class="logo-preview" style="height: 80px; background-color: var(--light-color); border-radius: var(--border-radius); display:flex; align-items:center; justify-content:center; margin-bottom: 1rem;">
+                                    ${workspace.companyLogo ? `<img src="${workspace.companyLogo}" style="max-height: 100%; max-width: 100%; object-fit: contain;">` : `<span class="subtle-text">No logo</span>`}
+                                 </div>
+                                 <input type="file" id="logo-upload" class="hidden" accept="image/png, image/jpeg">
+                                 <div style="display:flex; gap: 0.5rem;">
+                                    <label for="logo-upload" class="btn btn-secondary">${t('settings.upload_logo')}</label>
+                                    ${workspace.companyLogo ? `<button id="remove-logo-btn" class="btn btn-secondary" style="background-color: var(--danger-color); color: var(--white-color); border-color: var(--danger-color);">${t('settings.remove_logo')}</button>` : ''}
+                                 </div>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <h4>${t('settings.company_logo')}</h4>
-                        <div class="form-group">
-                             <label>${t('settings.logo_preview')}</label>
-                             <div class="logo-preview" style="height: 80px; background-color: var(--light-color); border-radius: var(--border-radius); display:flex; align-items:center; justify-content:center; margin-bottom: 1rem;">
-                                ${workspace.companyLogo ? `<img src="${workspace.companyLogo}" style="max-height: 100%; max-width: 100%; object-fit: contain;">` : `<span class="subtle-text">No logo</span>`}
-                             </div>
-                             <input type="file" id="logo-upload" class="hidden" accept="image/png, image/jpeg">
-                             <div style="display:flex; gap: 0.5rem;">
-                                <label for="logo-upload" class="btn btn-secondary">${t('settings.upload_logo')}</label>
-                                ${workspace.companyLogo ? `<button id="remove-logo-btn" class="btn btn-secondary" style="background-color: var(--danger-color); color: var(--white-color); border-color: var(--danger-color);">${t('settings.remove_logo')}</button>` : ''}
-                             </div>
-                        </div>
+                </div>
+                 <div class="card" style="margin-top: 1.5rem;">
+                    <h4>${t('settings.bank_details')}</h4>
+                    <div class="form-group">
+                        <label for="companyBankName">${t('settings.bank_name')}</label>
+                        <input type="text" id="companyBankName" data-field="companyBankName" class="form-control" value="${workspace.companyBankName || ''}">
+                    </div>
+                     <div class="form-group" style="margin-top:1rem;">
+                        <label for="companyBankAccount">${t('settings.bank_account')}</label>
+                        <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="form-control" value="${workspace.companyBankAccount || ''}">
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
@@ -201,7 +207,10 @@ export function SettingsPage() {
         ];
 
         return `
-            <h4>${t('settings.tab_integrations')}</h4>
+            <div class="setting-item">
+                <h4>${t('settings.tab_integrations')}</h4>
+                <p class="subtle-text">Connect your other tools to Kombajn to streamline your workflow.</p>
+            </div>
             <div class="integrations-grid">
                 ${integrations.map(int => {
                     let connectionStatus = '';
@@ -241,7 +250,6 @@ export function SettingsPage() {
         `;
     };
 
-
     let tabContent = '';
     switch (activeTab) {
         case 'general':
@@ -261,18 +269,33 @@ export function SettingsPage() {
             break;
     }
 
+    const navItems = [
+        { id: 'general', icon: 'tune', text: t('settings.tab_general') },
+        { id: 'profile', icon: 'account_circle', text: t('settings.tab_profile') },
+        { id: 'workspace', icon: 'business_center', text: t('settings.tab_workspace'), needsPermission: true },
+        { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), needsPermission: true },
+        { id: 'customFields', icon: 'post_add', text: t('settings.tab_custom_fields'), needsPermission: true },
+    ].filter(item => !item.needsPermission || canManage);
+
+
     return `
-    <div>
-        <h2>${t('settings.title')}</h2>
-        <div class="settings-tabs">
-            <div class="setting-tab ${activeTab === 'general' ? 'active' : ''}" data-tab="general">${t('settings.tab_general')}</div>
-            <div class="setting-tab ${activeTab === 'profile' ? 'active' : ''}" data-tab="profile">${t('settings.tab_profile')}</div>
-            ${canManage ? `<div class="setting-tab ${activeTab === 'workspace' ? 'active' : ''}" data-tab="workspace">${t('settings.tab_workspace')}</div>` : ''}
-            ${canManage ? `<div class="setting-tab ${activeTab === 'integrations' ? 'active' : ''}" data-tab="integrations">${t('settings.tab_integrations')}</div>` : ''}
-            ${canManage ? `<div class="setting-tab ${activeTab === 'customFields' ? 'active' : ''}" data-tab="customFields">${t('settings.tab_custom_fields')}</div>` : ''}
+        <div class="settings-page-layout">
+            <nav class="settings-nav-menu">
+                <h3>${t('settings.title')}</h3>
+                <ul>
+                ${navItems.map(item => `
+                    <li>
+                        <a href="#" class="settings-nav-item ${activeTab === item.id ? 'active' : ''}" data-tab="${item.id}">
+                            <span class="material-icons-sharp">${item.icon}</span>
+                            <span>${item.text}</span>
+                        </a>
+                    </li>
+                `).join('')}
+                </ul>
+            </nav>
+            <main class="settings-content">
+                ${tabContent}
+            </main>
         </div>
-        <div class="card">
-            ${tabContent}
-        </div>
-    </div>`;
+    `;
 }

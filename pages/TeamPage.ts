@@ -52,12 +52,13 @@ async function renderEmployeesTab() {
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
+                        const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
                         return `
-                        <div class="hr-table-row" data-user-name="${user.name?.toLowerCase() || ''}" data-user-email="${user.email?.toLowerCase() || ''}">
+                        <div class="hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
                             <div class="hr-employee-cell" data-label="Employee">
                                 <div class="avatar">${user.initials}</div>
                                 <div class="member-info">
-                                    <strong>${user.name || user.initials} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
+                                    <strong>${displayName} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
                                 </div>
                             </div>
                             <div data-label="Role">
@@ -86,6 +87,7 @@ async function renderEmployeesTab() {
             </div>
         </div>
 
+        <div id="hr-invite-flyout-backdrop" class="hr-invite-flyout-backdrop"></div>
         <div id="hr-invite-flyout" class="hr-invite-flyout">
             <div class="hr-invite-flyout-content">
                 <h4>${t('hr.invite_member')}</h4>

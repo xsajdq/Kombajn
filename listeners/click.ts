@@ -236,11 +236,28 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const settingsTab = target.closest<HTMLElement>('.setting-tab[data-tab]');
+    const settingsTab = target.closest<HTMLElement>('.settings-nav-item[data-tab]');
     if (settingsTab) { state.ui.settings.activeTab = settingsTab.dataset.tab as any; renderApp(); return; }
 
-    const hrTab = target.closest<HTMLElement>('.hr-tab[data-hr-tab]');
-    if (hrTab) { teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any); return; }
+    const hrTab = target.closest<HTMLElement>('.hr-nav-item[data-hr-tab]');
+    if (hrTab) {
+        teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
+        return;
+    }
+
+    const inviteMemberBtn = target.closest('#hr-invite-member-btn');
+    if (inviteMemberBtn) {
+        document.getElementById('hr-invite-flyout')?.classList.add('is-open');
+        document.getElementById('hr-invite-flyout-backdrop')?.classList.add('is-open');
+        return;
+    }
+
+    const closeFlyoutBtn = target.closest('#hr-invite-cancel-btn') || target.matches('#hr-invite-flyout-backdrop');
+    if (closeFlyoutBtn) {
+        document.getElementById('hr-invite-flyout')?.classList.remove('is-open');
+        document.getElementById('hr-invite-flyout-backdrop')?.classList.remove('is-open');
+        return;
+    }
     
     const approveRequestBtn = target.closest<HTMLElement>('[data-approve-request-id]');
     if (approveRequestBtn) { teamHandlers.handleApproveTimeOffRequest(approveRequestBtn.dataset.approveRequestId!); return; }
