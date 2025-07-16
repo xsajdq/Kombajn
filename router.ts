@@ -36,16 +36,25 @@ export async function router() {
     
     state.currentPage = (page || 'dashboard') as AppState['currentPage'];
 
-    // This part handles opening a detail view from a direct URL load (deep linking)
+    // This part handles opening a detail view from a direct URL load (deep linking).
+    // The check prevents a re-render loop when interacting inside an open panel.
     if (id) {
-        // We use a timeout to ensure the main page render has started
-        // before we try to open a panel/modal on top of it.
         setTimeout(() => {
             switch (state.currentPage) {
-                case 'projects': openProjectPanel(id); break;
-                case 'clients': openClientPanel(id); break;
-                case 'tasks': showModal('taskDetail', { taskId: id }); break;
-                case 'sales': openDealPanel(id); break;
+                case 'projects':
+                    if (state.ui.openedProjectId !== id) openProjectPanel(id);
+                    break;
+                case 'clients':
+                    if (state.ui.openedClientId !== id) openClientPanel(id);
+                    break;
+                case 'tasks':
+                    if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
+                        showModal('taskDetail', { taskId: id });
+                    }
+                    break;
+                case 'sales':
+                    if (state.ui.openedDealId !== id) openDealPanel(id);
+                    break;
             }
         }, 100);
     }
