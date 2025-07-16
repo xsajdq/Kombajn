@@ -1,12 +1,11 @@
 
-
 import { state, saveState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
@@ -15,7 +14,7 @@ export async function fetchInitialData() {
     console.log("Fetching initial data from server...");
     
     const [
-        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems, integrations
+        profiles, projects, clients, tasks, deals, timeLogs, rawWorkspaces, rawWorkspaceMembers, dependencies, workspaceJoinRequests, notifications, dashboardWidgets, comments, taskAssignees, tags, taskTags, objectives, keyResults, dealNotes, invoices, invoiceLineItems, integrations, clientContacts, expenses
     ] = await Promise.all([
         apiFetch('/api/data/profiles'),
         apiFetch('/api/data/projects'),
@@ -39,12 +38,13 @@ export async function fetchInitialData() {
         apiFetch('/api/data/invoices'),
         apiFetch('/api/data/invoice_line_items'),
         apiFetch('/api/data/integrations'),
+        apiFetch('/api/data/client_contacts'),
+        apiFetch('/api/data/expenses'),
     ]);
 
     // Populate state with fetched data
     state.users = profiles; 
     state.projects = projects;
-    state.clients = clients;
     state.tasks = tasks;
     state.deals = deals;
     state.timeLogs = timeLogs;
@@ -56,6 +56,22 @@ export async function fetchInitialData() {
     state.keyResults = keyResults;
     state.dealNotes = dealNotes;
     state.integrations = integrations;
+    state.clientContacts = clientContacts;
+    state.expenses = expenses;
+
+    // Stitch together clients and their contacts
+    const contactsByClientId = new Map<string, ClientContact[]>();
+    clientContacts.forEach((contact: ClientContact) => {
+        if (!contactsByClientId.has(contact.clientId)) {
+            contactsByClientId.set(contact.clientId, []);
+        }
+        contactsByClientId.get(contact.clientId)!.push(contact);
+    });
+    
+    state.clients = clients.map((client: Client) => ({
+        ...client,
+        contacts: contactsByClientId.get(client.id) || []
+    }));
 
     // Stitch together invoices and their line items
     const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();

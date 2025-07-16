@@ -1,11 +1,12 @@
 
-import { state } from '../state.ts';
+import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee } from '../types.ts';
+import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
+import { parseDurationStringToHours } from '../utils.ts';
 
 // Declare Google API types to satisfy TypeScript
 declare const gapi: any;
@@ -68,11 +69,16 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
-    // Convert empty string from form inputs to null for the database
-    const finalValue = value === '' ? null : value;
+    let finalValue: any;
+
+    if (field === 'estimatedHours') {
+        finalValue = parseDurationStringToHours(value as string);
+    } else {
+        finalValue = value === '' ? null : value;
+    }
 
     const oldValue = task[field];
-    // Also handle case where old value is null and new is empty string, which we consider no change
+    
     if (oldValue === finalValue || (oldValue === null && value === '')) {
         return;
     }
@@ -126,88 +132,35 @@ export async function handleToggleAssignee(taskId: string, userId: string) {
         state.taskAssignees.push(newAssignee);
         renderApp(); // Optimistic update
         try {
-            const [saved] = await apiPost('task_assignees', { taskId, userId, workspaceId: task.workspaceId });
-            // The record from the DB doesn't have a unique ID, so we just trust our optimistic one.
+            await apiPost('task_assignees', newAssignee);
+            if (userId !== state.currentUser.id) {
+                await createNotification('new_assignment', { taskId, userIdToNotify: userId, actorId: state.currentUser.id });
+            }
         } catch (error) {
             console.error('Failed to add assignee', error);
-            state.taskAssignees = state.taskAssignees.filter(a => !(a.taskId === taskId && a.userId === userId)); // Revert
+            state.taskAssignees.pop(); // Revert
             renderApp();
         }
     }
 }
-
-export async function handleToggleTag(taskId: string, tagId: string, newTagName?: string) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    // --- CREATE NEW TAG ---
-    if (newTagName) {
-        const workspaceId = task.workspaceId;
-        const colors = ['#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#2ecc71', '#1abc9c', '#e67e22', '#34495e'];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        
-        try {
-            // Create the tag first
-            const [newTag] = await apiPost('tags', { name: newTagName, color, workspaceId });
-            state.tags.push(newTag);
-            
-            // Then link it to the task
-            const [newTaskTag] = await apiPost('task_tags', { taskId, tagId: newTag.id, workspaceId });
-            state.taskTags.push(newTaskTag);
-            renderApp();
-        } catch(error) {
-            console.error("Failed to create new tag", error);
-        }
-        return;
-    }
-
-    // --- TOGGLE EXISTING TAG ---
-    const existingIndex = state.taskTags.findIndex(tt => tt.taskId === taskId && tt.tagId === tagId);
-
-    if (existingIndex > -1) {
-        // Remove
-        const [removed] = state.taskTags.splice(existingIndex, 1);
-        renderApp();
-        try {
-            await apiPost('task_tags/delete', { taskId, tagId });
-        } catch (error) {
-            console.error("Failed to remove tag from task", error);
-            state.taskTags.splice(existingIndex, 0, removed); // Revert
-            renderApp();
-        }
-    } else {
-        // Add
-        const newTaskTag = { taskId, tagId, workspaceId: task.workspaceId };
-        state.taskTags.push(newTaskTag);
-        renderApp();
-        try {
-            await apiPost('task_tags', newTaskTag);
-        } catch (error) {
-            console.error("Failed to add tag to task", error);
-            state.taskTags = state.taskTags.filter(tt => !(tt.taskId === taskId && tt.tagId === tagId)); // Revert
-            renderApp();
-        }
-    }
-}
-
 
 export async function handleAddSubtask(parentTaskId: string, subtaskName: string) {
     const parentTask = state.tasks.find(t => t.id === parentTaskId);
-    if (!parentTask) return;
+    if (!parentTask || !state.activeWorkspaceId) return;
 
-    const newSubtaskPayload: Partial<Task> = {
-        workspaceId: parentTask.workspaceId,
-        name: subtaskName,
+    const subtaskPayload: Partial<Task> = {
+        workspaceId: state.activeWorkspaceId,
         projectId: parentTask.projectId,
+        name: subtaskName,
         status: 'todo',
         parentId: parentTaskId,
     };
 
     try {
-        const [savedSubtask] = await apiPost('tasks', newSubtaskPayload);
-        state.tasks.push(savedSubtask);
+        const [newSubtask] = await apiPost('tasks', subtaskPayload);
+        state.tasks.push(newSubtask);
         renderApp();
-    } catch(error) {
+    } catch (error) {
         console.error("Failed to add subtask:", error);
         alert("Could not add subtask.");
     }
@@ -215,163 +168,56 @@ export async function handleAddSubtask(parentTaskId: string, subtaskName: string
 
 export async function handleToggleSubtaskStatus(subtaskId: string) {
     const subtask = state.tasks.find(t => t.id === subtaskId);
-    if (subtask) {
-        const originalStatus = subtask.status;
-        const newStatus = originalStatus === 'done' ? 'todo' : 'done';
-        subtask.status = newStatus; // Optimistic update
+    if (!subtask) return;
+
+    const newStatus = subtask.status === 'done' ? 'todo' : 'done';
+    const oldStatus = subtask.status;
+    subtask.status = newStatus; // Optimistic update
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: subtaskId, status: newStatus });
+    } catch (error) {
+        console.error("Failed to toggle subtask status:", error);
+        subtask.status = oldStatus; // Revert
         renderApp();
-        try {
-            await apiPut('tasks', { id: subtaskId, status: newStatus });
-        } catch (error) {
-            console.error("Failed to toggle subtask status:", error);
-            subtask.status = originalStatus; // Revert
-            renderApp();
-        }
     }
 }
 
 export async function handleDeleteSubtask(subtaskId: string) {
     const subtaskIndex = state.tasks.findIndex(t => t.id === subtaskId);
-    if (subtaskIndex > -1) {
-        const [removedSubtask] = state.tasks.splice(subtaskIndex, 1); // Optimistic remove
-        renderApp();
-        try {
-            await apiPost('tasks/delete', { id: subtaskId }); // Using a generic delete endpoint pattern
-        } catch (error) {
-            console.error("Failed to delete subtask:", error);
-            state.tasks.splice(subtaskIndex, 0, removedSubtask); // Revert
-            renderApp();
-            alert("Could not delete subtask.");
-        }
-    }
-}
+    if (subtaskIndex === -1) return;
 
-export async function handleAddAttachment(taskId: string, file: File) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    // In a real app, this would first upload to a storage service (like Supabase Storage)
-    // and then save the URL/path to the database. We'll just save metadata for now.
-    const newAttachmentPayload: Partial<Attachment> = {
-        workspaceId: task.workspaceId,
-        projectId: task.projectId,
-        taskId: taskId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        provider: 'native'
-    };
+    const [removedSubtask] = state.tasks.splice(subtaskIndex, 1);
+    renderApp();
 
     try {
-        const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
-        state.attachments.push(savedAttachment);
-        renderApp();
-    } catch(error) {
-        console.error("Failed to add attachment:", error);
-        alert("Could not add attachment.");
-    }
-}
-
-let pickerApiLoaded = false;
-async function loadPickerApi() {
-    if (pickerApiLoaded) return;
-    return new Promise((resolve) => {
-        gapi.load('picker', { 'callback': () => {
-            pickerApiLoaded = true;
-            resolve(true);
-        }});
-    });
-}
-
-export async function handleAttachGoogleDriveFile(taskId: string) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    try {
-        // Fetch the OAuth token from our secure backend endpoint
-        const { token, developerKey, clientId } = await apiFetch(`/api/app-config?action=token&provider=google_drive&workspaceId=${task.workspaceId}`);
-        if (!token || !developerKey || !clientId) {
-            throw new Error('Missing necessary credentials from backend to show picker.');
-        }
-
-        await loadPickerApi();
-
-        const pickerCallback = async (data: any) => {
-            if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
-                const doc = data[google.picker.Response.DOCUMENTS][0];
-                const pickedFile = {
-                    id: doc[google.picker.Document.ID],
-                    name: doc[google.picker.Document.NAME],
-                    mimeType: doc[google.picker.Document.MIME_TYPE],
-                    iconUrl: doc[google.picker.Document.ICON_URL],
-                    url: doc[google.picker.Document.URL],
-                };
-
-                const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt' | 'fileSize' | 'fileType'> = {
-                    workspaceId: task.workspaceId,
-                    projectId: task.projectId,
-                    taskId: taskId,
-                    fileName: pickedFile.name,
-                    provider: 'google_drive',
-                    externalUrl: pickedFile.url,
-                    fileId: pickedFile.id,
-                    iconUrl: pickedFile.iconUrl,
-                };
-                
-                const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
-                state.attachments.push(savedAttachment);
-                renderApp();
-            }
-        };
-
-        const view = new google.picker.View(google.picker.ViewId.DOCS);
-        const picker = new google.picker.PickerBuilder()
-            .enableFeature(google.picker.Feature.NAV_HIDDEN)
-            .setAppId(clientId)
-            .setOAuthToken(token)
-            .addView(view)
-            .setDeveloperKey(developerKey)
-            .setCallback(pickerCallback)
-            .build();
-        
-        picker.setVisible(true);
-
+        await apiFetch(`/api/data/tasks`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: subtaskId }),
+        });
     } catch (error) {
-        console.error("Error setting up Google Picker:", error);
-        alert(`Could not open Google Drive picker. Please ensure the integration is connected and API keys are set up correctly. Error: ${(error as Error).message}`);
-    }
-}
-
-export async function handleRemoveAttachment(attachmentId: string) {
-    const attIndex = state.attachments.findIndex(a => a.id === attachmentId);
-    if (attIndex > -1) {
-        const [removedAttachment] = state.attachments.splice(attIndex, 1);
+        console.error("Failed to delete subtask:", error);
+        state.tasks.splice(subtaskIndex, 0, removedSubtask); // Revert
         renderApp();
-        try {
-             await apiPost('attachments/delete', { id: attachmentId });
-        } catch(error) {
-            state.attachments.splice(attIndex, 0, removedAttachment);
-            renderApp();
-            alert("Could not remove attachment.");
-        }
     }
 }
 
-// --- Dependencies ---
 export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string) {
-    const workspaceId = state.activeWorkspaceId;
-    if (!workspaceId || blockingTaskId === blockedTaskId) return;
+    const task = state.tasks.find(t => t.id === blockedTaskId);
+    if (!task) return;
 
-    const newDependencyPayload: Omit<TaskDependency, 'id'> = {
-        workspaceId,
+    const dependencyPayload: Omit<TaskDependency, 'id'> = {
+        workspaceId: task.workspaceId,
         blockingTaskId,
         blockedTaskId,
     };
+
     try {
-        const [savedDep] = await apiPost('task_dependencies', newDependencyPayload);
-        state.dependencies.push(savedDep);
+        const [newDependency] = await apiPost('task_dependencies', dependencyPayload);
+        state.dependencies.push(newDependency);
         renderApp();
-    } catch(error) {
+    } catch (error) {
         console.error("Failed to add dependency:", error);
         alert("Could not add dependency.");
     }
@@ -379,73 +225,218 @@ export async function handleAddDependency(blockingTaskId: string, blockedTaskId:
 
 export async function handleRemoveDependency(dependencyId: string) {
     const depIndex = state.dependencies.findIndex(d => d.id === dependencyId);
-    if (depIndex > -1) {
-        const [removedDep] = state.dependencies.splice(depIndex, 1);
+    if (depIndex === -1) return;
+
+    const [removedDep] = state.dependencies.splice(depIndex, 1);
+    renderApp();
+
+    try {
+        await apiFetch('/api/data/task_dependencies', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: dependencyId }),
+        });
+    } catch (error) {
+        console.error("Failed to remove dependency:", error);
+        state.dependencies.splice(depIndex, 0, removedDep);
         renderApp();
-        try {
-            await apiPost('task_dependencies/delete', { id: dependencyId });
-        } catch(error) {
-            state.dependencies.splice(depIndex, 0, removedDep);
-            renderApp();
-            alert("Could not remove dependency.");
-        }
     }
 }
 
-// --- Custom Fields ---
-export async function handleAddCustomFieldDefinition(name: string, type: CustomFieldType) {
-    const workspaceId = state.activeWorkspaceId;
-    if (!workspaceId || !name) return;
+export async function handleAddAttachment(taskId: string, file: File) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !state.activeWorkspaceId) return;
 
-    const payload = { workspaceId, name, type };
+    const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
+        workspaceId: state.activeWorkspaceId,
+        projectId: task.projectId,
+        taskId: taskId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        provider: 'native',
+    };
+
     try {
-        const [savedField] = await apiPost('custom_field_definitions', payload);
-        state.customFieldDefinitions.push(savedField);
+        const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
+        state.attachments.push(savedAttachment);
         renderApp();
-    } catch(error) {
-        alert("Failed to add custom field.");
+    } catch (error) {
+        console.error("File upload failed:", error);
+        alert("File upload failed. Please try again.");
+    }
+}
+
+export async function handleAttachGoogleDriveFile(taskId: string) {
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+        const config = await apiFetch(`/api/app-config?action=token&provider=google_drive&workspaceId=${activeWorkspaceId}`);
+        const { token, developerKey, clientId } = config;
+
+        if (!token) {
+            throw new Error("Could not retrieve Google Drive access token.");
+        }
+        
+        const showPicker = () => {
+            const picker = new google.picker.PickerBuilder()
+                .addView(google.picker.ViewId.DOCS)
+                .setOAuthToken(token)
+                .setDeveloperKey(developerKey)
+                .setAppId(clientId)
+                .setCallback(async (data: any) => {
+                    if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                        const doc = data[google.picker.Response.DOCUMENTS][0];
+                        const attachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
+                            workspaceId: activeWorkspaceId,
+                            projectId: task.projectId,
+                            taskId: taskId,
+                            fileName: doc.name,
+                            fileSize: doc.sizeBytes,
+                            fileType: doc.mimeType,
+                            provider: 'google_drive',
+                            externalUrl: doc.url,
+                            fileId: doc.id,
+                            iconUrl: doc.iconUrl,
+                        };
+                        const [savedAttachment] = await apiPost('attachments', attachmentPayload);
+                        state.attachments.push(savedAttachment);
+                        renderApp();
+                    }
+                })
+                .build();
+            picker.setVisible(true);
+        };
+        
+        gapi.load('picker', showPicker);
+
+    } catch (error) {
+        console.error("Error attaching Google Drive file:", error);
+        alert("Could not connect to Google Drive. Please ensure the integration is active in Settings.");
+    }
+}
+
+export async function handleRemoveAttachment(attachmentId: string) {
+    const attachmentIndex = state.attachments.findIndex(a => a.id === attachmentId);
+    if (attachmentIndex === -1) return;
+
+    const [removedAttachment] = state.attachments.splice(attachmentIndex, 1);
+    renderApp();
+
+    try {
+        await apiFetch('/api/data/attachments', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: attachmentId }),
+        });
+    } catch (error) {
+        console.error("Failed to remove attachment:", error);
+        state.attachments.splice(attachmentIndex, 0, removedAttachment);
+        renderApp();
+    }
+}
+
+export async function handleAddCustomFieldDefinition(name: string, type: CustomFieldType) {
+    if (!state.activeWorkspaceId) return;
+    const payload = {
+        workspaceId: state.activeWorkspaceId,
+        name,
+        type,
+    };
+    try {
+        const [newField] = await apiPost('custom_field_definitions', payload);
+        state.customFieldDefinitions.push(newField);
+        renderApp();
+    } catch (error) {
+        console.error("Failed to add custom field:", error);
     }
 }
 
 export async function handleDeleteCustomFieldDefinition(fieldId: string) {
-    // This is destructive. We need to remove the definition and all values.
-    const originalDef = state.customFieldDefinitions.find(f => f.id === fieldId);
-    const originalValues = state.customFieldValues.filter(v => v.fieldId === fieldId);
-    if (!originalDef) return;
+    const fieldIndex = state.customFieldDefinitions.findIndex(f => f.id === fieldId);
+    if (fieldIndex === -1) return;
 
-    state.customFieldDefinitions = state.customFieldDefinitions.filter(f => f.id !== fieldId);
-    state.customFieldValues = state.customFieldValues.filter(v => v.fieldId !== fieldId);
+    const [removedField] = state.customFieldDefinitions.splice(fieldIndex, 1);
     renderApp();
 
     try {
-        await apiPost('custom_field_definitions/delete', { id: fieldId });
-        // The backend should cascade delete the values.
-    } catch(error) {
-        state.customFieldDefinitions.push(originalDef);
-        state.customFieldValues.push(...originalValues);
+        await apiFetch('/api/data/custom_field_definitions', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: fieldId }),
+        });
+    } catch (error) {
+        console.error("Failed to delete custom field:", error);
+        state.customFieldDefinitions.splice(fieldIndex, 0, removedField);
         renderApp();
-        alert("Failed to delete custom field.");
     }
 }
 
 export async function handleCustomFieldValueUpdate(taskId: string, fieldId: string, value: any) {
-    const workspaceId = state.activeWorkspaceId;
-    if (!workspaceId) return;
+    const fieldDef = state.customFieldDefinitions.find(f => f.id === fieldId);
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!fieldDef || !task) return;
 
-    const existingValue = state.customFieldValues.find(v => v.taskId === taskId && v.fieldId === fieldId);
-    
-    try {
-        if (existingValue) {
-            const [updatedValue] = await apiPut('custom_field_values', { id: existingValue.id, value });
-            existingValue.value = updatedValue.value;
-        } else {
-            const payload = { workspaceId, taskId, fieldId, value };
+    let existingValue = state.customFieldValues.find(v => v.fieldId === fieldId && v.taskId === taskId);
+
+    if (existingValue) {
+        const originalValue = existingValue.value;
+        existingValue.value = value;
+        renderApp();
+        try {
+            await apiPut('custom_field_values', { id: existingValue.id, value: value });
+        } catch (error) {
+            existingValue.value = originalValue;
+            renderApp();
+        }
+    } else {
+        const payload = {
+            workspaceId: task.workspaceId,
+            taskId,
+            fieldId,
+            value,
+        };
+        try {
             const [newValue] = await apiPost('custom_field_values', payload);
             state.customFieldValues.push(newValue);
+            renderApp();
+        } catch (error) {
+            console.error("Failed to save custom field value:", error);
         }
+    }
+}
+
+export async function handleToggleTag(taskId: string, tagId: string, newTagName?: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    let finalTagId = tagId;
+
+    try {
+        if (newTagName) {
+            const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            const [newTag] = await apiPost('tags', { workspaceId: task.workspaceId, name: newTagName, color });
+            state.tags.push(newTag);
+            finalTagId = newTag.id;
+        }
+
+        const existingLinkIndex = state.taskTags.findIndex(tt => tt.taskId === taskId && tt.tagId === finalTagId);
+
+        if (existingLinkIndex > -1) {
+            const [removedLink] = state.taskTags.splice(existingLinkIndex, 1);
+            renderApp();
+            await apiFetch('/api/data/task_tags', {
+                method: 'DELETE',
+                body: JSON.stringify({ taskId: taskId, tagId: finalTagId }),
+            });
+        } else {
+            const newLink = { taskId, tagId: finalTagId, workspaceId: task.workspaceId };
+            state.taskTags.push(newLink);
+            renderApp();
+            await apiPost('task_tags', newLink);
+        }
+    } catch (error) {
+        console.error("Failed to toggle tag:", error);
         renderApp();
-    } catch(error) {
-        alert("Failed to update custom field value.");
-        renderApp(); // Re-render to show original state
     }
 }

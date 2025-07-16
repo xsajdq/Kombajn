@@ -1,7 +1,4 @@
 
-
-
-
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -95,6 +92,39 @@ function renderActivityTab(task: Task) {
         </form>
     `;
 }
+
+function renderChecklistTab(task: Task) {
+    const checklist = task.checklist || [];
+    const completedCount = checklist.filter(item => item.completed).length;
+    const totalCount = checklist.length;
+    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+    return `
+        <div class="task-detail-section">
+            <div class="checklist-progress-container">
+                 <div class="kpi-progress-bar">
+                    <div class="kpi-progress-bar-inner" style="width: ${progress}%;"></div>
+                </div>
+                <span class="subtle-text">${completedCount} / ${totalCount} completed</span>
+            </div>
+            <form id="add-checklist-item-form" data-task-id="${task.id}" class="add-subtask-form">
+                <input type="text" class="form-control" placeholder="Add a checklist item..." required>
+            </form>
+            <ul class="subtask-list">
+            ${checklist.map(item => `
+                <li class="subtask-item ${item.completed ? 'done' : ''}" data-item-id="${item.id}">
+                    <input type="checkbox" class="form-control checklist-item-checkbox" ${item.completed ? 'checked' : ''} style="width: auto;">
+                    <span class="subtask-name">${item.text}</span>
+                    <button class="btn-icon delete-checklist-item-btn" title="Remove Item">
+                        <span class="material-icons-sharp">delete_outline</span>
+                    </button>
+                </li>
+            `).join('')}
+            </ul>
+        </div>
+    `;
+}
+
 
 function renderSubtasksTab(task: Task) {
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
@@ -269,6 +299,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     let tabContent = '';
     switch(activeTab) {
         case 'activity': tabContent = renderActivityTab(task); break;
+        case 'checklist': tabContent = renderChecklistTab(task); break;
         case 'subtasks': tabContent = renderSubtasksTab(task); break;
         case 'dependencies': tabContent = renderDependenciesTab(task); break;
         case 'attachments': tabContent = renderAttachmentsTab(task); break;
@@ -290,6 +321,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
 
                 <div class="task-detail-tabs">
                     <button class="task-detail-tab ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity">${t('modals.activity')}</button>
+                    <button class="task-detail-tab ${activeTab === 'checklist' ? 'active' : ''}" data-tab="checklist">${t('modals.checklist')}</button>
                     <button class="task-detail-tab ${activeTab === 'subtasks' ? 'active' : ''}" data-tab="subtasks">${t('modals.subtasks')}</button>
                     <button class="task-detail-tab ${activeTab === 'dependencies' ? 'active' : ''}" data-tab="dependencies">${t('modals.dependencies')}</button>
                     <button class="task-detail-tab ${activeTab === 'attachments' ? 'active' : ''}" data-tab="attachments">${t('modals.attachments')}</button>
@@ -362,6 +394,19 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                         <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
                         <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${t('modals.priority_high')}</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>${t('modals.task_type')}</label>
+                    <select class="form-control" data-field="type" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                        <option value="">--</option>
+                        <option value="feature" ${task.type === 'feature' ? 'selected' : ''}>${t('modals.task_type_feature')}</option>
+                        <option value="bug" ${task.type === 'bug' ? 'selected' : ''}>${t('modals.task_type_bug')}</option>
+                        <option value="chore" ${task.type === 'chore' ? 'selected' : ''}>${t('modals.task_type_chore')}</option>
+                    </select>
+                </div>
+                 <div class="form-group">
+                    <label>${t('modals.estimated_hours')}</label>
+                    <input type="text" class="form-control" data-field="estimatedHours" value="${task.estimatedHours ? `${task.estimatedHours}h` : ''}" placeholder="e.g. 2.5h" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
                 </div>
                 <div class="form-group">
                     <label>${t('modals.start_date')}</label>

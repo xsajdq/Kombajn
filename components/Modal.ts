@@ -1,11 +1,24 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal } from '../types.ts';
+import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
 import { camelToSnake, formatDate } from '../utils.ts';
+
+function renderClientContactFormRow(contact?: any) {
+    const id = contact?.id || `new-${Date.now()}`;
+    return `
+        <div class="contact-form-row" data-contact-id="${id}">
+            <input type="text" class="form-control" data-field="name" placeholder="${t('modals.contact_person')}" value="${contact?.name || ''}" required>
+            <input type="email" class="form-control" data-field="email" placeholder="${t('modals.email')}" value="${contact?.email || ''}">
+            <input type="text" class="form-control" data-field="phone" placeholder="${t('modals.phone')}" value="${contact?.phone || ''}">
+            <input type="text" class="form-control" data-field="role" placeholder="${t('modals.contact_role')}" value="${contact?.role || ''}">
+            <button type="button" class="btn-icon remove-contact-row-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
+        </div>
+    `;
+}
+
 
 export function Modal() {
     if (!state.ui.modal.isOpen) return '';
@@ -33,6 +46,7 @@ export function Modal() {
     if (state.ui.modal.type === 'addClient') {
         const isEdit = !!modalData.clientId;
         const client = isEdit ? workspaceClients.find(c => c.id === modalData.clientId) : null;
+        const contacts = client?.contacts || [];
         title = isEdit ? t('modals.edit_client_title') : t('modals.add_client_title');
         body = `
             <form id="clientForm">
@@ -47,18 +61,28 @@ export function Modal() {
                         <input type="text" id="clientVatId" class="form-control" value="${client?.vatId || ''}">
                     </div>
                     <div class="form-group">
-                        <label for="clientContact">${t('modals.contact_person')}</label>
-                        <input type="text" id="clientContact" class="form-control" value="${client?.contactPerson || ''}">
+                        <label for="clientCategory">${t('modals.category')}</label>
+                        <input type="text" id="clientCategory" class="form-control" value="${client?.category || ''}">
                     </div>
                     <div class="form-group">
-                        <label for="clientEmail">${t('modals.email')}</label>
-                        <input type="email" id="clientEmail" class="form-control" value="${client?.email || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label for="clientPhone">${t('modals.phone')}</label>
-                        <input type="tel" id="clientPhone" class="form-control" value="${client?.phone || ''}">
+                        <label for="clientHealthStatus">${t('modals.health_status')}</label>
+                        <select id="clientHealthStatus" class="form-control">
+                            <option value="" ${!client?.healthStatus ? 'selected' : ''}>--</option>
+                            <option value="good" ${client?.healthStatus === 'good' ? 'selected' : ''}>${t('modals.health_status_good')}</option>
+                            <option value="at_risk" ${client?.healthStatus === 'at_risk' ? 'selected' : ''}>${t('modals.health_status_at_risk')}</option>
+                            <option value="neutral" ${client?.healthStatus === 'neutral' ? 'selected' : ''}>${t('modals.health_status_neutral')}</option>
+                        </select>
                     </div>
                 </div>
+
+                <h4 style="margin-top: 2rem; margin-bottom: 1rem;">${t('modals.contacts')}</h4>
+                <div id="client-contacts-container">
+                    ${contacts.map(renderClientContactFormRow).join('')}
+                </div>
+                <button type="button" id="add-contact-row-btn" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">
+                    <span class="material-icons-sharp">add</span> ${t('modals.add_contact')}
+                </button>
+                <input type="hidden" id="deleted-contact-ids" value="">
             </form>
         `;
     }
@@ -94,6 +118,14 @@ export function Modal() {
                     <div class="form-group">
                         <label for="projectBudgetHours">Budget (hours)</label>
                         <input type="number" id="projectBudgetHours" class="form-control" placeholder="e.g. 100" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectBudgetCost">${t('modals.budget_cost')}</label>
+                        <input type="number" id="projectBudgetCost" class="form-control" placeholder="e.g. 10000" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectCategory">${t('modals.project_category')}</label>
+                        <input type="text" id="projectCategory" class="form-control" placeholder="e.g. Marketing">
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:1rem;">
@@ -131,6 +163,33 @@ export function Modal() {
         `;
     }
 
+    if (state.ui.modal.type === 'aiProjectPlanner') {
+        title = t('modals.ai_planner_title');
+        footer = `
+            <button class="btn btn-secondary btn-close-modal">${t('modals.cancel')}</button>
+            <button class="btn btn-primary" id="modal-save-btn">${t('modals.create_project')}</button>
+        `;
+        body = `
+            <form id="aiProjectForm">
+                <div class="form-group">
+                    <label for="aiProjectName">${t('modals.project_name')}</label>
+                    <input type="text" id="aiProjectName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="aiProjectClient">${t('modals.assign_to_client')}</label>
+                    <select id="aiProjectClient" class="form-control" required>
+                        <option value="">${t('modals.select_a_client')}</option>
+                        ${workspaceClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="aiProjectGoal">${t('modals.ai_planner_goal_label')}</label>
+                    <textarea id="aiProjectGoal" class="form-control" rows="4" placeholder="${t('modals.ai_planner_goal_placeholder')}" required></textarea>
+                </div>
+            </form>
+        `;
+    }
+
     if (state.ui.modal.type === 'addTask') {
         const projectIdFromPanel = modalData.projectId;
 
@@ -154,7 +213,7 @@ export function Modal() {
                         </select>
                     </div>
                      <div class="form-group">
-                        <label for="taskAssignee">${t('modals.assignee')}</label>
+                        <label for="taskAssignee">${t('modals.assignees')}</label>
                         <select id="taskAssignee" class="form-control">
                             <option value="">${t('modals.unassigned')}</option>
                             ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name || u!.initials}</option>`).join('')}
@@ -175,6 +234,19 @@ export function Modal() {
                             <option value="low">${t('modals.priority_low')}</option>
                             <option value="medium">${t('modals.priority_medium')}</option>
                             <option value="high">${t('modals.priority_high')}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskEstimatedHours">${t('modals.estimated_hours')}</label>
+                        <input type="text" id="taskEstimatedHours" class="form-control" placeholder="e.g., 4h, 30m, 1.5h">
+                    </div>
+                     <div class="form-group">
+                        <label for="taskType">${t('modals.task_type')}</label>
+                        <select id="taskType" class="form-control">
+                            <option value="">--</option>
+                            <option value="feature">${t('modals.task_type_feature')}</option>
+                            <option value="bug">${t('modals.task_type_bug')}</option>
+                            <option value="chore">${t('modals.task_type_chore')}</option>
                         </select>
                     </div>
                 </div>

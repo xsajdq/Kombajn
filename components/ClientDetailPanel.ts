@@ -1,10 +1,9 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 
-function renderDetailItem(icon: string, label: string, value: string | undefined) {
+function renderDetailItem(icon: string, label: string, value: string | undefined | null) {
     return `
         <div class="client-detail-item">
             <span class="material-icons-sharp">${icon}</span>
@@ -16,12 +15,27 @@ function renderDetailItem(icon: string, label: string, value: string | undefined
     `;
 }
 
-
 export function ClientDetailPanel({ clientId }: { clientId: string }) {
     const client = state.clients.find(c => c.id === clientId && c.workspaceId === state.activeWorkspaceId);
     if (!client) return '';
     const associatedProjects = state.projects.filter(p => p.clientId === clientId && p.workspaceId === state.activeWorkspaceId);
     const canManage = can('manage_clients');
+    
+    let healthBadgeClass = '';
+    let healthText = t('misc.not_applicable');
+    if (client.healthStatus) {
+        if (client.healthStatus === 'good') {
+            healthBadgeClass = 'status-paid'; // green
+            healthText = t('modals.health_status_good');
+        } else if (client.healthStatus === 'at_risk') {
+            healthBadgeClass = 'status-backlog'; // red-ish
+            healthText = t('modals.health_status_at_risk');
+        } else {
+            healthBadgeClass = 'status-pending'; // yellow
+            healthText = t('modals.health_status_neutral');
+        }
+    }
+
 
     return `
         <div class="side-panel" role="region" aria-label="Client Details Panel">
@@ -43,11 +57,39 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                     <div class="client-detail-grid-new">
                         ${renderDetailItem('business', t('modals.company_name'), client.name)}
                         ${renderDetailItem('badge', t('modals.vat_id'), client.vatId)}
-                        ${renderDetailItem('person', t('modals.contact_person'), client.contactPerson)}
-                        ${renderDetailItem('alternate_email', t('modals.email'), client.email)}
-                        ${renderDetailItem('call', t('modals.phone'), client.phone)}
+                        ${renderDetailItem('category', t('modals.category'), client.category)}
+                        <div class="client-detail-item">
+                            <span class="material-icons-sharp">favorite_border</span>
+                            <div>
+                                <label>${t('modals.health_status')}</label>
+                                <p><span class="status-badge ${healthBadgeClass}">${healthText}</span></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="card">
+                    <h4>${t('panels.client_contacts')}</h4>
+                     ${client.contacts.length > 0 ? `
+                        <div class="item-list">
+                            ${client.contacts.map(contact => `
+                                <div class="contact-card">
+                                    <div class="contact-card-main">
+                                        <strong>${contact.name}</strong>
+                                        <p class="subtle-text">${contact.role || 'Contact'}</p>
+                                    </div>
+                                    <div class="contact-card-details">
+                                        <p><span class="material-icons-sharp icon-sm">alternate_email</span> ${contact.email || t('misc.not_applicable')}</p>
+                                        <p><span class="material-icons-sharp icon-sm">call</span> ${contact.phone || t('misc.not_applicable')}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                         <p class="subtle-text">No contacts added.</p>
+                    `}
+                </div>
+
                 <div class="card">
                     <h4>${t('panels.associated_projects')}</h4>
                      ${associatedProjects.length > 0 ? `

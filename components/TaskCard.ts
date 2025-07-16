@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -15,6 +16,8 @@ export function renderTaskCard(task: Task) {
 
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
     const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
+    const checklist = task.checklist || [];
+    const completedChecklistItems = checklist.filter(c => c.completed).length;
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
 
@@ -39,6 +42,11 @@ export function renderTaskCard(task: Task) {
             ${isAdvanced && descriptionSnippet ? `<p class="task-card-description subtle-text">${descriptionSnippet}</p>` : ''}
             
             <div class="task-meta-icons">
+                 ${checklist.length > 0 ? `
+                    <span title="${t('modals.checklist')}">
+                        <span class="material-icons-sharp">checklist_rtl</span>
+                        ${completedChecklistItems}/${checklist.length}
+                    </span>` : ''}
                  ${subtasks.length > 0 ? `
                     <span title="${t('modals.subtasks')}">
                         <span class="material-icons-sharp">checklist</span>

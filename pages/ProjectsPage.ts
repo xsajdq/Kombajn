@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS } from '../utils.ts';
@@ -26,9 +27,14 @@ export function ProjectsPage() {
     <div>
         <h2>
             <span>${t('projects.title')}</span>
-            <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                <span class="material-icons-sharp">add</span> ${t('projects.new_project')}
-            </button>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp">auto_awesome</span> ${t('projects.plan_with_ai')}
+                </button>
+                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp">add</span> ${t('projects.new_project')}
+                </button>
+            </div>
         </h2>
         ${projects.length > 0 ? `
             <div class="project-grid">

@@ -1,9 +1,8 @@
 
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { InvoiceLineItem, Role, PlanId, User, DashboardWidgetType } from '../types.ts';
+import type { InvoiceLineItem, Role, PlanId, User, DashboardWidgetType, ClientContact } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -26,10 +25,47 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
 
+function renderClientContactFormRow(contact?: any) {
+    const id = contact?.id || `new-${Date.now()}`;
+    return `
+        <div class="contact-form-row" data-contact-id="${id}">
+            <input type="text" class="form-control" data-field="name" placeholder="${t('modals.contact_person')}" value="${contact?.name || ''}" required>
+            <input type="email" class="form-control" data-field="email" placeholder="${t('modals.email')}" value="${contact?.email || ''}">
+            <input type="text" class="form-control" data-field="phone" placeholder="${t('modals.phone')}" value="${contact?.phone || ''}">
+            <input type="text" class="form-control" data-field="role" placeholder="${t('modals.contact_role')}" value="${contact?.role || ''}">
+            <button type="button" class="btn-icon remove-contact-row-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
+        </div>
+    `;
+}
 
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
+
+    // Client Modal: Add/Remove Contact Rows
+    const addContactBtn = target.closest('#add-contact-row-btn');
+    if (addContactBtn) {
+        const container = document.getElementById('client-contacts-container');
+        if (container) {
+            const newRowHtml = renderClientContactFormRow();
+            container.insertAdjacentHTML('beforeend', newRowHtml);
+        }
+        return;
+    }
+    const removeContactBtn = target.closest('.remove-contact-row-btn');
+    if (removeContactBtn) {
+        const row = removeContactBtn.closest('.contact-form-row') as HTMLElement;
+        if (row) {
+            const contactId = row.dataset.contactId;
+            if (contactId && !contactId.startsWith('new-')) {
+                const hiddenInput = document.getElementById('deleted-contact-ids') as HTMLInputElement;
+                hiddenInput.value = hiddenInput.value ? `${hiddenInput.value},${contactId}` : contactId;
+            }
+            row.remove();
+        }
+        return;
+    }
+
 
     // Handle multiselect dropdowns
     const multiselectDisplay = target.closest<HTMLElement>('.multiselect-display');

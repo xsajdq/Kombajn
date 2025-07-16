@@ -1,18 +1,18 @@
 
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
-import { getUsage, PLANS } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client } from '../types.ts';
+import { getUsage, PLANS, parseDurationStringToHours } from '../utils.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
 import * as hrHandlers from './team.ts';
-import { handleWidgetConfigSave } from './dashboard.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import * as dashboardHandlers from './dashboard.ts';
+import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import * as okrHandler from './okr.ts';
 import * as dealHandler from './deals.ts';
+import * as projectHandlers from './projects.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -26,28 +26,71 @@ export async function handleFormSubmit() {
 
     try {
         if (type === 'addClient') {
-            const clientId = (document.getElementById('clientId') as HTMLInputElement).value;
-            const name = (document.getElementById('clientName') as HTMLInputElement).value;
+            const form = document.getElementById('clientForm') as HTMLFormElement;
+            const clientId = (form.querySelector('#clientId') as HTMLInputElement).value;
+            const name = (form.querySelector('#clientName') as HTMLInputElement).value;
             if (!name) return;
 
             const clientData: Partial<Client> = {
                 workspaceId: activeWorkspaceId,
                 name: name,
-                vatId: (document.getElementById('clientVatId') as HTMLInputElement).value,
-                contactPerson: (document.getElementById('clientContact') as HTMLInputElement).value,
-                email: (document.getElementById('clientEmail') as HTMLInputElement).value,
-                phone: (document.getElementById('clientPhone') as HTMLInputElement).value,
+                vatId: (form.querySelector('#clientVatId') as HTMLInputElement).value,
+                category: (form.querySelector('#clientCategory') as HTMLInputElement).value || null,
+                healthStatus: (form.querySelector('#clientHealthStatus') as HTMLSelectElement).value as Client['healthStatus'] || null,
             };
 
+            let savedClient: Client;
+
             if (clientId) {
-                const [updatedClient] = await apiPut('clients', { ...clientData, id: clientId });
+                [savedClient] = await apiPut('clients', { ...clientData, id: clientId });
                 const index = state.clients.findIndex(c => c.id === clientId);
                 if (index !== -1) {
-                    state.clients[index] = updatedClient;
+                    state.clients[index] = { ...state.clients[index], ...savedClient };
                 }
             } else {
-                const [newClient] = await apiPost('clients', clientData);
-                state.clients.push(newClient);
+                [savedClient] = await apiPost('clients', clientData);
+                state.clients.push({ ...savedClient, contacts: [] });
+            }
+
+            // Handle contacts
+            const contactRows = form.querySelectorAll<HTMLElement>('.contact-form-row');
+            const contactPromises: Promise<any>[] = [];
+            const updatedContacts: ClientContact[] = [];
+
+            contactRows.forEach(row => {
+                const contactId = row.dataset.contactId!;
+                const isNew = contactId.startsWith('new-');
+                const contactPayload = {
+                    id: isNew ? undefined : contactId,
+                    clientId: savedClient.id,
+                    workspaceId: activeWorkspaceId,
+                    name: (row.querySelector<HTMLInputElement>('[data-field="name"]'))!.value,
+                    email: (row.querySelector<HTMLInputElement>('[data-field="email"]'))!.value,
+                    phone: (row.querySelector<HTMLInputElement>('[data-field="phone"]'))!.value,
+                    role: (row.querySelector<HTMLInputElement>('[data-field="role"]'))!.value,
+                };
+                if (!contactPayload.name) return;
+
+                if (isNew) {
+                    contactPromises.push(apiPost('client_contacts', contactPayload));
+                } else {
+                    contactPromises.push(apiPut('client_contacts', contactPayload));
+                }
+            });
+
+            const deletedContactIds = (document.getElementById('deleted-contact-ids') as HTMLInputElement).value.split(',').filter(Boolean);
+            deletedContactIds.forEach(id => {
+                contactPromises.push(apiFetch('/api/data/client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) }));
+            });
+
+            const settledContacts = await Promise.all(contactPromises.map(p => p.catch(e => e)));
+            const successfulContacts = settledContacts.flat().filter(c => c && !(c instanceof Error));
+            
+            // Update client in state with all contacts
+            const clientInState = state.clients.find(c => c.id === savedClient.id);
+            if (clientInState) {
+                const allContacts = await apiFetch(`/api/data/client_contacts?clientId=${savedClient.id}`);
+                clientInState.contacts = allContacts || [];
             }
         }
 
@@ -60,14 +103,16 @@ export async function handleFormSubmit() {
             const clientId = (document.getElementById('projectClient') as HTMLSelectElement).value;
             if (!name || !clientId) return;
 
-            const projectData = {
+            const projectData: Partial<Project> = {
                 workspaceId: activeWorkspaceId,
                 name: name,
                 clientId: clientId,
                 wikiContent: '',
-                hourlyRate: parseFloat((document.getElementById('projectHourlyRate') as HTMLInputElement).value) || null,
+                hourlyRate: parseFloat((document.getElementById('projectHourlyRate') as HTMLInputElement).value) || undefined,
                 privacy: (document.querySelector('input[name="privacy"]:checked') as HTMLInputElement).value as Project['privacy'],
-                budgetHours: parseFloat((document.getElementById('projectBudgetHours') as HTMLInputElement).value) || null,
+                budgetHours: parseFloat((document.getElementById('projectBudgetHours') as HTMLInputElement).value) || undefined,
+                budgetCost: parseFloat((document.getElementById('projectBudgetCost') as HTMLInputElement).value) || undefined,
+                category: (document.getElementById('projectCategory') as HTMLInputElement).value || undefined,
             };
             
             const [newProject] = await apiPost('projects', projectData);
@@ -103,6 +148,18 @@ export async function handleFormSubmit() {
             }
         }
 
+        if (type === 'aiProjectPlanner') {
+            const name = (document.getElementById('aiProjectName') as HTMLInputElement).value;
+            const clientId = (document.getElementById('aiProjectClient') as HTMLSelectElement).value;
+            const goal = (document.getElementById('aiProjectGoal') as HTMLTextAreaElement).value;
+            if (!name || !clientId || !goal) {
+                alert("Please fill all fields.");
+                return;
+            }
+            await projectHandlers.handlePlanProjectWithAi(name, clientId, goal);
+            return;
+        }
+
         if (type === 'addTask') {
             const name = (document.getElementById('taskName') as HTMLInputElement).value;
             const projectId = (document.getElementById('taskProject') as HTMLSelectElement).value;
@@ -111,6 +168,8 @@ export async function handleFormSubmit() {
                 alert(t('modals.select_a_project_error'));
                 return;
             }
+            
+            const estimatedHoursString = (document.getElementById('taskEstimatedHours') as HTMLInputElement).value;
 
             const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
 
@@ -120,9 +179,11 @@ export async function handleFormSubmit() {
                 name: name,
                 description: (document.getElementById('taskDescription') as HTMLTextAreaElement).value,
                 status: state.settings.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
-                startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || null,
-                dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || null,
+                startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || undefined,
+                dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || undefined,
                 priority: ((document.getElementById('taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
+                estimatedHours: parseDurationStringToHours(estimatedHoursString),
+                type: ((document.getElementById('taskType') as HTMLSelectElement).value as Task['type']) || null,
             };
 
             if (data?.dealId) {
