@@ -285,3 +285,84 @@ textarea.form-control { min-height: 80px; resize: vertical; }
     color: var(--subtle-text-color);
     pointer-events: none;
 }
+
+/* --- NEW: MULTI-SELECT COMPONENT --- */
+.multiselect-container {
+    position: relative;
+}
+.multiselect-display {
+    min-height: 40px; /* same as form-control */
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.multiselect-display:hover {
+    border-color: var(--subtle-text-color);
+}
+.multiselect-display .avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+}
+.multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+}
+.multiselect-add-new {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.multiselect-add-new input {
+    font-size: 0.875rem;
+}
+.multiselect-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.multiselect-list-item:hover {
+    background-color: var(--light-color);
+}
+.dark-theme .multiselect-list-item:hover {
+    background-color: var(--dark-color);
+}
+.multiselect-list-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+.multiselect-list-item .avatar {
+    margin: 0;
+}
+.minimal-theme .multiselect-display {
+    border-width: 2px;
+}
+.minimal-theme .multiselect-display:hover,
+.minimal-theme .multiselect-display:focus-within {
+    border-color: var(--primary-color);
+}
+.minimal-theme .multiselect-dropdown {
+    border-width: 2px;
+    box-shadow: none;
+}
+.minimal-theme .multiselect-list-item:hover {
+    background-color: var(--light-color);
+}

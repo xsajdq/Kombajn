@@ -63,7 +63,7 @@ function renderActivityTab(task: Task) {
                             <div class="activity-content">
                                 <div class="activity-header">
                                     <strong>${userName}</strong>
-                                    <span>${t('misc.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
+                                    <span>${t('modals.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
                                     <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                                 </div>
                                 ${item.comment ? `
@@ -333,101 +333,114 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                 
             </div>
             <aside class="task-detail-sidebar">
-                <h4>${t('modals.details')}</h4>
-                <div class="form-group">
-                    <label>${t('modals.status')}</label>
-                    <select class="form-control" data-field="status" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                        <option value="backlog" ${task.status === 'backlog' ? 'selected' : ''}>${t('modals.status_backlog')}</option>
-                        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${t('modals.status_todo')}</option>
-                        <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>${t('modals.status_inprogress')}</option>
-                        <option value="inreview" ${task.status === 'inreview' ? 'selected' : ''}>${t('modals.status_inreview')}</option>
-                        <option value="done" ${task.status === 'done' ? 'selected' : ''}>${t('modals.status_done')}</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>${t('modals.assignees')}</label>
-                    <div class="multiselect-container" data-type="assignee" data-task-id="${task.id}">
-                        <div class="multiselect-display">
-                            ${assignedUsers.length > 0 ? assignedUsers.map(user => `
-                                <div class="avatar" title="${user.name || user.initials}">${user.initials}</div>
-                            `).join('') : `<span class="subtle-text">${t('modals.unassigned')}</span>`}
-                        </div>
-                        <div class="multiselect-dropdown hidden">
-                            ${workspaceMembers.map(user => `
-                                <label class="multiselect-list-item">
-                                    <input type="checkbox" value="${user.id}" ${assignedUserIds.has(user.id) ? 'checked' : ''}>
-                                    <div class="avatar">${user.initials}</div>
-                                    <span>${user.name || user.email}</span>
-                                </label>
-                            `).join('')}
-                        </div>
+                <div class="task-detail-sidebar-section">
+                    <h4>${t('modals.details')}</h4>
+                    <div class="form-group">
+                        <label>${t('modals.status')}</label>
+                        <select class="form-control" data-field="status" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                            <option value="backlog" ${task.status === 'backlog' ? 'selected' : ''}>${t('modals.status_backlog')}</option>
+                            <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${t('modals.status_todo')}</option>
+                            <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>${t('modals.status_inprogress')}</option>
+                            <option value="inreview" ${task.status === 'inreview' ? 'selected' : ''}>${t('modals.status_inreview')}</option>
+                            <option value="done" ${task.status === 'done' ? 'selected' : ''}>${t('modals.status_done')}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.priority')}</label>
+                        <select class="form-control" data-field="priority" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                            <option value="">${t('modals.priority_none')}</option>
+                            <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${t('modals.priority_low')}</option>
+                            <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
+                            <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${t('modals.priority_high')}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.task_type')}</label>
+                        <select class="form-control" data-field="type" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                            <option value="">--</option>
+                            <option value="feature" ${task.type === 'feature' ? 'selected' : ''}>${t('modals.task_type_feature')}</option>
+                            <option value="bug" ${task.type === 'bug' ? 'selected' : ''}>${t('modals.task_type_bug')}</option>
+                            <option value="chore" ${task.type === 'chore' ? 'selected' : ''}>${t('modals.task_type_chore')}</option>
+                        </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>${t('modals.tags')}</label>
-                     <div class="multiselect-container" data-type="tag" data-task-id="${task.id}">
-                        <div class="multiselect-display tag-list">
-                            ${assignedTags.length > 0 ? assignedTags.map(tag => `
-                                <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color}; border-color: ${tag.color}40;">${tag.name}</div>
-                            `).join('') : `<span class="subtle-text">No tags</span>`}
+
+                <div class="task-detail-sidebar-section">
+                    <h4>People</h4>
+                    <div class="form-group">
+                        <label>${t('modals.assignees')}</label>
+                        <div class="multiselect-container" data-type="assignee" data-task-id="${task.id}">
+                            <div class="multiselect-display">
+                                ${assignedUsers.length > 0 ? assignedUsers.map(user => user ? `
+                                    <div class="avatar" title="${user.name || user.initials}">${user.initials || '?'}</div>
+                                `: '').join('') : `<span class="subtle-text">${t('modals.unassigned')}</span>`}
+                            </div>
+                            <div class="multiselect-dropdown hidden">
+                                ${workspaceMembers.map(user => `
+                                    <label class="multiselect-list-item">
+                                        <input type="checkbox" value="${user.id}" ${assignedUserIds.has(user.id) ? 'checked' : ''}>
+                                        <div class="avatar">${user.initials || '?'}</div>
+                                        <span>${user.name || user.email}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
                         </div>
-                        <div class="multiselect-dropdown hidden">
-                            <form id="add-new-tag-form" class="multiselect-add-new" data-task-id="${task.id}">
-                                <input type="text" class="form-control" placeholder="Create a new tag...">
-                            </form>
-                            <div class="multiselect-list">
-                            ${availableTags.map(tag => `
-                                <label class="multiselect-list-item">
-                                    <input type="checkbox" value="${tag.id}" ${assignedTagIds.has(tag.id) ? 'checked' : ''}>
-                                    <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color};">${tag.name}</div>
-                                </label>
-                            `).join('')}
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.tags')}</label>
+                         <div class="multiselect-container" data-type="tag" data-task-id="${task.id}">
+                            <div class="multiselect-display tag-list">
+                                ${assignedTags.length > 0 ? assignedTags.map(tag => `
+                                    <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color}; border-color: ${tag.color}40;">${tag.name}</div>
+                                `).join('') : `<span class="subtle-text">No tags</span>`}
+                            </div>
+                            <div class="multiselect-dropdown hidden">
+                                <form id="add-new-tag-form" class="multiselect-add-new" data-task-id="${task.id}">
+                                    <input type="text" class="form-control" placeholder="Create a new tag...">
+                                </form>
+                                <div class="multiselect-list">
+                                ${availableTags.map(tag => `
+                                    <label class="multiselect-list-item">
+                                        <input type="checkbox" value="${tag.id}" ${assignedTagIds.has(tag.id) ? 'checked' : ''}>
+                                        <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color};">${tag.name}</div>
+                                    </label>
+                                `).join('')}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>${t('modals.priority')}</label>
-                    <select class="form-control" data-field="priority" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                        <option value="">${t('modals.priority_none')}</option>
-                        <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${t('modals.priority_low')}</option>
-                        <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
-                        <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${t('modals.priority_high')}</option>
-                    </select>
+
+                <div class="task-detail-sidebar-section">
+                    <h4>Dates</h4>
+                    <div class="form-group">
+                        <label>${t('modals.start_date')}</label>
+                        <input type="date" class="form-control" data-field="startDate" value="${task.startDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.due_date')}</label>
+                        <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.estimated_hours')}</label>
+                        <input type="text" class="form-control" data-field="estimatedHours" value="${task.estimatedHours ? `${task.estimatedHours}h` : ''}" placeholder="e.g. 2.5h" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                    </div>
+                     <div class="form-group">
+                        <label>${t('modals.repeat')}</label>
+                        <select class="form-control" data-field="recurrence" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
+                            <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
+                            <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
+                            <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
+                            <option value="monthly" ${task.recurrence === 'monthly' ? 'selected' : ''}>${t('modals.repeat_monthly')}</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>${t('modals.task_type')}</label>
-                    <select class="form-control" data-field="type" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                        <option value="">--</option>
-                        <option value="feature" ${task.type === 'feature' ? 'selected' : ''}>${t('modals.task_type_feature')}</option>
-                        <option value="bug" ${task.type === 'bug' ? 'selected' : ''}>${t('modals.task_type_bug')}</option>
-                        <option value="chore" ${task.type === 'chore' ? 'selected' : ''}>${t('modals.task_type_chore')}</option>
-                    </select>
-                </div>
-                 <div class="form-group">
-                    <label>${t('modals.estimated_hours')}</label>
-                    <input type="text" class="form-control" data-field="estimatedHours" value="${task.estimatedHours ? `${task.estimatedHours}h` : ''}" placeholder="e.g. 2.5h" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                </div>
-                <div class="form-group">
-                    <label>${t('modals.start_date')}</label>
-                    <input type="date" class="form-control" data-field="startDate" value="${task.startDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                </div>
-                <div class="form-group">
-                    <label>${t('modals.due_date')}</label>
-                    <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                </div>
-                 <div class="form-group">
-                    <label>${t('modals.repeat')}</label>
-                    <select class="form-control" data-field="recurrence" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>
-                        <option value="none" ${!task.recurrence || task.recurrence === 'none' ? 'selected' : ''}>${t('modals.repeat_none')}</option>
-                        <option value="daily" ${task.recurrence === 'daily' ? 'selected' : ''}>${t('modals.repeat_daily')}</option>
-                        <option value="weekly" ${task.recurrence === 'weekly' ? 'selected' : ''}>${t('modals.repeat_weekly')}</option>
-                        <option value="monthly" ${task.recurrence === 'monthly' ? 'selected' : ''}>${t('modals.repeat_monthly')}</option>
-                    </select>
-                </div>
+                
                 ${customFieldsForWorkspace.length > 0 ? `
-                    <h4 style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">${t('modals.custom_fields')}</h4>
-                    ${customFieldsForWorkspace.map(renderCustomField).join('')}
+                    <div class="task-detail-sidebar-section">
+                        <h4>${t('modals.custom_fields')}</h4>
+                        ${customFieldsForWorkspace.map(renderCustomField).join('')}
+                    </div>
                 ` : ''}
             </aside>
         </div>

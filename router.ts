@@ -1,5 +1,4 @@
 
-
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -38,25 +37,24 @@ export async function router() {
 
     // This part handles opening a detail view from a direct URL load (deep linking).
     // The check prevents a re-render loop when interacting inside an open panel.
+    // The setTimeout was removed to prevent race conditions during re-renders.
     if (id) {
-        setTimeout(() => {
-            switch (state.currentPage) {
-                case 'projects':
-                    if (state.ui.openedProjectId !== id) openProjectPanel(id);
-                    break;
-                case 'clients':
-                    if (state.ui.openedClientId !== id) openClientPanel(id);
-                    break;
-                case 'tasks':
-                    if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
-                        showModal('taskDetail', { taskId: id });
-                    }
-                    break;
-                case 'sales':
-                    if (state.ui.openedDealId !== id) openDealPanel(id);
-                    break;
-            }
-        }, 100);
+        switch (state.currentPage) {
+            case 'projects':
+                if (state.ui.openedProjectId !== id) openProjectPanel(id);
+                break;
+            case 'clients':
+                if (state.ui.openedClientId !== id) openClientPanel(id);
+                break;
+            case 'tasks':
+                if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
+                    showModal('taskDetail', { taskId: id });
+                }
+                break;
+            case 'sales':
+                if (state.ui.openedDealId !== id) openDealPanel(id);
+                break;
+        }
     }
 
     // This router now guards every route with a permission check.

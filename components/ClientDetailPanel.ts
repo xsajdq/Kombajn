@@ -23,15 +23,19 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
     
     let healthBadgeClass = '';
     let healthText = t('misc.not_applicable');
+    let healthIcon = 'favorite_border';
+
     if (client.healthStatus) {
         if (client.healthStatus === 'good') {
-            healthBadgeClass = 'status-paid'; // green
+            healthBadgeClass = 'health-good';
             healthText = t('modals.health_status_good');
+            healthIcon = 'favorite';
         } else if (client.healthStatus === 'at_risk') {
-            healthBadgeClass = 'status-backlog'; // red-ish
+            healthBadgeClass = 'health-at-risk';
             healthText = t('modals.health_status_at_risk');
+            healthIcon = 'heart_broken';
         } else {
-            healthBadgeClass = 'status-pending'; // yellow
+            healthBadgeClass = 'health-neutral';
             healthText = t('modals.health_status_neutral');
         }
     }
@@ -44,43 +48,37 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                 <button class="btn-icon" data-copy-link="clients/${client.id}" title="${t('misc.copy_link')}">
                     <span class="material-icons-sharp">link</span>
                 </button>
+                 <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}" ${!canManage ? 'disabled' : ''}>${t('misc.edit')}</button>
                  <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
                     <span class="material-icons-sharp">close</span>
                 </button>
             </div>
             <div class="side-panel-content">
-                <div class="card">
-                    <div class="card-header-flex">
-                       <h4>${t('panels.client_details')}</h4>
-                       <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}" ${!canManage ? 'disabled' : ''}>${t('misc.edit')}</button>
-                    </div>
-                    <div class="client-detail-grid-new">
-                        ${renderDetailItem('business', t('modals.company_name'), client.name)}
+                <div class="side-panel-section">
+                    <h4>${t('panels.client_details')}</h4>
+                     <div class="client-detail-grid">
                         ${renderDetailItem('badge', t('modals.vat_id'), client.vatId)}
                         ${renderDetailItem('category', t('modals.category'), client.category)}
-                        <div class="client-detail-item">
-                            <span class="material-icons-sharp">favorite_border</span>
-                            <div>
-                                <label>${t('modals.health_status')}</label>
-                                <p><span class="status-badge ${healthBadgeClass}">${healthText}</span></p>
-                            </div>
-                        </div>
+                    </div>
+                     <div class="health-status-badge ${healthBadgeClass}">
+                        <span class="material-icons-sharp">${healthIcon}</span>
+                        <span>${healthText}</span>
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="side-panel-section">
                     <h4>${t('panels.client_contacts')}</h4>
                      ${client.contacts.length > 0 ? `
-                        <div class="item-list">
+                        <div class="contact-card-list">
                             ${client.contacts.map(contact => `
-                                <div class="contact-card">
-                                    <div class="contact-card-main">
+                                <div class="contact-card-new">
+                                    <div class="contact-card-header">
                                         <strong>${contact.name}</strong>
                                         <p class="subtle-text">${contact.role || 'Contact'}</p>
                                     </div>
-                                    <div class="contact-card-details">
-                                        <p><span class="material-icons-sharp icon-sm">alternate_email</span> ${contact.email || t('misc.not_applicable')}</p>
-                                        <p><span class="material-icons-sharp icon-sm">call</span> ${contact.phone || t('misc.not_applicable')}</p>
+                                    <div class="contact-card-body">
+                                        <span><span class="material-icons-sharp icon-sm">alternate_email</span> ${contact.email || t('misc.not_applicable')}</span>
+                                        <span><span class="material-icons-sharp icon-sm">call</span> ${contact.phone || t('misc.not_applicable')}</span>
                                     </div>
                                 </div>
                             `).join('')}
@@ -90,7 +88,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                     `}
                 </div>
 
-                <div class="card">
+                <div class="side-panel-section">
                     <h4>${t('panels.associated_projects')}</h4>
                      ${associatedProjects.length > 0 ? `
                         <div class="item-list associated-projects-list">

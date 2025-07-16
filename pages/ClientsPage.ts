@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -18,26 +19,27 @@ export function ClientsPage() {
             <div class="clients-grid">
                 ${clients.map(client => {
                     const activeProjectsCount = state.projects.filter(p => p.clientId === client.id).length;
+                    const primaryContact = client.contacts && client.contacts[0];
+                    const healthStatusClass = client.healthStatus ? `health-status-${client.healthStatus}` : '';
+
                     return `
                     <div class="card client-card-new clickable" data-client-id="${client.id}" role="button" tabindex="0">
-                        <div class="client-card-main">
-                            <div class="client-card-header">
-                                <div class="client-icon-wrapper">
-                                    <span class="material-icons-sharp">business</span>
-                                </div>
-                                <h3>${client.name}</h3>
-                            </div>
-                            <div class="client-card-body">
-                               <p><span class="material-icons-sharp icon-sm">person</span> ${client.contactPerson || t('misc.not_applicable')}</p>
-                               <p><span class="material-icons-sharp icon-sm">email</span> ${client.email || t('misc.not_applicable')}</p>
-                               <p><span class="material-icons-sharp icon-sm">phone</span> ${client.phone || t('misc.not_applicable')}</p>
-                            </div>
+                        <div class="client-card-header">
+                            <h3>${client.name}</h3>
+                            <span class="client-health-dot ${healthStatusClass}" title="Health: ${client.healthStatus || 'Neutral'}"></span>
                         </div>
-                        <div class="client-card-stats">
-                            <div class="stat-item">
-                                <span class="stat-value">${activeProjectsCount}</span>
-                                <span class="stat-label">${t('clients.active_projects')}</span>
-                            </div>
+                        <div class="client-card-body">
+                           <div class="contact-info-item">
+                                <span class="material-icons-sharp icon-sm">person</span>
+                                <span>${primaryContact?.name || t('misc.not_applicable')}</span>
+                           </div>
+                           <div class="contact-info-item">
+                                <span class="material-icons-sharp icon-sm">email</span>
+                                <span>${primaryContact?.email || t('misc.not_applicable')}</span>
+                           </div>
+                        </div>
+                        <div class="client-card-footer">
+                            <span class="subtle-text">${activeProjectsCount} ${t('clients.active_projects')}</span>
                         </div>
                     </div>
                 `}).join('')}

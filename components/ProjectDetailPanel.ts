@@ -102,7 +102,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
                         return `
                         <li class="project-task-list-item clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                            <div class="task-priority-dot priority-${task.priority || 'low'}"></div>
+                            <div class="task-priority-dot priority-${task.priority || 'none'}"></div>
                             <div class="project-task-list-item-main">
                                 <p class="task-name">${task.name}</p>
                                 <div class="task-meta-info">
@@ -202,7 +202,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                                 <span class="material-icons-sharp">description</span>
                                 <div class="attachment-info">
                                     <strong>${att.fileName}</strong>
-                                    <p class="subtle-text">${formatBytes(att.fileSize)} - ${formatDate(att.createdAt)}</p>
+                                    <p class="subtle-text">${formatBytes(att.fileSize || 0)} - ${formatDate(att.createdAt)}</p>
                                 </div>
                                 <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" aria-label="${t('modals.remove_item')} ${att.fileName}">
                                     <span class="material-icons-sharp" style="color: var(--danger-color)">delete</span>
@@ -281,21 +281,22 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
     const renderOkrsTab = () => {
         const objectives = state.objectives.filter(o => o.projectId === projectId);
-        if (objectives.length === 0) {
+        if (objectives.length === 0 && canEditProject) {
             return `<div class="side-panel-content">
                 <div class="empty-state">
                     <span class="material-icons-sharp">track_changes</span>
                     <h3>${t('panels.no_okrs_yet')}</h3>
-                    <p>${t('panels.no_okrs_yet')}</p>
                     <button class="btn btn-primary" data-modal-target="addObjective" data-project-id="${projectId}">${t('modals.add_objective_title')}</button>
                 </div>
             </div>`;
         }
 
         return `<div class="side-panel-content">
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
-                <button class="btn btn-primary" data-modal-target="addObjective" data-project-id="${projectId}">${t('modals.add_objective_title')}</button>
-            </div>
+            ${canEditProject ? `
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <button class="btn btn-primary" data-modal-target="addObjective" data-project-id="${projectId}">${t('modals.add_objective_title')}</button>
+                </div>
+            ` : ''}
             ${objectives.map(obj => {
                 const keyResults = state.keyResults.filter(kr => kr.objectiveId === obj.id);
                 const progressValues = keyResults.map(kr => {
@@ -304,7 +305,6 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                     return Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
                 });
                 const overallProgress = progressValues.length > 0 ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length : 0;
-                const circumference = 30 * 2 * Math.PI;
 
                 return `
                 <div class="okr-card">
@@ -317,19 +317,9 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                             ${obj.description ? `<p>${obj.description}</p>` : ''}
                         </div>
                         <div class="okr-objective-progress">
-                            <svg viewBox="0 0 36 36" class="circular-chart">
-                                <path class="circle-bg"
-                                    d="M18 2.0845
-                                    a 15.9155 15.9155 0 0 1 0 31.831
-                                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                                />
-                                <path class="circle"
-                                    stroke-dasharray="${overallProgress}, 100"
-                                    d="M18 2.0845
-                                    a 15.9155 15.9155 0 0 1 0 31.831
-                                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                                />
-                            </svg>
+                             <div class="kpi-progress-bar">
+                                <div class="kpi-progress-bar-inner" style="width: ${overallProgress}%; background-color: var(--success-color);"></div>
+                            </div>
                             <div class="progress-percentage">${Math.round(overallProgress)}%</div>
                         </div>
                     </div>
@@ -337,7 +327,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                     <div class="key-results-list">
                         ${keyResults.map(kr => {
                             const range = kr.targetValue - kr.startValue;
-                            const progress = range === 0 ? 100 : Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
+                            const progress = range === 0 ? (kr.currentValue >= kr.targetValue ? 100 : 0) : Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
                             const isEditing = (document.querySelector(`.key-result-item[data-kr-id="${kr.id}"]`) as HTMLElement)?.dataset.editing === 'true';
                             const valueSuffix = kr.type === 'percentage' ? '%' : '';
 
@@ -354,7 +344,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                                                 <button type="submit" class="btn-icon"><span class="material-icons-sharp">check</span></button>
                                             </form>
                                         ` : `
-                                            <span class="kr-progress-text kr-value" role="button">
+                                            <span class="kr-progress-text ${canEditProject ? 'kr-value' : ''}" ${canEditProject ? 'role="button"' : ''}>
                                                 ${kr.currentValue}${valueSuffix} / ${kr.targetValue}${valueSuffix}
                                             </span>
                                         `}
@@ -363,9 +353,11 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                             `;
                         }).join('')}
                     </div>
-                    <div class="okr-card-footer">
-                        <button class="btn btn-link" data-modal-target="addKeyResult" data-objective-id="${obj.id}">+ ${t('panels.add_key_result')}</button>
-                    </div>
+                    ${canEditProject ? `
+                        <div class="okr-card-footer">
+                            <button class="btn btn-link" data-modal-target="addKeyResult" data-objective-id="${obj.id}">+ ${t('panels.add_key_result')}</button>
+                        </div>
+                    ` : ''}
                 </div>
             `}).join('')}
         </div>`;

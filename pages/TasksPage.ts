@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -191,7 +192,7 @@ function renderListView(filteredTasks: Task[]) {
                                 </div>
                              </div>
                              <div class="task-list-col" data-label="${t('tasks.col_due_date')}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-                             <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-badge priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
+                             <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
                              <div class="task-list-col" data-label="${t('tasks.col_status')}"><span class="status-badge status-${task.status}">${t('tasks.' + task.status)}</span></div>
                              <div class="task-list-col task-time-col" data-label="${t('tasks.col_time')}">
                                  <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
@@ -357,7 +358,7 @@ export function TasksPage() {
 
 
     const filterBar = `
-        <div class="tasks-filter-bar card">
+        <div class="tasks-filter-bar">
             <div class="form-group search-group">
                 <input type="text" id="task-filter-text" class="form-control" placeholder="${t('tasks.search_placeholder')}" value="${text || ''}">
             </div>
@@ -417,7 +418,9 @@ export function TasksPage() {
 
     const filterContainer = `
         <div class="tasks-filter-container ${state.ui.isTaskFilterOpen ? 'is-open' : ''}">
-            ${filterBar}
+            <div class="card">
+                ${filterBar}
+            </div>
         </div>
     `;
 

@@ -1,6 +1,3 @@
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS } from '../utils.ts';

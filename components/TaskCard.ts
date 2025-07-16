@@ -32,7 +32,7 @@ export function renderTaskCard(task: Task) {
             ${descriptionSnippet ? `<p class="task-card-description">${descriptionSnippet}</p>` : ''}
             
             <div class="task-card-meta-row">
-                ${task.priority ? `<span class="priority-badge priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : ''}
+                ${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : ''}
                 ${task.dueDate ? `<div class="task-card-duedate"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate)}</span></div>` : ''}
             </div>
 
@@ -48,27 +48,19 @@ export function renderTaskCard(task: Task) {
                          <div class="kpi-progress-bar-inner" style="width: ${(completedChecklistItems / checklist.length) * 100}%;"></div>
                     </div>
                     <label class="task-card-subtasks-header">${t('tasks.subtasks')} ${completedChecklistItems}/${checklist.length}</label>
-                    <ul class="subtask-list">
-                    ${checklist.slice(0, 3).map(item => `
-                        <li class="subtask-item ${item.completed ? 'done' : ''}" data-item-id="${item.id}">
-                            <input type="checkbox" class="form-control" ${item.completed ? 'checked' : ''} disabled>
-                            <span>${item.text}</span>
-                        </li>
-                    `).join('')}
-                    </ul>
                 </div>
             `: ''}
 
             <div class="task-card-footer">
                  <div class="task-card-meta-stats">
-                    <div class="stat-item" title="${comments.length} comments">
+                    ${comments.length > 0 ? `<div class="stat-item" title="${comments.length} comments">
                          <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
                          <span>${comments.length}</span>
-                    </div>
-                     <div class="stat-item" title="${attachments.length} attachments">
+                    </div>` : ''}
+                     ${attachments.length > 0 ? `<div class="stat-item" title="${attachments.length} attachments">
                          <span class="material-icons-sharp icon-sm">attachment</span>
                          <span>${attachments.length}</span>
-                    </div>
+                    </div>` : ''}
                  </div>
                  <div class="avatar-stack">
                     ${taskAssignees.slice(0, 3).map(assignee => `
