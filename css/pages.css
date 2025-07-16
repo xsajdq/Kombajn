@@ -1,3 +1,4 @@
+
 /* DASHBOARD */
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .dashboard-header > div { display: flex; gap: 1rem; align-items: center; }
@@ -34,13 +35,18 @@
 .dark-theme .view-switcher { background-color: var(--background-color); }
 .view-switcher .btn-icon { border-radius: 6px; }
 .view-switcher .btn-icon.active { background-color: var(--content-bg); color: var(--primary-color); box-shadow: var(--shadow-sm); }
-.kanban-board, .sales-board { display: grid; gap: 1rem; align-items: start; overflow-x: auto; padding-bottom: 1rem; }
-.kanban-board { grid-template-columns: repeat(3, minmax(320px, 1fr)); }
-.kanban-board.workflow-advanced { grid-template-columns: repeat(5, minmax(320px, 1fr)); }
-.sales-board { grid-template-columns: repeat(6, minmax(300px, 1fr)); }
-.kanban-column { background-color: var(--light-color); border-radius: var(--border-radius); padding: 0.75rem; height: 100%; }
-.dark-theme .kanban-column { background-color: #161b22; }
-.kanban-column.drag-over { background-color: color-mix(in srgb, var(--primary-color) 8%, transparent); }
+.kanban-board, .sales-board { display: grid; gap: 1.5rem; align-items: start; padding-bottom: 1rem; }
+.kanban-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kanban-board.workflow-advanced { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.sales-board { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+.kanban-column { 
+    border-radius: var(--border-radius); 
+    padding: 0.75rem; 
+    height: 100%; 
+    background-color: transparent;
+}
+.kanban-column.drag-over { background-color: color-mix(in srgb, var(--primary-color) 8%, transparent); border-radius: var(--border-radius); }
 .kanban-column > h4 { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; margin-bottom: 1rem; font-weight: 600; text-transform: capitalize; }
 .kanban-tasks { min-height: 100px; display: flex; flex-direction: column; gap: 0.75rem; }
 
@@ -242,17 +248,16 @@
 .kr-current-value-edit { display: flex; align-items: center; gap: 0.25rem; }
 .kr-current-value-edit input { width: 80px; text-align: right; }
 
-/* --- NEW: TASK DETAIL MODAL --- */
-.task-detail-modal-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1.5rem; height: 100%; }
-.task-detail-main { display: flex; flex-direction: column; overflow: hidden; padding-right: 1.5rem; border-right: 1px solid var(--border-color); }
+/* --- TASK DETAIL MODAL --- */
+.task-detail-modal-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 2rem; height: 100%; }
+.task-detail-main { display: flex; flex-direction: column; overflow: hidden; }
 .task-detail-main-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
 .task-detail-description { color: var(--text-color); margin-bottom: 1.5rem; }
-.task-detail-tabs { display: flex; gap: 1rem; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; flex-shrink: 0; }
-.task-detail-tab { padding: 0.5rem 0.25rem; font-weight: 600; color: var(--subtle-text-color); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
-.task-detail-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
 .task-detail-tab-content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
-.task-detail-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+.task-detail-sidebar { display: flex; flex-direction: column; gap: 1rem; background-color: var(--light-color); padding: 1.5rem; border-radius: var(--border-radius); }
+.dark-theme .task-detail-sidebar { background-color: var(--background-color); }
 .task-detail-sidebar-section { margin-bottom: 1.5rem; }
+.task-detail-sidebar-section:last-child { margin-bottom: 0; }
 .task-detail-sidebar-section h4 { font-size: 1rem; font-weight: 600; color: var(--subtle-text-color); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
 .activity-feed { display: flex; flex-direction: column; gap: 1.5rem; }
 .activity-item { display: flex; gap: 1rem; align-items: flex-start; }
@@ -266,7 +271,7 @@
 .add-comment-form { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: flex-start; flex-shrink: 0; }
 .add-comment-form .btn { flex-shrink: 0; }
 
-/* --- NEW: TASKS PAGE FILTERS --- */
+/* --- TASKS PAGE FILTERS --- */
 .tasks-filter-container {
     overflow: hidden;
     max-height: 0;
@@ -395,7 +400,7 @@
 /* RESPONSIVE OVERRIDES */
 @media (max-width: 1200px) {
     .task-detail-modal-layout { grid-template-columns: 1fr; max-height: calc(90vh - 120px); }
-    .task-detail-sidebar { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
+    .task-detail-sidebar { margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem; background-color: transparent; padding: 0; }
     .task-detail-main { border-right: none; }
 }
 @media (max-width: 1024px) {

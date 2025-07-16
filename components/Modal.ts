@@ -128,35 +128,42 @@ export function Modal() {
                         <input type="text" id="projectCategory" class="form-control" placeholder="e.g. Marketing">
                     </div>
                 </div>
-                <div class="form-group" style="margin-top:1rem;">
+                
+                <div class="form-group" style="margin-top: 1rem;">
                     <label>${t('modals.privacy')}</label>
-                    <div class="form-group-inline">
-                       <input type="radio" id="privacy-public" name="privacy" value="public" checked>
-                       <label for="privacy-public">
+                    <div class="privacy-selector-container">
+                        <input type="radio" id="privacy-public" name="privacy" value="public" checked>
+                        <label for="privacy-public" class="privacy-selector-label">
+                            <span class="material-icons-sharp">public</span>
                             <strong>${t('modals.privacy_public')}</strong>
                             <p>${t('modals.privacy_public_desc')}</p>
                         </label>
-                    </div>
-                     <div class="form-group-inline">
-                       <input type="radio" id="privacy-private" name="privacy" value="private">
-                       <label for="privacy-private">
+                        <input type="radio" id="privacy-private" name="privacy" value="private">
+                        <label for="privacy-private" class="privacy-selector-label">
+                            <span class="material-icons-sharp">lock</span>
                             <strong>${t('modals.privacy_private')}</strong>
                             <p>${t('modals.privacy_private_desc')}</p>
-                       </label>
+                        </label>
                     </div>
                 </div>
+
                 <div id="project-members-section" class="form-group project-members-section-container collapsed" style="margin-top: 1rem;">
                     <label>${t('modals.invite_members')}</label>
                     <div class="project-member-checkbox-list">
                         ${workspaceMembers.map(user => {
-                            const isCreator = user!.id === state.currentUser?.id;
+                            if (!user) return '';
+                            const isCreator = user.id === state.currentUser?.id;
+                            const initials = (user.initials || user.name?.substring(0, 2) || user.email?.substring(0, 2) || '??').toUpperCase();
+                            const displayName = user.name || user.email || 'Unnamed User';
+
                             return `
                             <label class="project-member-checkbox-item">
-                                <input type="checkbox" name="project_members" value="${user!.id}" ${isCreator ? 'checked disabled' : ''}>
-                                <div class="avatar">${user!.initials}</div>
-                                <span>${user!.name || user!.initials} ${isCreator ? `(${t('hr.you')})` : ''}</span>
+                                <input type="checkbox" name="project_members" value="${user.id}" ${isCreator ? 'checked disabled' : ''}>
+                                <div class="avatar">${initials}</div>
+                                <span>${displayName} ${isCreator ? `(${t('hr.you')})` : ''}</span>
                             </label>
-                        `}).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             </form>

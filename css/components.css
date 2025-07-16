@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Sharp');
 
@@ -125,53 +126,77 @@
 }
 textarea.form-control { min-height: 80px; resize: vertical; }
 
-.form-group-inline {
-    position: relative;
-    margin-top: 0.75rem;
+.privacy-selector-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.5rem;
 }
-.form-group-inline input[type="radio"] {
+.privacy-selector-container input[type="radio"] {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
 }
-.form-group-inline > label {
+.privacy-selector-label {
     display: flex;
-    border: 1px solid var(--border-color);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 1rem;
+    padding: 1.5rem 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin: 0;
-    width: 100%;
+    min-height: 140px;
 }
-.form-group-inline > label:hover {
+.privacy-selector-label:hover {
     border-color: var(--subtle-text-color);
+    background-color: var(--light-color);
 }
-.form-group-inline input[type="radio"]:checked + label {
+.dark-theme .privacy-selector-label:hover {
+    background-color: var(--dark-color);
+}
+.privacy-selector-label .material-icons-sharp {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--subtle-text-color);
+    transition: color 0.2s;
+}
+.privacy-selector-label strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+.privacy-selector-label p {
+    font-size: 0.875rem;
+    color: var(--subtle-text-color);
+    line-height: 1.4;
+}
+.privacy-selector-container input[type="radio"]:checked + .privacy-selector-label {
     border-color: var(--primary-color);
     background-color: color-mix(in srgb, var(--primary-color) 8%, transparent);
 }
-.form-group-inline strong {
-    font-weight: 600;
+.privacy-selector-container input[type="radio"]:focus-visible + .privacy-selector-label {
+     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
 }
-.form-group-inline p {
-    font-size: 0.875rem;
-    line-height: 1.4;
-    color: var(--subtle-text-color);
+.privacy-selector-container input[type="radio"]:checked + .privacy-selector-label .material-icons-sharp,
+.privacy-selector-container input[type="radio"]:checked + .privacy-selector-label strong {
+    color: var(--primary-color);
 }
 
 .project-members-section-container {
-    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out, padding 0.3s ease-in-out;
     max-height: 400px;
     opacity: 1;
+    overflow: hidden;
 }
 .project-members-section-container.collapsed {
     max-height: 0;
     opacity: 0;
-    overflow: hidden;
     margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    padding: 0;
 }
 .project-member-checkbox-list {
     max-height: 200px;
@@ -186,6 +211,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
     padding: 0.5rem;
     border-radius: 6px;
     cursor: pointer;
+    gap: 0.75rem;
 }
 .project-member-checkbox-item:hover {
     background-color: var(--light-color);
@@ -194,14 +220,13 @@ textarea.form-control { min-height: 80px; resize: vertical; }
     background-color: var(--dark-color);
 }
 .project-member-checkbox-item input[type="checkbox"] {
-    margin-right: 1rem;
     width: 16px;
     height: 16px;
     accent-color: var(--primary-color);
     flex-shrink: 0;
 }
 .project-member-checkbox-item .avatar {
-    margin-right: 0.75rem;
+    margin: 0;
 }
 
 
@@ -237,8 +262,7 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); }
 .modal-header h3 { margin: 0; font-size: 1.25rem; }
 .modal-body { padding: 1.5rem; overflow-y: auto; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-color); background-color: var(--background-color); }
-.dark-theme .modal-footer { background-color: var(--dark-color); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-color); background-color: var(--content-bg); }
 .modal-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -469,6 +493,41 @@ textarea.form-control { min-height: 80px; resize: vertical; }
 .contact-form-row .remove-contact-row-btn:hover {
     background-color: var(--light-color);
 }
+
+/* Task Detail Modal Tabs */
+.task-detail-tabs {
+    display: inline-flex;
+    background-color: var(--light-color);
+    border-radius: var(--border-radius);
+    padding: 0.25rem;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+    border: none;
+    flex-shrink: 0;
+}
+.dark-theme .task-detail-tabs {
+    background-color: var(--background-color);
+}
+.task-detail-tab {
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background: transparent;
+    margin-bottom: 0;
+}
+.task-detail-tab:hover {
+     color: var(--text-color);
+}
+.task-detail-tab.active {
+    background-color: var(--content-bg);
+    color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
 @media (max-width: 768px) {
     .contact-form-row {
         grid-template-columns: 1fr;
