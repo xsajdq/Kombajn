@@ -53,35 +53,35 @@ export function ProjectsPage() {
                                 <h3>${project.name}</h3>
                                 <p class="subtle-text">${client?.name || t('misc.no_client')}</p>
                             </div>
-                            <div class="project-card-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-bar-inner" style="width: ${progress}%;"></div>
-                                </div>
-                                <span class="progress-text">${Math.round(progress)}%</span>
-                            </div>
-                            <div class="project-card-footer">
-                                <div class="project-card-stats">
-                                    <div class="stat-item" title="${t('projects.members')}">
-                                        <span class="material-icons-sharp icon-sm">group</span>
-                                        <span>${members.length}</span>
+                            <div class="project-card-content">
+                                <div class="project-card-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-inner" style="width: ${progress}%;"></div>
                                     </div>
-                                    ${overdueTasks > 0 ? `
-                                        <div class="stat-item overdue" title="${t('projects.overdue_tasks')}">
-                                            <span class="material-icons-sharp icon-sm">error_outline</span>
-                                            <span>${overdueTasks}</span>
-                                        </div>
-                                    ` : ''}
+                                    <span class="progress-text">${Math.round(progress)}%</span>
                                 </div>
                                 <div class="avatar-stack">
-                                    ${memberUsers.slice(0, 3).map(u => u ? `
+                                     ${memberUsers.slice(0, 4).map(u => u ? `
                                         <div class="avatar" title="${u.name || u.initials}">
                                             ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}">` : u.initials}
                                         </div>
                                     ` : '').join('')}
-                                    ${memberUsers.length > 3 ? `
-                                        <div class="avatar more-avatar">+${memberUsers.length - 3}</div>
+                                    ${memberUsers.length > 4 ? `
+                                        <div class="avatar more-avatar">+${memberUsers.length - 4}</div>
                                     ` : ''}
                                 </div>
+                            </div>
+                            <div class="project-card-footer">
+                                <div class="project-stat-pill" title="${t('projects.members')}">
+                                    <span class="material-icons-sharp icon-sm">group</span>
+                                    <span>${members.length}</span>
+                                </div>
+                                ${overdueTasks > 0 ? `
+                                    <div class="project-stat-pill overdue-pill" title="${t('projects.overdue_tasks')}">
+                                        <span class="material-icons-sharp icon-sm">error_outline</span>
+                                        <span>${overdueTasks}</span>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
