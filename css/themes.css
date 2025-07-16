@@ -1,25 +1,31 @@
+
 :root {
-  --primary-color: #4a90e2;
-  --primary-hover-color: #357ABD;
-  --dark-color: #2c3e50;
-  --light-color: #ecf0f1;
-  --background-color: #f4f7fa;
-  --content-bg: var(--white-color);
-  --text-color: #34495e;
-  --subtle-text-color: #7f8c8d;
-  --border-color: #dfe6e9;
+  --primary-color: #3b82f6; /* Blue 500 */
+  --primary-hover-color: #2563eb; /* Blue 600 */
+  --dark-color: #111827; /* Gray 900 */
+  --light-color: #f3f4f6; /* Gray 100 */
+  --background-color: #f9fafb; /* Gray 50 */
+  --content-bg: #ffffff;
+  --text-color: #374151; /* Gray 700 */
+  --subtle-text-color: #6b7280; /* Gray 500 */
+  --border-color: #e5e7eb; /* Gray 200 */
   --white-color: #ffffff;
-  --danger-color: #e74c3c;
-  --success-color: #2ecc71;
-  --warning-color: #f39c12;
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #cbd5e1;
-  --sidebar-active: #4a90e2;
-  --priority-high: #e74c3c;
-  --priority-medium: #f39c12;
-  --priority-low: #3498db;
-  --status-backlog-color: #636e72;
-  --status-inreview-color: #8e44ad;
+  --danger-color: #ef4444; /* Red 500 */
+  --success-color: #22c55e; /* Green 500 */
+  --warning-color: #f59e0b; /* Amber 500 */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #4b5563; /* Gray 600 */
+  --sidebar-active: var(--primary-color);
+  
+  --priority-high: #ef4444;
+  --priority-medium: #f59e0b;
+  --priority-low: #3b82f6;
+
+  --status-backlog-color: #6b7280;
+  --status-todo-color: #a855f7; /* Purple 500 */
+  --status-inprogress-color: #3b82f6;
+  --status-inreview-color: #ec4899; /* Pink 500 */
+  --status-done-color: #22c55e;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -28,21 +34,33 @@
 }
 
 .dark-theme {
-  --primary-color: #58a6ff;
-  --primary-hover-color: #79b8ff;
-  --dark-color: #e6edf3;
-  --light-color: #2d333b;
-  --background-color: #0d1117;
-  --content-bg: #161b22;
-  --text-color: #c9d1d9;
-  --subtle-text-color: #8b949e;
-  --border-color: #30363d;
-  --sidebar-bg: #161b22;
-  --sidebar-text: #8b949e;
-  --sidebar-active: #58a6ff;
+  --primary-color: #60a5fa; /* Blue 400 */
+  --primary-hover-color: #3b82f6; /* Blue 500 */
+  --dark-color: #f9fafb; /* Gray 50 */
+  --light-color: #1f2937; /* Gray 800 */
+  --background-color: #111827; /* Gray 900 */
+  --content-bg: #1f2937; /* Gray 800 */
+  --text-color: #d1d5db; /* Gray 300 */
+  --subtle-text-color: #9ca3af; /* Gray 400 */
+  --border-color: #374151; /* Gray 700 */
+  --white-color: #ffffff;
+  --danger-color: #f87171; /* Red 400 */
+  --success-color: #4ade80; /* Green 400 */
+  --warning-color: #fbbf24; /* Amber 400 */
+  
+  --sidebar-bg: #111827;
+  --sidebar-text: #d1d5db;
+  --sidebar-active: var(--white-color);
+  
   --priority-high: #f87171;
   --priority-medium: #fbbf24;
   --priority-low: #60a5fa;
+
+  --status-backlog-color: #9ca3af;
+  --status-todo-color: #c084fc; /* Purple 400 */
+  --status-inprogress-color: #60a5fa;
+  --status-inreview-color: #f472b6; /* Pink 400 */
+  --status-done-color: #4ade80;
 }
 
 /* --- NEW MINIMAL THEME --- */
@@ -51,7 +69,7 @@
   --primary-hover-color: #2D3748; /* Slate 800 */
   --dark-color: #1A202C; /* Slate 900 */
   --light-color: #EDF2F7; /* Slate 200 */
-  --background-color: #F7FAFC; /* Slate 50 */
+  --background-color: #FFFFFF;
   --content-bg: #FFFFFF;
   --text-color: #2D3748; /* Slate 800 */
   --subtle-text-color: #718096; /* Slate 500 */
