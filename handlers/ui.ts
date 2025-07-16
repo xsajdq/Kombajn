@@ -143,7 +143,7 @@ export function closeModal(shouldRender = true) {
         const modalType = state.ui.modal.type;
         state.ui.modal = { isOpen: false, type: null, data: undefined, justOpened: false };
         // Reset mention state when any modal closes
-        state.ui.mention = { query: null, target: null, activeIndex: 0 };
+        state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
         saveState();
 
         // Update URL if a detail modal was closed

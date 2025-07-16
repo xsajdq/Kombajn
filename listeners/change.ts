@@ -2,7 +2,7 @@
 
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Role, Task } from '../types.ts';
+import type { Role, Task, AppState } from '../types.ts';
 import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
@@ -115,6 +115,17 @@ export function handleChange(e: Event) {
             } else {
                 membersSection.classList.add('collapsed');
             }
+        }
+        return;
+    }
+    
+    // Invoice Page Filters
+    const invoiceFilter = target.closest<HTMLInputElement>('#invoice-filter-date-start, #invoice-filter-date-end, #invoice-filter-client, #invoice-filter-status');
+    if (invoiceFilter) {
+        const key = invoiceFilter.id.split('-').pop() as keyof AppState['ui']['invoiceFilters'];
+        if (['dateStart', 'dateEnd', 'clientId', 'status'].includes(key)) {
+            (state.ui.invoiceFilters as any)[key] = invoiceFilter.value;
+            renderApp();
         }
         return;
     }

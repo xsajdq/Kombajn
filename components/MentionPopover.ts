@@ -1,11 +1,12 @@
 
+
 import { state } from '../state.ts';
 import type { User } from '../types.ts';
 import { t } from '../i18n.ts';
 
 export function MentionPopover() {
-    const { query, target, activeIndex } = state.ui.mention;
-    if (query === null || !target) return '';
+    const { query, activeIndex, rect } = state.ui.mention;
+    if (query === null || !rect) return '';
 
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId && m.userId !== state.currentUser?.id) // Filter out current user
@@ -19,10 +20,8 @@ export function MentionPopover() {
             return nameMatch || initialsMatch;
         });
 
-    const targetRect = target.getBoundingClientRect();
-    const top = targetRect.bottom + 5; // Position below the input with a 5px gap
-    const left = targetRect.left;
-    const width = targetRect.width;
+    const top = rect.bottom + 5; // Position below the cursor with a 5px gap
+    const left = rect.left;
 
     const popoverContent = workspaceMembers.length > 0
         ? workspaceMembers.map((user, index) => `
@@ -35,7 +34,7 @@ export function MentionPopover() {
         : `<div class="mention-item-empty">${t('command_palette.no_results')}</div>`;
 
     return `
-        <div class="mention-popover" style="top: ${top}px; left: ${left}px; width: ${width}px;">
+        <div class="mention-popover" style="position: fixed; top: ${top}px; left: ${left}px;">
             ${popoverContent}
         </div>
     `;

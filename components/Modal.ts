@@ -5,7 +5,7 @@ import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
-import { camelToSnake, formatDate } from '../utils.ts';
+import { camelToSnake, formatCurrency, formatDate } from '../utils.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -147,7 +147,7 @@ export function Modal() {
                     </div>
                 </div>
 
-                <div id="project-members-section" class="form-group project-members-section-container collapsed" style="margin-top: 1rem;">
+                <div id="project-members-section" class="form-group project-members-section-container collapsed">
                     <label>${t('modals.invite_members')}</label>
                     <div class="project-member-checkbox-list">
                         ${workspaceMembers.map(user => {
@@ -371,14 +371,12 @@ export function Modal() {
                     </div>
                 </div>
 
-                ${selectedClientId ? `
-                    <div style="margin: 1.5rem 0 0;">
-                        <button type="button" class="btn btn-secondary" id="generate-invoice-items-btn">
-                            <span class="material-icons-sharp">auto_fix_high</span>
-                             ${t('modals.generate_from_time')}
-                        </button>
-                    </div>
-                ` : ''}
+                <div style="margin: 1.5rem 0 0;">
+                    <button type="button" class="btn btn-secondary" id="generate-invoice-items-btn" ${!selectedClientId ? 'disabled' : ''}>
+                        <span class="material-icons-sharp">auto_fix_high</span>
+                         ${t('modals.generate_from_time')}
+                    </button>
+                </div>
 
                 <h4 class="invoice-items-header">${t('modals.invoice_items')}</h4>
                 <div class="invoice-item-editor-header">
@@ -397,11 +395,11 @@ export function Modal() {
                         </div>
                     `).join('')}
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="add-invoice-item-btn">
+                <button type="button" class="btn btn-secondary btn-sm" id="add-invoice-item-btn" style="margin-top: 1rem;">
                     <span class="material-icons-sharp">add</span> ${t('modals.add_item')}
                 </button>
                 <div class="invoice-totals">
-                    <strong>${t('modals.total')}: ${total.toFixed(2)} PLN</strong>
+                    <strong>${t('modals.total')}: ${formatCurrency(total)}</strong>
                 </div>
             </form>
         `;

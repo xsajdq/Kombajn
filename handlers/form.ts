@@ -254,6 +254,13 @@ export async function handleFormSubmit() {
                     if (log) log.invoiceId = newInvoice.id;
                 }
             }
+            if (data.sourceExpenseIds?.length > 0) {
+                for (const expenseId of data.sourceExpenseIds) {
+                    await apiPut('expenses', { id: expenseId, invoiceId: newInvoice.id });
+                    const expense = state.expenses.find(e => e.id === expenseId);
+                    if (expense) expense.invoiceId = newInvoice.id;
+                }
+            }
         }
         
         if (type === 'addTimeOffRequest') {

@@ -1,13 +1,14 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDate, getUsage, PLANS } from '../utils.ts';
+import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
 import type { Invoice } from '../types.ts';
 import { can } from '../permissions.ts';
 
 function getFilteredInvoices() {
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
-    const startDate = new Date(dateStart);
-    const endDate = new Date(dateEnd);
+    const startDate = new Date(dateStart + 'T00:00:00Z');
+    const endDate = new Date(dateEnd + 'T23:59:59Z');
 
     return state.invoices
         .filter(i => i.workspaceId === state.activeWorkspaceId)
@@ -24,7 +25,7 @@ function getFilteredInvoices() {
             const clientMatch = clientId === 'all' || invoice.clientId === clientId;
             const statusMatch = status === 'all' || invoice.effectiveStatus === status;
             
-            const issueDate = new Date(invoice.issueDate + 'T00:00:00');
+            const issueDate = new Date(invoice.issueDate + 'T00:00:00Z');
             const dateMatch = issueDate >= startDate && issueDate <= endDate;
 
             return clientMatch && statusMatch && dateMatch;
@@ -47,7 +48,6 @@ export function InvoicesPage() {
         return invoice.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     };
     
-    const { filters } = state.ui.reports;
     const workspaceClients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
     const statuses = ['pending', 'paid', 'overdue'];
 
@@ -67,11 +67,11 @@ export function InvoicesPage() {
             </div>
             <div class="card stat-card">
                 <h4>${t('invoices.col_total')}</h4>
-                <div class="stat-card-value">${new Intl.NumberFormat('pl-PL').format(summary.totalAmount)} PLN</div>
+                <div class="stat-card-value">${formatCurrency(summary.totalAmount)}</div>
             </div>
             <div class="card stat-card">
                 <h4>${t('invoices.status_overdue')}</h4>
-                <div class="stat-card-value overdue">${new Intl.NumberFormat('pl-PL').format(summary.overdueAmount)} PLN</div>
+                <div class="stat-card-value overdue">${formatCurrency(summary.overdueAmount)}</div>
             </div>
         </div>
     `;
@@ -128,7 +128,7 @@ export function InvoicesPage() {
                     ${filteredInvoices.map(invoice => {
                         const client = state.clients.find(c => c.id === invoice.clientId);
                         const total = calculateInvoiceTotal(invoice);
-                        const statusBadgeClass = invoice.effectiveStatus === 'overdue' ? 'status-backlog' : (invoice.effectiveStatus === 'paid' ? 'status-paid' : 'status-pending');
+                        const statusBadgeClass = `status-${invoice.effectiveStatus}`;
 
                         return `
                              <div class="invoice-list-row">
@@ -136,9 +136,9 @@ export function InvoicesPage() {
                                 <div data-label="${t('invoices.col_client')}">${client?.name || t('misc.not_applicable')}</div>
                                 <div data-label="${t('invoices.col_issued')}">${formatDate(invoice.issueDate)}</div>
                                 <div data-label="${t('invoices.col_due')}">${formatDate(invoice.dueDate)}</div>
-                                <div data-label="${t('invoices.col_total')}">${total.toFixed(2)} PLN</div>
+                                <div data-label="${t('invoices.col_total')}">${formatCurrency(total)}</div>
                                 <div data-label="${t('invoices.col_status')}">
-                                    <span class="status-badge ${statusBadgeClass}">${t('modals.status_' + invoice.effectiveStatus)}</span>
+                                    <span class="status-badge ${statusBadgeClass}">${t('invoices.status_' + invoice.effectiveStatus)}</span>
                                     ${invoice.emailStatus === 'sent' ? `<span class="material-icons-sharp" title="${t('invoices.status_sent')}" style="color: var(--success-color); vertical-align: middle; margin-left: 0.5rem;">mark_email_read</span>` : ''}
                                 </div>
                                 <div data-label="${t('invoices.col_actions')}" style="display: flex; gap: 0.5rem;">

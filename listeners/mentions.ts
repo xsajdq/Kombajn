@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp, renderMentionPopover } from '../app-renderer.ts';
 import type { User } from '../types.ts';
@@ -26,32 +27,45 @@ export function parseMentionContent(element: HTMLElement): string {
 
 export function handleMentionInput(inputDiv: HTMLElement) {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    if (!range.startContainer.textContent) {
-        state.ui.mention.query = null;
-        state.ui.mention.target = null;
+    if (!selection || selection.rangeCount === 0) {
+        state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
         renderMentionPopover();
         return;
     }
+
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
     
-    const textBeforeCursor = range.startContainer.textContent.substring(0, range.startOffset);
+    // Check if we are inside a text node, which is necessary for range manipulation.
+    if (textNode.nodeType !== Node.TEXT_NODE) {
+        state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
+        renderMentionPopover();
+        return;
+    }
+
+    const textBeforeCursor = textNode.textContent?.substring(0, range.startOffset) || '';
     const atPosition = textBeforeCursor.lastIndexOf('@');
 
     if (atPosition > -1 && (atPosition === 0 || /\s/.test(textBeforeCursor[atPosition - 1]))) {
         const query = textBeforeCursor.substring(atPosition + 1);
         if (query.includes('\n') || query.includes(' ')) {
-             state.ui.mention.query = null;
-             state.ui.mention.target = null;
+            state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
         } else {
-             state.ui.mention.query = query;
-             state.ui.mention.target = inputDiv;
-             state.ui.mention.activeIndex = 0;
+            // Get rect of the '@' character itself for precise positioning
+            const atRange = document.createRange();
+            atRange.setStart(textNode, atPosition);
+            atRange.setEnd(textNode, atPosition + 1);
+            const atRect = atRange.getBoundingClientRect();
+
+            state.ui.mention = { 
+                query, 
+                target: inputDiv, 
+                activeIndex: 0,
+                rect: atRect 
+            };
         }
     } else {
-        state.ui.mention.query = null;
-        state.ui.mention.target = null;
+        state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
     }
     
     renderMentionPopover();
@@ -59,45 +73,43 @@ export function handleMentionInput(inputDiv: HTMLElement) {
 
 export function handleInsertMention(user: User, inputDiv: HTMLElement) {
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount || !selection.rangeCount) return;
+    if (!selection?.rangeCount) return;
 
     const range = selection.getRangeAt(0);
-    const cursorNode = range.startContainer;
-    const cursorOffset = range.startOffset;
-
-    if (cursorNode.nodeType !== Node.TEXT_NODE) {
+    const textNode = range.startContainer;
+    
+    if (textNode.nodeType !== Node.TEXT_NODE) {
         console.warn("Mention trigger was not in a text node. Aborting.");
         return;
     }
-    
-    const originalTextNode = cursorNode as Text;
-    const parent = originalTextNode.parentNode;
-    if (!parent) return;
 
+    // Find the position of the '@' that triggered the mention
+    const textBeforeCursor = textNode.textContent?.substring(0, range.startOffset) || '';
+    const atPosition = textBeforeCursor.lastIndexOf('@');
+    if (atPosition === -1) return; // Should not happen if popover is visible
+
+    // Replace the query text (from '@' to cursor) with the mention chip
+    range.setStart(textNode, atPosition);
+    range.deleteContents();
+
+    // Create the mention chip
     const mentionChip = document.createElement('span');
     mentionChip.className = 'mention-chip';
     mentionChip.setAttribute('contenteditable', 'false');
     mentionChip.dataset.userId = user.id;
     mentionChip.textContent = `@${user.name || user.initials}`;
     
+    // Insert the chip
+    range.insertNode(mentionChip);
+
+    // Add a non-breaking space after the chip and move the cursor
     const spaceNode = document.createTextNode('\u00A0'); 
+    range.collapse(false); // collapse to the end of the chip
+    range.insertNode(spaceNode);
+    range.collapse(false); // move cursor after the space
 
-    const textBefore = originalTextNode.nodeValue!.substring(0, originalTextNode.nodeValue!.lastIndexOf('@'));
-    const textAfter = originalTextNode.nodeValue!.substring(cursorOffset);
-    
-    parent.insertBefore(new Text(textBefore), originalTextNode);
-    parent.insertBefore(mentionChip, originalTextNode);
-    parent.insertBefore(spaceNode, originalTextNode);
-    const afterNode = parent.insertBefore(new Text(textAfter), originalTextNode);
-    parent.removeChild(originalTextNode);
-
-    range.setStart(afterNode, 0);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    state.ui.mention.query = null;
-    state.ui.mention.target = null;
+    // Reset mention state completely
+    state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
     renderMentionPopover();
     inputDiv.focus();
 }

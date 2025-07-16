@@ -1,4 +1,5 @@
 
+
 /* DASHBOARD */
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .dashboard-header > div { display: flex; gap: 1rem; align-items: center; }
@@ -36,9 +37,8 @@
 .view-switcher .btn-icon { border-radius: 6px; }
 .view-switcher .btn-icon.active { background-color: var(--content-bg); color: var(--primary-color); box-shadow: var(--shadow-sm); }
 .kanban-board, .sales-board { display: grid; gap: 1.5rem; align-items: start; padding-bottom: 1rem; }
-.kanban-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.kanban-board.workflow-advanced { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.sales-board { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.kanban-board { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.sales-board { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 
 .kanban-column { 
     border-radius: var(--border-radius); 
@@ -195,9 +195,77 @@
 .minimal-theme .project-stat-pill { background-color: transparent; border: 1px solid var(--border-color); }
 .project-stat-pill .icon-sm { font-size: 1rem; }
 
-
 /* INVOICES PAGE */
-.invoice-list-row { grid-template-columns: 1.5fr 2fr 1fr 1fr 1fr 1fr auto; }
+.invoice-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    text-align: center;
+}
+.stat-card h4 {
+    font-size: 0.875rem;
+    color: var(--subtle-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+.stat-card .stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+.stat-card .stat-card-value.overdue {
+    color: var(--danger-color);
+}
+.invoice-list-container {
+    padding: 0;
+}
+.invoice-list-header, .invoice-list-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1.2fr 1.2fr 1fr 1.2fr auto;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+.invoice-list-header {
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.invoice-list-row:last-child {
+    border-bottom: none;
+}
+.invoice-list-row:hover {
+    background-color: var(--light-color);
+}
+.dark-theme .invoice-list-row:hover {
+    background-color: var(--dark-color);
+}
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    display: inline-block;
+}
+.status-badge.status-paid {
+    background-color: color-mix(in srgb, var(--success-color) 15%, transparent);
+    color: var(--success-color);
+}
+.status-badge.status-pending {
+    background-color: color-mix(in srgb, var(--warning-color) 15%, transparent);
+    color: var(--warning-color);
+}
+.status-badge.status-overdue {
+    background-color: color-mix(in srgb, var(--danger-color) 15%, transparent);
+    color: var(--danger-color);
+}
 
 /* SIDE PANELS (Project, Client, Deal Details) */
 .project-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
@@ -397,6 +465,193 @@
 .contact-card-body { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; color: var(--subtle-text-color); }
 .contact-card-body > span { display: flex; align-items: center; gap: 0.5rem; }
 
+/* HR PAGE */
+.hr-page-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 2.5rem;
+    align-items: flex-start;
+}
+.hr-nav-menu h3 {
+    padding: 0 1rem;
+    margin-bottom: 1.5rem;
+}
+.hr-nav-menu ul {
+    list-style: none;
+}
+.hr-nav-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    color: var(--subtle-text-color);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+.hr-nav-item:hover {
+    background-color: var(--light-color);
+    color: var(--text-color);
+}
+.hr-nav-item.active {
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    font-weight: 600;
+}
+.dark-theme .hr-nav-item.active {
+    background-color: var(--primary-hover-color);
+}
+
+.hr-content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.hr-content-header h3 {
+    margin: 0;
+}
+.hr-controls {
+    display: flex;
+    gap: 1rem;
+}
+.card.card-table {
+    padding: 0;
+}
+.hr-table-header, .hr-table-row {
+    display: grid;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.hr-employee-table .hr-table-header, .hr-employee-table .hr-table-row {
+    grid-template-columns: 2.5fr 1fr 2fr 1fr;
+}
+.hr-vacation-table .hr-table-header, .hr-vacation-table .hr-table-row {
+    grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr;
+}
+.hr-table-header {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    color: var(--subtle-text-color);
+    letter-spacing: 0.05em;
+}
+.hr-table-row:last-child {
+    border-bottom: none;
+}
+.hr-table-row:hover {
+    background-color: var(--light-color);
+}
+.dark-theme .hr-table-row:hover {
+    background-color: var(--dark-color);
+}
+.hr-employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.hr-employee-cell .avatar {
+    width: 40px;
+    height: 40px;
+}
+.hr-table-row .form-control {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    max-width: 180px;
+}
+.danger-icon {
+    color: var(--danger-color);
+}
+.success-icon {
+    color: var(--success-color);
+}
+.hr-invite-flyout {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    height: 100%;
+    background-color: var(--content-bg);
+    z-index: 1001;
+    box-shadow: -10px 0 25px -5px rgba(0,0,0,0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    padding: 2rem;
+}
+.hr-invite-flyout.is-open {
+    transform: translateX(0);
+}
+.hr-invite-flyout-content h4 {
+    margin-bottom: 2rem;
+}
+.hr-invite-flyout .form-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.hr-requests-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+}
+.requests-column h4 {
+    margin-bottom: 1rem;
+}
+.request-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.request-card {
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.request-card-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-grow: 1;
+}
+.request-card-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+.request-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.vacation-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.vacation-progress-bar {
+    width: 100px;
+    height: 6px;
+    background-color: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.vacation-progress-bar-inner {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 3px;
+}
+
 /* RESPONSIVE OVERRIDES */
 @media (max-width: 1200px) {
     .task-detail-modal-layout { grid-template-columns: 1fr; max-height: calc(90vh - 120px); }
@@ -404,17 +659,18 @@
     .task-detail-main { border-right: none; }
 }
 @media (max-width: 1024px) {
-    .task-list-header { display: none; }
-    .task-list-row { grid-template-columns: 1fr; gap: 0; padding: 1rem; }
-    .task-list-col { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); }
-    .task-list-col:last-child { border-bottom: none; }
-    .task-list-col::before { content: attr(data-label); font-weight: 500; color: var(--subtle-text-color); }
-    .invoice-list-row, .vacation-table-row { grid-template-columns: 1fr; }
-    .invoice-list-row > div, .vacation-table-row > div { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); }
-    .invoice-list-row > div::before, .vacation-table-row > div::before { content: attr(data-label); font-weight: 500; color: var(--subtle-text-color); }
+    .invoice-list-header, .vacation-table-header, .hr-table-header { display: none; }
+    .invoice-list-row, .vacation-table-row, .hr-table-row { grid-template-columns: 1fr; gap: 0; padding: 1rem; }
+    .invoice-list-row > div, .vacation-table-row > div, .hr-table-row > div { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); }
+    .invoice-list-row > div:last-child, .vacation-table-row > div:last-child, .hr-table-row > div:last-child { border-bottom: none; }
+    .invoice-list-row > div::before, .vacation-table-row > div::before, .hr-table-row > div::before { content: attr(data-label); font-weight: 500; color: var(--subtle-text-color); }
+    .hr-page-layout { grid-template-columns: 1fr; }
+    .hr-nav-menu { border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+    .hr-nav-menu ul { display: flex; gap: 0.5rem; overflow-x: auto; }
 }
 @media (max-width: 768px) {
-    .kanban-board, .kanban-board.workflow-advanced, .sales-board { grid-template-columns: minmax(300px, 1fr); }
+    .kanban-board, .sales-board { grid-template-columns: minmax(300px, 1fr); }
     .project-grid, .clients-grid { grid-template-columns: 1fr; }
     .client-detail-grid { grid-template-columns: 1fr; }
+    .hr-requests-grid { grid-template-columns: 1fr; }
 }

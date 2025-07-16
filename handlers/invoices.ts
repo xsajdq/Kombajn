@@ -63,6 +63,7 @@ export function handleGenerateInvoiceItems() {
     // --- Generate items from Expenses ---
     const unbilledExpenses = state.expenses.filter(ex => 
         ex.workspaceId === state.activeWorkspaceId &&
+        ex.isBillable &&
         !ex.invoiceId &&
         billableProjectIds.has(ex.projectId)
     );
