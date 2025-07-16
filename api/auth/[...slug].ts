@@ -1,8 +1,5 @@
-
 // api/auth/[...slug].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import loginHandler from '../_handlers/auth/login';
-import signupHandler from '../_handlers/auth/signup';
 import userHandler from '../_handlers/auth/user';
 import logoutHandler from '../_handlers/auth/logout';
 import updatePasswordHandler from '../_handlers/auth/update-password';
@@ -21,10 +18,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const [action, provider] = slug;
 
     switch (action) {
-        case 'login':
-            return loginHandler(req, res);
-        case 'signup':
-            return signupHandler(req, res);
         case 'user':
             return userHandler(req, res);
         case 'logout':
