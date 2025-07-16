@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -53,16 +54,16 @@ async function AppLayout() {
             </main>
         </div>
         ${openedProjectId ? `
-            <div class="side-panel-overlay"></div>
             ${ProjectDetailPanel({ projectId: openedProjectId })}
+            <div class="side-panel-overlay"></div>
         ` : ''}
         ${openedClientId ? `
-            <div class="side-panel-overlay"></div>
             ${ClientDetailPanel({ clientId: openedClientId })}
+            <div class="side-panel-overlay"></div>
         ` : ''}
         ${openedDealId ? `
-            <div class="side-panel-overlay"></div>
             ${DealDetailPanel({ dealId: openedDealId })}
+            <div class="side-panel-overlay"></div>
         ` : ''}
         ${modal.isOpen ? Modal() : ''}
         ${isCommandPaletteOpen ? CommandPalette() : ''}
@@ -151,6 +152,12 @@ export async function renderApp() {
     }
     
     if (state.ui.modal.isOpen) {
+        const overlay = document.querySelector<HTMLElement>('.modal-overlay');
+        if (overlay) {
+            setTimeout(() => {
+                overlay.classList.add('is-open');
+            }, 10);
+        }
         const modal = document.querySelector<HTMLElement>('.modal-content');
         if (modal) {
             const firstFocusable = modal.querySelector<HTMLElement>(
