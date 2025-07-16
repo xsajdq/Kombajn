@@ -6,7 +6,7 @@ import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMem
 import { closeSidePanels, closeModal } from './ui.ts';
 import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
 import { subscribeToRealtimeUpdates } from '../services/supabase.ts';
 import { startOnboarding } from './onboarding.ts';
@@ -232,7 +232,10 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
     renderApp();
     
     try {
-        await apiPost('workspace_members/delete', { id: memberId });
+        await apiFetch('/api/data/workspace_members', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: memberId }),
+        });
     } catch(error) {
         state.workspaceMembers.splice(memberIndex, 0, removedMember);
         renderApp();
@@ -402,7 +405,10 @@ export async function handleRemoveUserFromProject(projectMemberId: string) {
     renderApp();
     
     try {
-        await apiPost('project_members/delete', { id: projectMemberId });
+        await apiFetch('/api/data/project_members', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: projectMemberId }),
+        });
     } catch(error) {
         state.projectMembers.splice(memberIndex, 0, removedMember);
         renderApp();

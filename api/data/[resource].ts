@@ -1,4 +1,3 @@
-
 // Plik: api/data/[resource].ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
@@ -60,21 +59,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         case 'DELETE': {
             const body = req.body;
-             // Handle composite key deletion for join tables
-            if (resource === 'task_assignees' || resource === 'task_tags') {
-                const { taskId, userId, tagId } = body;
-                let query = (supabase.from(resource) as any).delete().eq('task_id', taskId);
-                if (userId) query = query.eq('user_id', userId);
-                if (tagId) query = query.eq('tag_id', tagId);
-                
-                const { error } = await query;
+            if (!body) {
+                return res.status(400).json({ error: 'Request body is required for DELETE operation.' });
+            }
+
+            // Handle composite key deletion for task_assignees
+            if (resource === 'task_assignees') {
+                const { taskId, userId } = body;
+                if (!taskId || !userId) {
+                    return res.status(400).json({ error: 'For task_assignees, taskId and userId are required.' });
+                }
+                const { error } = await supabase.from('task_assignees').delete().match({ task_id: taskId, user_id: userId });
                 if (error) throw error;
                 return res.status(204).send(undefined);
             }
 
-            // Original logic for single ID deletion
+            // Handle composite key deletion for task_tags
+            if (resource === 'task_tags') {
+                const { taskId, tagId } = body;
+                if (!taskId || !tagId) {
+                    return res.status(400).json({ error: 'For task_tags, taskId and tagId are required.' });
+                }
+                const { error } = await supabase.from('task_tags').delete().match({ task_id: taskId, tag_id: tagId });
+                if (error) throw error;
+                return res.status(204).send(undefined);
+            }
+
+            // Default deletion logic for tables with a single 'id' primary key
             const { id } = body;
-            if (!id) return res.status(400).json({ error: 'ID is required for delete' });
+            if (!id) {
+                return res.status(400).json({ error: 'An "id" is required for this delete operation.' });
+            }
             
             const query = (supabase.from(resource) as any).delete().eq('id', id);
 

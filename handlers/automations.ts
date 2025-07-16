@@ -3,7 +3,7 @@
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Automation } from '../types.ts';
-import { apiPost, apiPut } from '../services/api.ts';
+import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 
 export async function runAutomations(triggerType: 'statusChange', data: { task: Task }) {
     if (triggerType !== 'statusChange') return;
@@ -88,7 +88,10 @@ export async function handleDeleteAutomation(automationId: string) {
     renderApp();
 
     try {
-        await apiPost('automations/delete', { id: automationId });
+        await apiFetch('/api/data/automations', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: automationId }),
+        });
     } catch (error) {
         state.automations.splice(automationIndex, 0, removedAutomation);
         renderApp();

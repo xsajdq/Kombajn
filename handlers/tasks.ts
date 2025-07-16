@@ -120,7 +120,10 @@ export async function handleToggleAssignee(taskId: string, userId: string) {
         const [removed] = state.taskAssignees.splice(existingIndex, 1);
         renderApp(); // Optimistic update
         try {
-            await apiPost('task_assignees/delete', { taskId: taskId, userId: userId });
+            await apiFetch('/api/data/task_assignees', {
+                method: 'DELETE',
+                body: JSON.stringify({ taskId, userId }),
+            });
         } catch (error) {
             console.error('Failed to remove assignee', error);
             state.taskAssignees.splice(existingIndex, 0, removed); // Revert
