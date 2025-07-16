@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface User {
     id: string;
     name?: string;
@@ -93,6 +89,15 @@ export interface ProjectMember {
 }
 
 
+export interface ClientContact {
+    id: string;
+    clientId: string;
+    workspaceId: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+}
 export interface Client {
     id:string;
     workspaceId: string;
@@ -103,6 +108,10 @@ export interface Client {
     address?: string;
     vatId?: string; // NIP for Polish context
     notes?: string;
+    // New fields
+    healthStatus?: 'good' | 'at_risk' | 'neutral' | null;
+    category?: string;
+    contacts: ClientContact[];
 }
 export interface Project {
     id: string;
@@ -113,6 +122,9 @@ export interface Project {
     hourlyRate?: number;
     privacy: 'public' | 'private';
     budgetHours?: number;
+    // New fields
+    budgetCost?: number;
+    category?: string;
 }
 export interface Task {
     id: string;
@@ -127,6 +139,10 @@ export interface Task {
     priority?: 'low' | 'medium' | 'high' | null;
     parentId?: string; // For subtasks
     recurrence?: 'none' | 'daily' | 'weekly' | 'monthly'; // For recurring tasks
+    checklist?: { id: string; text: string; completed: boolean; }[];
+    // New fields
+    estimatedHours?: number; // in hours
+    type?: 'feature' | 'bug' | 'chore' | null;
 }
 
 export interface TaskDependency {
@@ -134,6 +150,8 @@ export interface TaskDependency {
     workspaceId: string;
     blockingTaskId: string; // The task that must be completed first
     blockedTaskId: string;  // The task that is waiting
+    // New field
+    reason?: string;
 }
 
 export interface TaskAssignee {
@@ -374,6 +392,8 @@ export interface Expense {
     amount: number;
     date: string; // YYYY-MM-DD
     invoiceId?: string;
+    // New field
+    isBillable?: boolean;
 }
 
 export interface Deal {
@@ -437,6 +457,7 @@ export interface AppState {
     projectMembers: ProjectMember[];
     users: User[];
     clients: Client[];
+    clientContacts: ClientContact[];
     projects: Project[];
     tasks: Task[];
     taskAssignees: TaskAssignee[];
@@ -514,14 +535,14 @@ export interface AppState {
         activeChannelId: string | null;
         isWikiEditing: boolean;
         taskDetail: {
-            activeTab: 'activity' | 'subtasks' | 'dependencies' | 'attachments';
+            activeTab: 'activity' | 'checklist' | 'subtasks' | 'dependencies' | 'attachments';
         };
         dealDetail: {
             activeTab: 'activity' | 'tasks';
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | null;
             data?: any;
             justOpened?: boolean;
         };

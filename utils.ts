@@ -80,6 +80,22 @@ export function parseDurationStringToSeconds(durationStr: string): number {
     return totalSeconds;
 }
 
+export function parseDurationStringToHours(durationStr: string): number | null {
+    if (!durationStr) return null;
+
+    // Check if it's just a number, assume hours
+    if (!isNaN(parseFloat(durationStr)) && isFinite(durationStr as any)) {
+        return parseFloat(durationStr);
+    }
+
+    const totalSeconds = parseDurationStringToSeconds(durationStr);
+
+    if (totalSeconds === 0 && !durationStr.includes('0')) return null;
+
+    return totalSeconds / 3600;
+}
+
+
 export function getTaskTotalTrackedSeconds(taskId: string): number {
     return state.timeLogs
         .filter(log => log.taskId === taskId)
