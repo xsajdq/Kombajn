@@ -511,6 +511,7 @@ export interface AppState {
             query: string | null;
             target: HTMLElement | null;
             activeIndex: number;
+            rect: DOMRect | null;
         };
         tasksViewMode: 'board' | 'list' | 'calendar' | 'gantt';
         tasksKanbanMode: 'simple' | 'advanced'; // Note: This might be deprecated by the new filter design

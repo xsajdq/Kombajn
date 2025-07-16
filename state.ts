@@ -96,7 +96,7 @@ function getInitialState(): AppState {
             isCommandPaletteOpen: false,
             commandPaletteQuery: '',
             commandPaletteActiveIndex: 0,
-            mention: { query: null, target: null, activeIndex: 0 },
+            mention: { query: null, target: null, activeIndex: 0, rect: null },
             tasksViewMode: 'board',
             tasksKanbanMode: 'simple',
             isTaskFilterOpen: false,
