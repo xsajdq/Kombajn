@@ -1135,3 +1135,133 @@
         margin-top: 0.5rem;
     }
 }
+/* TASK DETAIL MODAL */
+.task-detail-modal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+    height: 100%; 
+    max-height: calc(90vh - 150px);
+}
+
+.task-detail-main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.task-detail-main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.task-detail-description {
+    color: var(--subtle-text-color);
+    margin-top: 1rem;
+    max-width: 90ch;
+}
+
+.task-detail-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-top: 1.5rem;
+    flex-shrink: 0;
+}
+
+.task-detail-tab {
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    transition: all 0.2s ease;
+}
+.task-detail-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+.task-detail-tab:hover:not(.active) {
+    color: var(--text-color);
+}
+
+.task-detail-tab-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-top: 1.5rem;
+    padding-right: 1rem;
+    margin-right: -1rem;
+}
+
+.task-detail-sidebar {
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.task-detail-sidebar h4 {
+    margin-bottom: 1.5rem;
+}
+.task-detail-sidebar .form-group {
+    margin-bottom: 1rem;
+}
+.dark-theme .task-detail-sidebar {
+    background-color: var(--light-color);
+}
+
+.activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.activity-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.activity-content {
+    flex-grow: 1;
+}
+
+.activity-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.activity-header > strong {
+    font-weight: 600;
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: var(--subtle-text-color);
+    margin-left: auto;
+}
+
+.activity-body {
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+}
+.timelog-comment {
+    font-style: italic;
+    color: var(--subtle-text-color);
+}
+
+.add-comment-form {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
