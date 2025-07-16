@@ -5,7 +5,7 @@ import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { validateSession, logout } from './services/auth.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
@@ -101,7 +101,12 @@ export async function fetchInitialData() {
     state.workspaceMembers = rawWorkspaceMembers;
     state.dependencies = dependencies;
     state.workspaceJoinRequests = workspaceJoinRequests;
-    state.notifications = notifications;
+
+    // Merge fetched notifications with any that have arrived via realtime, to prevent overwriting.
+    const existingNotificationIds = new Set(state.notifications.map(n => n.id));
+    const newNotificationsFromFetch = notifications.filter((n: Notification) => !existingNotificationIds.has(n.id));
+    state.notifications.push(...newNotificationsFromFetch);
+
     state.dashboardWidgets = dashboardWidgets.sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     // Set the active workspace based on the current user's memberships
