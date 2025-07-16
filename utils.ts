@@ -1,5 +1,7 @@
 
+
 import { state } from './state.ts';
+import { t } from './i18n.ts';
 import type { Task, PlanId, User, TimeOffRequest, PublicHoliday } from './types.ts';
 
 export const PLANS: Record<PlanId, { projects: number; users: number; invoices: number; workspaces: number; }> = {
@@ -124,6 +126,17 @@ export function formatDate(dateString: string, options: Intl.DateTimeFormatOptio
     };
     
     return new Date(dateString).toLocaleDateString(locale, defaultOptions);
+}
+
+export function formatCurrency(amount: number | null | undefined, currency = 'PLN'): string {
+    if (amount == null) return t('misc.not_applicable');
+    const locale = state.settings.language === 'pl' ? 'pl-PL' : 'en-US';
+    return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
 }
 
 export function getUsage(workspaceId: string) {

@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     name?: string;
@@ -498,7 +499,7 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
-        openedProjectTab: 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
+        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;

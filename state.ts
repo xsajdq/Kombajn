@@ -1,4 +1,5 @@
 
+
 import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact } from './types.ts';
 
 export function generateId(): string {
@@ -89,7 +90,7 @@ function getInitialState(): AppState {
             openedClientId: null,
             openedProjectId: null,
             openedDealId: null,
-            openedProjectTab: 'tasks',
+            openedProjectTab: 'overview',
             isNotificationsOpen: false,
             notifications: { activeTab: 'new' },
             isCommandPaletteOpen: false,
