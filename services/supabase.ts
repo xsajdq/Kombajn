@@ -52,22 +52,31 @@ export async function initSupabase() {
 // Function to manage a single subscription, ensuring no duplicates
 function manageSubscription(channelName: string, config: any) {
     if (!supabase) return;
-    
+
     // First, remove any existing channel with the same name to avoid duplicates
     const existingChannel = channels.find(c => c.topic === channelName);
     if (existingChannel) {
         supabase.removeChannel(existingChannel);
-        channels.splice(channels.indexOf(existingChannel), 1);
+        const index = channels.indexOf(existingChannel);
+        if (index > -1) {
+            channels.splice(index, 1);
+        }
     }
-    
+
+    // Separate the callback from the subscription options.
+    const { callback, ...subscriptionOptions } = config;
+
     // Create and store the new channel
     const channel = supabase.channel(channelName).on(
         'postgres_changes',
-        config,
-        config.callback
-    ).subscribe((status) => {
+        subscriptionOptions,
+        callback
+    ).subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
             console.log(`Successfully subscribed to ${channelName}`);
+        }
+        if (status === 'CHANNEL_ERROR') {
+            console.error(`Failed to subscribe to ${channelName}:`, err);
         }
     });
     
