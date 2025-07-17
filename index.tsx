@@ -70,7 +70,7 @@ export async function fetchInitialData() {
         items: lineItemsByInvoiceId.get(invoice.id) || []
     }));
 
-    // Manually map workspace structure
+    // Manually map workspace structure to create nested subscription object
     state.workspaces = (data.workspaces || []).map((w: any) => ({
         ...w,
         subscription: {
