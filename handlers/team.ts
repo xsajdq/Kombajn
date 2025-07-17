@@ -1,6 +1,3 @@
-
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -9,10 +6,10 @@ import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
-import { subscribeToRealtimeUpdates } from '../services/supabase.ts';
+import { switchWorkspaceChannel } from '../services/supabase.ts';
 import { startOnboarding } from './onboarding.ts';
 
-export function handleWorkspaceSwitch(workspaceId: string) {
+export async function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
         localStorage.setItem('activeWorkspaceId', workspaceId);
@@ -32,9 +29,11 @@ export function handleWorkspaceSwitch(workspaceId: string) {
         closeSidePanels(false);
         state.currentPage = 'dashboard';
         history.pushState({}, '', '/dashboard');
-        renderApp();
-        // Re-subscribe to realtime channels for the new workspace context
-        subscribeToRealtimeUpdates();
+
+        // Switch the realtime channel BEFORE rendering
+        await switchWorkspaceChannel(workspaceId);
+
+        await renderApp();
     }
 }
 
@@ -94,6 +93,9 @@ export async function handleCreateWorkspace(name: string) {
         state.currentPage = 'dashboard';
         localStorage.setItem('activeWorkspaceId', newWorkspace.id);
         history.pushState({}, '', '/dashboard');
+        
+        // Switch to the new channel
+        await switchWorkspaceChannel(newWorkspace.id);
         
         renderApp();
 
