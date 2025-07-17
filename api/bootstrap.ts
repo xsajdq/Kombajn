@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToCamel } from './_lib/supabaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    console.log('[api/bootstrap] Handler started.');
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -18,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
         }
         
-        // 1. Get user's workspace IDs
+        console.log(`[api/bootstrap] Fetching memberships for user ${user.id}...`);
         const { data: userMemberships, error: memberError } = await supabase
             .from('workspace_members')
             .select('workspace_id')
@@ -32,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Handle case where user has no workspaces yet
         if (!userMemberships || userMemberships.length === 0) {
+            console.log('[api/bootstrap] User has no memberships. Returning minimal data.');
             const { data: joinRequests } = await supabase.from('workspace_join_requests').select('*').eq('user_id', user.id);
             return res.status(200).json(keysToCamel({
                 current_user: userProfile,
@@ -51,18 +53,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const userWorkspaceIds = userMemberships.map((m: { workspace_id: string }) => m.workspace_id);
+        console.log(`[api/bootstrap] User belongs to workspace IDs: ${userWorkspaceIds.join(', ')}`);
 
-        // 2. Fetch all members of those workspaces to get all necessary user profiles
+        console.log(`[api/bootstrap] Fetching all members for ${userWorkspaceIds.length} workspaces...`);
         const { data: allMembersInUserWorkspaces, error: allMembersError } = await supabase
             .from('workspace_members')
             .select('user_id, id, workspace_id, role')
             .in('workspace_id', userWorkspaceIds);
 
         if (allMembersError) throw allMembersError;
+        console.log(`[api/bootstrap] Found ${allMembersInUserWorkspaces?.length || 0} total members.`);
 
         const allMemberUserIds = [...new Set(allMembersInUserWorkspaces.map(m => m.user_id))];
         
-        // 3. Fetch all other data in parallel, scoped to the user's workspaces/ID
+        console.log('[api/bootstrap] Starting parallel data fetch...');
         const [
             allProfilesRes,
             allWorkspacesRes,
@@ -78,6 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),
             supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
         ]);
+        console.log('[api/bootstrap] Parallel fetch finished.');
         
         const allResults = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
         
@@ -87,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
         
-        // 4. Construct the final response object
+        console.log('[api/bootstrap] Constructing final response object...');
         const responseData = {
             current_user: allProfilesRes.data?.find(p => p.id === user.id) || null,
             profiles: allProfilesRes.data || [],
@@ -104,10 +109,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             dependencies: []
         };
         
+        console.log('[api/bootstrap] Handler finished successfully.');
         return res.status(200).json(keysToCamel(responseData));
 
     } catch (error: any) {
-        console.error('Bootstrap error:', error);
+        console.error('[api/bootstrap] Bootstrap error:', error);
         return res.status(500).json({ error: `Bootstrap failed: ${error.message}` });
     }
 }
