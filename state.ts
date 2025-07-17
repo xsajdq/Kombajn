@@ -18,7 +18,7 @@ export function saveState() {
     localStorage.setItem('kombajn-settings', JSON.stringify(settingsToSave));
 }
 
-function getInitialState(): AppState {
+export function getInitialState(): AppState {
     const now = new Date();
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
