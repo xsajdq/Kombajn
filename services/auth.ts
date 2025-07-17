@@ -5,36 +5,42 @@ import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';
 import { supabase } from './supabase.ts';
 
-export async function login(email: string, password: string): Promise<{ user: User }> {
-    const data = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password })
-    });
-
+export async function login(email: string, password: string): Promise<void> {
     if (!supabase) throw new Error("Supabase client not initialized.");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    await supabase.auth.setSession({
-        access_token: data.session.accessToken,
-        refresh_token: data.session.refreshToken,
-    });
-    
-    return { user: data.user };
+    if (error) {
+        // Provide a user-friendly error message
+        if (error.message.includes('Invalid login credentials')) {
+            throw new Error('Invalid email or password.');
+        }
+        throw error;
+    }
+    // The `onAuthStateChange` listener in index.tsx will handle the bootstrap process.
 }
 
-export async function signup(name: string, email: string, password: string): Promise<{ user: User }> {
-    const data = await apiFetch('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({ name, email, password })
-    });
-    
+export async function signup(name: string, email: string, password: string): Promise<void> {
     if (!supabase) throw new Error("Supabase client not initialized.");
 
-    await supabase.auth.setSession({
-        access_token: data.session.accessToken,
-        refresh_token: data.session.refreshToken,
+    // Pass the user's name in the metadata, so the database trigger can create the profile correctly.
+    const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+            data: {
+                name: name,
+            }
+        }
     });
 
-    return { user: data.user };
+    if (error) {
+        if (error.message.includes('User already registered')) {
+            throw new Error('A user with this email already exists.');
+        }
+        throw error;
+    }
+     // The `onAuthStateChange` listener in index.tsx will handle the bootstrap process.
+     // Supabase may require email confirmation, which the user needs to complete.
 }
 
 export async function logout(): Promise<void> {

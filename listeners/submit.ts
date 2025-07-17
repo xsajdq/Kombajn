@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType } from '../types.ts';
@@ -15,7 +14,7 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { parseMentionContent } from './mentions.ts';
 
 
-export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Promise<void>) {
+export async function handleSubmit(e: SubmitEvent) {
     const target = e.target as HTMLElement;
     e.preventDefault();
 
@@ -29,9 +28,8 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         errorDiv.style.display = 'none';
 
         try {
-            const { user } = await auth.login(email, password);
-            state.currentUser = user;
-            await bootstrapCallback();
+            await auth.login(email, password);
+            // onAuthStateChange will now handle successful login
         } catch (err: any) {
             errorDiv.textContent = err.message;
             errorDiv.style.display = 'block';
@@ -52,9 +50,8 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         errorDiv.style.display = 'none';
 
         try {
-            const { user } = await auth.signup(name, email, password);
-            state.currentUser = user;
-            await bootstrapCallback();
+            await auth.signup(name, email, password);
+            // onAuthStateChange will now handle successful signup & login
         } catch (err: any) {
             errorDiv.textContent = err.message;
             errorDiv.style.display = 'block';

@@ -1,5 +1,3 @@
-
-
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -8,6 +6,7 @@ import { apiFetch } from './services/api.ts';
 import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
 import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
+import * as auth from './services/auth.ts';
 
 let isBootstrapping = false;
 
@@ -119,13 +118,9 @@ export async function bootstrapApp() {
         subscribeToRealtimeUpdates();
     } catch (error) {
         console.error(">>> BOOTSTRAP FAILED <<<", error);
-        document.getElementById('app')!.innerHTML = `
-            <div class="empty-state">
-                <h3>Failed to load application data</h3>
-                <p>Could not connect to the server. Please check your connection and try again.</p>
-                <p>Error: ${(error as Error).message}</p>
-            </div>
-        `;
+        // If bootstrap fails, log the user out to reset the state and prevent being stuck.
+        // The onAuthStateChange handler will catch the SIGNED_OUT event and render the login page.
+        await auth.logout();
     } finally {
         isBootstrapping = false;
     }
@@ -134,7 +129,7 @@ export async function bootstrapApp() {
 
 async function init() {
     try {
-        setupEventListeners(bootstrapApp);
+        setupEventListeners();
         window.addEventListener('popstate', renderApp);
         window.addEventListener('state-change-realtime', renderApp as EventListener);
 
