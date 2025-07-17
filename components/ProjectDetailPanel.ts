@@ -35,47 +35,49 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
         const budgetHours = project.budgetHours;
         const totalBudgetSeconds = budgetHours ? budgetHours * 3600 : 0;
-        const timeBudgetUsagePercentage = totalBudgetSeconds > 0 ? Math.min((totalTrackedSeconds / totalBudgetSeconds) * 100, 100) : 0;
-
+        
         const budgetCost = project.budgetCost;
         const actualCost = project.hourlyRate ? (totalTrackedSeconds / 3600) * project.hourlyRate : null;
-        const costBudgetUsagePercentage = (budgetCost && actualCost) ? Math.min((actualCost / budgetCost) * 100, 100) : 0;
-        const profitability = (budgetCost && actualCost) ? budgetCost - actualCost : null;
+        const profitability = (budgetCost && actualCost != null) ? budgetCost - actualCost : null;
 
         const profitabilityClass = profitability === null ? '' : (profitability >= 0 ? 'positive' : 'negative');
         
         return `
             <div class="side-panel-content">
                 <div class="project-overview-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-label">${t('panels.budget_time')}</div>
-                        <div class="kpi-value">${formatDuration(totalTrackedSeconds)} / ${formatDuration(totalBudgetSeconds)}</div>
-                        <div class="kpi-progress-bar">
-                             <div class="kpi-progress-bar-inner" style="width: ${timeBudgetUsagePercentage}%;"></div>
+                    ${(budgetHours ?? 0) > 0 ? `
+                        <div class="kpi-card">
+                            <div class="kpi-label">${t('panels.budget_time')}</div>
+                            <div class="kpi-value">${formatDuration(totalTrackedSeconds)} / ${formatDuration(totalBudgetSeconds)}</div>
+                            <div class="kpi-progress-bar">
+                                <div class="kpi-progress-bar-inner" style="width: ${totalBudgetSeconds > 0 ? Math.min((totalTrackedSeconds / totalBudgetSeconds) * 100, 100) : 0}%;"></div>
+                            </div>
                         </div>
-                    </div>
-                     <div class="kpi-card">
-                        <div class="kpi-label">${t('panels.budget_cost')}</div>
-                        <div class="kpi-value">${formatCurrency(actualCost)} / ${formatCurrency(budgetCost)}</div>
-                         <div class="kpi-progress-bar">
-                             <div class="kpi-progress-bar-inner cost-bar" style="width: ${costBudgetUsagePercentage}%;"></div>
+                    ` : ''}
+                     ${(budgetCost ?? 0) > 0 ? `
+                        <div class="kpi-card">
+                            <div class="kpi-label">${t('panels.budget_cost')}</div>
+                            <div class="kpi-value">${formatCurrency(actualCost)} / ${formatCurrency(budgetCost)}</div>
+                            <div class="kpi-progress-bar">
+                                <div class="kpi-progress-bar-inner cost-bar" style="width: ${(budgetCost && actualCost) ? Math.min((actualCost / budgetCost) * 100, 100) : 0}%;"></div>
+                            </div>
                         </div>
-                    </div>
-                     <div class="kpi-card">
-                        <div class="kpi-label">${t('panels.profitability')}</div>
-                        <div class="kpi-value ${profitabilityClass}">${formatCurrency(profitability)}</div>
-                        <div class="kpi-sub-value">${t('misc.not_applicable')}</div>
-                    </div>
+                     ` : ''}
+                     ${profitability !== null ? `
+                        <div class="kpi-card">
+                            <div class="kpi-label">${t('panels.profitability')}</div>
+                            <div class="kpi-value ${profitabilityClass}">${formatCurrency(profitability)}</div>
+                        </div>
+                     ` : ''}
                      <div class="kpi-card">
                         <div class="kpi-label">${t('panels.tasks_overdue')}</div>
                         <div class="kpi-value overdue">${overdueTasksCount}</div>
-                        <div class="kpi-sub-value">${t('misc.not_applicable')}</div>
                     </div>
                 </div>
                 <div class="card" style="margin-top: 1.5rem;">
                     <h4>Project Wiki Preview</h4>
                     <div class="project-wiki-view">
-                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + '...')) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
                     </div>
                 </div>
             </div>
@@ -326,66 +328,67 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                                                 <button type="submit" class="btn-icon"><span class="material-icons-sharp">check</span></button>
                                             </form>
                                         ` : `
-                                            <span class="kr-progress-text ${canEditProject ? 'kr-value' : ''}" ${canEditProject ? 'role="button"' : ''}>
-                                                ${kr.currentValue}${valueSuffix} / ${kr.targetValue}${valueSuffix}
-                                            </span>
+                                            <span class="kr-value" title="Click to update">${kr.currentValue}${valueSuffix}</span>
                                         `}
+                                        <span class="kr-progress-text"> / ${kr.targetValue}${valueSuffix}</span>
                                     </div>
                                 </div>
                             `;
                         }).join('')}
                     </div>
-                    ${canEditProject ? `
-                        <div class="okr-card-footer">
-                            <button class="btn btn-link" data-modal-target="addKeyResult" data-objective-id="${obj.id}">+ ${t('panels.add_key_result')}</button>
-                        </div>
-                    ` : ''}
+                     ${canEditProject ? `
+                        <button class="btn btn-secondary btn-sm" data-modal-target="addKeyResult" data-objective-id="${obj.id}" style="margin-top: 1rem;">
+                            <span class="material-icons-sharp" style="font-size: 1.1rem">add</span>
+                            ${t('panels.add_key_result')}
+                        </button>
+                     ` : ''}
                 </div>
-            `}).join('')}
+            `;
+            }).join('')}
         </div>`;
     };
-    
-    let tabContent = '';
-    switch(openedProjectTab) {
-        case 'overview': tabContent = renderOverviewTab(); break;
-        case 'tasks': tabContent = renderTasksTab(); break;
-        case 'wiki': tabContent = renderWikiTab(); break;
-        case 'files': tabContent = renderFilesTab(); break;
-        case 'access': tabContent = renderAccessTab(); break;
-        case 'okrs': tabContent = renderOkrsTab(); break;
-    }
 
+
+    const client = state.clients.find(c => c.id === project.clientId);
+    const tabs = [
+        { id: 'overview', text: t('panels.project_overview'), content: renderOverviewTab() },
+        { id: 'tasks', text: t('panels.tasks'), content: renderTasksTab() },
+        { id: 'wiki', text: t('panels.tab_wiki'), content: renderWikiTab() },
+        { id: 'files', text: t('panels.tab_files'), content: renderFilesTab() },
+        { id: 'okrs', text: t('panels.tab_okrs'), content: renderOkrsTab() },
+        { id: 'access', text: t('panels.tab_access'), content: renderAccessTab() },
+    ];
+    
     return `
         <div class="side-panel" role="region" aria-label="Project Details Panel">
             <div class="side-panel-header">
-                <h2>${project.name}</h2>
-                <button class="btn-icon" data-copy-link="projects/${project.id}" title="${t('misc.copy_link')}">
-                    <span class="material-icons-sharp">link</span>
-                </button>
-                <div class="project-header-menu-container">
-                    <button class="btn-icon" id="project-menu-toggle" aria-label="Project actions menu">
-                        <span class="material-icons-sharp">more_vert</span>
-                    </button>
-                    <div class="project-header-menu hidden">
-                        <div class="command-item" id="save-as-template-btn" data-project-id="${project.id}" role="button" tabindex="0">
-                             <span class="material-icons-sharp command-icon">content_copy</span>
-                             <span>${t('panels.save_as_template')}</span>
-                        </div>
+                <div>
+                    <h2>${project.name}</h2>
+                    <p class="subtle-text" style="display:flex; align-items:center; gap: 0.5rem;">
+                        <span class="material-icons-sharp icon-sm">business</span>
+                        ${client?.name || t('misc.no_client')}
+                    </p>
+                </div>
+                 <div id="project-menu-toggle" class="btn-icon" style="position: relative;" role="button" aria-haspopup="true" aria-expanded="false">
+                    <span class="material-icons-sharp">more_vert</span>
+                    <div class="project-header-menu hidden card">
+                        <button id="save-as-template-btn" class="btn-menu-item" data-project-id="${project.id}">
+                             <span class="material-icons-sharp">content_copy</span> ${t('panels.save_as_template')}
+                        </button>
                     </div>
                 </div>
-                <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
+                 <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
                     <span class="material-icons-sharp">close</span>
                 </button>
             </div>
             <div class="side-panel-tabs" role="tablist" aria-label="Project sections">
-                <div class="side-panel-tab ${openedProjectTab === 'overview' ? 'active' : ''}" data-tab="overview" role="tab" aria-selected="${openedProjectTab === 'overview'}">${t('panels.project_overview')}</div>
-                <div class="side-panel-tab ${openedProjectTab === 'tasks' ? 'active' : ''}" data-tab="tasks" role="tab" aria-selected="${openedProjectTab === 'tasks'}">${t('panels.tab_tasks')}</div>
-                <div class="side-panel-tab ${openedProjectTab === 'okrs' ? 'active' : ''}" data-tab="okrs" role="tab" aria-selected="${openedProjectTab === 'okrs'}">${t('panels.tab_okrs')}</div>
-                <div class="side-panel-tab ${openedProjectTab === 'wiki' ? 'active' : ''}" data-tab="wiki" role="tab" aria-selected="${openedProjectTab === 'wiki'}">${t('panels.tab_wiki')}</div>
-                <div class="side-panel-tab ${openedProjectTab === 'files' ? 'active' : ''}" data-tab="files" role="tab" aria-selected="${openedProjectTab === 'files'}">${t('panels.tab_files')}</div>
-                ${project.privacy === 'private' ? `<div class="side-panel-tab ${openedProjectTab === 'access' ? 'active' : ''}" data-tab="access" role="tab" aria-selected="${openedProjectTab === 'access'}">${t('panels.tab_access')}</div>` : ''}
+                ${tabs.map(tab => `
+                    <div class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
+                        ${tab.text}
+                    </div>
+                `).join('')}
             </div>
-            ${tabContent}
+            ${tabs.find(t => t.id === openedProjectTab)?.content || ''}
         </div>
     `;
 }
