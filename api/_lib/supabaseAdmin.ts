@@ -1,7 +1,3 @@
-
-
-
-
 // api/_lib/supabaseAdmin.ts
 import { createClient } from '@supabase/supabase-js';
 
@@ -41,6 +37,10 @@ function camelToSnake(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
+function snakeToCamel(str: string): string {
+    return str.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());
+}
+
 function convertKeys(obj: any, converter: (key: string) => string): any {
     if (Array.isArray(obj)) {
         return obj.map(v => convertKeys(v, converter));
@@ -54,3 +54,4 @@ function convertKeys(obj: any, converter: (key: string) => string): any {
 }
 
 export const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);
+export const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
