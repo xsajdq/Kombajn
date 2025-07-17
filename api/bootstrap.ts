@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }));
         }
 
-        const allUserWorkspaceIds = userMemberships.map(m => m.workspace_id);
+        const allUserWorkspaceIds = userMemberships.map((m: { workspace_id: string }) => m.workspace_id);
         
         // For now, we load data for the first workspace the user is part of.
         // A future improvement would be to use the last active workspace ID from localStorage.
@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         if (awmError) throw awmError;
         
-        const userIdsInActiveWorkspace = [...new Set(activeWorkspaceMembers.map(m => m.user_id))];
+        const userIdsInActiveWorkspace = [...new Set(activeWorkspaceMembers.map((m: { user_id: string }) => m.user_id))];
 
         // Step 4: Fetch only the ESSENTIAL data for the dashboard view to prevent timeouts.
         // All other data (deals, invoices, etc.) should be loaded on-demand by their respective pages.
