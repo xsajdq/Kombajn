@@ -1,6 +1,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin';
+import type { User, WorkspaceMember } from '../../types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
@@ -46,32 +47,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
         }
         
-        // --- Step 2: Get all members for those workspaces to get all associated user profiles ---
-        const { data: allWorkspaceMembers, error: allMembersError } = await supabase
+        // --- Step 2: Fetch members and their profiles in a single, efficient joined query ---
+        const { data: membersWithProfiles, error: membersWithProfilesError } = await supabase
             .from('workspace_members')
-            .select('*')
+            .select(`
+                *,
+                profiles (
+                    id,
+                    name,
+                    email,
+                    initials,
+                    avatar_url,
+                    slack_user_id,
+                    contract_info_notes,
+                    employment_info_notes,
+                    vacation_allowance_hours
+                )
+            `)
             .in('workspace_id', workspaceIds);
-        
-        if (allMembersError) throw new Error(`Could not fetch all members for workspaces: ${allMembersError.message}`);
-        
-        const allUserIdsInWorkspaces = [...new Set(allWorkspaceMembers.map(m => m.user_id))];
 
-        // --- Step 3: Fetch essentials in parallel, now without nested awaits ---
+        if (membersWithProfilesError) throw membersWithProfilesError;
+
+        // Process the joined data into separate arrays for the client
+        const allWorkspaceMembers: WorkspaceMember[] = [];
+        const profilesMap = new Map<string, User>();
+
+        membersWithProfiles.forEach(member => {
+            const profileData = member.profiles;
+            if (profileData) {
+                if (!profilesMap.has(profileData.id)) {
+                    profilesMap.set(profileData.id, profileData);
+                }
+            }
+            // Remove the nested object before adding to the members array
+            delete (member as any).profiles;
+            allWorkspaceMembers.push(member);
+        });
+
+        const allProfiles = Array.from(profilesMap.values());
+        
+        // --- Step 3: Fetch remaining essentials in parallel ---
         const [
             currentUserProfileRes,
             workspacesRes,
-            profilesRes,
             notificationsRes,
             joinRequestsRes
         ] = await Promise.all([
+            // current user profile is already in allProfiles, but this is a `single()` query which is fast
             supabase.from('profiles').select('*').eq('id', user.id).single(),
             supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
-            supabase.from('profiles').select('*').in('id', allUserIdsInWorkspaces),
             supabase.from('notifications').select('*').eq('user_id', user.id).in('workspace_id', workspaceIds),
             supabase.from('workspace_join_requests').select('*').eq('user_id', user.id)
         ]);
 
-        const results = [currentUserProfileRes, workspacesRes, profilesRes, notificationsRes, joinRequestsRes];
+        const results = [currentUserProfileRes, workspacesRes, notificationsRes, joinRequestsRes];
         for (const r of results) {
             if (r.error && r.error.code !== 'PGRST116') { // Ignore "The result contains 0 rows" for single()
                  throw new Error(`A database query failed during bootstrap: ${r.error.message}`);
@@ -84,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             currentUser: currentUserProfileRes.data,
             workspaces: workspacesRes.data || [],
             workspaceMembers: allWorkspaceMembers || [],
-            profiles: profilesRes.data || [],
+            profiles: allProfiles || [],
             notifications: notificationsRes.data || [],
             workspaceJoinRequests: joinRequestsRes.data || [],
             
