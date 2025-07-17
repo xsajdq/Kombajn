@@ -12,22 +12,25 @@ import { renderApp } from '../app-renderer.ts';
 declare const Chart: any;
 
 let charts: { [key: string]: any } = {};
-let isDataLoading = false;
 
 async function fetchDashboardData() {
-    if (!state.activeWorkspaceId || isDataLoading) return;
-    
-    // Check if data is already present (e.g., from a previous visit in the same session)
-    if (state.tasks.length > 0 && state.projects.length > 0) {
-        initDashboardCharts(); // Ensure charts are re-initialized
+    if (!state.activeWorkspaceId || state.ui.dashboard.isLoading) return;
+
+    // A simple check to see if we need to fetch.
+    const isDataForCurrentWorkspaceLoaded = state.projects.length > 0 && state.projects.find(p => p.workspaceId === state.activeWorkspaceId);
+    if (isDataForCurrentWorkspaceLoaded) {
+        // Data is already here, just make sure charts are initialized.
+        initDashboardCharts();
         return;
     }
 
-    isDataLoading = true;
-    
+    state.ui.dashboard.isLoading = true;
+    // DO NOT call renderApp() here. The initial render from bootstrapApp will handle showing the loading state.
+
     try {
         const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
         
+        // Populate state with dashboard-specific data
         state.projects = data.projects || [];
         state.tasks = data.tasks || [];
         state.taskAssignees = data.taskAssignees || [];
@@ -35,12 +38,12 @@ async function fetchDashboardData() {
         state.comments = data.comments || [];
         state.clients = data.clients || [];
         
-        // This will trigger a re-render of the whole app, including the dashboard with the new data.
-        renderApp();
     } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
     } finally {
-        isDataLoading = false;
+        state.ui.dashboard.isLoading = false;
+        // Re-render the app now that data is loaded or the loading process is finished.
+        renderApp();
     }
 }
 
@@ -51,7 +54,7 @@ function destroyCharts() {
 }
 
 function renderMyTasksWidget(widget: DashboardWidget) {
-    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
+    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
     const myAssignedTaskIds = new Set(state.taskAssignees.filter(a => a.userId === state.currentUser?.id).map(a => a.taskId));
     const tasks = state.tasks.filter(task => myAssignedTaskIds.has(task.id) && task.status !== 'done');
     const content = tasks.length > 0
@@ -68,17 +71,17 @@ function renderProjectStatusWidget(widget: DashboardWidget) {
     if (!widget.config.projectId) {
         return `<div class="empty-widget"><span class="material-icons-sharp">folder_special</span>${t('dashboard.select_project_for_widget')}</div>`;
     }
-    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
+    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
     return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
 }
 
 function renderTeamWorkloadWidget(widget: DashboardWidget) {
-    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
+    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
     return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
 }
 
 function renderRecentActivityWidget(widget: DashboardWidget) {
-    if (isDataLoading || (state.comments.length === 0 && state.timeLogs.length === 0)) return '<div class="widget-loader"></div>';
+    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
     const activities = [...state.comments, ...state.timeLogs]
         .filter(item => item.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -153,7 +156,7 @@ function renderWidget(widget: DashboardWidget) {
 }
 
 export function initDashboardCharts() {
-    if (state.tasks.length === 0 && state.projects.length === 0) return;
+    if (state.ui.dashboard.isLoading) return;
     destroyCharts();
 
     const userWidgets = state.dashboardWidgets.filter(w =>
