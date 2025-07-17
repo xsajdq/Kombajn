@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -50,7 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         });
 
-        const jsonStr = response.text.trim();
+        const jsonStr = (response.text || '').trim();
+        if (!jsonStr) {
+            throw new Error("AI returned an empty response.");
+        }
         const parsedData = JSON.parse(jsonStr);
         return res.status(200).json(parsedData);
 
