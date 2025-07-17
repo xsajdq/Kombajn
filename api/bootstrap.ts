@@ -18,116 +18,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
         }
         
-        // Fetch the current user's full profile separately
-        const { data: currentUserProfile, error: currentUserProfileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-        if (currentUserProfileError) throw new Error(`Could not fetch current user's profile: ${currentUserProfileError.message}`);
-
-
-        // 1. Get user's workspace memberships to determine which workspaces to fetch data for.
+        // --- Step 1: Fetch only the absolute essential data to render the app shell ---
         const { data: userWorkspaceMemberships, error: membersError } = await supabase
             .from('workspace_members')
-            .select('workspace_id')
+            .select('workspace_id, user_id')
             .eq('user_id', user.id);
-        
-        if (membersError) throw membersError;
+            
+        if (membersError) throw new Error(`Could not fetch user memberships: ${membersError.message}`);
         
         const workspaceIds = userWorkspaceMemberships.map(m => m.workspace_id);
+
+        // Handle case where user has no workspaces
         if (workspaceIds.length === 0) {
-            // If user has no workspaces, return minimal data to allow for setup page.
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (profileError) throw profileError;
+            // The API must return `currentUser` for the app shell to render correctly before showing the setup page.
             return res.status(200).json({
-                currentUser: currentUserProfile,
-                profiles: currentUserProfile ? [currentUserProfile] : [],
-                workspaces: [],
-                workspaceMembers: [],
-                projects: [],
-                tasks: [],
-                clients: [],
-                deals: [],
-                timeLogs: [],
-                dependencies: [],
-                workspaceJoinRequests: [],
-                notifications: [],
-                dashboardWidgets: [],
-                comments: [],
-                taskAssignees: [],
-                tags: [],
-                taskTags: [],
-                objectives: [],
-                keyResults: [],
-                dealNotes: [],
-                invoices: [],
-                invoiceLineItems: [],
-                integrations: [],
-                clientContacts: [],
-                expenses: [],
+                currentUser: profile, profiles: profile ? [profile] : [], workspaces: [],
+                // Return empty for everything else
+                workspaceMembers: [], projects: [], tasks: [], clients: [], deals: [], timeLogs: [], dependencies: [],
+                workspaceJoinRequests: [], notifications: [], dashboardWidgets: [], comments: [], taskAssignees: [],
+                tags: [], taskTags: [], objectives: [], keyResults: [], dealNotes: [], invoices: [],
+                invoiceLineItems: [], integrations: [], clientContacts: [], expenses: [], projectMembers: []
             });
         }
         
-        // 2. Get all users associated with those workspaces.
-        const { data: allMemberLinks, error: allMembersError } = await supabase
-            .from('workspace_members')
-            .select('user_id')
-            .in('workspace_id', workspaceIds);
-
-        if (allMembersError) throw allMembersError;
-        const userIdsInWorkspaces = [...new Set(allMemberLinks.map(m => m.user_id))];
-
-        // 3. Fetch essential data in parallel, scoped to the user's workspaces.
-        // Removed `time_logs` and `comments` to prevent timeouts.
+        // --- Fetch essentials in parallel ---
         const [
-            profilesRes, projectsRes, clientsRes, tasksRes, workspacesRes, 
-            workspaceMembersRes, notificationsRes, dashboardWidgetsRes, taskAssigneesRes
+            currentUserProfileRes,
+            workspacesRes,
+            workspaceMembersRes,
+            profilesRes,
+            notificationsRes
         ] = await Promise.all([
-            supabase.from('profiles').select('*').in('id', userIdsInWorkspaces),
-            supabase.from('projects').select('*').in('workspace_id', workspaceIds),
-            supabase.from('clients').select('*').in('workspace_id', workspaceIds),
-            supabase.from('tasks').select('*').in('workspace_id', workspaceIds),
+            supabase.from('profiles').select('*').eq('id', user.id).single(),
             supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
             supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds),
-            supabase.from('notifications').select('*').eq('user_id', user.id),
-            supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
-            supabase.from('task_assignees').select('*').in('workspace_id', workspaceIds),
+            supabase.from('profiles').select('*').in('id', (await supabase.from('workspace_members').select('user_id').in('workspace_id', workspaceIds)).data!.map(m => m.user_id)),
+            supabase.from('notifications').select('*').eq('user_id', user.id).in('workspace_id', workspaceIds)
         ]);
 
-        // Throw first error found
-        const results = [profilesRes, projectsRes, clientsRes, tasksRes, workspacesRes, workspaceMembersRes, notificationsRes, dashboardWidgetsRes, taskAssigneesRes];
+        const results = [currentUserProfileRes, workspacesRes, workspaceMembersRes, profilesRes, notificationsRes];
         for (const r of results) {
-            if (r.error) throw r.error;
+            if (r.error && r.error.code !== 'PGRST116') { // Ignore "The result contains 0 rows" for single()
+                 throw new Error(`A database query failed: ${r.error.message}`);
+            }
         }
         
-        // 5. Assemble the final payload, returning empty arrays for non-essential data to prevent timeouts.
+        // --- Step 2: Assemble the payload with essentials + empty arrays for the rest ---
+        // This ensures the app loads quickly without timing out. Data for pages will be loaded on demand later.
         res.status(200).json({
-            currentUser: currentUserProfile,
-            profiles: profilesRes.data,
-            projects: projectsRes.data,
-            clients: clientsRes.data,
-            tasks: tasksRes.data,
-            workspaces: workspacesRes.data,
-            workspaceMembers: workspaceMembersRes.data,
-            notifications: notificationsRes.data,
-            dashboardWidgets: dashboardWidgetsRes.data,
-            taskAssignees: taskAssigneesRes.data,
-
-            // Non-essential data, returned as empty to be lazy-loaded later.
-            timeLogs: [],
-            comments: [],
-            deals: [],
-            dependencies: [],
-            workspaceJoinRequests: [],
-            tags: [],
-            taskTags: [],
-            objectives: [],
-            keyResults: [],
-            dealNotes: [],
-            invoices: [],
-            invoiceLineItems: [],
-            integrations: [],
-            clientContacts: [],
-            expenses: [],
+            // Essential data
+            currentUser: currentUserProfileRes.data,
+            workspaces: workspacesRes.data || [],
+            workspaceMembers: workspaceMembersRes.data || [],
+            profiles: profilesRes.data || [],
+            notifications: notificationsRes.data || [],
+            
+            // Return empty arrays for all other data to prevent timeouts
+            projects: [], tasks: [], clients: [], deals: [], timeLogs: [], dependencies: [],
+            workspaceJoinRequests: [], dashboardWidgets: [], comments: [], taskAssignees: [],
+            tags: [], taskTags: [], objectives: [], keyResults: [], dealNotes: [], invoices: [],
+            invoiceLineItems: [], integrations: [], clientContacts: [], expenses: [], projectMembers: []
         });
 
     } catch (error: any) {
