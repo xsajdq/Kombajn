@@ -1,5 +1,6 @@
 
-import { state, saveState } from './state.ts';
+
+import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
@@ -152,6 +153,14 @@ async function init() {
 
             // This block handles both direct login and session restoration on page load.
             if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+                 // Immediately show a loading indicator.
+                document.getElementById('app')!.innerHTML = `
+                    <div class="global-loader">
+                        <div class="loading-container">
+                            <div class="loading-progress-bar"></div>
+                            <p>Loading your workspace...</p>
+                        </div>
+                    </div>`;
                 try {
                     // It's crucial to verify the session with our backend and get the full profile
                     const { user } = await apiFetch('/api/auth/user');
@@ -161,15 +170,21 @@ async function init() {
                     subscribeToRealtimeUpdates();
                 } catch (error) {
                     console.error('Error during session validation/bootstrap:', error);
-                    // If backend verification fails or bootstrap fails, treat as logged out.
+                    // If backend verification fails or bootstrap fails, sign out, which triggers the 'SIGNED_OUT' event.
                     await supabase.auth.signOut();
                 }
             } else if (event === 'SIGNED_OUT' || !session) {
                 // This block handles both explicit sign-out and the initial state where there is no session.
                 await unsubscribeAll();
+
+                // Reset the entire application state to its initial default, preserving the object reference.
+                const initialAppState = getInitialState();
+                Object.assign(state, initialAppState);
+                
+                // Ensure these are explicitly null/auth for clarity.
                 state.currentUser = null;
                 state.currentPage = 'auth';
-                // Reset any sensitive state here before rendering the auth page.
+                
                 await renderApp();
             }
         });
