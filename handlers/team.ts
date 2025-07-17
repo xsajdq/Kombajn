@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -15,6 +16,19 @@ export function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
         localStorage.setItem('activeWorkspaceId', workspaceId);
+
+        // Clear page-specific data to force a reload on the new workspace's pages
+        state.projects = [];
+        state.tasks = [];
+        state.clients = [];
+        state.deals = [];
+        state.timeLogs = [];
+        state.comments = [];
+        state.projectMembers = [];
+        state.taskAssignees = [];
+        state.ui.dashboard.loadedWorkspaceId = null;
+        // etc...
+
         closeSidePanels(false);
         state.currentPage = 'dashboard';
         history.pushState({}, '', '/dashboard');
