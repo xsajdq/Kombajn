@@ -136,6 +136,14 @@ export async function bootstrapApp() {
         </div>`;
         
     try {
+        // Fetch current user FIRST.
+        const { user } = await apiFetch('/api/auth/user');
+        if (!user) {
+            throw new Error("User profile not found for the existing session. This could be a temporary issue.");
+        }
+        state.currentUser = user;
+
+        // Then fetch the rest of the data.
         await fetchInitialData();
         history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
@@ -172,20 +180,10 @@ async function init() {
                     console.log("Bootstrap already in progress, skipping.");
                     return;
                 }
+                // The only responsibility of this handler is to start the bootstrap process.
+                // It no longer fetches the user or handles errors, which is now done in bootstrapApp.
+                await bootstrapApp();
                 
-                try {
-                    const { user } = await apiFetch('/api/auth/user');
-                    if (!user) {
-                        throw new Error("User profile not found for the existing session.");
-                    }
-                    state.currentUser = user;
-                    
-                    await bootstrapApp();
-
-                } catch (error) {
-                    console.error('Error during session restoration/bootstrap:', error);
-                    await supabase.auth.signOut();
-                }
             } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
                 await unsubscribeAll();
                 isBootstrapping = false;
