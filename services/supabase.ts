@@ -1,11 +1,11 @@
-
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { state } from '../state.ts';
 import type { Notification, Task, Deal } from '../types.ts';
 import { keysToCamel } from '../utils.ts';
 
 export let supabase: SupabaseClient | null = null;
-const channels: RealtimeChannel[] = [];
+let userChannel: RealtimeChannel | null = null;
+let workspaceChannel: RealtimeChannel | null = null;
 
 // Initialize the Supabase client by fetching config from the server
 export async function initSupabase() {
@@ -48,114 +48,117 @@ export async function initSupabase() {
     }
 }
 
+// Subscribe to notifications for the logged-in user. Should be called once after login.
+export function subscribeToUserChannel() {
+    if (!supabase || !state.currentUser) return;
+    // Do nothing if already subscribed and connected
+    if (userChannel && (userChannel.state === 'joined' || userChannel.state === 'joining')) return;
 
-// Function to manage a single subscription, ensuring no duplicates
-function manageSubscription(channelName: string, config: any) {
-    if (!supabase) return;
-
-    // First, remove any existing channel with the same name to avoid duplicates
-    const existingChannel = channels.find(c => c.topic === channelName);
-    if (existingChannel) {
-        supabase.removeChannel(existingChannel);
-        const index = channels.indexOf(existingChannel);
-        if (index > -1) {
-            channels.splice(index, 1);
-        }
+    // Unsubscribe from any existing channel before creating a new one
+    if (userChannel) {
+        supabase.removeChannel(userChannel);
     }
 
-    // Separate the callback from the subscription options.
-    const { callback, ...subscriptionOptions } = config;
-
-    // Create and store the new channel
-    const channel = supabase.channel(channelName).on(
-        'postgres_changes',
-        subscriptionOptions,
-        callback
-    ).subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-            console.log(`Successfully subscribed to ${channelName}`);
-        }
-        if (status === 'CHANNEL_ERROR') {
-            console.error(`Failed to subscribe to ${channelName}:`, err);
-        }
-    });
-    
-    channels.push(channel);
+    const userId = state.currentUser.id;
+    userChannel = supabase.channel(`user-notifications:${userId}`);
+    userChannel
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${userId}`,
+            },
+            (payload) => {
+                console.log('Realtime: New notification received!', payload);
+                const newNotification = keysToCamel(payload.new) as Notification;
+                // Prevent duplicate notifications
+                if (!state.notifications.some(n => n.id === newNotification.id)) {
+                    state.notifications.unshift(newNotification);
+                    window.dispatchEvent(new CustomEvent('state-change-realtime'));
+                }
+            }
+        )
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`Successfully subscribed to user channel for ${userId}`);
+            }
+            if (status === 'CHANNEL_ERROR' && err) {
+                console.error(`Failed to subscribe to user channel:`, err);
+            }
+        });
 }
 
-// Subscribe to all relevant real-time updates based on current state
-export function subscribeToRealtimeUpdates() {
-    if (!supabase || !state.currentUser || !state.activeWorkspaceId) {
-        console.log("Skipping realtime subscription: user or workspace not ready.");
-        return;
+// Switch subscription to a new workspace. Unsubscribes from the old and subscribes to the new.
+export async function switchWorkspaceChannel(workspaceId: string) {
+    if (!supabase) return;
+
+    // Unsubscribe from the old workspace channel if it exists
+    if (workspaceChannel) {
+        await supabase.removeChannel(workspaceChannel);
+        workspaceChannel = null;
     }
+    
+    // Don't subscribe if there's no workspace ID (e.g., user has no workspaces)
+    if (!workspaceId) return;
 
-    // Notifications for the current user
-    manageSubscription(`realtime:notifications:${state.currentUser.id}`, {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${state.currentUser.id}`,
-        callback: (payload: any) => {
-            console.log('Realtime: New notification received!', payload);
-            const newNotification = keysToCamel(payload.new) as Notification;
-            state.notifications.unshift(newNotification);
-            window.dispatchEvent(new CustomEvent('state-change-realtime'));
-        }
-    });
+    workspaceChannel = supabase.channel(`workspace-data:${workspaceId}`);
+    workspaceChannel
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'tasks', filter: `workspace_id=eq.${workspaceId}` },
+            (payload) => {
+                console.log('Realtime: Task change received!', payload);
+                const eventType = payload.eventType;
+                const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Task;
+                const index = state.tasks.findIndex(t => t.id === record.id);
 
-    // Task updates for the current workspace
-    manageSubscription(`realtime:tasks:${state.activeWorkspaceId}`, {
-        event: '*', // Listen to INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'tasks',
-        filter: `workspace_id=eq.${state.activeWorkspaceId}`,
-        callback: (payload: any) => {
-            console.log('Realtime: Task change received!', payload);
-            const eventType = payload.eventType;
-            const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Task;
-            const index = state.tasks.findIndex(t => t.id === record.id);
-
-            if (eventType === 'UPDATE') {
-                if (index > -1) state.tasks[index] = { ...state.tasks[index], ...record };
-            } else if (eventType === 'INSERT') {
-                if (index === -1) state.tasks.push(record);
-            } else if (eventType === 'DELETE') {
-                if (index > -1) state.tasks.splice(index, 1);
+                if (eventType === 'UPDATE') {
+                    if (index > -1) state.tasks[index] = { ...state.tasks[index], ...record };
+                } else if (eventType === 'INSERT') {
+                    if (index === -1) state.tasks.push(record);
+                } else if (eventType === 'DELETE') {
+                    if (index > -1) state.tasks.splice(index, 1);
+                }
+                window.dispatchEvent(new CustomEvent('state-change-realtime'));
             }
-            window.dispatchEvent(new CustomEvent('state-change-realtime'));
-        }
-    });
+        )
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'deals', filter: `workspace_id=eq.${workspaceId}` },
+             (payload) => {
+                console.log('Realtime: Deal change received!', payload);
+                const eventType = payload.eventType;
+                const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Deal;
+                const index = state.deals.findIndex(d => d.id === record.id);
 
-    // Deal updates for the current workspace
-    manageSubscription(`realtime:deals:${state.activeWorkspaceId}`, {
-        event: '*', // Listen to INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'deals',
-        filter: `workspace_id=eq.${state.activeWorkspaceId}`,
-        callback: (payload: any) => {
-            console.log('Realtime: Deal change received!', payload);
-            const eventType = payload.eventType;
-            const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Deal;
-            const index = state.deals.findIndex(d => d.id === record.id);
-
-            if (eventType === 'UPDATE') {
-                if (index > -1) state.deals[index] = { ...state.deals[index], ...record };
-            } else if (eventType === 'INSERT') {
-                if (index === -1) state.deals.push(record);
-            } else if (eventType === 'DELETE') {
-                if (index > -1) state.deals.splice(index, 1);
+                if (eventType === 'UPDATE') {
+                    if (index > -1) state.deals[index] = { ...state.deals[index], ...record };
+                } else if (eventType === 'INSERT') {
+                    if (index === -1) state.deals.push(record);
+                } else if (eventType === 'DELETE') {
+                    if (index > -1) state.deals.splice(index, 1);
+                }
+                window.dispatchEvent(new CustomEvent('state-change-realtime'));
             }
-            window.dispatchEvent(new CustomEvent('state-change-realtime'));
-        }
-    });
+        )
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`Successfully subscribed to workspace channel for ${workspaceId}`);
+            }
+            if (status === 'CHANNEL_ERROR' && err) {
+                console.error(`Failed to subscribe to workspace channel:`, err);
+            }
+        });
 }
 
 // Unsubscribe from all channels on logout
 export async function unsubscribeAll() {
     if (supabase) {
         await supabase.removeAllChannels();
-        channels.length = 0; // Clear the array
+        userChannel = null;
+        workspaceChannel = null;
         console.log("Unsubscribed from all realtime channels.");
     }
 }
