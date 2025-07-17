@@ -28,45 +28,50 @@ export function saveWikiEdit() {
 
 export async function updateProjectWiki(projectId: string, content: string) {
     const project = state.projects.find(p => p.id === projectId);
-    if (project && state.currentUser) {
-        if (project.wikiContent === content) return;
+    if (!project || !state.currentUser) return;
 
-        const originalContent = project.wikiContent;
-        // Optimistic update
-        project.wikiContent = content;
-        
-        const statusEl = document.getElementById('wiki-save-status');
-        if (statusEl) statusEl.textContent = t('panels.saved');
-        renderApp();
+    const originalContent = project.wikiContent || '';
+    if (originalContent === content) {
+        // If content hasn't changed, no need to do anything.
+        // This is important to prevent creating empty history entries on first save.
+        return;
+    }
 
+    // Optimistic update
+    project.wikiContent = content;
+    
+    const statusEl = document.getElementById('wiki-save-status');
+    if (statusEl) statusEl.textContent = t('panels.saved');
+    renderApp();
 
-        try {
-            // Persist the change
-            await apiPut('projects', { id: projectId, wikiContent: content });
+    try {
+        // Persist the new content to the project
+        await apiPut('projects', { id: projectId, wikiContent: content });
 
-            // Persist history entry
-            await apiPost('wiki_history', {
-                projectId: projectId,
-                content: originalContent, // save the previous content
-                userId: state.currentUser.id,
-            });
+        // Persist the *previous* content to the history table
+        const newHistoryEntry = await apiPost('wiki_history', {
+            projectId: projectId,
+            content: originalContent,
+            userId: state.currentUser.id,
+        });
 
-            // Fetch latest history to update state (optional, but good practice)
-            const history = await apiPost('wiki_history/get_for_project', { projectId });
-            state.wikiHistory = history;
-            
-            setTimeout(() => {
-                const currentStatusEl = document.getElementById('wiki-save-status');
-                if (currentStatusEl) currentStatusEl.textContent = '';
-            }, 2000);
-
-        } catch (error) {
-            console.error("Failed to save wiki:", error);
-            alert("Could not save wiki content.");
-            // Revert on failure
-            project.wikiContent = originalContent;
-            renderApp();
+        // Add the new history record to the state. apiPost returns an array.
+        if (Array.isArray(newHistoryEntry) && newHistoryEntry[0]) {
+            state.wikiHistory.unshift(newHistoryEntry[0]);
         }
+        
+        // Hide "Saved!" message after 2 seconds
+        setTimeout(() => {
+            const currentStatusEl = document.getElementById('wiki-save-status');
+            if (currentStatusEl) currentStatusEl.textContent = '';
+        }, 2000);
+
+    } catch (error) {
+        console.error("Failed to save wiki:", error);
+        alert("Could not save wiki content.");
+        // Revert on failure
+        project.wikiContent = originalContent;
+        renderApp();
     }
 }
 
