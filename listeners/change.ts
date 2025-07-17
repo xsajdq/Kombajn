@@ -61,13 +61,6 @@ export function handleChange(e: Event) {
     // Workspace Switcher
     if (target.id === 'workspace-switcher') { teamHandlers.handleWorkspaceSwitch((target as HTMLSelectElement).value); return; }
     
-    // Settings: Kanban Workflow (immediate save)
-    if (target.id === 'workspace-kanban-workflow' && state.activeWorkspaceId) {
-        const workflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
-        teamHandlers.handleUpdateKanbanWorkflow(state.activeWorkspaceId, workflow);
-        return;
-    }
-
     if (target.id === 'avatar-upload' && (target as HTMLInputElement).files?.length) {
         const file = (target as HTMLInputElement).files![0];
         const reader = new FileReader();

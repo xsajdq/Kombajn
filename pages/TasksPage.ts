@@ -6,8 +6,6 @@
 
 
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -120,26 +118,18 @@ function renderBoardView(filteredTasks: Task[]) {
     };
 
     const mainBoardHtml = mainColumns.map(renderColumn).join('');
-
-    const doneTasks = tasksByStatus['done'];
-    const doneColumnHtml = isWorkflowAdvanced ? `
-        <details class="kanban-done-section card" open>
-            <summary class="kanban-done-header">
-                <h4>${t('tasks.done')} (${doneTasks.length})</h4>
-                <span class="material-icons-sharp expand-icon">expand_more</span>
-            </summary>
-            <div class="kanban-done-content">
-                ${doneTasks.map(renderTaskCard).join('') || `<div class="empty-kanban-column" style="text-align:center; padding: 2rem;">No completed tasks found.</div>`}
-            </div>
-        </details>
-    ` : '';
+    const doneColumnHtml = isWorkflowAdvanced ? renderColumn('done') : '';
         
     return `
     <div class="tasks-board-view-container">
         <div class="kanban-board-main ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
             ${mainBoardHtml}
         </div>
-        ${isWorkflowAdvanced ? doneColumnHtml : ''}
+        ${isWorkflowAdvanced ? `
+        <div class="kanban-board-done-wrapper">
+            ${doneColumnHtml}
+        </div>
+        ` : ''}
     </div>
     `;
 }

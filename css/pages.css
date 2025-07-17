@@ -41,47 +41,14 @@
 .kanban-board-main, .sales-board { display: grid; gap: 1.5rem; align-items: start; padding-bottom: 1rem; }
 .sales-board, .kanban-board-main:not(.workflow-advanced) { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .kanban-board-main.workflow-advanced { grid-template-columns: repeat(4, 1fr); }
-
-.kanban-done-section {
-    margin-top: 1.5rem;
-    padding: 0; /* Override card padding */
-    border: 1px solid var(--border-color);
-}
-.kanban-done-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    cursor: pointer;
-    list-style: none; /* Hide default arrow */
-    transition: background-color 0.2s ease;
-}
-.kanban-done-header:hover {
+.kanban-board-done-wrapper { margin-top: 1.5rem; }
+.kanban-board-done-wrapper .kanban-column {
     background-color: var(--light-color);
+    padding: 1rem;
+    border-radius: var(--border-radius);
 }
-.dark-theme .kanban-done-header:hover {
-    background-color: var(--dark-color);
-}
-.kanban-done-header::-webkit-details-marker {
-    display: none; /* Hide default arrow in WebKit */
-}
-.kanban-done-header h4 {
-    margin: 0;
-}
-.kanban-done-header .expand-icon {
-    transition: transform 0.2s ease;
-}
-.kanban-done-section[open] > summary.kanban-done-header {
-    border-bottom: 1px solid var(--border-color);
-}
-.kanban-done-section[open] > summary .expand-icon {
-    transform: rotate(180deg);
-}
-.kanban-done-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    padding: 1.5rem;
+.dark-theme .kanban-board-done-wrapper .kanban-column {
+    background-color: var(--background-color);
 }
 
 
