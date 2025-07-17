@@ -4,6 +4,8 @@
 
 
 
+
+
 export interface User {
     id: string;
     name?: string;
@@ -75,7 +77,6 @@ export interface Workspace {
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
     onboardingCompleted?: boolean;
-    defaultKanbanWorkflow?: 'simple' | 'advanced';
 }
 
 export interface WorkspaceMember {
@@ -439,7 +440,7 @@ export interface PublicHoliday {
 export interface Integration {
     id: string;
     workspaceId: string;
-    provider: 'slack' | 'google_drive';
+    provider: 'slack' | 'google_drive' | 'internal_settings';
     isActive: boolean;
     settings: {
         accessToken?: string;
@@ -451,6 +452,8 @@ export interface Integration {
         slackBotUserId?: string;
         // Google specific
         googleUserEmail?: string;
+        // Internal settings
+        [key: string]: any;
     };
 }
 

@@ -42,6 +42,15 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
     return null;
 }
 
+export function getWorkspaceKanbanWorkflow(workspaceId: string | null): 'simple' | 'advanced' {
+    if (!workspaceId) return 'simple';
+    const settingsIntegration = state.integrations.find(
+        i => i.workspaceId === workspaceId && i.provider === 'internal_settings'
+    );
+    // The settings object could exist but the property might not
+    return (settingsIntegration?.settings as any)?.defaultKanbanWorkflow || 'simple';
+}
+
 export async function handleSaveProjectAsTemplate(projectId: string) {
     const project = state.projects.find(p => p.id === projectId);
     if (!project || !state.activeWorkspaceId) return;

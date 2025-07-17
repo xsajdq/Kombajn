@@ -1,22 +1,25 @@
 
 
 
+
+
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task } from '../types.ts';
 import { apiPost } from '../services/api.ts';
+import { getWorkspaceKanbanWorkflow } from './main.ts';
 
 export async function handleAddAiTask(taskIndex: number, projectId: string) {
     if (!state.ai.suggestedTasks || !state.ai.suggestedTasks[taskIndex] || !state.activeWorkspaceId || !state.currentUser) return;
 
-    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    const workflow = getWorkspaceKanbanWorkflow(state.activeWorkspaceId);
     const taskToAdd = state.ai.suggestedTasks[taskIndex];
     const newAppTask: Omit<Task, 'id'> = {
         workspaceId: state.activeWorkspaceId,
         name: taskToAdd.name,
         description: taskToAdd.description,
         projectId: projectId,
-        status: activeWorkspace?.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
+        status: workflow === 'advanced' ? 'backlog' : 'todo',
     };
     
     try {

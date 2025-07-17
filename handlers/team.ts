@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -268,7 +269,7 @@ export async function handleSaveWorkspaceSettings() {
     const form = document.getElementById('workspace-settings-form');
     if (!form) return;
 
-    const payload = {
+    const workspacePayload = {
         id: workspace.id,
         companyName: (form.querySelector('#companyName') as HTMLInputElement).value,
         companyAddress: (form.querySelector('#companyAddress') as HTMLTextAreaElement).value,
@@ -276,12 +277,44 @@ export async function handleSaveWorkspaceSettings() {
         companyEmail: (form.querySelector('#companyEmail') as HTMLInputElement).value,
         companyBankName: (form.querySelector('#companyBankName') as HTMLInputElement).value,
         companyBankAccount: (form.querySelector('#companyBankAccount') as HTMLInputElement).value,
-        defaultKanbanWorkflow: (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value,
         companyLogo: workspace.companyLogo,
     };
+    
+    // Handle workflow setting separately to avoid schema error
+    const workflowValue = (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value;
+    const internalSettingsProvider = 'internal_settings';
 
     try {
-        const [updatedWorkspace] = await apiPut('workspaces', payload);
+        const settingsIntegration = state.integrations.find(
+            i => i.workspaceId === workspace.id && i.provider === internalSettingsProvider
+        );
+
+        const newSettings = { ...(settingsIntegration?.settings || {}), defaultKanbanWorkflow: workflowValue };
+
+        // Combine promises to run in parallel
+        const promises: Promise<any>[] = [apiPut('workspaces', workspacePayload)];
+
+        if (settingsIntegration) {
+            // Only update if settings actually changed
+            if (JSON.stringify(settingsIntegration.settings) !== JSON.stringify(newSettings)) {
+                promises.push(apiPut('integrations', { id: settingsIntegration.id, settings: newSettings }));
+            }
+        } else {
+            promises.push(apiPost('integrations', {
+                workspaceId: workspace.id,
+                provider: internalSettingsProvider,
+                isActive: false, // It's not a real integration
+                settings: newSettings
+            }));
+        }
+        
+        const results = await Promise.all(promises);
+        const workspaceResult = results[0];
+        const integrationResult = results.length > 1 ? results[1] : null;
+
+        // --- Update State ---
+        // Update workspace state
+        const [updatedWorkspace] = workspaceResult;
         const index = state.workspaces.findIndex(w => w.id === workspace.id);
         if (index !== -1) {
             state.workspaces[index] = {
@@ -294,6 +327,17 @@ export async function handleSaveWorkspaceSettings() {
                 planHistory: updatedWorkspace.planHistory || []
             };
         }
+
+        // Update integrations state
+        if (integrationResult) {
+            const [updatedIntegration] = Array.isArray(integrationResult) ? integrationResult : [integrationResult];
+            if (settingsIntegration) {
+                settingsIntegration.settings = updatedIntegration.settings;
+            } else {
+                state.integrations.push(updatedIntegration);
+            }
+        }
+        
         renderApp();
 
         const statusEl = document.getElementById('workspace-save-status');

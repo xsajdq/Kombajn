@@ -1,9 +1,12 @@
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
 import { can } from '../permissions.ts';
+import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
 export function SettingsPage() {
     const { activeTab } = state.ui.settings;
@@ -127,6 +130,7 @@ export function SettingsPage() {
     const renderWorkspaceSettings = () => {
         const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         if (!workspace) return '';
+        const currentWorkflow = getWorkspaceKanbanWorkflow(workspace.id);
         
         return `
             <form id="workspace-settings-form">
@@ -185,9 +189,9 @@ export function SettingsPage() {
                             <h4>${t('settings.default_workflow')}</h4>
                             <p class="subtle-text">${t('settings.workflow_desc')}</p>
                         </div>
-                        <select id="workspace-kanban-workflow" data-field="defaultKanbanWorkflow" class="form-control" style="max-width: 200px;">
-                            <option value="simple" ${workspace.defaultKanbanWorkflow !== 'advanced' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
-                            <option value="advanced" ${workspace.defaultKanbanWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
+                        <select id="workspace-kanban-workflow" class="form-control" style="max-width: 200px;">
+                            <option value="simple" ${currentWorkflow !== 'advanced' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
+                            <option value="advanced" ${currentWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
                         </select>
                     </div>
                 </div>

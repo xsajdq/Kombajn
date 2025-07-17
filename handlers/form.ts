@@ -1,5 +1,7 @@
 
 
+
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -14,6 +16,7 @@ import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import * as okrHandler from './okr.ts';
 import * as dealHandler from './deals.ts';
 import * as projectHandlers from './projects.ts';
+import { getWorkspaceKanbanWorkflow } from './main.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -173,14 +176,14 @@ export async function handleFormSubmit() {
             const estimatedHoursString = (document.getElementById('taskEstimatedHours') as HTMLInputElement).value;
 
             const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
-            const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+            const workflow = getWorkspaceKanbanWorkflow(activeWorkspaceId);
 
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
                 name: name,
                 description: (document.getElementById('taskDescription') as HTMLTextAreaElement).value,
-                status: activeWorkspace?.defaultKanbanWorkflow === 'advanced' ? 'backlog' : 'todo',
+                status: workflow === 'advanced' ? 'backlog' : 'todo',
                 startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || undefined,
                 dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || undefined,
                 priority: ((document.getElementById('taskPriority') as HTMLSelectElement).value as Task['priority']) || null,

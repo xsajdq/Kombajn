@@ -4,6 +4,8 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -11,6 +13,7 @@ import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
+import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
 declare const Gantt: any;
 
@@ -79,8 +82,7 @@ function getFilteredTasks(): Task[] {
 
 
 function renderBoardView(filteredTasks: Task[]) {
-    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    const isWorkflowAdvanced = activeWorkspace?.defaultKanbanWorkflow === 'advanced';
+    const isWorkflowAdvanced = getWorkspaceKanbanWorkflow(state.activeWorkspaceId) === 'advanced';
     
     const tasksByStatus: { [key in Task['status']]: Task[] } = {
         backlog: [], todo: [], inprogress: [], inreview: [], done: [],
