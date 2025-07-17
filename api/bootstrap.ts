@@ -77,25 +77,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userIdsInWorkspaces = [...new Set(allMemberLinks.map(m => m.user_id))];
 
         // 3. Fetch essential data in parallel, scoped to the user's workspaces.
+        // Removed `time_logs` and `comments` to prevent timeouts.
         const [
-            profilesRes, projectsRes, clientsRes, tasksRes, timeLogsRes, workspacesRes, 
-            workspaceMembersRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes
+            profilesRes, projectsRes, clientsRes, tasksRes, workspacesRes, 
+            workspaceMembersRes, notificationsRes, dashboardWidgetsRes, taskAssigneesRes
         ] = await Promise.all([
             supabase.from('profiles').select('*').in('id', userIdsInWorkspaces),
             supabase.from('projects').select('*').in('workspace_id', workspaceIds),
             supabase.from('clients').select('*').in('workspace_id', workspaceIds),
             supabase.from('tasks').select('*').in('workspace_id', workspaceIds),
-            supabase.from('time_logs').select('*').in('workspace_id', workspaceIds),
             supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
             supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds),
             supabase.from('notifications').select('*').eq('user_id', user.id),
             supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
-            supabase.from('comments').select('*').in('workspace_id', workspaceIds),
             supabase.from('task_assignees').select('*').in('workspace_id', workspaceIds),
         ]);
 
         // Throw first error found
-        const results = [profilesRes, projectsRes, clientsRes, tasksRes, timeLogsRes, workspacesRes, workspaceMembersRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes];
+        const results = [profilesRes, projectsRes, clientsRes, tasksRes, workspacesRes, workspaceMembersRes, notificationsRes, dashboardWidgetsRes, taskAssigneesRes];
         for (const r of results) {
             if (r.error) throw r.error;
         }
@@ -107,15 +106,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             projects: projectsRes.data,
             clients: clientsRes.data,
             tasks: tasksRes.data,
-            timeLogs: timeLogsRes.data,
             workspaces: workspacesRes.data,
             workspaceMembers: workspaceMembersRes.data,
             notifications: notificationsRes.data,
             dashboardWidgets: dashboardWidgetsRes.data,
-            comments: commentsRes.data,
             taskAssignees: taskAssigneesRes.data,
 
             // Non-essential data, returned as empty to be lazy-loaded later.
+            timeLogs: [],
+            comments: [],
             deals: [],
             dependencies: [],
             workspaceJoinRequests: [],
