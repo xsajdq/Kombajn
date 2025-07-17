@@ -3,6 +3,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -74,6 +75,7 @@ export interface Workspace {
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
     onboardingCompleted?: boolean;
+    defaultKanbanWorkflow?: 'simple' | 'advanced';
 }
 
 export interface WorkspaceMember {
@@ -495,7 +497,6 @@ export interface AppState {
     settings: {
         theme: 'light' | 'dark' | 'minimal';
         language: 'en' | 'pl';
-        defaultKanbanWorkflow: 'simple' | 'advanced';
     };
     activeTimers: { [taskId: string]: number }; // taskId -> startTime
     ui: {

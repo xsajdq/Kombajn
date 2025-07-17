@@ -1,6 +1,7 @@
 
 
 
+
 import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact } from './types.ts';
 
 export function generateId(): string {
@@ -14,7 +15,6 @@ export function saveState() {
     const settingsToSave = {
         theme: state.settings.theme,
         language: state.settings.language,
-        defaultKanbanWorkflow: state.settings.defaultKanbanWorkflow,
     };
     localStorage.setItem('kombajn-settings', JSON.stringify(settingsToSave));
 }
@@ -84,7 +84,6 @@ export function getInitialState(): AppState {
         settings: {
             theme,
             language: savedSettings.language || 'en',
-            defaultKanbanWorkflow: savedSettings.defaultKanbanWorkflow || 'simple',
         },
         activeTimers: {},
         ui: {
