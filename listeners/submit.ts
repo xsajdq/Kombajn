@@ -28,13 +28,16 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         button.disabled = true;
         errorDiv.style.display = 'none';
 
-        auth.login(email, password)
-            .catch(err => {
-                errorDiv.textContent = err.message;
-                errorDiv.style.display = 'block';
-                button.textContent = 'Log In';
-                button.disabled = false;
-            });
+        try {
+            const { user } = await auth.login(email, password);
+            state.currentUser = user;
+            await bootstrapCallback();
+        } catch (err: any) {
+            errorDiv.textContent = err.message;
+            errorDiv.style.display = 'block';
+            button.textContent = 'Log In';
+            button.disabled = false;
+        }
         return;
     }
 
@@ -48,13 +51,16 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         button.disabled = true;
         errorDiv.style.display = 'none';
 
-        auth.signup(name, email, password)
-            .catch(err => {
-                errorDiv.textContent = err.message;
-                errorDiv.style.display = 'block';
-                button.textContent = 'Register';
-                button.disabled = false;
-            });
+        try {
+            const { user } = await auth.signup(name, email, password);
+            state.currentUser = user;
+            await bootstrapCallback();
+        } catch (err: any) {
+            errorDiv.textContent = err.message;
+            errorDiv.style.display = 'block';
+            button.textContent = 'Register';
+            button.disabled = false;
+        }
         return;
     }
 
