@@ -120,12 +120,26 @@ export async function fetchInitialData() {
 }
 
 export async function bootstrapApp() {
+    if (isBootstrapping) {
+        console.warn("Bootstrap called while already in progress.");
+        return;
+    }
+    isBootstrapping = true;
+
+    // Show loading indicator immediately.
+    document.getElementById('app')!.innerHTML = `
+        <div class="global-loader">
+            <div class="loading-container">
+                <div class="loading-progress-bar"></div>
+                <p>Loading your workspace...</p>
+            </div>
+        </div>`;
+        
     try {
         await fetchInitialData();
-        // Sync the URL with the state determined by the data before rendering.
-        // This prevents race conditions where the router sees an old URL.
         history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
+        subscribeToRealtimeUpdates();
     } catch (error) {
         console.error("Failed to fetch initial data:", error);
         document.getElementById('app')!.innerHTML = `
@@ -134,6 +148,8 @@ export async function bootstrapApp() {
                 <p>Could not connect to the server. Please check your connection and try again.</p>
             </div>
         `;
+    } finally {
+        isBootstrapping = false;
     }
 }
 
@@ -148,53 +164,35 @@ async function init() {
             throw new Error("Supabase client failed to initialize.");
         }
 
-        // Use onAuthStateChange as the single source of truth for session management.
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
 
-            // This block handles both direct login and session restoration on page load.
-            if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+            if (event === 'INITIAL_SESSION' && session) {
                 if (isBootstrapping) {
                     console.log("Bootstrap already in progress, skipping.");
                     return;
                 }
-                isBootstrapping = true;
-
-                 // Immediately show a loading indicator.
-                document.getElementById('app')!.innerHTML = `
-                    <div class="global-loader">
-                        <div class="loading-container">
-                            <div class="loading-progress-bar"></div>
-                            <p>Loading your workspace...</p>
-                        </div>
-                    </div>`;
+                
                 try {
-                    // It's crucial to verify the session with our backend and get the full profile
                     const { user } = await apiFetch('/api/auth/user');
                     if (!user) {
-                        throw new Error("User profile not found after login.");
+                        throw new Error("User profile not found for the existing session.");
                     }
                     state.currentUser = user;
                     
                     await bootstrapApp();
-                    subscribeToRealtimeUpdates();
-                } catch (error) {
-                    console.error('Error during session validation/bootstrap:', error);
-                    // If backend verification fails or bootstrap fails, sign out, which triggers the 'SIGNED_OUT' event.
-                    await supabase.auth.signOut();
-                } finally {
-                    isBootstrapping = false;
-                }
-            } else if (event === 'SIGNED_OUT' || !session) {
-                // This block handles both explicit sign-out and the initial state where there is no session.
-                await unsubscribeAll();
-                isBootstrapping = false; // Reset the flag
 
-                // Reset the entire application state to its initial default, preserving the object reference.
+                } catch (error) {
+                    console.error('Error during session restoration/bootstrap:', error);
+                    await supabase.auth.signOut();
+                }
+            } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+                await unsubscribeAll();
+                isBootstrapping = false;
+
                 const initialAppState = getInitialState();
                 Object.assign(state, initialAppState);
                 
-                // Ensure these are explicitly null/auth for clarity.
                 state.currentUser = null;
                 state.currentPage = 'auth';
                 
