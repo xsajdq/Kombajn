@@ -1,4 +1,5 @@
 
+
 // api/_handlers/auth/login.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../../_lib/supabaseAdmin';
@@ -29,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const user = authData.user;
 
-        // Use a secure RPC function to get or create the profile, bypassing any RLS issues.
         const nameFromEmail = user.email!.split('@')[0];
         const { data: profiles, error: rpcError } = await supabase
             .rpc('create_profile_if_not_exists', {
@@ -49,17 +49,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const profileData = profiles[0];
 
-        // The Supabase client automatically converts snake_case (avatar_url) to camelCase (avatarUrl)
         const userForClient = {
             ...profileData,
-            avatarUrl: profileData.avatar_url
+            avatarUrl: profileData.avatar_url,
+            slackUserId: profileData.slack_user_id,
+            contractInfoNotes: profileData.contract_info_notes,
+            employmentInfoNotes: profileData.employment_info_notes,
+            vacationAllowanceHours: profileData.vacation_allowance_hours
         };
         delete (userForClient as any).avatar_url;
+        delete (userForClient as any).slack_user_id;
+        delete (userForClient as any).contract_info_notes;
+        delete (userForClient as any).employment_info_notes;
+        delete (userForClient as any).vacation_allowance_hours;
 
         return res.status(200).json({ session: authData.session, user: userForClient });
 
     } catch (error: any) {
-        // Use 500 for server-side logic failures after successful auth, 401 for auth failures
         const statusCode = error.message.includes('Invalid email or password') ? 401 : 500;
         return res.status(statusCode).json({ error: error.message });
     }
