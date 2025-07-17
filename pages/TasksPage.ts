@@ -6,6 +6,10 @@
 
 
 
+
+
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -94,8 +98,8 @@ function renderBoardView(filteredTasks: Task[]) {
         }
     });
 
-    const mainColumns: Task['status'][] = isWorkflowAdvanced
-        ? ['backlog', 'todo', 'inprogress', 'inreview']
+    const columnsToRender: Task['status'][] = isWorkflowAdvanced
+        ? ['backlog', 'todo', 'inprogress', 'inreview', 'done']
         : ['todo', 'inprogress', 'done'];
         
     const renderColumn = (status: Task['status']) => {
@@ -117,19 +121,13 @@ function renderBoardView(filteredTasks: Task[]) {
             `;
     };
 
-    const mainBoardHtml = mainColumns.map(renderColumn).join('');
-    const doneColumnHtml = isWorkflowAdvanced ? renderColumn('done') : '';
+    const boardHtml = columnsToRender.map(renderColumn).join('');
         
     return `
     <div class="tasks-board-view-container">
-        <div class="kanban-board-main ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
-            ${mainBoardHtml}
+        <div class="kanban-board ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
+            ${boardHtml}
         </div>
-        ${isWorkflowAdvanced ? `
-        <div class="kanban-board-done-wrapper">
-            ${doneColumnHtml}
-        </div>
-        ` : ''}
     </div>
     `;
 }
