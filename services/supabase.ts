@@ -1,7 +1,6 @@
 
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
 import type { Notification, Task, Deal } from '../types.ts';
 import { keysToCamel } from '../utils.ts';
 
@@ -101,7 +100,7 @@ export function subscribeToRealtimeUpdates() {
             console.log('Realtime: New notification received!', payload);
             const newNotification = keysToCamel(payload.new) as Notification;
             state.notifications.unshift(newNotification);
-            renderApp();
+            window.dispatchEvent(new CustomEvent('state-change-realtime'));
         }
     });
 
@@ -124,7 +123,7 @@ export function subscribeToRealtimeUpdates() {
             } else if (eventType === 'DELETE') {
                 if (index > -1) state.tasks.splice(index, 1);
             }
-            renderApp();
+            window.dispatchEvent(new CustomEvent('state-change-realtime'));
         }
     });
 
@@ -147,7 +146,7 @@ export function subscribeToRealtimeUpdates() {
             } else if (eventType === 'DELETE') {
                 if (index > -1) state.deals.splice(index, 1);
             }
-            renderApp();
+            window.dispatchEvent(new CustomEvent('state-change-realtime'));
         }
     });
 }
