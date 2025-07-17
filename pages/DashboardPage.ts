@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -14,19 +15,18 @@ declare const Chart: any;
 let charts: { [key: string]: any } = {};
 
 async function fetchDashboardData() {
+    // Guard against no workspace or already loading
     if (!state.activeWorkspaceId || state.ui.dashboard.isLoading) return;
 
-    // A simple check to see if we need to fetch.
-    const isDataForCurrentWorkspaceLoaded = state.projects.length > 0 && state.projects.some(p => p.workspaceId === state.activeWorkspaceId);
-    if (isDataForCurrentWorkspaceLoaded) {
-        // Data is already here, just make sure charts are initialized.
+    // If data for the current workspace is already loaded, just init charts and exit.
+    if (state.ui.dashboard.loadedWorkspaceId === state.activeWorkspaceId) {
         initDashboardCharts();
         return;
     }
 
     state.ui.dashboard.isLoading = true;
-    // DO NOT call renderApp() here. The initial render from bootstrapApp will handle showing the loading state.
-    // We will render only once at the end.
+    // Don't render here. The initial render that called DashboardPage is enough.
+    // The DashboardPage function will render the loader based on this flag.
 
     try {
         const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
@@ -39,11 +39,16 @@ async function fetchDashboardData() {
         state.comments = data.comments || [];
         state.clients = data.clients || [];
         
+        // Mark this workspace as loaded
+        state.ui.dashboard.loadedWorkspaceId = state.activeWorkspaceId;
+        
     } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
+        // On failure, nullify the loaded ID so it can be retried.
+        state.ui.dashboard.loadedWorkspaceId = null;
     } finally {
         state.ui.dashboard.isLoading = false;
-        // Re-render the app now that data is loaded or the loading process is finished.
+        // Re-render the app with the newly fetched data or to remove the loader on error.
         renderApp();
     }
 }
