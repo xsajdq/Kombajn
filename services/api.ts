@@ -7,8 +7,11 @@ export async function apiFetch(resource: string, options: RequestInit = {}) {
     if (!supabase) {
         throw new Error("Supabase client is not initialized.");
     }
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    const sessionResult = await supabase.auth.getSession();
+    if (sessionResult.error) {
+        throw new Error(`Failed to get session: ${sessionResult.error.message}`);
+    }
+    const token = sessionResult.data?.session?.access_token;
     
     const headers = new Headers(options.headers || {});
     
