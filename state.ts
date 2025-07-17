@@ -1,5 +1,6 @@
 
 
+
 import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact } from './types.ts';
 
 export function generateId(): string {
@@ -115,7 +116,7 @@ export function getInitialState(): AppState {
                 filters: { dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10), projectId: 'all', userId: 'all', clientId: 'all' },
             },
             settings: { activeTab: 'general' },
-            dashboard: { isEditing: false, isLoading: false },
+            dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null },
             hr: { activeTab: 'employees' },
             onboarding: { isActive: false, step: 0 },
         },
