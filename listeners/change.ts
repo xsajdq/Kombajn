@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState } from '../types.ts';
@@ -7,7 +8,7 @@ import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
 import * as mainHandlers from '../handlers/main.ts';
-import { apiPost } from '../services/api.ts';
+import { apiFetch, apiPost } from '../services/api.ts';
 
 
 export function handleChange(e: Event) {
@@ -132,25 +133,36 @@ export function handleChange(e: Event) {
     
     // Workspace Kanban Workflow setting
     if (target.id === 'workspace-kanban-workflow') {
-        const workflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
+        const newWorkflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
         const workspaceId = state.activeWorkspaceId;
         if (workspaceId) {
             let integration = state.integrations.find(i => i.provider === 'internal_settings' && i.workspaceId === workspaceId);
+            const originalWorkflow = integration?.settings?.defaultKanbanWorkflow || 'simple';
+
+            // Optimistic update
             if (integration) {
-                integration.settings.defaultKanbanWorkflow = workflow;
+                integration.settings.defaultKanbanWorkflow = newWorkflow;
             } else {
-                const newIntegration = {
+                integration = {
                     id: `temp-${Date.now()}`,
                     workspaceId,
                     provider: 'internal_settings' as const,
                     isActive: false,
-                    settings: { defaultKanbanWorkflow: workflow }
+                    settings: { defaultKanbanWorkflow: newWorkflow }
                 };
-                state.integrations.push(newIntegration);
+                state.integrations.push(integration);
             }
-            apiPost('actions?action=save-workspace-prefs', { workspaceId, workflow }).catch(err => {
+
+            apiFetch('/api/actions?action=save-workspace-prefs', {
+                method: 'POST',
+                body: JSON.stringify({ workspaceId, workflow: newWorkflow }),
+            }).catch(err => {
                 console.error("Failed to save kanban workflow preference:", err);
                 alert("Failed to save your view preference. Please try again.");
+                // Revert on failure
+                if (integration) {
+                    integration.settings.defaultKanbanWorkflow = originalWorkflow;
+                }
                 renderApp();
             });
         }
