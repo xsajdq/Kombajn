@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -563,6 +564,7 @@ export interface AppState {
         };
         dashboard: {
             isEditing: boolean;
+            isLoading: boolean;
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
