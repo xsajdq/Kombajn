@@ -1,9 +1,9 @@
 
+
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType } from '../types.ts';
 import * as auth from '../services/auth.ts';
-import { subscribeToRealtimeUpdates } from '../services/supabase.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
 import * as teamHandlers from '../handlers/team.ts';
@@ -29,10 +29,6 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         errorDiv.style.display = 'none';
 
         auth.login(email, password)
-            .then(async () => {
-                await bootstrapCallback();
-                subscribeToRealtimeUpdates();
-            })
             .catch(err => {
                 errorDiv.textContent = err.message;
                 errorDiv.style.display = 'block';
@@ -53,10 +49,6 @@ export async function handleSubmit(e: SubmitEvent, bootstrapCallback: () => Prom
         errorDiv.style.display = 'none';
 
         auth.signup(name, email, password)
-            .then(async () => {
-                await bootstrapCallback();
-                subscribeToRealtimeUpdates();
-            })
             .catch(err => {
                 errorDiv.textContent = err.message;
                 errorDiv.style.display = 'block';
