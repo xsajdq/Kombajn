@@ -15,6 +15,7 @@ export function renderTaskCard(task: Task) {
     const checklist = task.checklist || [];
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const comments = state.comments.filter(c => c.taskId === task.id);
+    const subtasks = state.tasks.filter(t => t.parentId === task.id);
 
     // Show top 3 checklist items, and a counter for the rest.
     const checklistPreviewItems = checklist.slice(0, 3);
@@ -30,6 +31,19 @@ export function renderTaskCard(task: Task) {
                 </button>
             </div>
             
+            ${subtasks.length > 0 ? `
+                <div class="task-card-subtasks">
+                    <ul class="task-card-subtask-items">
+                        ${subtasks.map(subtask => `
+                            <li class="task-card-subtask-item ${subtask.status === 'done' ? 'completed' : ''}">
+                                <span class="material-icons-sharp icon-sm">${subtask.status === 'done' ? 'check_box' : 'check_box_outline_blank'}</span>
+                                ${subtask.name}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
             ${tags.length > 0 ? `
                 <div class="task-card-tags">
                     ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
@@ -57,6 +71,7 @@ export function renderTaskCard(task: Task) {
                  <div class="task-card-meta">
                     ${task.priority ? `<span class="priority-label priority-${task.priority}" title="${t('tasks.priority_' + task.priority)}">${t('tasks.priority_' + task.priority)}</span>` : ''}
                     ${task.dueDate ? `<div class="stat-item" title="${t('tasks.col_due_date')}"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate)}</span></div>` : ''}
+                    ${task.estimatedHours ? `<div class="stat-item" title="${t('modals.estimated_hours')}"><span class="material-icons-sharp icon-sm">schedule</span><span>${task.estimatedHours}h</span></div>` : ''}
                     ${comments.length > 0 ? `<div class="stat-item" title="${comments.length} comments">
                          <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
                          <span>${comments.length}</span>

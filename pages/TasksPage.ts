@@ -2,6 +2,8 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -77,7 +79,8 @@ function getFilteredTasks(): Task[] {
 
 
 function renderBoardView(filteredTasks: Task[]) {
-    const isWorkflowAdvanced = state.settings.defaultKanbanWorkflow === 'advanced';
+    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    const isWorkflowAdvanced = activeWorkspace?.defaultKanbanWorkflow === 'advanced';
     
     const tasksByStatus: { [key in Task['status']]: Task[] } = {
         backlog: [], todo: [], inprogress: [], inreview: [], done: [],
@@ -89,30 +92,42 @@ function renderBoardView(filteredTasks: Task[]) {
         }
     });
 
-    const columnsToShow: Task['status'][] = isWorkflowAdvanced
-        ? ['backlog', 'todo', 'inprogress', 'inreview', 'done']
+    const mainColumns: Task['status'][] = isWorkflowAdvanced
+        ? ['backlog', 'todo', 'inprogress', 'inreview']
         : ['todo', 'inprogress', 'done'];
         
-    return `
-    <div class="kanban-board ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
-        ${columnsToShow.map(status => {
-            const columnTasks = tasksByStatus[status];
-            const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
-            
-            let columnHeaderExtras = `(${columnTasks.length})`;
-            if (totalSeconds > 0) {
-                 columnHeaderExtras += ` <span class="kanban-column-total-time">${formatDuration(totalSeconds)}</span>`;
-            }
+    const renderColumn = (status: Task['status']) => {
+        const columnTasks = tasksByStatus[status];
+        const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+        
+        let columnHeaderExtras = `(${columnTasks.length})`;
+        if (totalSeconds > 0) {
+             columnHeaderExtras += ` <span class="kanban-column-total-time">${formatDuration(totalSeconds)}</span>`;
+        }
 
-            return `
-                <div class="kanban-column" data-status="${status}">
-                    <h4>${t('tasks.' + status)} ${columnHeaderExtras}</h4>
-                    <div class="kanban-tasks">
-                        ${columnTasks.map(renderTaskCard).join('') || '<div class="empty-kanban-column"></div>'}
-                    </div>
+        return `
+            <div class="kanban-column" data-status="${status}">
+                <h4>${t('tasks.' + status)} ${columnHeaderExtras}</h4>
+                <div class="kanban-tasks">
+                    ${columnTasks.map(renderTaskCard).join('') || '<div class="empty-kanban-column"></div>'}
                 </div>
-                `;
-        }).join('')}
+            </div>
+            `;
+    };
+
+    const mainBoardHtml = mainColumns.map(renderColumn).join('');
+    const doneColumnHtml = isWorkflowAdvanced ? renderColumn('done') : '';
+        
+    return `
+    <div class="tasks-board-view-container">
+        <div class="kanban-board-main ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
+            ${mainBoardHtml}
+        </div>
+        ${isWorkflowAdvanced ? `
+        <div class="kanban-board-done-wrapper">
+            ${doneColumnHtml}
+        </div>
+        ` : ''}
     </div>
     `;
 }

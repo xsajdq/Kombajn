@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -28,16 +29,6 @@ export function SettingsPage() {
             <select id="language-switcher" class="form-control" style="max-width: 200px;">
                 <option value="en" ${state.settings.language === 'en' ? 'selected' : ''}>${t('settings.english')}</option>
                 <option value="pl" ${state.settings.language === 'pl' ? 'selected' : ''}>${t('settings.polish')}</option>
-            </select>
-        </div>
-        <div class="setting-item">
-            <div>
-                <h4>${t('settings.default_workflow')}</h4>
-                <p class="subtle-text">${t('settings.workflow_desc')}</p>
-            </div>
-            <select id="kanban-workflow-switcher" class="form-control" style="max-width: 200px;">
-                <option value="simple" ${state.settings.defaultKanbanWorkflow === 'simple' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
-                <option value="advanced" ${state.settings.defaultKanbanWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
             </select>
         </div>
     `;
@@ -185,6 +176,19 @@ export function SettingsPage() {
                      <div class="form-group" style="margin-top:1rem;">
                         <label for="companyBankAccount">${t('settings.bank_account')}</label>
                         <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="form-control" value="${workspace.companyBankAccount || ''}">
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 1.5rem;">
+                    <h4>Workspace Preferences</h4>
+                    <div class="setting-item" style="padding: 1rem 0 0; border-top: 1px solid var(--border-color); margin-top: 1rem;">
+                        <div>
+                            <h4>${t('settings.default_workflow')}</h4>
+                            <p class="subtle-text">${t('settings.workflow_desc')}</p>
+                        </div>
+                        <select id="workspace-kanban-workflow" data-field="defaultKanbanWorkflow" class="form-control" style="max-width: 200px;">
+                            <option value="simple" ${workspace.defaultKanbanWorkflow !== 'advanced' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
+                            <option value="advanced" ${workspace.defaultKanbanWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
+                        </select>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">

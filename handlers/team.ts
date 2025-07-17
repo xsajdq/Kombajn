@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -264,16 +265,19 @@ export async function handleSaveWorkspaceSettings() {
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
 
+    const form = document.getElementById('workspace-settings-form');
+    if (!form) return;
+
     const payload = {
         id: workspace.id,
-        name: workspace.name,
-        companyName: workspace.companyName,
-        companyAddress: workspace.companyAddress,
-        companyVatId: workspace.companyVatId,
-        companyBankName: workspace.companyBankName,
-        companyBankAccount: workspace.companyBankAccount,
+        companyName: (form.querySelector('#companyName') as HTMLInputElement).value,
+        companyAddress: (form.querySelector('#companyAddress') as HTMLTextAreaElement).value,
+        companyVatId: (form.querySelector('#companyVatId') as HTMLInputElement).value,
+        companyEmail: (form.querySelector('#companyEmail') as HTMLInputElement).value,
+        companyBankName: (form.querySelector('#companyBankName') as HTMLInputElement).value,
+        companyBankAccount: (form.querySelector('#companyBankAccount') as HTMLInputElement).value,
+        defaultKanbanWorkflow: (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value,
         companyLogo: workspace.companyLogo,
-        companyEmail: workspace.companyEmail,
     };
 
     try {

@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState } from '../types.ts';
@@ -76,7 +77,6 @@ export function handleChange(e: Event) {
     // Theme & Language Switchers
     if (target.id === 'theme-switcher') { state.settings.theme = (target as HTMLSelectElement).value as 'light' | 'dark' | 'minimal'; saveState(); renderApp(); return; }
     if (target.id === 'language-switcher') { state.settings.language = (target as HTMLSelectElement).value as 'en' | 'pl'; saveState(); renderApp(); return; }
-    if (target.id === 'kanban-workflow-switcher') { state.settings.defaultKanbanWorkflow = (target as HTMLSelectElement).value as 'simple' | 'advanced'; saveState(); renderApp(); return; }
 
     // Dashboard Grid Columns
     if (target.id === 'dashboard-grid-columns') {
