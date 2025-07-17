@@ -9,6 +9,7 @@ import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, Invoic
 import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 
+let isBootstrapping = false;
 
 export async function fetchInitialData() {
     console.log("Fetching initial data from server via bootstrap...");
@@ -153,6 +154,12 @@ async function init() {
 
             // This block handles both direct login and session restoration on page load.
             if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+                if (isBootstrapping) {
+                    console.log("Bootstrap already in progress, skipping.");
+                    return;
+                }
+                isBootstrapping = true;
+
                  // Immediately show a loading indicator.
                 document.getElementById('app')!.innerHTML = `
                     <div class="global-loader">
@@ -164,6 +171,9 @@ async function init() {
                 try {
                     // It's crucial to verify the session with our backend and get the full profile
                     const { user } = await apiFetch('/api/auth/user');
+                    if (!user) {
+                        throw new Error("User profile not found after login.");
+                    }
                     state.currentUser = user;
                     
                     await bootstrapApp();
@@ -172,10 +182,13 @@ async function init() {
                     console.error('Error during session validation/bootstrap:', error);
                     // If backend verification fails or bootstrap fails, sign out, which triggers the 'SIGNED_OUT' event.
                     await supabase.auth.signOut();
+                } finally {
+                    isBootstrapping = false;
                 }
             } else if (event === 'SIGNED_OUT' || !session) {
                 // This block handles both explicit sign-out and the initial state where there is no session.
                 await unsubscribeAll();
+                isBootstrapping = false; // Reset the flag
 
                 // Reset the entire application state to its initial default, preserving the object reference.
                 const initialAppState = getInitialState();
