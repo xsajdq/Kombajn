@@ -1,7 +1,7 @@
-
 // File: services/api.ts
 import { keysToCamel } from '../utils.ts';
 import { supabase } from './supabase.ts';
+import type { Session } from '@supabase/supabase-js';
 
 function fetchWithTimeout(resource: string, options: RequestInit = {}, timeout = 15000) { // 15 seconds timeout
     return Promise.race([
@@ -12,18 +12,18 @@ function fetchWithTimeout(resource: string, options: RequestInit = {}, timeout =
     ]) as Promise<Response>;
 }
 
-export async function apiFetch(resource: string, options: RequestInit = {}) {
+export async function apiFetch(resource: string, options: RequestInit = {}, session?: Session | null) {
     console.log(`[apiFetch] Calling: ${resource}`);
     if (!supabase) {
         throw new Error("Supabase client is not initialized.");
     }
 
     try {
-        const sessionResult = await supabase.auth.getSession();
-        if (sessionResult.error) {
-            throw new Error(`Failed to get session: ${sessionResult.error.message}`);
-        }
-        const token = sessionResult.data?.session?.access_token;
+        // If a session object is passed directly (from onAuthStateChange), use its token.
+        // Otherwise, fall back to fetching the session from the client.
+        const token = session
+            ? session.access_token
+            : (await supabase.auth.getSession()).data.session?.access_token;
         
         const headers = new Headers(options.headers || {});
         
