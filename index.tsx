@@ -28,52 +28,8 @@ export async function fetchInitialData() {
     
     // Populate state with fetched data
     state.users = data.profiles || [];
-    state.projects = data.projects || [];
-    state.tasks = data.tasks || [];
-    state.deals = data.deals || [];
-    state.timeLogs = data.timeLogs || [];
-    state.comments = data.comments || [];
-    state.taskAssignees = data.taskAssignees || [];
-    state.tags = data.tags || [];
-    state.taskTags = data.taskTags || [];
-    state.objectives = data.objectives || [];
-    state.keyResults = data.keyResults || [];
-    state.dealNotes = data.dealNotes || [];
-    state.integrations = data.integrations || [];
-    state.clientContacts = data.clientContacts || [];
-    state.expenses = data.expenses || [];
-    state.workspaceMembers = data.workspaceMembers || [];
-    state.dependencies = data.dependencies || [];
     state.workspaceJoinRequests = data.workspaceJoinRequests || [];
     state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
-
-    // Stitch together clients and their contacts
-    const contactsByClientId = new Map<string, ClientContact[]>();
-    (data.clientContacts || []).forEach((contact: ClientContact) => {
-        if (!contactsByClientId.has(contact.clientId)) {
-            contactsByClientId.set(contact.clientId, []);
-        }
-        contactsByClientId.get(contact.clientId)!.push(contact);
-    });
-    
-    state.clients = (data.clients || []).map((client: Client) => ({
-        ...client,
-        contacts: contactsByClientId.get(client.id) || []
-    }));
-
-    // Stitch together invoices and their line items
-    const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
-    (data.invoiceLineItems || []).forEach((item: InvoiceLineItem) => {
-        if (!lineItemsByInvoiceId.has(item.invoiceId)) {
-            lineItemsByInvoiceId.set(item.invoiceId, []);
-        }
-        lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
-    });
-
-    state.invoices = (data.invoices || []).map((invoice: Invoice) => ({
-        ...invoice,
-        items: lineItemsByInvoiceId.get(invoice.id) || []
-    }));
 
     // Manually map workspace structure to create nested subscription object
     state.workspaces = (data.workspaces || []).map((w: any) => ({
@@ -84,6 +40,7 @@ export async function fetchInitialData() {
         },
         planHistory: w.planHistory || []
     }));
+    state.workspaceMembers = data.workspaceMembers || [];
 
     // Merge fetched notifications with any that have arrived via realtime, to prevent overwriting.
     const existingNotificationIds = new Set(state.notifications.map(n => n.id));

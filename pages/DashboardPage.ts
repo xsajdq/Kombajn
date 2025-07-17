@@ -5,10 +5,45 @@ import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
 import { formatDuration, camelToSnake } from '../utils.ts';
 import { can } from '../permissions.ts';
+import { apiFetch } from '../services/api.ts';
+import { renderApp } from '../app-renderer.ts';
+
 
 declare const Chart: any;
 
 let charts: { [key: string]: any } = {};
+let isDataLoading = false;
+
+async function fetchDashboardData() {
+    if (!state.activeWorkspaceId || isDataLoading) return;
+    
+    // Check if data is already present (e.g., from a previous visit in the same session)
+    if (state.tasks.length > 0 && state.projects.length > 0) {
+        initDashboardCharts(); // Ensure charts are re-initialized
+        return;
+    }
+
+    isDataLoading = true;
+    
+    try {
+        const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
+        
+        state.projects = data.projects || [];
+        state.tasks = data.tasks || [];
+        state.taskAssignees = data.taskAssignees || [];
+        state.timeLogs = data.timeLogs || [];
+        state.comments = data.comments || [];
+        state.clients = data.clients || [];
+        
+        // This will trigger a re-render of the whole app, including the dashboard with the new data.
+        renderApp();
+    } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+    } finally {
+        isDataLoading = false;
+    }
+}
+
 
 function destroyCharts() {
     Object.values(charts).forEach(chart => chart.destroy());
@@ -16,6 +51,7 @@ function destroyCharts() {
 }
 
 function renderMyTasksWidget(widget: DashboardWidget) {
+    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
     const myAssignedTaskIds = new Set(state.taskAssignees.filter(a => a.userId === state.currentUser?.id).map(a => a.taskId));
     const tasks = state.tasks.filter(task => myAssignedTaskIds.has(task.id) && task.status !== 'done');
     const content = tasks.length > 0
@@ -32,14 +68,17 @@ function renderProjectStatusWidget(widget: DashboardWidget) {
     if (!widget.config.projectId) {
         return `<div class="empty-widget"><span class="material-icons-sharp">folder_special</span>${t('dashboard.select_project_for_widget')}</div>`;
     }
+    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
     return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
 }
 
 function renderTeamWorkloadWidget(widget: DashboardWidget) {
-     return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
+    if (isDataLoading || state.tasks.length === 0) return '<div class="widget-loader"></div>';
+    return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
 }
 
 function renderRecentActivityWidget(widget: DashboardWidget) {
+    if (isDataLoading || (state.comments.length === 0 && state.timeLogs.length === 0)) return '<div class="widget-loader"></div>';
     const activities = [...state.comments, ...state.timeLogs]
         .filter(item => item.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -114,6 +153,7 @@ function renderWidget(widget: DashboardWidget) {
 }
 
 export function initDashboardCharts() {
+    if (state.tasks.length === 0 && state.projects.length === 0) return;
     destroyCharts();
 
     const userWidgets = state.dashboardWidgets.filter(w =>
@@ -173,6 +213,8 @@ export function initDashboardCharts() {
 
 
 export function DashboardPage() {
+    fetchDashboardData();
+
     const { isEditing } = state.ui.dashboard;
     const userWidgets = state.dashboardWidgets
         .filter(w => w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId)
