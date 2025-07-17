@@ -17,6 +17,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (authError || !user) {
             return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
         }
+        
+        // Fetch the current user's full profile separately
+        const { data: currentUserProfile, error: currentUserProfileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+        if (currentUserProfileError) throw new Error(`Could not fetch current user's profile: ${currentUserProfileError.message}`);
+
 
         // 1. Get user's workspace memberships to determine which workspaces to fetch data for.
         const { data: userWorkspaceMemberships, error: membersError } = await supabase
@@ -29,9 +38,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const workspaceIds = userWorkspaceMemberships.map(m => m.workspace_id);
         if (workspaceIds.length === 0) {
             // If user has no workspaces, return minimal data to allow for setup page.
-             const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
             return res.status(200).json({
-                profiles: profile ? [profile] : [],
+                currentUser: currentUserProfile,
+                profiles: currentUserProfile ? [currentUserProfile] : [],
                 workspaces: [],
                 workspaceMembers: [],
                 projects: [],
@@ -105,16 +114,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // 4. Fetch child tables that don't have workspace_id and filter them in code.
         const objectiveIds = objectivesRes.data?.map(o => o.id) || [];
-        const { data: keyResultsData, error: keyResultsError } = await supabase.from('key_results').select('*').in('objective_id', objectiveIds);
+        const { data: keyResultsData, error: keyResultsError } = objectiveIds.length > 0
+            ? await supabase.from('key_results').select('*').in('objective_id', objectiveIds)
+            : { data: [], error: null };
         if (keyResultsError) throw keyResultsError;
 
         const invoiceIds = invoicesRes.data?.map(i => i.id) || [];
-        const { data: invoiceLineItemsData, error: lineItemsError } = await supabase.from('invoice_line_items').select('*').in('invoice_id', invoiceIds);
+        const { data: invoiceLineItemsData, error: lineItemsError } = invoiceIds.length > 0
+            ? await supabase.from('invoice_line_items').select('*').in('invoice_id', invoiceIds)
+            : { data: [], error: null };
         if (lineItemsError) throw lineItemsError;
 
 
         // 5. Assemble the final payload.
         res.status(200).json({
+            currentUser: currentUserProfile,
             profiles: profilesRes.data,
             projects: projectsRes.data,
             clients: clientsRes.data,
