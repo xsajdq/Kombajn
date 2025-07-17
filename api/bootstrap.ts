@@ -1,5 +1,4 @@
 
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToCamel } from './_lib/supabaseAdmin';
 
@@ -77,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             integrationsRes
         ] = await Promise.all([
             supabase.from('profiles').select('*').in('id', allMemberUserIds),
-            supabase.from('workspaces').select('*, "planHistory"').in('id', userWorkspaceIds),
+            supabase.from('workspaces').select('*, "planHistory", default_kanban_workflow').in('id', userWorkspaceIds),
             supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
             supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
             supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),

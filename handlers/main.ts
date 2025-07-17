@@ -44,11 +44,8 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
 
 export function getWorkspaceKanbanWorkflow(workspaceId: string | null): 'simple' | 'advanced' {
     if (!workspaceId) return 'simple';
-    const settingsIntegration = state.integrations.find(
-        i => i.workspaceId === workspaceId && i.provider === 'internal_settings'
-    );
-    // The settings object could exist but the property might not
-    return (settingsIntegration?.settings as any)?.defaultKanbanWorkflow || 'simple';
+    const workspace = state.workspaces.find(w => w.id === workspaceId);
+    return workspace?.defaultKanbanWorkflow || 'simple';
 }
 
 export async function handleSaveProjectAsTemplate(projectId: string) {

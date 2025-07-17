@@ -1,8 +1,10 @@
+
 // api/actions.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import generateTasksHandler from './_handlers/generate-tasks';
 import notifySlackHandler from './_handlers/notify/slack';
 import planProjectHandler from './_handlers/plan-project';
+import saveWorkspacePrefsHandler from './_handlers/save-workspace-prefs';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { action } = req.query;

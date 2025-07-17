@@ -268,9 +268,6 @@ export async function handleSaveWorkspaceSettings() {
     const form = document.getElementById('workspace-settings-form');
     if (!form) return;
 
-    // This payload only saves fields that belong to the 'workspaces' table.
-    // It EXCLUDES the kanban workflow, which is handled separately on 'change'
-    // to prevent errors like the duplicate key violation.
     const workspacePayload = {
         id: workspace.id,
         companyName: (form.querySelector('#companyName') as HTMLInputElement).value,
@@ -280,6 +277,7 @@ export async function handleSaveWorkspaceSettings() {
         companyBankName: (form.querySelector('#companyBankName') as HTMLInputElement).value,
         companyBankAccount: (form.querySelector('#companyBankAccount') as HTMLInputElement).value,
         companyLogo: workspace.companyLogo,
+        defaultKanbanWorkflow: (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value,
     };
 
     try {
@@ -313,41 +311,6 @@ export async function handleSaveWorkspaceSettings() {
         alert("Failed to save settings. Please try again.");
     }
 }
-
-
-export async function handleUpdateKanbanWorkflow(workspaceId: string, workflow: 'simple' | 'advanced') {
-    if (!workspaceId) return;
-
-    const statusEl = document.getElementById('workspace-save-status');
-    if (statusEl) {
-        statusEl.textContent = 'Saving...';
-    }
-
-    try {
-        const response = await apiPost('actions?action=save-workspace-prefs', { workspaceId, workflow });
-        const updatedIntegration = response.data;
-        
-        const index = state.integrations.findIndex(i => i.id === updatedIntegration.id);
-        if (index > -1) {
-            state.integrations[index] = updatedIntegration;
-        } else {
-            state.integrations.push(updatedIntegration);
-        }
-
-        if (statusEl) {
-            statusEl.textContent = t('panels.saved');
-            setTimeout(() => {
-                const currentStatusEl = document.getElementById('workspace-save-status');
-                if (currentStatusEl) currentStatusEl.textContent = '';
-            }, 2000);
-        }
-    } catch (error) {
-        console.error("Failed to update Kanban workflow:", error);
-        alert("Could not save workflow preference.");
-        if (statusEl) { statusEl.textContent = 'Error!'; }
-    }
-}
-
 
 export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews') {
     state.ui.hr.activeTab = tab;

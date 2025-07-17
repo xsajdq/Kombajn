@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 export interface User {
     id: string;
     name?: string;
@@ -77,6 +70,7 @@ export interface Workspace {
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
     onboardingCompleted?: boolean;
+    defaultKanbanWorkflow?: 'simple' | 'advanced';
 }
 
 export interface WorkspaceMember {
