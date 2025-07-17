@@ -4,12 +4,13 @@ import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { apiFetch } from './services/api.ts';
 import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
-import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
+import { initSupabase, subscribeToUserChannel, switchWorkspaceChannel, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 import * as auth from './services/auth.ts';
 import type { Session } from '@supabase/supabase-js';
 
 let isBootstrapping = false;
+let appInitialized = false;
 
 export async function fetchInitialData(session: Session) {
     console.log("Fetching initial data from server via bootstrap...");
@@ -116,7 +117,16 @@ export async function bootstrapApp(session: Session) {
         history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
         console.log("Initial render complete. Subscribing to realtime updates.");
-        subscribeToRealtimeUpdates();
+        
+        // Subscribe to user and workspace channels
+        if (state.currentUser) {
+            subscribeToUserChannel();
+        }
+        if (state.activeWorkspaceId) {
+            await switchWorkspaceChannel(state.activeWorkspaceId);
+        }
+        
+        appInitialized = true;
     } catch (error) {
         console.error(">>> BOOTSTRAP FAILED <<<", error);
         // If bootstrap fails, log the user out to reset the state and prevent being stuck.
@@ -143,8 +153,8 @@ async function init() {
             console.log(`Auth event: ${event}`);
 
             if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
-                if (isBootstrapping) {
-                    console.log("Bootstrap already in progress, skipping.");
+                if (appInitialized || isBootstrapping) {
+                    console.log("Bootstrap skipped (already initialized or in progress).");
                     return;
                 }
                 // The only responsibility of this handler is to start the bootstrap process.
@@ -153,6 +163,7 @@ async function init() {
             } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
                 await unsubscribeAll();
                 isBootstrapping = false;
+                appInitialized = false;
 
                 const initialAppState = getInitialState();
                 Object.assign(state, initialAppState);
