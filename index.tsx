@@ -1,162 +1,241 @@
 
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabaseAdmin';
+import { state, getInitialState } from './state.ts';
+import { setupEventListeners } from './eventListeners.ts';
+import { renderApp } from './app-renderer.ts';
+import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
+import { apiFetch } from './services/api.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
+import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
+import { startOnboarding } from './handlers/onboarding.ts';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+let isBootstrapping = false;
+
+export async function fetchInitialData() {
+    console.log("Fetching initial data from server via bootstrap...");
+    
+    // A single, optimized, and secure API call to get all necessary data
+    const data = await apiFetch('/api/bootstrap');
+
+    if (!data) {
+        throw new Error("Bootstrap data is null or undefined.");
+    }
+    
+    // Set the current user first. This is crucial.
+    if (!data.currentUser) {
+        throw new Error("Bootstrap data is missing current user profile.");
+    }
+    state.currentUser = data.currentUser;
+    
+    // Populate state with fetched data
+    state.users = data.profiles || [];
+    state.projects = data.projects || [];
+    state.tasks = data.tasks || [];
+    state.deals = data.deals || [];
+    state.timeLogs = data.timeLogs || [];
+    state.comments = data.comments || [];
+    state.taskAssignees = data.taskAssignees || [];
+    state.tags = data.tags || [];
+    state.taskTags = data.taskTags || [];
+    state.objectives = data.objectives || [];
+    state.keyResults = data.keyResults || [];
+    state.dealNotes = data.dealNotes || [];
+    state.integrations = data.integrations || [];
+    state.clientContacts = data.clientContacts || [];
+    state.expenses = data.expenses || [];
+    state.workspaceMembers = data.workspaceMembers || [];
+    state.dependencies = data.dependencies || [];
+    state.workspaceJoinRequests = data.workspaceJoinRequests || [];
+    state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    // Stitch together clients and their contacts
+    const contactsByClientId = new Map<string, ClientContact[]>();
+    (data.clientContacts || []).forEach((contact: ClientContact) => {
+        if (!contactsByClientId.has(contact.clientId)) {
+            contactsByClientId.set(contact.clientId, []);
+        }
+        contactsByClientId.get(contact.clientId)!.push(contact);
+    });
+    
+    state.clients = (data.clients || []).map((client: Client) => ({
+        ...client,
+        contacts: contactsByClientId.get(client.id) || []
+    }));
+
+    // Stitch together invoices and their line items
+    const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
+    (data.invoiceLineItems || []).forEach((item: InvoiceLineItem) => {
+        if (!lineItemsByInvoiceId.has(item.invoiceId)) {
+            lineItemsByInvoiceId.set(item.invoiceId, []);
+        }
+        lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
+    });
+
+    state.invoices = (data.invoices || []).map((invoice: Invoice) => ({
+        ...invoice,
+        items: lineItemsByInvoiceId.get(invoice.id) || []
+    }));
+
+    // Manually map workspace structure to create nested subscription object
+    state.workspaces = (data.workspaces || []).map((w: any) => ({
+        ...w,
+        subscription: {
+            planId: w.subscriptionPlanId,
+            status: w.subscriptionStatus
+        },
+        planHistory: w.planHistory || []
+    }));
+
+    // Merge fetched notifications with any that have arrived via realtime, to prevent overwriting.
+    const existingNotificationIds = new Set(state.notifications.map(n => n.id));
+    const newNotificationsFromFetch = (data.notifications || []).filter((n: Notification) => !existingNotificationIds.has(n.id));
+    state.notifications.push(...newNotificationsFromFetch);
+
+    // Set the active workspace based on the current user's memberships
+    const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
+    if (userWorkspaces.length > 0) {
+        const lastActiveId = localStorage.getItem('activeWorkspaceId');
+        const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
+        
+        if (lastActiveId && lastActiveWorkspaceExists) {
+            state.activeWorkspaceId = lastActiveId;
+        } else {
+            state.activeWorkspaceId = userWorkspaces[0].workspaceId;
+            localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId);
+        }
+        
+        // If user is on the auth/setup page but has workspaces, redirect to dashboard.
+        if (state.currentPage === 'auth' || state.currentPage === 'setup') {
+            state.currentPage = 'dashboard';
+        }
+    } else {
+        // If user has no workspace, show the setup page.
+        state.currentPage = 'setup';
+        state.activeWorkspaceId = null; // Ensure it's null
+        localStorage.removeItem('activeWorkspaceId');
     }
 
+    // After setting the active workspace, check if onboarding is needed.
+    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
+        // Delay slightly to ensure the initial page render is complete
+        setTimeout(() => startOnboarding(), 500);
+    }
+
+    console.log("Initial data fetched and state populated.", state);
+}
+
+export async function bootstrapApp() {
+    if (isBootstrapping) {
+        console.warn("Bootstrap called while already in progress.");
+        return;
+    }
+    isBootstrapping = true;
+
+    // Show loading indicator immediately.
+    document.getElementById('app')!.innerHTML = `
+        <div class="global-loader">
+            <div class="loading-container">
+                <div class="loading-progress-bar"></div>
+                <p>Loading your workspace...</p>
+            </div>
+        </div>`;
+        
     try {
-        const supabase = getSupabaseAdmin();
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            return res.status(401).json({ error: 'Authentication token required.' });
-        }
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user) {
-            return res.status(401).json({ error: authError?.message || 'Invalid or expired token.' });
-        }
+        // fetchInitialData now handles getting the user and all other data in one call.
+        await fetchInitialData();
         
-        // Fetch the current user's full profile separately
-        const { data: currentUserProfile, error: currentUserProfileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-        if (currentUserProfileError) throw new Error(`Could not fetch current user's profile: ${currentUserProfileError.message}`);
-
-
-        // 1. Get user's workspace memberships to determine which workspaces to fetch data for.
-        const { data: userWorkspaceMemberships, error: membersError } = await supabase
-            .from('workspace_members')
-            .select('workspace_id')
-            .eq('user_id', user.id);
-        
-        if (membersError) throw membersError;
-        
-        const workspaceIds = userWorkspaceMemberships.map(m => m.workspace_id);
-        if (workspaceIds.length === 0) {
-            // If user has no workspaces, return minimal data to allow for setup page.
-            return res.status(200).json({
-                currentUser: currentUserProfile,
-                profiles: currentUserProfile ? [currentUserProfile] : [],
-                workspaces: [],
-                workspaceMembers: [],
-                projects: [],
-                tasks: [],
-                clients: [],
-                deals: [],
-                timeLogs: [],
-                dependencies: [],
-                workspaceJoinRequests: [],
-                notifications: [],
-                dashboardWidgets: [],
-                comments: [],
-                taskAssignees: [],
-                tags: [],
-                taskTags: [],
-                objectives: [],
-                keyResults: [],
-                dealNotes: [],
-                invoices: [],
-                invoiceLineItems: [],
-                integrations: [],
-                clientContacts: [],
-                expenses: [],
-            });
-        }
-        
-        // 2. Get all users associated with those workspaces.
-        const { data: allMemberLinks, error: allMembersError } = await supabase
-            .from('workspace_members')
-            .select('user_id')
-            .in('workspace_id', workspaceIds);
-
-        if (allMembersError) throw allMembersError;
-        const userIdsInWorkspaces = [...new Set(allMemberLinks.map(m => m.user_id))];
-
-        // 3. Fetch all data in parallel, scoped to the user's workspaces.
-        const [
-            profilesRes, projectsRes, clientsRes, tasksRes, dealsRes, timeLogsRes, workspacesRes, 
-            workspaceMembersRes, dependenciesRes, workspaceJoinRequestsRes, notificationsRes, 
-            dashboardWidgetsRes, commentsRes, taskAssigneesRes, tagsRes, taskTagsRes, objectivesRes, 
-            dealNotesRes, invoicesRes, integrationsRes, clientContactsRes, expensesRes
-        ] = await Promise.all([
-            supabase.from('profiles').select('*').in('id', userIdsInWorkspaces),
-            supabase.from('projects').select('*').in('workspace_id', workspaceIds),
-            supabase.from('clients').select('*').in('workspace_id', workspaceIds),
-            supabase.from('tasks').select('*').in('workspace_id', workspaceIds),
-            supabase.from('deals').select('*').in('workspace_id', workspaceIds),
-            supabase.from('time_logs').select('*').in('workspace_id', workspaceIds),
-            supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
-            supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds),
-            supabase.from('task_dependencies').select('*').in('workspace_id', workspaceIds),
-            supabase.from('workspace_join_requests').select('*').in('workspace_id', workspaceIds),
-            supabase.from('notifications').select('*').eq('user_id', user.id),
-            supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
-            supabase.from('comments').select('*').in('workspace_id', workspaceIds),
-            supabase.from('task_assignees').select('*').in('workspace_id', workspaceIds),
-            supabase.from('tags').select('*').in('workspace_id', workspaceIds),
-            supabase.from('task_tags').select('*').in('workspace_id', workspaceIds),
-            supabase.from('objectives').select('*').in('workspace_id', workspaceIds),
-            supabase.from('deal_notes').select('*').in('workspace_id', workspaceIds),
-            supabase.from('invoices').select('*').in('workspace_id', workspaceIds),
-            supabase.from('integrations').select('*').in('workspace_id', workspaceIds),
-            supabase.from('client_contacts').select('*').in('workspace_id', workspaceIds),
-            supabase.from('expenses').select('*').in('workspace_id', workspaceIds),
-        ]);
-
-        // Throw first error found
-        for (const res of [profilesRes, projectsRes, clientsRes, tasksRes, dealsRes, timeLogsRes, workspacesRes, workspaceMembersRes, dependenciesRes, workspaceJoinRequestsRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes, tagsRes, taskTagsRes, objectivesRes, dealNotesRes, invoicesRes, integrationsRes, clientContactsRes, expensesRes]) {
-            if (res.error) throw res.error;
-        }
-
-        // 4. Fetch child tables that don't have workspace_id and filter them in code.
-        const objectiveIds = objectivesRes.data?.map(o => o.id) || [];
-        const { data: keyResultsData, error: keyResultsError } = objectiveIds.length > 0
-            ? await supabase.from('key_results').select('*').in('objective_id', objectiveIds)
-            : { data: [], error: null };
-        if (keyResultsError) throw keyResultsError;
-
-        const invoiceIds = invoicesRes.data?.map(i => i.id) || [];
-        const { data: invoiceLineItemsData, error: lineItemsError } = invoiceIds.length > 0
-            ? await supabase.from('invoice_line_items').select('*').in('invoice_id', invoiceIds)
-            : { data: [], error: null };
-        if (lineItemsError) throw lineItemsError;
-
-
-        // 5. Assemble the final payload.
-        res.status(200).json({
-            currentUser: currentUserProfile,
-            profiles: profilesRes.data,
-            projects: projectsRes.data,
-            clients: clientsRes.data,
-            tasks: tasksRes.data,
-            deals: dealsRes.data,
-            timeLogs: timeLogsRes.data,
-            workspaces: workspacesRes.data,
-            workspaceMembers: workspaceMembersRes.data,
-            dependencies: dependenciesRes.data,
-            workspaceJoinRequests: workspaceJoinRequestsRes.data,
-            notifications: notificationsRes.data,
-            dashboardWidgets: dashboardWidgetsRes.data,
-            comments: commentsRes.data,
-            taskAssignees: taskAssigneesRes.data,
-            tags: tagsRes.data,
-            taskTags: taskTagsRes.data,
-            objectives: objectivesRes.data,
-            dealNotes: dealNotesRes.data,
-            invoices: invoicesRes.data,
-            integrations: integrationsRes.data,
-            clientContacts: clientContactsRes.data,
-            expenses: expensesRes.data,
-            keyResults: keyResultsData,
-            invoiceLineItems: invoiceLineItemsData,
-        });
-
-    } catch (error: any) {
-        console.error('Bootstrap error:', error);
-        return res.status(500).json({ error: `Bootstrap failed: ${error.message}` });
+        history.replaceState({}, '', `/${state.currentPage}`);
+        await renderApp();
+        subscribeToRealtimeUpdates();
+    } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+        document.getElementById('app')!.innerHTML = `
+            <div class="empty-state">
+                <h3>Failed to load application data</h3>
+                <p>Could not connect to the server. Please check your connection and try again.</p>
+            </div>
+        `;
+    } finally {
+        isBootstrapping = false;
     }
 }
+
+
+async function init() {
+    try {
+        setupEventListeners(bootstrapApp);
+        window.addEventListener('popstate', renderApp);
+        window.addEventListener('state-change-realtime', renderApp as EventListener);
+
+        await initSupabase();
+        if (!supabase) {
+            throw new Error("Supabase client failed to initialize.");
+        }
+
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`Auth event: ${event}`);
+
+            if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+                if (isBootstrapping) {
+                    console.log("Bootstrap already in progress, skipping.");
+                    return;
+                }
+                // The only responsibility of this handler is to start the bootstrap process.
+                await bootstrapApp();
+                
+            } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+                await unsubscribeAll();
+                isBootstrapping = false;
+
+                const initialAppState = getInitialState();
+                Object.assign(state, initialAppState);
+                
+                state.currentUser = null;
+                state.currentPage = 'auth';
+                
+                await renderApp();
+            }
+        });
+        
+        // Timer update interval
+        setInterval(() => {
+            if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
+
+            Object.keys(state.activeTimers).forEach(taskId => {
+                const task = state.tasks.find(t => t.id === taskId);
+                if (task) {
+                    const currentSeconds = getTaskCurrentTrackedSeconds(task);
+                    const formattedTime = formatDuration(currentSeconds);
+                     document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
+                        if (el.textContent !== formattedTime) {
+                           el.textContent = formattedTime;
+                        }
+                    });
+                }
+            });
+
+            if (state.ui.openedProjectId) {
+                const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
+                if (projectTotalTimeEl) {
+                    const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
+                    const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+                    const formattedTotalTime = formatDuration(totalSeconds);
+                    if (projectTotalTimeEl.textContent !== formattedTotalTime) {
+                        projectTotalTimeEl.textContent = formattedTotalTime;
+                    }
+                }
+            }
+        }, 1000);
+    } catch (error) {
+        console.error("Application initialization failed:", error);
+        const errorMessage = (error as Error).message || 'Could not initialize the application. Please check your connection and configuration.';
+        document.getElementById('app')!.innerHTML = `
+            <div class="empty-state">
+                <h3>Failed to load application data</h3>
+                <p>${errorMessage}</p>
+            </div>
+        `;
+    }
+}
+
+init();
