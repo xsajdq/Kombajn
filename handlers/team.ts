@@ -277,7 +277,6 @@ export async function handleSaveWorkspaceSettings() {
         companyBankName: (form.querySelector('#companyBankName') as HTMLInputElement).value,
         companyBankAccount: (form.querySelector('#companyBankAccount') as HTMLInputElement).value,
         companyLogo: workspace.companyLogo,
-        defaultKanbanWorkflow: (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value,
     };
 
     try {

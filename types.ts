@@ -70,7 +70,6 @@ export interface Workspace {
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
     onboardingCompleted?: boolean;
-    defaultKanbanWorkflow?: 'simple' | 'advanced';
 }
 
 export interface WorkspaceMember {

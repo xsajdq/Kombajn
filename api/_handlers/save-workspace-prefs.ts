@@ -1,3 +1,4 @@
+
 // api/_handlers/save-workspace-prefs.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToCamel } from '../_lib/supabaseAdmin';
@@ -58,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .upsert({
                 workspace_id: workspaceId,
                 provider: PROVIDER,
-                is_active: false,
+                is_active: false, // This is just for internal settings, doesn't need to be "active"
                 settings: newSettings,
             }, {
                 onConflict: 'workspace_id, provider',

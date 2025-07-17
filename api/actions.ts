@@ -22,6 +22,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (action === 'plan-project') {
         return planProjectHandler(req, res);
     }
+    if (action === 'save-workspace-prefs') {
+        return saveWorkspacePrefsHandler(req, res);
+    }
     
     return res.status(404).json({ error: 'Action not found.' });
 }

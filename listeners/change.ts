@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState } from '../types.ts';
@@ -6,6 +7,7 @@ import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
 import * as mainHandlers from '../handlers/main.ts';
+import { apiPost } from '../services/api.ts';
 
 
 export function handleChange(e: Event) {
@@ -124,6 +126,33 @@ export function handleChange(e: Event) {
         if (['dateStart', 'dateEnd', 'clientId', 'status'].includes(key)) {
             (state.ui.invoiceFilters as any)[key] = invoiceFilter.value;
             renderApp();
+        }
+        return;
+    }
+    
+    // Workspace Kanban Workflow setting
+    if (target.id === 'workspace-kanban-workflow') {
+        const workflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
+        const workspaceId = state.activeWorkspaceId;
+        if (workspaceId) {
+            let integration = state.integrations.find(i => i.provider === 'internal_settings' && i.workspaceId === workspaceId);
+            if (integration) {
+                integration.settings.defaultKanbanWorkflow = workflow;
+            } else {
+                const newIntegration = {
+                    id: `temp-${Date.now()}`,
+                    workspaceId,
+                    provider: 'internal_settings' as const,
+                    isActive: false,
+                    settings: { defaultKanbanWorkflow: workflow }
+                };
+                state.integrations.push(newIntegration);
+            }
+            apiPost('actions?action=save-workspace-prefs', { workspaceId, workflow }).catch(err => {
+                console.error("Failed to save kanban workflow preference:", err);
+                alert("Failed to save your view preference. Please try again.");
+                renderApp();
+            });
         }
         return;
     }

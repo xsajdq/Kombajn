@@ -44,8 +44,11 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
 
 export function getWorkspaceKanbanWorkflow(workspaceId: string | null): 'simple' | 'advanced' {
     if (!workspaceId) return 'simple';
-    const workspace = state.workspaces.find(w => w.id === workspaceId);
-    return workspace?.defaultKanbanWorkflow || 'simple';
+    const integration = state.integrations.find(i => 
+        i.workspaceId === workspaceId && 
+        i.provider === 'internal_settings'
+    );
+    return integration?.settings?.defaultKanbanWorkflow || 'simple';
 }
 
 export async function handleSaveProjectAsTemplate(projectId: string) {
