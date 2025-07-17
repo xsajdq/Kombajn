@@ -7,14 +7,15 @@ import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, Invoic
 import { initSupabase, subscribeToRealtimeUpdates, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 import * as auth from './services/auth.ts';
+import type { Session } from '@supabase/supabase-js';
 
 let isBootstrapping = false;
 
-export async function fetchInitialData() {
+export async function fetchInitialData(session: Session) {
     console.log("Fetching initial data from server via bootstrap...");
     
     console.log("Bootstrap API call started.");
-    const data = await apiFetch('/api/bootstrap');
+    const data = await apiFetch('/api/bootstrap', {}, session);
     console.log("Bootstrap API call finished. Data received:", !!data);
 
     if (!data) {
@@ -91,7 +92,7 @@ export async function fetchInitialData() {
     console.log("Successfully populated state from bootstrap data.");
 }
 
-export async function bootstrapApp() {
+export async function bootstrapApp(session: Session) {
     if (isBootstrapping) {
         console.warn("Bootstrap called while already in progress.");
         return;
@@ -109,7 +110,7 @@ export async function bootstrapApp() {
         
     try {
         // fetchInitialData now handles getting the user and all other data in one call.
-        await fetchInitialData();
+        await fetchInitialData(session);
         
         console.log("Rendering app for the first time...");
         history.replaceState({}, '', `/${state.currentPage}`);
@@ -147,7 +148,7 @@ async function init() {
                     return;
                 }
                 // The only responsibility of this handler is to start the bootstrap process.
-                await bootstrapApp();
+                await bootstrapApp(session);
                 
             } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
                 await unsubscribeAll();
