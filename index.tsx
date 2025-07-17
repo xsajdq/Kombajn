@@ -15,19 +15,25 @@ export async function fetchInitialData() {
     
     console.log("Bootstrap API call started.");
     const data = await apiFetch('/api/bootstrap');
-    console.log("Bootstrap API call finished.");
+    console.log("Bootstrap API call finished. Data received:", !!data);
 
     if (!data) {
+        console.error("Bootstrap data received from API is null or undefined.");
         throw new Error("Bootstrap data is null or undefined.");
     }
     
+    console.log("Bootstrap data keys:", Object.keys(data));
+
     // Set the current user first. This is crucial.
     if (!data.currentUser) {
+        console.error("Bootstrap data is missing 'currentUser' property.");
         throw new Error("Bootstrap data is missing current user profile.");
     }
+    console.log("Setting current user:", data.currentUser.id);
     state.currentUser = data.currentUser;
     
     // Populate state with fetched data
+    console.log("Populating state with other bootstrap data...");
     state.users = data.profiles || [];
     state.workspaceJoinRequests = data.workspaceJoinRequests || [];
     state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
@@ -49,6 +55,7 @@ export async function fetchInitialData() {
     state.notifications.push(...newNotificationsFromFetch);
 
     // Set the active workspace based on the current user's memberships
+    console.log("Determining active workspace...");
     const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
     if (userWorkspaces.length > 0) {
         const lastActiveId = localStorage.getItem('activeWorkspaceId');
@@ -60,6 +67,7 @@ export async function fetchInitialData() {
             state.activeWorkspaceId = userWorkspaces[0].workspaceId;
             localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId);
         }
+        console.log("Active workspace set to:", state.activeWorkspaceId);
         
         // If user is on the auth/setup page but has workspaces, redirect to dashboard.
         if (state.currentPage === 'auth' || state.currentPage === 'setup') {
@@ -67,6 +75,7 @@ export async function fetchInitialData() {
         }
     } else {
         // If user has no workspace, show the setup page.
+        console.log("User has no workspaces. Directing to setup.");
         state.currentPage = 'setup';
         state.activeWorkspaceId = null; // Ensure it's null
         localStorage.removeItem('activeWorkspaceId');
@@ -79,7 +88,7 @@ export async function fetchInitialData() {
         setTimeout(() => startOnboarding(), 500);
     }
 
-    console.log("Initial data fetched and state populated.");
+    console.log("Successfully populated state from bootstrap data.");
 }
 
 export async function bootstrapApp() {
@@ -105,9 +114,10 @@ export async function bootstrapApp() {
         console.log("Rendering app for the first time...");
         history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
+        console.log("Initial render complete. Subscribing to realtime updates.");
         subscribeToRealtimeUpdates();
     } catch (error) {
-        console.error("Failed to fetch initial data:", error);
+        console.error(">>> BOOTSTRAP FAILED <<<", error);
         document.getElementById('app')!.innerHTML = `
             <div class="empty-state">
                 <h3>Failed to load application data</h3>
