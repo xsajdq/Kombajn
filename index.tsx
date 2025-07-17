@@ -1,4 +1,5 @@
 
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -32,7 +33,7 @@ export async function fetchInitialData() {
     console.log("Setting current user:", data.currentUser.id);
     state.currentUser = data.currentUser;
     
-    // Populate state with fetched data
+    // Populate state with essential bootstrap data
     console.log("Populating state with other bootstrap data...");
     state.users = data.profiles || [];
     state.workspaceJoinRequests = data.workspaceJoinRequests || [];

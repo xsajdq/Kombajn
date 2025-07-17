@@ -17,7 +17,7 @@ async function fetchDashboardData() {
     if (!state.activeWorkspaceId || state.ui.dashboard.isLoading) return;
 
     // A simple check to see if we need to fetch.
-    const isDataForCurrentWorkspaceLoaded = state.projects.length > 0 && state.projects.find(p => p.workspaceId === state.activeWorkspaceId);
+    const isDataForCurrentWorkspaceLoaded = state.projects.length > 0 && state.projects.some(p => p.workspaceId === state.activeWorkspaceId);
     if (isDataForCurrentWorkspaceLoaded) {
         // Data is already here, just make sure charts are initialized.
         initDashboardCharts();
@@ -26,6 +26,7 @@ async function fetchDashboardData() {
 
     state.ui.dashboard.isLoading = true;
     // DO NOT call renderApp() here. The initial render from bootstrapApp will handle showing the loading state.
+    // We will render only once at the end.
 
     try {
         const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
@@ -94,6 +95,7 @@ function renderRecentActivityWidget(widget: DashboardWidget) {
     return `<ul class="widget-task-list">${activities.map(item => {
         const user = state.users.find(u => u.id === item.userId);
         const task = state.tasks.find(t => t.id === item.taskId);
+        if (!task) return ''; // Don't render activity for tasks not loaded
         if ('content' in item) { // Comment
              return `<li class="clickable" data-task-id="${item.taskId}" role="button" tabindex="0"><span><strong>${user?.name}</strong> commented on ${task?.name || ''}</span><span class="subtle-text"></span></li>`;
         } else { // TimeLog
