@@ -13,8 +13,9 @@ let isBootstrapping = false;
 export async function fetchInitialData() {
     console.log("Fetching initial data from server via bootstrap...");
     
-    // A single, optimized, and secure API call to get all necessary data
+    console.log("Bootstrap API call started.");
     const data = await apiFetch('/api/bootstrap');
+    console.log("Bootstrap API call finished.");
 
     if (!data) {
         throw new Error("Bootstrap data is null or undefined.");
@@ -78,7 +79,7 @@ export async function fetchInitialData() {
         setTimeout(() => startOnboarding(), 500);
     }
 
-    console.log("Initial data fetched and state populated.", state);
+    console.log("Initial data fetched and state populated.");
 }
 
 export async function bootstrapApp() {
@@ -101,6 +102,7 @@ export async function bootstrapApp() {
         // fetchInitialData now handles getting the user and all other data in one call.
         await fetchInitialData();
         
+        console.log("Rendering app for the first time...");
         history.replaceState({}, '', `/${state.currentPage}`);
         await renderApp();
         subscribeToRealtimeUpdates();
@@ -110,6 +112,7 @@ export async function bootstrapApp() {
             <div class="empty-state">
                 <h3>Failed to load application data</h3>
                 <p>Could not connect to the server. Please check your connection and try again.</p>
+                <p>Error: ${(error as Error).message}</p>
             </div>
         `;
     } finally {
