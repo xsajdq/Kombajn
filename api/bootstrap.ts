@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (allMembersError) throw allMembersError;
         console.log(`[api/bootstrap] Found ${allMembersInUserWorkspaces?.length || 0} total members.`);
 
-        const allMemberUserIds = [...new Set(allMembersInUserWorkspaces.map(m => m.user_id))];
+        const allMemberUserIds = [...new Set(allMembersInUserWorkspaces.map((m: { user_id: string }) => m.user_id))];
         
         console.log('[api/bootstrap] Starting parallel data fetch...');
         const [
@@ -84,7 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ]);
         console.log('[api/bootstrap] Parallel fetch finished.');
         
-        const allResults = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
+        // This type definition helps TypeScript understand the structure of Supabase query results
+        type SupabaseResponse = { error: any; data: any; };
+        const allResults: SupabaseResponse[] = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
         
         for (const r of allResults) {
             if (r.error) {
@@ -94,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         console.log('[api/bootstrap] Constructing final response object...');
         const responseData = {
-            current_user: allProfilesRes.data?.find(p => p.id === user.id) || null,
+            current_user: allProfilesRes.data?.find((p: any) => p.id === user.id) || null,
             profiles: allProfilesRes.data || [],
             workspaces: allWorkspacesRes.data || [],
             workspace_members: allMembersInUserWorkspaces || [],
