@@ -1,6 +1,8 @@
 
 
 
+
+
 export interface User {
     id: string;
     name?: string;
@@ -565,6 +567,7 @@ export interface AppState {
         dashboard: {
             isEditing: boolean;
             isLoading: boolean;
+            loadedWorkspaceId: string | null;
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
