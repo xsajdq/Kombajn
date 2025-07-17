@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             supabase.from('tasks').select('*').in('workspace_id', workspaceIds),
             supabase.from('deals').select('*').in('workspace_id', workspaceIds),
             supabase.from('time_logs').select('*').in('workspace_id', workspaceIds),
-            supabase.from('workspaces').select('*, subscription:subscription_status, planHistory:plan_history, planId:subscription_plan_id').in('id', workspaceIds),
+            supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
             supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds),
             supabase.from('task_dependencies').select('*').in('workspace_id', workspaceIds),
             supabase.from('workspace_join_requests').select('*').in('workspace_id', workspaceIds),
