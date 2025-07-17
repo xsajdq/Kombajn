@@ -76,70 +76,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (allMembersError) throw allMembersError;
         const userIdsInWorkspaces = [...new Set(allMemberLinks.map(m => m.user_id))];
 
-        // 3. Fetch all data in parallel, scoped to the user's workspaces.
+        // 3. Fetch essential data in parallel, scoped to the user's workspaces.
         const [
-            profilesRes, projectsRes, clientsRes, tasksRes, dealsRes, timeLogsRes, workspacesRes, 
-            workspaceMembersRes, dependenciesRes, workspaceJoinRequestsRes, notificationsRes, 
-            dashboardWidgetsRes, commentsRes, taskAssigneesRes, tagsRes, taskTagsRes, objectivesRes, 
-            dealNotesRes, invoicesRes, integrationsRes, clientContactsRes, expensesRes
+            profilesRes, projectsRes, clientsRes, tasksRes, timeLogsRes, workspacesRes, 
+            workspaceMembersRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes
         ] = await Promise.all([
             supabase.from('profiles').select('*').in('id', userIdsInWorkspaces),
             supabase.from('projects').select('*').in('workspace_id', workspaceIds),
             supabase.from('clients').select('*').in('workspace_id', workspaceIds),
             supabase.from('tasks').select('*').in('workspace_id', workspaceIds),
-            supabase.from('deals').select('*').in('workspace_id', workspaceIds),
             supabase.from('time_logs').select('*').in('workspace_id', workspaceIds),
             supabase.from('workspaces').select('*, "planHistory"').in('id', workspaceIds),
             supabase.from('workspace_members').select('*').in('workspace_id', workspaceIds),
-            supabase.from('task_dependencies').select('*').in('workspace_id', workspaceIds),
-            supabase.from('workspace_join_requests').select('*').in('workspace_id', workspaceIds),
             supabase.from('notifications').select('*').eq('user_id', user.id),
             supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
             supabase.from('comments').select('*').in('workspace_id', workspaceIds),
             supabase.from('task_assignees').select('*').in('workspace_id', workspaceIds),
-            supabase.from('tags').select('*').in('workspace_id', workspaceIds),
-            supabase.from('task_tags').select('*').in('workspace_id', workspaceIds),
-            supabase.from('objectives').select('*').in('workspace_id', workspaceIds),
-            supabase.from('deal_notes').select('*').in('workspace_id', workspaceIds),
-            supabase.from('invoices').select('*').in('workspace_id', workspaceIds),
-            supabase.from('integrations').select('*').in('workspace_id', workspaceIds),
-            supabase.from('client_contacts').select('*').in('workspace_id', workspaceIds),
-            supabase.from('expenses').select('*').in('workspace_id', workspaceIds),
         ]);
 
         // Throw first error found
-        const results = [profilesRes, projectsRes, clientsRes, tasksRes, dealsRes, timeLogsRes, workspacesRes, workspaceMembersRes, dependenciesRes, workspaceJoinRequestsRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes, tagsRes, taskTagsRes, objectivesRes, dealNotesRes, invoicesRes, integrationsRes, clientContactsRes, expensesRes];
-        for (const res of results) {
-            if (res.error) throw res.error;
+        const results = [profilesRes, projectsRes, clientsRes, tasksRes, timeLogsRes, workspacesRes, workspaceMembersRes, notificationsRes, dashboardWidgetsRes, commentsRes, taskAssigneesRes];
+        for (const r of results) {
+            if (r.error) throw r.error;
         }
         
-        // 5. Assemble the final payload.
+        // 5. Assemble the final payload, returning empty arrays for non-essential data to prevent timeouts.
         res.status(200).json({
             currentUser: currentUserProfile,
             profiles: profilesRes.data,
             projects: projectsRes.data,
             clients: clientsRes.data,
             tasks: tasksRes.data,
-            deals: dealsRes.data,
             timeLogs: timeLogsRes.data,
             workspaces: workspacesRes.data,
             workspaceMembers: workspaceMembersRes.data,
-            dependencies: dependenciesRes.data,
-            workspaceJoinRequests: workspaceJoinRequestsRes.data,
             notifications: notificationsRes.data,
             dashboardWidgets: dashboardWidgetsRes.data,
             comments: commentsRes.data,
             taskAssignees: taskAssigneesRes.data,
-            tags: tagsRes.data,
-            taskTags: taskTagsRes.data,
-            objectives: objectivesRes.data,
-            dealNotes: dealNotesRes.data,
-            invoices: invoicesRes.data,
-            integrations: integrationsRes.data,
-            clientContacts: clientContactsRes.data,
-            expenses: expensesRes.data,
-            keyResults: [], // Return empty array to prevent client errors
-            invoiceLineItems: [], // Return empty array
+
+            // Non-essential data, returned as empty to be lazy-loaded later.
+            deals: [],
+            dependencies: [],
+            workspaceJoinRequests: [],
+            tags: [],
+            taskTags: [],
+            objectives: [],
+            keyResults: [],
+            dealNotes: [],
+            invoices: [],
+            invoiceLineItems: [],
+            integrations: [],
+            clientContacts: [],
+            expenses: [],
         });
 
     } catch (error: any) {
