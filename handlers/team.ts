@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
@@ -279,42 +280,11 @@ export async function handleSaveWorkspaceSettings() {
         companyBankAccount: (form.querySelector('#companyBankAccount') as HTMLInputElement).value,
         companyLogo: workspace.companyLogo,
     };
-    
-    // Handle workflow setting separately to avoid schema error
-    const workflowValue = (form.querySelector('#workspace-kanban-workflow') as HTMLSelectElement).value;
-    const internalSettingsProvider = 'internal_settings';
 
     try {
-        const settingsIntegration = state.integrations.find(
-            i => i.workspaceId === workspace.id && i.provider === internalSettingsProvider
-        );
+        const [updatedWorkspace] = await apiPut('workspaces', workspacePayload);
 
-        const newSettings = { ...(settingsIntegration?.settings || {}), defaultKanbanWorkflow: workflowValue };
-
-        // Combine promises to run in parallel
-        const promises: Promise<any>[] = [apiPut('workspaces', workspacePayload)];
-
-        if (settingsIntegration) {
-            // Only update if settings actually changed
-            if (JSON.stringify(settingsIntegration.settings) !== JSON.stringify(newSettings)) {
-                promises.push(apiPut('integrations', { id: settingsIntegration.id, settings: newSettings }));
-            }
-        } else {
-            promises.push(apiPost('integrations', {
-                workspaceId: workspace.id,
-                provider: internalSettingsProvider,
-                isActive: false, // It's not a real integration
-                settings: newSettings
-            }));
-        }
-        
-        const results = await Promise.all(promises);
-        const workspaceResult = results[0];
-        const integrationResult = results.length > 1 ? results[1] : null;
-
-        // --- Update State ---
         // Update workspace state
-        const [updatedWorkspace] = workspaceResult;
         const index = state.workspaces.findIndex(w => w.id === workspace.id);
         if (index !== -1) {
             state.workspaces[index] = {
@@ -322,22 +292,12 @@ export async function handleSaveWorkspaceSettings() {
                 ...updatedWorkspace,
                 subscription: {
                     planId: updatedWorkspace.subscriptionPlanId,
-                    status: updatedWorkspace.subscriptionStatus
+                    status: updatedWorkspace.subscriptionStatus,
                 },
-                planHistory: updatedWorkspace.planHistory || []
+                planHistory: updatedWorkspace.planHistory || [],
             };
         }
 
-        // Update integrations state
-        if (integrationResult) {
-            const [updatedIntegration] = Array.isArray(integrationResult) ? integrationResult : [integrationResult];
-            if (settingsIntegration) {
-                settingsIntegration.settings = updatedIntegration.settings;
-            } else {
-                state.integrations.push(updatedIntegration);
-            }
-        }
-        
         renderApp();
 
         const statusEl = document.getElementById('workspace-save-status');
@@ -351,6 +311,42 @@ export async function handleSaveWorkspaceSettings() {
     } catch (error) {
         console.error("Failed to save workspace settings:", error);
         alert("Failed to save settings. Please try again.");
+    }
+}
+
+
+export async function handleUpdateKanbanWorkflow(workspaceId: string, workflow: 'simple' | 'advanced') {
+    if (!workspaceId) return;
+
+    // Show a saving indicator
+    const statusEl = document.getElementById('workspace-save-status');
+    if (statusEl) {
+        statusEl.textContent = 'Saving...';
+    }
+
+    try {
+        const response = await apiPost('actions?action=save-workspace-prefs', { workspaceId, workflow });
+        const updatedIntegration = response.data;
+        
+        // Update state with the returned data
+        const index = state.integrations.findIndex(i => i.id === updatedIntegration.id);
+        if (index > -1) {
+            state.integrations[index] = updatedIntegration;
+        } else {
+            state.integrations.push(updatedIntegration);
+        }
+
+        if (statusEl) {
+            statusEl.textContent = t('panels.saved');
+            setTimeout(() => {
+                const currentStatusEl = document.getElementById('workspace-save-status');
+                if (currentStatusEl) currentStatusEl.textContent = '';
+            }, 2000);
+        }
+    } catch (error) {
+        console.error("Failed to update Kanban workflow:", error);
+        alert("Could not save workflow preference.");
+        if (statusEl) { statusEl.textContent = 'Error!'; }
     }
 }
 
