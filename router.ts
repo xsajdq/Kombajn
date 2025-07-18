@@ -33,18 +33,29 @@ export async function router() {
     const pathSegments = path.split('/').filter(p => p);
     const [page, id] = pathSegments;
     
-    state.currentPage = (page || 'dashboard') as AppState['currentPage'];
+    const newPage = (page || 'dashboard') as AppState['currentPage'];
+    if (state.currentPage !== newPage) {
+        state.ui.openedProjectId = null;
+        state.ui.openedClientId = null;
+        state.ui.openedDealId = null;
+    }
+    state.currentPage = newPage;
+
 
     // This part handles opening a detail view from a direct URL load (deep linking).
     // The check prevents a re-render loop when interacting inside an open panel.
-    // The setTimeout was removed to prevent race conditions during re-renders.
     if (id) {
         switch (state.currentPage) {
             case 'projects':
-                if (state.ui.openedProjectId !== id) openProjectPanel(id);
+                if (state.ui.openedProjectId !== id) {
+                    openProjectPanel(id);
+                    // No need to re-render here, as the final switch will return the page
+                }
                 break;
             case 'clients':
-                if (state.ui.openedClientId !== id) openClientPanel(id);
+                if (state.ui.openedClientId !== id) {
+                    openClientPanel(id);
+                }
                 break;
             case 'tasks':
                 if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
@@ -52,9 +63,16 @@ export async function router() {
                 }
                 break;
             case 'sales':
-                if (state.ui.openedDealId !== id) openDealPanel(id);
+                if (state.ui.openedDealId !== id) {
+                    openDealPanel(id);
+                }
                 break;
         }
+    } else {
+        // If there's no ID in the URL, ensure all panels are closed.
+        state.ui.openedProjectId = null;
+        state.ui.openedClientId = null;
+        state.ui.openedDealId = null;
     }
 
     // This router now guards every route with a permission check.

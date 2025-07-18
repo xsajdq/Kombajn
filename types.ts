@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     name?: string;
@@ -143,6 +144,7 @@ export interface Task {
     // New fields
     estimatedHours?: number; // in hours
     type?: 'feature' | 'bug' | 'chore' | null;
+    isArchived?: boolean;
 }
 
 export interface TaskDependency {
@@ -544,7 +546,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | null;
             data?: any;
             justOpened?: boolean;
         };
@@ -568,10 +570,14 @@ export interface AppState {
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
-        }
+        };
         onboarding: {
             isActive: boolean;
             step: number;
+        };
+        sales: {
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
         };
     };
 }

@@ -30,7 +30,11 @@ const translations = {
             unassigned: "Unassigned", priority_none: "None", priority_low: "Low", priority_medium: "Medium", priority_high: "High",
             start_timer: 'Start timer', stop_timer: 'Stop timer',
             subtask_progress: '{completed}/{total}',
-            subtasks: 'Subtasks'
+            subtasks: 'Subtasks',
+            archive: 'Archive',
+            unarchive: 'Unarchive',
+            archive_all_done: 'Archive All',
+            show_archived: 'Show Archived'
         },
         sales: {
             title: 'Sales Pipeline',
@@ -176,7 +180,11 @@ const translations = {
             unassigned: "Nieprzypisane", priority_none: "Brak", priority_low: "Niski", priority_medium: "Średni", priority_high: "Wysoki",
             start_timer: 'Uruchom stoper', stop_timer: 'Zatrzymaj stoper',
             subtask_progress: '{completed}/{total}',
-            subtasks: 'Podzadania'
+            subtasks: 'Podzadania',
+            archive: 'Archiwizuj',
+            unarchive: 'Cofnij z archiwum',
+            archive_all_done: 'Archiwizuj ukończone',
+            show_archived: 'Pokaż zarchiwizowane'
         },
         sales: {
             title: 'Lejek Sprzedażowy',
