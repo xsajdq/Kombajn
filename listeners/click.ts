@@ -193,9 +193,9 @@ export async function handleClick(e: MouseEvent) {
     }
 
     // New: handler for breadcrumb link in subtask modal
-    const openParentBtn = target.closest<HTMLElement>('[data-open-parent="true"]');
+    const openParentBtn = target.closest<HTMLElement>('[data-open-parent-task-id]');
     if (openParentBtn) {
-        const taskId = openParentBtn.dataset.taskId;
+        const taskId = openParentBtn.dataset.openParentTaskId;
         if (taskId) {
             uiHandlers.showModal('taskDetail', { taskId: taskId });
         }
@@ -203,10 +203,10 @@ export async function handleClick(e: MouseEvent) {
     }
     
     // Modified: handler for subtask click in task detail modal
-    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced');
+    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced.clickable');
     if (subtaskItem) {
-        // This check prevents the click handler from firing when the checkbox or delete button is clicked.
-        if (target.closest('.subtask-checkbox') || target.closest('.delete-subtask-btn')) {
+        // This check prevents the click handler from firing when an interactive element inside is clicked.
+        if (target.closest('.subtask-checkbox, .delete-subtask-btn, a, button')) {
             return;
         }
         const subtaskId = subtaskItem.dataset.taskId;

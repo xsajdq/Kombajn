@@ -942,10 +942,10 @@
     line-height: 1.3;
     margin: 2rem 0 1rem 0;
 }
-.project-wiki-view h1 { font-size: 2.25em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-.project-wiki-view h2 { font-size: 1.75em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-.project-wiki-view h3 { font-size: 1.375em; }
-.project-wiki-view h4 { font-size: 1.125em; }
+.project-wiki-view h1 { font-size: 2em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.project-wiki-view h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.project-wiki-view h3 { font-size: 1.25em; }
+.project-wiki-view h4 { font-size: 1.1em; }
 .project-wiki-view p {
     margin-bottom: 1.25rem;
 }
@@ -1078,6 +1078,7 @@
     border-top: 1px solid var(--border-color);
     padding-top: 1.5rem;
 }
+
 
 /* --- SALES PAGE REDESIGN --- */
 .sales-page-container {

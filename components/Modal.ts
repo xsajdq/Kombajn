@@ -1,12 +1,12 @@
 
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
 import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration } from '../utils.ts';
+import { can } from '../permissions.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -312,6 +312,58 @@ export function Modal() {
         maxWidth = '900px';
     }
     
+    if (state.ui.modal.type === 'subtaskDetail') {
+        const subtask = state.tasks.find(t => t.id === modalData.taskId);
+        const parentTask = state.tasks.find(t => t.id === modalData.parentTaskId);
+        const canManage = can('manage_tasks');
+
+        if (!subtask || !parentTask) return '';
+
+        title = `
+            <div class="modal-breadcrumb">
+                <button class="btn btn-link" data-open-parent-task-id="${parentTask.id}">${parentTask.name}</button>
+                <span class="material-icons-sharp">chevron_right</span>
+                <span>${subtask.name}</span>
+            </div>
+        `;
+        maxWidth = '800px';
+        footer = `<button class="btn btn-secondary btn-close-modal">${t('panels.close')}</button>`;
+        body = `
+            <div class="subtask-detail-container">
+                <div class="subtask-detail-properties">
+                     <div class="form-group">
+                        <label>${t('modals.status')}</label>
+                        <select class="form-control" data-field="status" data-task-id="${subtask.id}" ${!canManage ? 'disabled' : ''}>
+                            <option value="backlog" ${subtask.status === 'backlog' ? 'selected' : ''}>${t('modals.status_backlog')}</option>
+                            <option value="todo" ${subtask.status === 'todo' ? 'selected' : ''}>${t('modals.status_todo')}</option>
+                            <option value="inprogress" ${subtask.status === 'inprogress' ? 'selected' : ''}>${t('modals.status_inprogress')}</option>
+                            <option value="inreview" ${subtask.status === 'inreview' ? 'selected' : ''}>${t('modals.status_inreview')}</option>
+                            <option value="done" ${subtask.status === 'done' ? 'selected' : ''}>${t('modals.status_done')}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.assignees')}</label>
+                        <select class="form-control" data-field="assignee" data-task-id="${subtask.id}" ${!canManage ? 'disabled' : ''}>
+                             <option value="">${t('modals.unassigned')}</option>
+                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name || u!.initials}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>${t('modals.due_date')}</label>
+                        <input type="date" class="form-control" data-field="dueDate" value="${subtask.dueDate || ''}" data-task-id="${subtask.id}" ${!canManage ? 'disabled' : ''}>
+                    </div>
+                </div>
+                <div class="subtask-detail-main">
+                    <div class="section-header">${t('modals.checklist')}</div>
+                    <p>Checklist coming soon for subtasks.</p>
+
+                    <div class="section-header">${t('modals.activity')}</div>
+                    <p>Activity feed coming soon for subtasks.</p>
+                </div>
+            </div>
+        `;
+    }
+
     if (state.ui.modal.type === 'addCommentToTimeLog') {
         title = t('modals.add_timelog_comment_title');
         body = AddCommentToTimeLogModal({ trackedSeconds: modalData.trackedSeconds });
