@@ -8,16 +8,33 @@ let lastFocusedElement: HTMLElement | null = null;
 
 export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'deal', id: string) {
     let path = '';
-    switch(type) {
-        case 'task': path = `/tasks/${id}`; showModal('taskDetail', { taskId: id }); break;
-        case 'project': path = `/projects/${id}`; openProjectPanel(id); break;
-        case 'client': path = `/clients/${id}`; openClientPanel(id); break;
-        case 'deal': path = `/sales/${id}`; openDealPanel(id); break;
+    // Modals are handled differently. Keep its direct call since the URL is more for bookmarking.
+    if (type === 'task') {
+        path = `/tasks/${id}`;
+        if (path && window.location.pathname !== path) {
+            history.pushState({ id }, '', path);
+        }
+        showModal('taskDetail', { taskId: id });
+        return;
     }
+
+    // For side panels, we simply change the URL and let the router handle the state change on re-render.
+    switch (type) {
+        case 'project': path = `/projects/${id}`; break;
+        case 'client': path = `/clients/${id}`; break;
+        case 'deal': path = `/sales/${id}`; break;
+    }
+
     if (path && window.location.pathname !== path) {
         history.pushState({ id }, '', path);
+        // Trigger a re-render which will invoke the router with the new URL
+        renderApp();
+    } else if (path && window.location.pathname === path) {
+        // If URL is correct but panel somehow closed, re-render to enforce state.
+        renderApp();
     }
 }
+
 
 function updateUrlOnPanelClose() {
     // When a panel closes, revert the URL to the main page URL for that section
@@ -52,7 +69,6 @@ export function openProjectPanel(projectId: string) {
     state.ui.openedDealId = null;
     state.ui.openedProjectTab = 'overview'; // Reset to default tab
     state.ui.isWikiEditing = false; // Ensure wiki edit mode is off
-    renderApp();
 }
 
 export function openClientPanel(clientId: string) {
@@ -62,7 +78,6 @@ export function openClientPanel(clientId: string) {
     state.ui.openedClientId = clientId;
     state.ui.openedProjectId = null;
     state.ui.openedDealId = null;
-    renderApp();
 }
 
 export function openDealPanel(dealId: string) {
@@ -72,7 +87,6 @@ export function openDealPanel(dealId: string) {
     state.ui.openedDealId = dealId;
     state.ui.openedProjectId = null;
     state.ui.openedClientId = null;
-    renderApp();
 }
 
 export function closeSidePanels(shouldRender = true) {

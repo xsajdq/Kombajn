@@ -1,4 +1,5 @@
 
+
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
@@ -462,6 +463,27 @@ export async function handleToggleTag(taskId: string, tagId: string, newTagName?
         }
     } catch (error) {
         console.error("Failed to toggle tag:", error);
+        renderApp();
+    }
+}
+
+export async function handleToggleTaskArchive(taskId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const isArchiving = !task.isArchived;
+    const originalValue = task.isArchived;
+
+    // Optimistic update
+    task.isArchived = isArchiving;
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, isArchived: isArchiving });
+    } catch (error) {
+        console.error('Failed to update task archive status:', error);
+        alert('Could not update task. Please try again.');
+        task.isArchived = originalValue; // Revert
         renderApp();
     }
 }

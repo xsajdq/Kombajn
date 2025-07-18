@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType } from '../types.ts';
@@ -149,7 +150,7 @@ export async function handleSubmit(e: SubmitEvent) {
             }
         }
     } else if (target.id === 'add-comment-form') {
-        const taskId = state.ui.modal.data.taskId;
+        const taskId = (target as HTMLElement).dataset.taskId || state.ui.modal.data.taskId;
         const inputDiv = document.getElementById('task-comment-input') as HTMLElement;
         if (taskId && inputDiv) {
             const content = parseMentionContent(inputDiv);
@@ -184,5 +185,16 @@ export async function handleSubmit(e: SubmitEvent) {
         if (krId && !isNaN(value)) {
             await okrHandlers.handleUpdateKeyResultValue(krId, value);
         }
+    } else if (target.id === 'add-checklist-item-form') {
+        const taskId = target.dataset.taskId!;
+        const input = target.querySelector('input')!;
+        const text = input.value.trim();
+        // Handler for this needs to be created in taskHandlers.ts
+        if (taskId && text) {
+            // taskHandlers.addChecklistItem(taskId, text);
+            console.log("Add checklist item handler to be implemented.");
+            input.value = '';
+        }
+        return;
     }
 }

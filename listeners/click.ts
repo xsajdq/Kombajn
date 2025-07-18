@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -176,6 +177,43 @@ export async function handleClick(e: MouseEvent) {
         e.stopPropagation(); // Prevent opening the task detail modal.
         const taskId = taskStatusCheckbox.dataset.taskId!;
         taskHandlers.handleToggleProjectTaskStatus(taskId);
+        return;
+    }
+
+    // New Archive handlers
+    const archiveTaskBtn = target.closest<HTMLElement>('[data-archive-task-id]');
+    if (archiveTaskBtn) {
+        taskHandlers.handleToggleTaskArchive(archiveTaskBtn.dataset.archiveTaskId!);
+        return;
+    }
+    const unarchiveTaskBtn = target.closest<HTMLElement>('[data-unarchive-task-id]');
+    if (unarchiveTaskBtn) {
+        taskHandlers.handleToggleTaskArchive(unarchiveTaskBtn.dataset.unarchiveTaskId!);
+        return;
+    }
+
+    // New: handler for breadcrumb link in subtask modal
+    const openParentBtn = target.closest<HTMLElement>('[data-open-parent="true"]');
+    if (openParentBtn) {
+        const taskId = openParentBtn.dataset.taskId;
+        if (taskId) {
+            uiHandlers.showModal('taskDetail', { taskId: taskId });
+        }
+        return;
+    }
+    
+    // Modified: handler for subtask click in task detail modal
+    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced');
+    if (subtaskItem) {
+        // This check prevents the click handler from firing when the checkbox or delete button is clicked.
+        if (target.closest('.subtask-checkbox') || target.closest('.delete-subtask-btn')) {
+            return;
+        }
+        const subtaskId = subtaskItem.dataset.taskId;
+        const parentTaskId = state.ui.modal.data?.taskId; // Get parent from current modal state
+        if (subtaskId && parentTaskId) {
+            uiHandlers.showModal('subtaskDetail', { taskId: subtaskId, parentTaskId: parentTaskId });
+        }
         return;
     }
 
@@ -398,20 +436,20 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced');
-    if (subtaskItem) {
-        // This check prevents the click handler from firing when the checkbox or delete button is clicked.
-        if (target.closest('.subtask-checkbox') || target.closest('.delete-subtask-btn')) {
-            return;
-        }
-        const subtaskId = subtaskItem.dataset.taskId;
-        if (subtaskId) {
-            uiHandlers.closeModal(false);
-            uiHandlers.showModal('taskDetail', { taskId: subtaskId });
+    const checklistItemCheckbox = target.closest<HTMLInputElement>('.checklist-item-checkbox');
+    if (checklistItemCheckbox) {
+        const taskId = state.ui.modal.data?.taskId;
+        const itemId = checklistItemCheckbox.closest('li')?.dataset.itemId;
+        if (taskId && itemId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            const item = task?.checklist?.find(i => i.id === itemId);
+            if (item) {
+                // Not implemented in handlers yet, but this is where it would go.
+                console.log('Checklist item toggled, handler to be implemented.');
+            }
         }
         return;
     }
-
 
     // Global buttons that might be anywhere
     if (target.closest('#fab-new-task')) { uiHandlers.showModal('addTask'); return; }

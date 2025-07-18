@@ -1,6 +1,5 @@
 
 
-
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState } from '../types.ts';
@@ -22,14 +21,22 @@ export function handleChange(e: Event) {
         return;
     }
 
-    // This handles updates from the task detail sidebar (priority, status, dates, etc.)
-    if (target.matches('.task-detail-sidebar *[data-field]') && state.ui.modal.type === 'taskDetail') {
-        const taskId = state.ui.modal.data?.taskId;
-        const field = target.dataset.field as keyof Task;
-        const value = (target as HTMLInputElement).value;
-        if (taskId && field) {
-            taskHandlers.handleTaskDetailUpdate(taskId, field, value);
-            return;
+    // This handles updates from the task detail sidebar AND the subtask detail properties
+    if (target.matches('.task-detail-sidebar *[data-field], .subtask-detail-container *[data-field]')) {
+        const modalType = state.ui.modal.type;
+        if (modalType === 'taskDetail' || modalType === 'subtaskDetail') {
+            let taskId = state.ui.modal.data?.taskId;
+            // The element itself can specify a taskId, which is useful for subtasks
+            if (target.dataset.taskId) {
+                taskId = target.dataset.taskId;
+            }
+            const field = target.dataset.field as keyof Task;
+            const value = (target as HTMLInputElement).value;
+
+            if (taskId && field) {
+                taskHandlers.handleTaskDetailUpdate(taskId, field, value);
+                return;
+            }
         }
     }
     
