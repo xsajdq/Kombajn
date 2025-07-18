@@ -17,6 +17,7 @@ import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
 import { openClientPanel, openDealPanel, openProjectPanel, showModal } from './handlers/ui.ts';
+import { renderApp } from './app-renderer.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -49,12 +50,13 @@ export async function router() {
             case 'projects':
                 if (state.ui.openedProjectId !== id) {
                     openProjectPanel(id);
-                    // No need to re-render here, as the final switch will return the page
+                    renderApp(); // Force re-render to show the panel
                 }
                 break;
             case 'clients':
                 if (state.ui.openedClientId !== id) {
                     openClientPanel(id);
+                    renderApp(); // Force re-render to show the panel
                 }
                 break;
             case 'tasks':
@@ -65,6 +67,7 @@ export async function router() {
             case 'sales':
                 if (state.ui.openedDealId !== id) {
                     openDealPanel(id);
+                    renderApp(); // Force re-render to show the panel
                 }
                 break;
         }
