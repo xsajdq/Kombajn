@@ -116,7 +116,7 @@ export function getInitialState(): AppState {
                 filters: { dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10), projectId: 'all', userId: 'all', clientId: 'all' },
             },
             settings: { activeTab: 'general' },
-            dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null },
+            dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null, activeTab: 'overview' },
             hr: { activeTab: 'employees' },
             onboarding: { isActive: false, step: 0 },
             sales: { isLoading: false, loadedWorkspaceId: null },

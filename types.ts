@@ -582,6 +582,7 @@ export interface AppState {
             isEditing: boolean;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            activeTab: 'overview' | 'projects' | 'team' | 'analytics';
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
