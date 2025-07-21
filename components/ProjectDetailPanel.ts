@@ -175,23 +175,39 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             </button>
         `;
 
-        return `
-        <div class="project-wiki-container">
-            <div style="display: flex; justify-content: flex-end; align-items:center; gap: 0.5rem; margin-bottom: 1rem;">
+        const toolbar = `
+            <div class="project-wiki-toolbar">
                 <button id="wiki-history-btn" class="btn btn-secondary btn-sm" data-project-id="${project.id}">
                     <span class="material-icons-sharp" style="font-size:1.2rem">history</span>
                     ${t('panels.history')}
                 </button>
-                ${isWikiEditing ? editControls : viewControls}
+                <div style="margin-left: auto; display: flex; gap: 0.5rem;">
+                    ${isWikiEditing ? editControls : viewControls}
+                </div>
             </div>
-            ${isWikiEditing 
-                ? `<textarea id="project-wiki-editor" class="form-control project-wiki-editor" aria-label="Project Wiki Editor">${project.wikiContent || ''}</textarea>`
-                : `<div id="project-wiki-view" class="project-wiki-view" aria-live="polite">
-                        ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
-                   </div>`
-            }
-            <p id="wiki-save-status" class="subtle-text" style="text-align: right; margin-top: 0.5rem; height: 1em;" aria-live="polite"></p>
-        </div>`;
+        `;
+
+        const editorView = `
+            <div class="wiki-editor-layout">
+                <textarea id="project-wiki-editor" class="form-control project-wiki-editor" aria-label="Project Wiki Editor">${project.wikiContent || ''}</textarea>
+                <div id="project-wiki-preview" class="project-wiki-view project-wiki-preview" aria-live="polite">
+                     ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">Live preview will appear here...</p>`}
+                </div>
+            </div>
+        `;
+
+        const readView = `
+            <div id="project-wiki-view" class="project-wiki-view" aria-live="polite">
+                ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+            </div>
+        `;
+
+        return `
+            <div class="project-wiki-container">
+                ${toolbar}
+                ${isWikiEditing ? editorView : readView}
+                <p id="wiki-save-status" class="subtle-text" style="text-align: right; margin-top: 0.5rem; height: 1em;" aria-live="polite"></p>
+            </div>`;
     };
     
     const renderFilesTab = () => {

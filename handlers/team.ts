@@ -459,7 +459,15 @@ export async function handleAddMemberToProject(projectId: string, userId: string
         return;
     }
 
+    const project = state.projects.find(p => p.id === projectId);
+    if (!project) {
+        console.error("Could not find project to add member to.");
+        alert("An error occurred: Project not found.");
+        return;
+    }
+
     const newMemberPayload: Omit<ProjectMember, 'id'> = {
+        workspaceId: project.workspaceId,
         projectId,
         userId,
         role,

@@ -1,10 +1,14 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent } from '../types.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 import { formatDate } from '../utils.ts';
+
+function getUserColorClass(userId: string): string {
+    const colorIndex = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 8; // 8 available colors
+    return `user-color-${colorIndex}`;
+}
 
 function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
     let className = 'team-calendar-item';
@@ -20,8 +24,7 @@ function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        const colorIndex = item.userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 8;
-        className += ` type-timeoff color-${colorIndex}`;
+        className += ` type-timeoff ${getUserColorClass(item.userId)}`;
         text = `${userName}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
         handler = `title="${title}"`;

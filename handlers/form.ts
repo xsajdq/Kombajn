@@ -2,6 +2,8 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -124,6 +126,7 @@ export async function handleFormSubmit() {
 
             // ALWAYS add the creator as admin
             const creatorMember: Omit<ProjectMember, 'id'> = {
+                workspaceId: activeWorkspaceId,
                 projectId: newProject.id,
                 userId: state.currentUser.id,
                 role: 'admin'
@@ -140,6 +143,7 @@ export async function handleFormSubmit() {
                 const membersToAdd: Omit<ProjectMember, 'id'>[] = memberIds
                     .filter(id => id !== state.currentUser!.id) // Don't re-add creator
                     .map(userId => ({
+                        workspaceId: activeWorkspaceId,
                         projectId: newProject.id,
                         userId: userId,
                         role: 'editor' // Default role for invited members

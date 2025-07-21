@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { apiPost } from '../services/api.ts';
 import { closeModal, openProjectPanel } from './ui.ts';
@@ -24,6 +25,7 @@ export async function handlePlanProjectWithAi(name: string, clientId: string, go
         state.projects.push(newProject);
 
         const creatorMember: Omit<ProjectMember, 'id'> = {
+            workspaceId: newProject.workspaceId,
             projectId: newProject.id,
             userId: state.currentUser!.id,
             role: 'admin'

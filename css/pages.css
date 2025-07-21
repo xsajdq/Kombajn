@@ -1436,17 +1436,55 @@
 }
 
 /* PROJECT WIKI STYLING */
+.project-wiki-container {
+    display: flex;
+    flex-direction: column;
+    /* The height will be determined by the side panel content area */
+}
+.project-wiki-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.wiki-editor-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    flex-grow: 1;
+    overflow: hidden; /* Important for child scrolling */
+    min-height: 400px;
+}
+.project-wiki-editor, .project-wiki-preview {
+    height: 100%;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+.project-wiki-editor {
+    padding: 1rem;
+    resize: none;
+    font-family: monospace, sans-serif;
+    line-height: 1.6;
+    font-size: 0.9rem;
+}
+.project-wiki-preview {
+    background-color: var(--light-color);
+    padding: 0 1rem;
+}
+.dark-theme .project-wiki-preview {
+    background-color: var(--background-color);
+}
 .project-wiki-view {
     line-height: 1.7;
     color: var(--text-color);
+    max-width: 800px; /* Comfortable reading width */
 }
-.project-wiki-view > *:first-child {
-    margin-top: 0;
-}
-.project-wiki-view h1,
-.project-wiki-view h2,
-.project-wiki-view h3,
-.project-wiki-view h4 {
+.project-wiki-view > *:first-child { margin-top: 0; }
+.project-wiki-view h1, .project-wiki-view h2, .project-wiki-view h3, .project-wiki-view h4 {
     color: var(--dark-color);
     font-weight: 700;
     line-height: 1.3;
@@ -1456,81 +1494,22 @@
 .project-wiki-view h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
 .project-wiki-view h3 { font-size: 1.25em; }
 .project-wiki-view h4 { font-size: 1.1em; }
-.project-wiki-view p {
-    margin-bottom: 1.25rem;
-}
-.project-wiki-view ul,
-.project-wiki-view ol {
-    padding-left: 2rem;
-    margin-bottom: 1.25rem;
-}
-.project-wiki-view li {
-    margin-bottom: 0.5rem;
-}
-.project-wiki-view blockquote {
-    border-left: 4px solid var(--border-color);
-    padding-left: 1.5rem;
-    margin: 1.5rem 0;
-    color: var(--subtle-text-color);
-    font-style: italic;
-}
-.project-wiki-view hr {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    margin: 2rem 0;
-}
-.project-wiki-view code {
-    background-color: var(--light-color);
-    color: var(--dark-color);
-    padding: 0.2em 0.4em;
-    border-radius: 4px;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.9em;
-}
-.dark-theme .project-wiki-view code {
-    background-color: var(--dark-color);
-    color: var(--light-color);
-}
-.project-wiki-view pre {
-    background-color: var(--light-color);
-    border-radius: var(--border-radius);
-    padding: 1rem;
-    overflow-x: auto;
-    margin-bottom: 1.25rem;
-}
-.dark-theme .project-wiki-view pre {
-    background-color: var(--background-color);
-}
-.project-wiki-view pre code {
-    background-color: transparent;
-    padding: 0;
-}
-.project-wiki-view table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1.25rem;
-}
-.project-wiki-view th,
-.project-wiki-view td {
-    border: 1px solid var(--border-color);
-    padding: 0.75rem;
-    text-align: left;
-}
-.project-wiki-view th {
-    background-color: var(--light-color);
-    font-weight: 600;
-}
-.dark-theme .project-wiki-view th {
-    background-color: var(--dark-color);
-}
-.project-wiki-view a {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 500;
-}
-.project-wiki-view a:hover {
-    text-decoration: underline;
-}
+.project-wiki-view p { margin-bottom: 1.25rem; }
+.project-wiki-view ul, .project-wiki-view ol { padding-left: 2rem; margin-bottom: 1.25rem; }
+.project-wiki-view li { margin-bottom: 0.5rem; }
+.project-wiki-view blockquote { border-left: 4px solid var(--border-color); padding-left: 1.5rem; margin: 1.5rem 0; color: var(--subtle-text-color); font-style: italic; }
+.project-wiki-view hr { border: none; border-top: 1px solid var(--border-color); margin: 2rem 0; }
+.project-wiki-view code { background-color: var(--light-color); color: var(--dark-color); padding: 0.2em 0.4em; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
+.dark-theme .project-wiki-view code { background-color: var(--dark-color); color: var(--light-color); }
+.project-wiki-view pre { background-color: var(--light-color); border-radius: var(--border-radius); padding: 1rem; overflow-x: auto; margin-bottom: 1.25rem; }
+.dark-theme .project-wiki-view pre { background-color: var(--background-color); }
+.project-wiki-view pre code { background-color: transparent; padding: 0; }
+.project-wiki-view table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; }
+.project-wiki-view th, .project-wiki-view td { border: 1px solid var(--border-color); padding: 0.75rem; text-align: left; }
+.project-wiki-view th { background-color: var(--light-color); font-weight: 600; }
+.dark-theme .project-wiki-view th { background-color: var(--dark-color); }
+.project-wiki-view a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+.project-wiki-view a:hover { text-decoration: underline; }
 
 /* SUBTASK DETAIL MODAL STYLES */
 .modal-breadcrumb {
@@ -1755,3 +1734,36 @@
 .task-menu-item.danger .material-icons-sharp {
     color: var(--danger-color);
 }
+
+/* --- TEAM CALENDAR --- */
+.calendar-grid-month { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid var(--border-color); }
+.calendar-grid-month .calendar-weekday { text-align: left; padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--subtle-text-color); border-bottom: 1px solid var(--border-color); }
+.calendar-grid-month .calendar-day { min-height: 140px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; background-color: var(--content-bg); }
+.calendar-grid-month .calendar-day:nth-child(7n) { border-right: none; }
+.calendar-grid-month .calendar-day.other-month { background-color: var(--light-color); }
+.dark-theme .calendar-grid-month .calendar-day.other-month { background-color: var(--background-color); }
+.calendar-grid-month .day-number { font-weight: 500; color: var(--subtle-text-color); margin-bottom: 0.25rem; }
+.calendar-grid-month .calendar-day.today .day-number { background-color: var(--primary-color); color: var(--white-color); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.calendar-items { display: flex; flex-direction: column; gap: 0.375rem; }
+.team-calendar-item { font-size: 0.8125rem; padding: 0.25rem 0.5rem; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid transparent; }
+.team-calendar-item.clickable:hover { filter: brightness(1.1); cursor: pointer; }
+.team-calendar-item.type-task { color: var(--text-color); }
+.team-calendar-item.type-task.priority-high { border-left-color: var(--priority-high); background-color: color-mix(in srgb, var(--priority-high) 20%, transparent); }
+.team-calendar-item.type-task.priority-medium { border-left-color: var(--priority-medium); background-color: color-mix(in srgb, var(--priority-medium) 20%, transparent); }
+.team-calendar-item.type-task.priority-low { border-left-color: var(--priority-low); background-color: color-mix(in srgb, var(--priority-low) 20%, transparent); }
+.team-calendar-item.type-timeoff { color: var(--white-color); font-weight: 500; }
+.team-calendar-item.type-event { background-color: #8B5CF6; color: var(--white-color); }
+.team-calendar-item.type-on-call { background-color: #EC4899; color: var(--white-color); }
+.team-calendar-item.type-public-holiday { background-color: #6B7280; color: var(--white-color); }
+.user-color-0 { background-color: #A78BFA; } .user-color-1 { background-color: #F87171; } .user-color-2 { background-color: #4ADE80; } .user-color-3 { background-color: #FBBF24; }
+.user-color-4 { background-color: #F472B6; } .user-color-5 { background-color: #2DD4BF; } .user-color-6 { background-color: #818CF8; } .user-color-7 { background-color: #FB923C; }
+.calendar-grid-week { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid var(--border-color); border-radius: var(--border-radius); overflow: hidden; }
+.week-view-day-column { border-right: 1px solid var(--border-color); min-height: 60vh; }
+.week-view-day-column:last-child { border-right: none; }
+.week-view-day-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border-bottom: 1px solid var(--border-color); background-color: var(--light-color); }
+.dark-theme .week-view-day-header { background-color: var(--background-color); }
+.week-view-day-header strong { font-weight: 600; }
+.week-view-day-header span { font-size: 1.25rem; font-weight: 700; color: var(--subtle-text-color); }
+.week-view-day-column .calendar-items { padding: 0.5rem; }
+.day-view-list { padding: 1rem; }
+.day-view-list .team-calendar-item { padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
