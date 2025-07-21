@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -24,6 +25,7 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
 import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
+import { apiFetch } from '../services/api.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -88,6 +90,39 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
 }
 // --- END NEW HELPERS ---
 
+async function handleDeleteClient(clientId: string) {
+    if (!confirm('Are you sure you want to delete this client and all associated data (projects, tasks, invoices)? This is irreversible.')) {
+        return;
+    }
+
+    try {
+        // The API backend should have cascading deletes.
+        await apiFetch(`/api/data/clients`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: clientId }),
+        });
+
+        // After successful deletion, update the state.
+        const originalClientCount = state.clients.length;
+        state.clients = state.clients.filter(c => c.id !== clientId);
+
+        // If a client was actually removed, proceed to clean up related data from state.
+        if (state.clients.length < originalClientCount) {
+            const projectsToDelete = state.projects.filter(p => p.clientId === clientId).map(p => p.id);
+            state.projects = state.projects.filter(p => p.clientId !== clientId);
+            state.tasks = state.tasks.filter(t => !projectsToDelete.includes(t.projectId));
+            state.invoices = state.invoices.filter(i => i.clientId !== clientId);
+            state.clientContacts = state.clientContacts.filter(cc => cc.clientId !== clientId);
+        }
+        
+        renderApp();
+    } catch (error) {
+        console.error("Failed to delete client:", error);
+        alert("Could not delete client from the server.");
+    }
+}
+
+
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
@@ -143,6 +178,13 @@ export async function handleClick(e: MouseEvent) {
             }
             row.remove();
         }
+        return;
+    }
+
+    const deleteClientBtn = target.closest<HTMLElement>('[data-delete-client-id]');
+    if (deleteClientBtn) {
+        const clientId = deleteClientBtn.dataset.deleteClientId!;
+        await handleDeleteClient(clientId);
         return;
     }
 
@@ -250,12 +292,11 @@ export async function handleClick(e: MouseEvent) {
         return; 
     }
 
-    const taskStatusCheckbox = target.closest<HTMLInputElement>('.task-status-checkbox');
-    if (taskStatusCheckbox) {
-        e.stopPropagation(); // Prevent opening the task detail modal.
-        const taskId = taskStatusCheckbox.dataset.taskId!;
+    const statusToggleBtn = target.closest<HTMLElement>('.task-status-toggle');
+    if (statusToggleBtn) {
+        const taskId = statusToggleBtn.dataset.taskId!;
         taskHandlers.handleToggleProjectTaskStatus(taskId);
-        return;
+        return; 
     }
 
     const archiveTaskBtn = target.closest<HTMLElement>('[data-archive-task-id]');
@@ -298,7 +339,7 @@ export async function handleClick(e: MouseEvent) {
 
     const taskElement = target.closest<HTMLElement>('[data-task-id].clickable');
     if (taskElement) {
-        if (target.closest('.task-card-menu-btn')) {
+        if (target.closest('.task-card-menu-btn, .task-status-toggle')) {
             return;
         }
         uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
@@ -407,7 +448,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const clientCard = target.closest<HTMLElement>('[data-client-id][role="button"]');
+    const clientCard = target.closest<HTMLElement>('[data-client-id]');
     if (clientCard && !clientCard.closest('[data-modal-target]')) { 
         uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!); 
         return; 

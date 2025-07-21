@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
