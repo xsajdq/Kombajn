@@ -1,6 +1,4 @@
 
-
-
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -24,7 +22,13 @@ function mergeData(data: any) {
         dataMap.clients.set(client.id, client);
     });
     (data.projects || []).forEach((project: Project) => dataMap.projects.set(project.id, project));
-    (data.invoices || []).forEach((invoice: Invoice) => dataMap.invoices.set(invoice.id, invoice));
+    (data.invoices || []).forEach((invoice: Invoice) => {
+        const existingInvoice = dataMap.invoices.get(invoice.id);
+        // Ensure nested items are preserved if the new data doesn't contain them
+        invoice.items = invoice.items || existingInvoice?.items || [];
+        dataMap.invoices.set(invoice.id, invoice);
+    });
+
 
     state.clients = Array.from(dataMap.clients.values());
     state.projects = Array.from(dataMap.projects.values());
@@ -44,7 +48,7 @@ export async function fetchClientsAndInvoicesData(pageName: PageName) {
     renderApp();
 
     try {
-        const data = await apiFetch(`/api/data/clients-page-data?workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api/clients-page-data?workspaceId=${state.activeWorkspaceId}`);
         mergeData(data);
         uiState.loadedWorkspaceId = state.activeWorkspaceId;
     } catch (error) {
