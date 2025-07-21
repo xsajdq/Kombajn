@@ -2,6 +2,7 @@
 
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -40,36 +41,35 @@ async function AppLayout() {
     if (!currentUser || !activeWorkspaceId) {
         // This state should ideally not be reached if the top-level auth check works,
         // but it's a safe fallback.
-        return `<div id="app" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-                    <div class="loading-container"><p>Initializing...</p></div>
+        return `<div id="app" class="flex justify-center items-center h-screen">
+                    <div class="text-text-subtle">Initializing...</div>
                 </div>`;
     }
 
     return `
+    <div class="flex h-screen bg-background text-text-main font-sans">
         ${Sidebar()}
-        <div class="main-content-container" ${isOverlayVisible ? 'aria-hidden="true"' : ''}>
+        <div class="flex-1 flex flex-col overflow-hidden relative">
             ${AppHeader({ currentUser, activeWorkspaceId })}
-            <main class="content">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
                 ${pageContent}
             </main>
+            
+            <div id="side-panel-container" class="${(openedProjectId || openedClientId || openedDealId) ? 'is-open' : ''}">
+                ${openedProjectId ? ProjectDetailPanel({ projectId: openedProjectId }) : ''}
+                ${openedClientId ? ClientDetailPanel({ clientId: openedClientId }) : ''}
+                ${openedDealId ? DealDetailPanel({ dealId: openedDealId }) : ''}
+            </div>
+            <div id="side-panel-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ${ (openedProjectId || openedClientId || openedDealId) ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }"></div>
+
         </div>
-        ${openedProjectId ? `
-            ${ProjectDetailPanel({ projectId: openedProjectId })}
-            <div class="side-panel-overlay"></div>
-        ` : ''}
-        ${openedClientId ? `
-            ${ClientDetailPanel({ clientId: openedClientId })}
-            <div class="side-panel-overlay"></div>
-        ` : ''}
-        ${openedDealId ? `
-            ${DealDetailPanel({ dealId: openedDealId })}
-            <div class="side-panel-overlay"></div>
-        ` : ''}
+        
         ${modal.isOpen ? Modal() : ''}
         ${isCommandPaletteOpen ? CommandPalette() : ''}
         ${FloatingActionButton()}
         ${onboarding.isActive ? OnboardingGuide() : ''}
         <div id="mention-popover-container"></div>
+    </div>
     `;
 }
 
@@ -78,10 +78,7 @@ export async function renderApp() {
     if (!app) return;
     document.documentElement.lang = state.settings.language;
     
-    // Check if a side panel is currently open before re-rendering
-    const wasPanelOpen = !!document.querySelector('.side-panel.is-open');
-
-    const mainContent = document.querySelector('.content');
+    const mainContent = document.querySelector('main.flex-1');
     const sidePanelContent = document.querySelector('.side-panel-content');
 
     const scrollPositions = {
@@ -102,7 +99,7 @@ export async function renderApp() {
         return;
     }
     
-    const newMainContent = document.querySelector('.content');
+    const newMainContent = document.querySelector('main.flex-1');
     if (newMainContent) {
         newMainContent.scrollTop = scrollPositions.main.top;
         newMainContent.scrollLeft = scrollPositions.main.left;
@@ -114,50 +111,30 @@ export async function renderApp() {
         newSidePanelContent.scrollLeft = scrollPositions.sidePanel.left;
     }
 
-
-    // Post-render actions
-    document.body.classList.remove('dark-theme', 'minimal-theme');
+    // Post-render actions: Use Tailwind's dark mode convention
     if (state.settings.theme === 'dark') {
-      document.body.classList.add('dark-theme');
-    } else if (state.settings.theme === 'minimal') {
-      document.body.classList.add('minimal-theme');
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-
 
     if (state.ui.modal.justOpened) {
         state.ui.modal.justOpened = false;
     }
-
+    
+    // Side panel focus management
     if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
         const panel = document.querySelector<HTMLElement>('.side-panel');
         if (panel) {
-            if (wasPanelOpen) {
-                // Panel was already open, show it instantly without animation
-                panel.classList.add('no-transition');
-                panel.classList.add('is-open');
-                setTimeout(() => {
-                    panel.classList.remove('no-transition');
-                }, 50); // Small delay to ensure styles apply before removing class
-            } else {
-                // It's a new panel, so animate it in.
-                setTimeout(() => {
-                    panel.classList.add('is-open');
-                    const firstFocusable = panel.querySelector<HTMLElement>(
-                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                    );
-                    firstFocusable?.focus();
-                }, 10);
-            }
+            const firstFocusable = panel.querySelector<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            firstFocusable?.focus();
         }
     }
     
+    // Modal focus management
     if (state.ui.modal.isOpen) {
-        const overlay = document.querySelector<HTMLElement>('.modal-overlay');
-        if (overlay) {
-            setTimeout(() => {
-                overlay.classList.add('is-open');
-            }, 10);
-        }
         const modal = document.querySelector<HTMLElement>('.modal-content');
         if (modal) {
             const firstFocusable = modal.querySelector<HTMLElement>(

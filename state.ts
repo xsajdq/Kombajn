@@ -1,6 +1,6 @@
 
 
-import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact, FilterView } from './types.ts';
+import type { AppState } from './types.ts';
 
 export function generateId(): string {
     // A more robust ID generator
@@ -24,18 +24,8 @@ export function getInitialState(): AppState {
 
     // Load settings from localStorage
     const savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
-    const legacyDarkMode = localStorage.getItem('darkMode');
 
-    let theme: 'light' | 'dark' | 'minimal' = savedSettings.theme;
-    if (!theme) {
-        if (legacyDarkMode === 'true') {
-            theme = 'dark';
-        } else {
-            theme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-        // Migrate old setting
-        localStorage.removeItem('darkMode');
-    }
+    const theme: 'light' | 'dark' | 'minimal' = savedSettings.theme || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     
     // This is now the blueprint for a clean, empty state.
     // Data will be fetched from the API.
@@ -81,7 +71,7 @@ export function getInitialState(): AppState {
         filterViews: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
-            theme,
+            theme: theme,
             language: savedSettings.language || 'en',
         },
         activeTimers: {},

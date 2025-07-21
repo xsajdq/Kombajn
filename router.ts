@@ -19,6 +19,8 @@ import { can } from './permissions.ts';
 import { openClientPanel, openDealPanel, openProjectPanel, showModal } from './handlers/ui.ts';
 import { renderApp } from './app-renderer.ts';
 
+let isHandlingUrlNav = false;
+
 export async function router() {
     // If no user is authenticated, always show the authentication page.
     if (!state.currentUser) {
@@ -45,18 +47,20 @@ export async function router() {
 
     // This part handles opening a detail view from a direct URL load (deep linking).
     // The check prevents a re-render loop when interacting inside an open panel.
-    if (id) {
+    if (id && !isHandlingUrlNav) {
+        isHandlingUrlNav = true;
+        let shouldReRender = false;
         switch (state.currentPage) {
             case 'projects':
                 if (state.ui.openedProjectId !== id) {
                     openProjectPanel(id);
-                    renderApp(); // Force re-render to show the panel
+                    shouldReRender = true;
                 }
                 break;
             case 'clients':
                 if (state.ui.openedClientId !== id) {
                     openClientPanel(id);
-                    renderApp(); // Force re-render to show the panel
+                    shouldReRender = true;
                 }
                 break;
             case 'tasks':
@@ -67,11 +71,20 @@ export async function router() {
             case 'sales':
                 if (state.ui.openedDealId !== id) {
                     openDealPanel(id);
-                    renderApp(); // Force re-render to show the panel
+                    shouldReRender = true;
                 }
                 break;
         }
-    } else {
+        if (shouldReRender) {
+             // Defer re-render to allow state to update first
+            setTimeout(() => {
+                renderApp();
+                isHandlingUrlNav = false;
+            }, 0);
+        } else {
+            isHandlingUrlNav = false;
+        }
+    } else if (!id) {
         // If there's no ID in the URL, ensure all panels are closed.
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;
