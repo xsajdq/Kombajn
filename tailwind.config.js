@@ -8,17 +8,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'primary': 'var(--primary-color)',
-        'primary-hover': 'var(--primary-hover-color)',
-        'text-main': 'var(--text-color)',
-        'text-subtle': 'var(--subtle-text-color)',
-        'background': 'var(--background-color)',
-        'content': 'var(--content-bg)',
-        'border-color': 'var(--border-color)',
-        'danger': 'var(--danger-color)',
-        'success': 'var(--success-color)',
-        'warning': 'var(--warning-color)',
-        'sidebar-text': 'var(--sidebar-text)',
+        'primary': 'rgb(var(--primary-color-rgb) / <alpha-value>)',
+        'primary-hover': 'rgb(var(--primary-hover-color-rgb) / <alpha-value>)',
+        'text-main': 'rgb(var(--text-color-rgb) / <alpha-value>)',
+        'text-subtle': 'rgb(var(--subtle-text-color-rgb) / <alpha-value>)',
+        'background': 'rgb(var(--background-color-rgb) / <alpha-value>)',
+        'content': 'rgb(var(--content-bg-rgb) / <alpha-value>)',
+        'border-color': 'rgb(var(--border-color-rgb) / <alpha-value>)',
+        'danger': 'rgb(var(--danger-color-rgb) / <alpha-value>)',
+        'success': 'rgb(var(--success-color-rgb) / <alpha-value>)',
+        'warning': 'rgb(var(--warning-color-rgb) / <alpha-value>)',
+        'sidebar-text': 'rgb(var(--sidebar-text-rgb) / <alpha-value>)',
       },
       boxShadow: {
         sm: 'var(--shadow-sm)',
