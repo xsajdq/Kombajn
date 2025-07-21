@@ -332,30 +332,34 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid');
+    // Detail Panel Openers (Reverted Logic)
+    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid, .task-list-row[data-task-id]');
     if (taskElement) {
-        if (target.closest('.task-card-menu-btn, .timer-controls, a, button')) {
-            return;
-        }
+        if (target.closest('.task-card-menu-btn, .timer-controls, a, button')) return;
         uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
         return;
     }
-    
-    const dealCard = target.closest<HTMLElement>('[data-deal-id].deal-card');
-    if (dealCard) {
-        const dealId = dealCard.dataset.dealId!;
-        if (state.currentPage === 'sales') {
-            if (state.ui.openedDealId !== dealId) {
-                state.ui.openedDealId = dealId;
-                history.pushState({}, '', `/sales/${dealId}`);
-                renderApp();
-            }
-        } else {
-            uiHandlers.updateUrlAndShowDetail('deal', dealId);
-        }
+
+    const projectListItem = target.closest<HTMLElement>('[data-project-id]');
+    if (projectListItem) {
+        if (target.closest('a, button, .project-menu-btn')) return;
+        uiHandlers.updateUrlAndShowDetail('project', projectListItem.dataset.projectId!);
         return;
     }
 
+    const clientListItem = target.closest<HTMLElement>('[data-client-id]');
+    if (clientListItem) {
+        if (target.closest('a, button')) return;
+        uiHandlers.updateUrlAndShowDetail('client', clientListItem.dataset.clientId!);
+        return;
+    }
+
+    const dealCard = target.closest<HTMLElement>('[data-deal-id].deal-card');
+    if (dealCard) {
+        uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
+        return;
+    }
+    
     const calendarNav = target.closest<HTMLElement>('[data-calendar-nav]');
     if (calendarNav) {
         const targetCalendar = calendarNav.dataset.targetCalendar || 'main';
@@ -455,29 +459,6 @@ export async function handleClick(e: MouseEvent) {
     
     const rejectJoinRequestBtn = target.closest<HTMLElement>('[data-reject-join-request-id]');
     if (rejectJoinRequestBtn) { teamHandlers.handleRejectJoinRequest(rejectJoinRequestBtn.dataset.rejectJoinRequestId!); return; }
-
-    // Master-Detail Panel Openers
-    const projectListItem = target.closest<HTMLElement>('[data-project-id]');
-    if (projectListItem && state.currentPage === 'projects') {
-        const projectId = projectListItem.dataset.projectId!;
-        if (state.ui.openedProjectId !== projectId) {
-            state.ui.openedProjectId = projectId;
-            history.pushState({}, '', `/projects/${projectId}`);
-            renderApp();
-        }
-        return;
-    }
-
-    const clientListItem = target.closest<HTMLElement>('[data-client-id]');
-    if (clientListItem && state.currentPage === 'clients') {
-        const clientId = clientListItem.dataset.clientId!;
-        if (state.ui.openedClientId !== clientId) {
-            state.ui.openedClientId = clientId;
-            history.pushState({}, '', `/clients/${clientId}`);
-            renderApp();
-        }
-        return;
-    }
 
 
     if (target.closest('.btn-close-panel') || target.matches('#side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }

@@ -1,12 +1,10 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 import { fetchSalesData } from '../handlers/deals.ts';
 import { formatCurrency } from '../utils.ts';
-import { DealDetailPanel } from '../components/DealDetailPanel.ts';
 
 function renderDealCard(deal: Deal) {
     const client = state.clients.find(c => c.id === deal.clientId);
@@ -74,13 +72,7 @@ function renderKanbanBoard() {
 export function SalesPage() {
     fetchSalesData();
     const canManage = can('manage_deals');
-    const { openedDealId, sales: { isLoading } } = state.ui;
-
-    const mainContent = isLoading ? `
-        <div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-    ` : renderKanbanBoard();
+    const { sales: { isLoading } } = state.ui;
 
     return `
     <div class="h-full flex flex-col">
@@ -90,19 +82,11 @@ export function SalesPage() {
                 <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
             </button>
         </div>
-        <div class="master-detail-layout flex-1 min-h-0 ${openedDealId ? 'has-detail' : ''}">
-            <div class="master-pane flex flex-col">
-                ${mainContent}
+        ${isLoading ? `
+            <div class="flex items-center justify-center h-full">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-            <div class="detail-pane">
-                ${openedDealId ? DealDetailPanel({ dealId: openedDealId }) : `
-                    <div class="flex flex-col items-center justify-center h-full text-center p-4">
-                        <span class="material-icons-sharp text-5xl text-text-subtle">add_business</span>
-                        <p class="mt-2 text-text-subtle">Select a deal to see details</p>
-                    </div>
-                `}
-            </div>
-        </div>
+        ` : renderKanbanBoard()}
     </div>
     `;
 }

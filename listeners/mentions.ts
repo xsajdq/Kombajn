@@ -1,7 +1,7 @@
 
 
 import { state } from '../state.ts';
-import { renderApp, renderMentionPopover } from '../app-renderer.ts';
+import { renderMentionPopover } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 
 export function parseMentionContent(element: HTMLElement): string {

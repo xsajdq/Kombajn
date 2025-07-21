@@ -1,5 +1,4 @@
 
-
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
@@ -7,34 +6,26 @@ import type { AppState } from '../types.ts';
 let lastFocusedElement: HTMLElement | null = null;
 
 export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'deal', id: string) {
-    let path = '';
-    // Modals are handled differently. Keep its direct call since the URL is more for bookmarking.
-    if (type === 'task') {
-        path = `/tasks/${id}`;
-        if (path && window.location.pathname !== path) {
-            history.pushState({ id }, '', path);
-        }
-        showModal('taskDetail', { taskId: id });
-        return;
-    }
-
-    // For side panels, we simply change the URL and let the router handle the state change on re-render.
     switch (type) {
-        case 'project': path = `/projects/${id}`; break;
-        case 'client': path = `/clients/${id}`; break;
-        case 'deal': path = `/sales/${id}`; break;
+        case 'project':
+            openProjectPanel(id);
+            history.pushState({ id }, '', `/projects/${id}`);
+            break;
+        case 'client':
+            openClientPanel(id);
+            history.pushState({ id }, '', `/clients/${id}`);
+            break;
+        case 'deal':
+            openDealPanel(id);
+            history.pushState({ id }, '', `/sales/${id}`);
+            break;
+        case 'task':
+            history.pushState({ id }, '', `/tasks/${id}`);
+            showModal('taskDetail', { taskId: id });
+            return; // showModal calls renderApp
     }
-
-    if (path && window.location.pathname !== path) {
-        history.pushState({ id }, '', path);
-        // Trigger a re-render which will invoke the router with the new URL
-        renderApp();
-    } else if (path && window.location.pathname === path) {
-        // If URL is correct but panel somehow closed, re-render to enforce state.
-        renderApp();
-    }
+    renderApp();
 }
-
 
 function updateUrlOnPanelClose() {
     // When a panel closes, revert the URL to the main page URL for that section

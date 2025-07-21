@@ -38,23 +38,26 @@
 }
 
 @layer components {
-  /* == Master-Detail Layout (Clients, Projects) == */
-  .master-detail-layout {
-    @apply grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 h-full;
+  /* == Side Panel Overlay == */
+  #side-panel-container {
+      @apply fixed top-0 right-0 h-full w-[95vw] sm:w-[60vw] max-w-3xl bg-content shadow-2xl z-40 transform translate-x-full transition-transform duration-300 ease-in-out;
   }
-  .master-pane {
-    @apply lg:col-span-2 xl:col-span-3 min-h-0 flex flex-col gap-6;
+  #side-panel-container.is-open {
+      @apply translate-x-0;
   }
-  .master-pane-list {
-    @apply flex-1 min-h-0 overflow-y-auto pr-2 -mr-2;
-    scrollbar-width: thin;
+  .side-panel {
+    @apply h-full w-full flex flex-col;
   }
-  .detail-pane {
-    @apply lg:col-span-1 xl:col-span-1 bg-content rounded-lg border border-border-color shadow-sm h-full hidden lg:flex flex-col;
+  .side-panel-header {
+      @apply flex justify-between items-start p-4 border-b border-border-color shrink-0;
   }
-  .master-detail-layout.has-detail .detail-pane {
-    @apply flex;
+  .side-panel-header h2 {
+      @apply text-lg font-semibold;
   }
+  .side-panel-content {
+      @apply flex-1 p-4 sm:p-6 overflow-y-auto;
+  }
+
    /* == Deal Detail Panel == */
   .deal-pipeline-visualizer {
     @apply flex items-center text-xs font-semibold text-center mb-4;

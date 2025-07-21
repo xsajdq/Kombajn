@@ -1,18 +1,28 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate } from '../utils.ts';
+import { fetchClientsAndInvoicesData } from '../handlers/main.ts';
 
 export function ClientsPage() {
+    fetchClientsAndInvoicesData('clients');
+
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
+
+    if (state.ui.clients.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
 
     const clients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
     const canManage = can('manage_clients');
 
     const totalClients = clients.length;
-    const activeClients = totalClients;
+    const activeClients = totalClients; // Simplified for now
     const totalProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId).length;
     
     const totalRevenue = state.invoices
@@ -26,32 +36,15 @@ export function ClientsPage() {
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="text-2xl font-bold">${t('clients.title')}</h2>
-                <p class="text-text-subtle">Manage your client relationships</p>
             </div>
             <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
-                <span class="material-icons-sharp text-base">add</span> Add Client
-            </button>
-        </div>
-
-        <div class="bg-content p-3 rounded-lg border border-border-color flex flex-col sm:flex-row items-center gap-3">
-            <div class="relative w-full sm:w-auto flex-grow">
-                 <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                 <input type="text" id="client-search" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" placeholder="Search clients...">
-            </div>
-            <select id="client-status-filter" class="w-full sm:w-auto bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
-            <button class="w-full sm:w-auto px-3 py-2 text-sm font-medium flex items-center justify-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
-                <span class="material-icons-sharp text-base">filter_list</span>
-                Filter
+                <span class="material-icons-sharp text-base">add</span> ${t('clients.add_client')}
             </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-content p-4 rounded-lg flex items-center gap-4">
-                <div class="p-3 rounded-full bg-blue-100 text-blue-500">
+                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-500">
                     <span class="material-icons-sharp">business</span>
                 </div>
                 <div>
@@ -60,7 +53,7 @@ export function ClientsPage() {
                 </div>
             </div>
             <div class="bg-content p-4 rounded-lg flex items-center gap-4">
-                <div class="p-3 rounded-full bg-green-100 text-green-500">
+                <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/50 text-green-500">
                     <span class="material-icons-sharp">person</span>
                 </div>
                 <div>
@@ -69,7 +62,7 @@ export function ClientsPage() {
                 </div>
             </div>
             <div class="bg-content p-4 rounded-lg flex items-center gap-4">
-                <div class="p-3 rounded-full bg-purple-100 text-purple-500">
+                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-500">
                     <span class="material-icons-sharp">folder</span>
                 </div>
                 <div>
@@ -78,12 +71,12 @@ export function ClientsPage() {
                 </div>
             </div>
             <div class="bg-content p-4 rounded-lg flex items-center gap-4">
-                <div class="p-3 rounded-full bg-orange-100 text-orange-500">
+                <div class="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-500">
                     <span class="material-icons-sharp">payments</span>
                 </div>
                 <div>
                     <p class="text-sm text-text-subtle">Total Revenue</p>
-                    <strong class="text-xl font-semibold">${formatCurrency(totalRevenue, 'USD')}</strong>
+                    <strong class="text-xl font-semibold">${formatCurrency(totalRevenue)}</strong>
                 </div>
             </div>
         </div>
@@ -92,28 +85,20 @@ export function ClientsPage() {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${clients.map(client => {
                     const projectCount = state.projects.filter(p => p.clientId === client.id).length;
-                    const revenueForClient = state.invoices
-                        .filter(i => i.clientId === client.id && i.status === 'paid')
-                        .reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
-                    const firstInvoiceDate = state.invoices
-                        .filter(i => i.clientId === client.id)
-                        .map(i => new Date(i.issueDate))
-                        .sort((a,b) => a.getTime() - b.getTime())[0];
-
-                    const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : { name: client.contactPerson, email: client.email, phone: client.phone };
+                    const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : { name: client.contactPerson, email: client.email };
                     const initials = (client.name || '').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
                     return `
-                    <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4">
+                    <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-client-id="${client.id}" role="button" tabindex="0">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg font-semibold">${initials}</div>
+                                <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 flex items-center justify-center text-lg font-semibold">${initials}</div>
                                 <div>
                                     <strong class="font-semibold text-lg">${client.name}</strong>
                                     <p class="text-sm text-text-subtle">${primaryContact?.name || ''}</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Active</span>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/50 text-green-700">Active</span>
                         </div>
                         <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4">
                             <div class="flex items-center gap-2">
@@ -121,32 +106,9 @@ export function ClientsPage() {
                                 <span>${primaryContact?.email || t('misc.not_applicable')}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="material-icons-sharp text-base">phone</span>
-                                <span>${primaryContact?.phone || t('misc.not_applicable')}</span>
+                                <span class="material-icons-sharp text-base">folder</span>
+                                <span>${projectCount} ${t('clients.active_projects')}</span>
                             </div>
-                             <div class="flex items-center gap-2">
-                                <span class="material-icons-sharp text-base">location_on</span>
-                                <span>${client.address || t('misc.not_applicable')}</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center text-center border-t border-border-color pt-4">
-                            <div>
-                                <label class="text-xs text-text-subtle">Projects</label>
-                                <strong class="block font-semibold">${projectCount}</strong>
-                            </div>
-                            <div>
-                                <label class="text-xs text-text-subtle">Revenue</label>
-                                <strong class="block font-semibold">${formatCurrency(revenueForClient, 'USD')}</strong>
-                            </div>
-                            <div>
-                                <label class="text-xs text-text-subtle">Since</label>
-                                <strong class="block font-semibold">${firstInvoiceDate ? formatDate(firstInvoiceDate.toISOString(), { year: 'numeric', month: '2-digit', day: '2-digit'}) : t('misc.not_applicable')}</strong>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 border-t border-border-color pt-4">
-                            <button class="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-client-id="${client.id}">View Details</button>
-                            <button class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addClient" data-client-id="${client.id}">Edit</button>
-                            <button class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-delete-client-id="${client.id}">Delete</button>
                         </div>
                     </div>
                 `}).join('')}

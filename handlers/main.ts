@@ -1,9 +1,60 @@
 
+
+
 import { state } from '../state.ts';
-import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget } from '../types.ts';
+import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
-import { apiPost } from '../services/api.ts';
+import { apiPost, apiFetch } from '../services/api.ts';
+
+type PageName = 'clients' | 'invoices';
+
+function mergeData(data: any) {
+    // Merges data into state to prevent overwriting data from other pages
+    const dataMap = {
+        clients: new Map(state.clients.map(c => [c.id, c])),
+        projects: new Map(state.projects.map(p => [p.id, p])),
+        invoices: new Map(state.invoices.map(i => [i.id, i])),
+    };
+
+    (data.clients || []).forEach((client: Client) => {
+        const existingClient = dataMap.clients.get(client.id);
+        // Preserve existing contacts if the new data doesn't have them
+        client.contacts = client.contacts || existingClient?.contacts || [];
+        dataMap.clients.set(client.id, client);
+    });
+    (data.projects || []).forEach((project: Project) => dataMap.projects.set(project.id, project));
+    (data.invoices || []).forEach((invoice: Invoice) => dataMap.invoices.set(invoice.id, invoice));
+
+    state.clients = Array.from(dataMap.clients.values());
+    state.projects = Array.from(dataMap.projects.values());
+    state.invoices = Array.from(dataMap.invoices.values());
+}
+
+
+export async function fetchClientsAndInvoicesData(pageName: PageName) {
+    const uiState = state.ui[pageName];
+    if (!state.activeWorkspaceId || uiState.isLoading) return;
+
+    if (uiState.loadedWorkspaceId === state.activeWorkspaceId) {
+        return; // Data already loaded for this workspace
+    }
+
+    uiState.isLoading = true;
+    renderApp();
+
+    try {
+        const data = await apiFetch(`/api/data/clients-page-data?workspaceId=${state.activeWorkspaceId}`);
+        mergeData(data);
+        uiState.loadedWorkspaceId = state.activeWorkspaceId;
+    } catch (error) {
+        console.error(`Failed to fetch ${pageName} data:`, error);
+        uiState.loadedWorkspaceId = null; // Allow retry
+    } finally {
+        uiState.isLoading = false;
+        renderApp();
+    }
+}
 
 
 export function getUserProjectRole(userId: string, projectId: string): ProjectRole | null {
