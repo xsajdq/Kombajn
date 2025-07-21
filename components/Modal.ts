@@ -547,7 +547,7 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addWidget') {
-        const widgetTypes: DashboardWidgetType[] = ['recentProjects', 'todaysTasks', 'activityFeed'];
+        const widgetTypes: DashboardWidgetType[] = ['recentProjects', 'todaysTasks', 'activityFeed', 'schedule', 'alerts', 'weeklyPerformance', 'quickActions'];
         title = t('modals.add_widget');
         body = `
             <div class="item-list">

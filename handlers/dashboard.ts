@@ -26,7 +26,7 @@ export async function addWidget(type: DashboardWidgetType) {
         type,
         x: 0,
         y: 0,
-        w: 4, 
+        w: type === 'weeklyPerformance' ? 12 : 4, 
         h: 6,
         sortOrder: maxSortOrder + 1,
         config: {}
@@ -35,6 +35,7 @@ export async function addWidget(type: DashboardWidgetType) {
     try {
         const [savedWidget] = await apiPost('dashboard_widgets', newWidgetPayload);
         state.dashboardWidgets.push(savedWidget);
+        state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         closeModal();
     } catch (error) {
         console.error("Failed to add widget:", error);
