@@ -50,16 +50,11 @@ function destroyCharts() {
     charts = {};
 }
 
-// --- NEW WIDGET RENDERERS ---
+// --- KPI & WIDGET RENDERERS ---
 
 function renderKpiMetric(
-    title: string,
-    value: string,
-    percentageChange: number | null,
-    footerText: string,
-    icon: string,
-    iconBgColor: string,
-    iconColor: string
+    title: string, value: string, percentageChange: number | null, footerText: string,
+    icon: string, iconBgColor: string, iconColor: string
 ) {
     const changeIndicator = percentageChange !== null ? `
         <span class="percentage ${percentageChange >= 0 ? 'positive' : 'negative'}">
@@ -83,19 +78,21 @@ function renderKpiMetric(
     `;
 }
 
-function renderRecentProjectsWidget(widget: DashboardWidget) {
+function renderRecentProjectsWidget(widget: DashboardWidget, isEditing: boolean) {
     const recentProjects = state.projects
         .filter(p => p.workspaceId === state.activeWorkspaceId)
-        .slice(0, 5); // Simple "recent" logic for now
+        .sort((a,b) => (b.id > a.id ? 1 : -1)) // simple sort by creation time
+        .slice(0, 5);
 
     return `
-        <div class="recent-projects-widget">
+        <div class="widget-container" data-widget-id="${widget.id}">
+             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
             <div class="widget-header">
                 <h4>${t('dashboard.widget_recent_projects_title')}</h4>
                 <a href="/projects" class="btn-link">${t('dashboard.view_all')}</a>
             </div>
             <div class="project-list">
-                ${recentProjects.map(p => {
+                ${recentProjects.length > 0 ? recentProjects.map(p => {
                     const tasks = state.tasks.filter(t => t.projectId === p.id);
                     const completed = tasks.filter(t => t.status === 'done').length;
                     const progress = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
@@ -108,18 +105,19 @@ function renderRecentProjectsWidget(widget: DashboardWidget) {
                             <span class="due-date">${Math.round(progress)}%</span>
                         </div>
                     `;
-                }).join('')}
+                }).join('') : `<p class="subtle-text">No projects yet.</p>`}
             </div>
         </div>
     `;
 }
 
-function renderTodaysTasksWidget(widget: DashboardWidget) {
+function renderTodaysTasksWidget(widget: DashboardWidget, isEditing: boolean) {
     const today = new Date().toISOString().slice(0, 10);
     const todaysTasks = state.tasks.filter(t => t.dueDate === today && t.status !== 'done');
 
     return `
-         <div class="todays-tasks-widget">
+         <div class="widget-container" data-widget-id="${widget.id}">
+            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
             <div class="widget-header">
                 <h4>${t('dashboard.widget_todays_tasks_title')}</h4>
                 <a href="/tasks" class="btn-link">${t('dashboard.view_all')}</a>
@@ -136,15 +134,12 @@ function renderTodaysTasksWidget(widget: DashboardWidget) {
     `;
 }
 
-function renderActivityFeedWidget(widget: DashboardWidget) {
+function renderActivityFeedWidget(widget: DashboardWidget, isEditing: boolean) {
      const activities = [...state.comments, ...state.timeLogs]
         .filter(item => item.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 5);
     
-    const clientMap = new Map(state.clients.map(c => [c.id, c.name]));
-    const projectMap = new Map(state.projects.map(p => [p.id, {name: p.name, clientId: p.clientId}]));
-
     const getActivityText = (item: Comment | TimeLog) => {
         const user = state.users.find(u => u.id === item.userId);
         const task = state.tasks.find(t => t.id === item.taskId);
@@ -166,12 +161,13 @@ function renderActivityFeedWidget(widget: DashboardWidget) {
     };
     
     return `
-        <div class="activity-feed-widget">
+        <div class="widget-container" data-widget-id="${widget.id}">
+            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
              <div class="widget-header">
                 <h4>${t('dashboard.widget_activity_feed_title')}</h4>
             </div>
             <div class="feed-list">
-                ${activities.map(item => {
+                ${activities.length > 0 ? activities.map(item => {
                     const { text, icon, color } = getActivityText(item);
                     return `
                         <div class="feed-item">
@@ -184,13 +180,13 @@ function renderActivityFeedWidget(widget: DashboardWidget) {
                             </div>
                         </div>
                     `;
-                }).join('')}
+                }).join('') : `<p class="subtle-text">${t('dashboard.no_activity_yet')}</p>`}
             </div>
         </div>
     `;
 }
 
-function renderScheduleWidget() {
+function renderScheduleWidget(widget: DashboardWidget, isEditing: boolean) {
     const today = new Date();
     const meetingsToday = state.calendarEvents.filter(e => {
         const startDate = new Date(e.startDate);
@@ -199,36 +195,75 @@ function renderScheduleWidget() {
                startDate.getDate() === today.getDate();
     });
     return `
-        <div class="info-card-widget schedule">
+        <div class="info-card-widget schedule" data-widget-id="${widget.id}">
+            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
             <div class="card-header"><span class="material-icons-sharp">calendar_month</span> ${t('dashboard.widget_schedule_title')}</div>
             <div class="card-body"><p>You have ${meetingsToday.length} meetings scheduled for today</p></div>
             <div class="card-footer"><a href="/team-calendar" class="btn-link">View Calendar &rarr;</a></div>
         </div>
     `;
 }
-function renderAlertsWidget() {
+
+function renderAlertsWidget(widget: DashboardWidget, isEditing: boolean) {
      const overdueProjects = state.projects.filter(p => {
         const tasks = state.tasks.filter(t => t.projectId === p.id);
         return tasks.some(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done');
     }).length;
 
     return `
-        <div class="info-card-widget alerts">
+        <div class="info-card-widget alerts" data-widget-id="${widget.id}">
+             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
             <div class="card-header"><span class="material-icons-sharp">warning</span> ${t('dashboard.widget_alerts_title')}</div>
             <div class="card-body"><p>${overdueProjects} projects need attention</p></div>
             <div class="card-footer"><a href="/projects" class="btn-link">View Alerts &rarr;</a></div>
         </div>
     `;
 }
-function renderQuickActionsWidget() {
+
+function renderWeeklyPerformanceWidget(widget: DashboardWidget, isEditing: boolean) {
+    // Dummy data for now
     return `
-        <div class="widget-container">
-            <div class="widget-header"><h4>${t('dashboard.widget_quick_actions_title')}</h4></div>
+        <div class="widget-container weekly-performance-widget" data-widget-id="${widget.id}">
+            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
+            <div class="widget-header">
+                <h4>${t('dashboard.widget_weekly_performance_title')}</h4>
+                <a href="/reports" class="btn-link">Full Report</a>
+            </div>
+            <div class="performance-grid">
+                <div class="performance-item">
+                    <div class="value" style="color:#3B82F6;">94%</div>
+                    <div class="label">Task Completion</div>
+                    <div class="change positive">+5% from last week</div>
+                </div>
+                <div class="performance-item">
+                    <div class="value" style="color:#A855F7;">87%</div>
+                    <div class="label">Team Efficiency</div>
+                    <div class="change positive">+3% from last week</div>
+                </div>
+                <div class="performance-item">
+                    <div class="value" style="color:#10B981;">156h</div>
+                    <div class="label">Hours Tracked</div>
+                    <div class="change negative">Target: 160h</div>
+                </div>
+                 <div class="performance-item">
+                    <div class="value" style="color:#F59E0B;">${formatCurrency(24500, 'PLN')}</div>
+                    <div class="label">Revenue Generated</div>
+                    <div class="change positive">+18% from last week</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderQuickActionsWidget(widget: DashboardWidget, isEditing: boolean) {
+    return `
+        <div class="widget-container quick-actions-container" data-widget-id="${widget.id}">
+             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
             <div class="quick-actions-grid">
-                <button class="quick-action-btn" data-modal-target="addProject"><span class="material-icons-sharp">add_business</span> ${t('dashboard.action_new_project')}</button>
-                <button class="quick-action-btn" data-modal-target="addClient"><span class="material-icons-sharp">person_add</span> ${t('dashboard.action_add_client')}</button>
-                <button class="quick-action-btn" data-modal-target="addInvoice"><span class="material-icons-sharp">receipt_long</span> ${t('dashboard.action_create_invoice')}</button>
-                <button class="quick-action-btn" data-modal-target="addCalendarEvent"><span class="material-icons-sharp">event</span> ${t('dashboard.action_schedule_meeting')}</button>
+                <button class="quick-action-btn" data-modal-target="addProject"><span class="material-icons-sharp" style="color: #6366F1;">add_business</span> ${t('dashboard.action_new_project')}</button>
+                <button class="quick-action-btn" data-modal-target="addClient"><span class="material-icons-sharp" style="color: #10B981;">person_add</span> ${t('dashboard.action_add_client')}</button>
+                <button class="quick-action-btn" data-modal-target="addInvoice"><span class="material-icons-sharp" style="color: #EF4444;">receipt_long</span> ${t('dashboard.action_create_invoice')}</button>
+                <button class="quick-action-btn" data-modal-target="addCalendarEvent"><span class="material-icons-sharp" style="color: #F59E0B;">event</span> ${t('dashboard.action_schedule_meeting')}</button>
             </div>
         </div>
     `;
@@ -254,6 +289,22 @@ export function DashboardPage() {
         `;
     }
     
+    const isEditing = state.ui.dashboard.isEditing;
+    const userWidgets = state.dashboardWidgets.filter(w => w.userId === currentUser.id && w.workspaceId === activeWorkspaceId);
+    
+    const renderWidget = (widget: DashboardWidget) => {
+        switch(widget.type) {
+            case 'recentProjects': return renderRecentProjectsWidget(widget, isEditing);
+            case 'todaysTasks': return renderTodaysTasksWidget(widget, isEditing);
+            case 'activityFeed': return renderActivityFeedWidget(widget, isEditing);
+            case 'schedule': return renderScheduleWidget(widget, isEditing);
+            case 'alerts': return renderAlertsWidget(widget, isEditing);
+            case 'weeklyPerformance': return renderWeeklyPerformanceWidget(widget, isEditing);
+            case 'quickActions': return renderQuickActionsWidget(widget, isEditing);
+            default: return ``;
+        }
+    };
+
     // --- CALCULATE KPIs ---
     const totalRevenue = state.invoices
         .filter(i => i.workspaceId === activeWorkspaceId && i.status === 'paid')
@@ -273,11 +324,11 @@ export function DashboardPage() {
                     <p class="subtle-text">${t('dashboard.welcome_sub')}</p>
                 </div>
                 <div class="header-right">
-                    <button id="toggle-dashboard-edit-mode" class="btn btn-secondary">
-                       <span class="material-icons-sharp">edit</span>
-                       ${t('dashboard.edit_dashboard')}
+                    <button id="toggle-dashboard-edit-mode" class="btn ${isEditing ? 'btn-primary' : 'btn-secondary'}">
+                       <span class="material-icons-sharp">${isEditing ? 'done' : 'edit'}</span>
+                       ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
                     </button>
-                    <button class="btn btn-primary" id="dashboard-quick-actions">
+                    <button class="btn btn-primary" id="dashboard-quick-actions-btn">
                         <span class="material-icons-sharp">bolt</span> Quick Actions
                     </button>
                 </div>
@@ -291,22 +342,21 @@ export function DashboardPage() {
             </div>
 
             <div class="dashboard-kpi-grid">
-                ${renderKpiMetric(t('dashboard.kpi_total_revenue'), formatCurrency(totalRevenue), 12.5, t('dashboard.vs_last_month'), 'attach_money', '#dcfce7', '#22c55e')}
+                ${renderKpiMetric(t('dashboard.kpi_total_revenue'), formatCurrency(totalRevenue, 'PLN'), 12.5, t('dashboard.vs_last_month'), 'attach_money', '#dcfce7', '#22c55e')}
                 ${renderKpiMetric(t('dashboard.kpi_active_projects'), `${activeProjects}`, 3, t('dashboard.vs_last_month'), 'folder', '#e0e7ff', '#4f46e5')}
                 ${renderKpiMetric(t('dashboard.kpi_total_clients'), `${totalClients}`, 8, t('dashboard.vs_last_month'), 'people', '#f3e8ff', '#9333ea')}
                 ${renderKpiMetric(t('dashboard.kpi_overdue_projects'), `${overdueProjects}`, -5.2, t('dashboard.vs_last_month'), 'error', '#fee2e2', '#ef4444')}
             </div>
 
-            <div class="dashboard-main-grid">
-                ${renderRecentProjectsWidget({} as DashboardWidget)}
-                ${renderTodaysTasksWidget({} as DashboardWidget)}
-                ${renderActivityFeedWidget({} as DashboardWidget)}
-                <div class="info-cards-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                    ${renderScheduleWidget()}
-                    ${renderAlertsWidget()}
-                </div>
-                 ${renderQuickActionsWidget()}
+            <div class="dashboard-widget-grid ${isEditing ? 'is-editing' : ''}">
+                ${userWidgets.map(renderWidget).join('')}
             </div>
+
+            ${isEditing ? `
+                <button class="fab" id="add-widget-btn" aria-label="${t('dashboard.add_widget')}" title="${t('dashboard.add_widget')}">
+                    <span class="material-icons-sharp">add</span>
+                </button>
+            ` : ''}
         </div>
     `;
 }

@@ -686,10 +686,17 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
     const configureWidgetBtn = target.closest<HTMLElement>('[data-configure-widget-id]');
     if (configureWidgetBtn) { dashboardHandlers.showConfigureWidgetModal(configureWidgetBtn.dataset.configureWidgetId!); return; }
-    const removeWidgetBtn = target.closest<HTMLElement>('[data-remove-widget-id]');
-    if (removeWidgetBtn) { dashboardHandlers.removeWidget(removeWidgetBtn.dataset.removeWidgetId!); return; }
+    const removeWidgetBtn = target.closest<HTMLElement>('.remove-widget-btn');
+    if (removeWidgetBtn) {
+        const widgetId = removeWidgetBtn.dataset.removeWidgetId!;
+        dashboardHandlers.removeWidget(widgetId);
+        return;
+    }
     const widgetCard = target.closest<HTMLElement>('[data-widget-type]');
-    if (widgetCard) { dashboardHandlers.addWidget(widgetCard.dataset.widgetType as DashboardWidgetType); return; }
+    if (widgetCard && state.ui.modal.isOpen && state.ui.modal.type === 'addWidget') { 
+        dashboardHandlers.addWidget(widgetCard.dataset.widgetType as DashboardWidgetType); 
+        return; 
+    }
     const resizeWidgetBtn = target.closest<HTMLElement>('[data-resize-action]');
     if (resizeWidgetBtn) {
         const widgetId = resizeWidgetBtn.dataset.widgetId!;

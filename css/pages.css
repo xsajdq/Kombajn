@@ -1,3 +1,4 @@
+
 /* DASHBOARD REDESIGN */
 .dashboard-page-container {
     display: flex;
@@ -13,6 +14,7 @@
 }
 .dashboard-header .header-left h2 {
     font-size: 1.75rem;
+    font-weight: 700;
     margin: 0;
 }
 .dashboard-header .header-left p {
@@ -25,11 +27,12 @@
     gap: 1rem;
 }
 .dashboard-tabs {
-    display: flex;
+    display: inline-flex;
     gap: 0.25rem;
     padding: 4px;
     background-color: var(--light-color);
     border-radius: var(--border-radius);
+    align-self: flex-start;
 }
 .dark-theme .dashboard-tabs {
     background-color: var(--dark-color);
@@ -100,9 +103,9 @@
     font-size: 1rem;
 }
 
-.dashboard-main-grid {
+.dashboard-widget-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(12, 1fr);
     gap: 1.5rem;
     align-items: start;
 }
@@ -113,6 +116,23 @@
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
+    grid-column: span 4; /* Default span */
+    position: relative;
+}
+.widget-container[data-widget-type="recentProjects"],
+.widget-container[data-widget-type="activityFeed"] { grid-column: span 6; }
+.widget-container[data-widget-type="weeklyPerformance"],
+.widget-container[data-widget-type="quickActions"] { grid-column: span 12; }
+.is-editing .widget-container {
+    border-style: dashed;
+    cursor: grab;
+}
+.remove-widget-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: var(--content-bg) !important;
+    z-index: 5;
 }
 .widget-header {
     display: flex;
@@ -234,41 +254,79 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    position: relative;
+    grid-column: span 12;
 }
-.info-card-widget.schedule {
-    background-color: #eff6ff; /* blue-50 */
-    color: #1e40af; /* blue-800 */
-}
-.info-card-widget.messages {
-    background-color: #f0fdf4; /* green-50 */
-    color: #166534; /* green-800 */
-}
-.info-card-widget.alerts {
-    background-color: #fffbeb; /* amber-50 */
-    color: #b45309; /* amber-800 */
-}
-.info-card-widget .card-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 600;
-}
-.info-card-widget .card-body p {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--dark-color);
-}
-.info-card-widget .card-footer {
-    margin-top: 1rem;
-}
-.info-card-widget .btn-link {
-    font-weight: 600;
-    text-decoration: none;
-}
+.info-card-widget.schedule { background-color: #eff6ff; color: #1e40af; }
+.info-card-widget.messages { background-color: #f0fdf4; color: #166534; }
+.info-card-widget.alerts { background-color: #fffbeb; color: #b45309; }
+.dark-theme .info-card-widget.schedule { background-color: #1e3a8a; color: #dbeafe;}
+.dark-theme .info-card-widget.alerts { background-color: #92400e; color: #fef3c7;}
+.info-card-widget .card-header { display: flex; align-items: center; gap: 0.75rem; font-weight: 600; }
+.info-card-widget .card-body p { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--dark-color); }
+.dark-theme .info-card-widget .card-body p { color: var(--white-color); }
+.info-card-widget .card-footer { margin-top: 1rem; }
+.info-card-widget .btn-link { font-weight: 600; text-decoration: none; }
 .info-card-widget.schedule .btn-link { color: #1d4ed8; }
-.info-card-widget.messages .btn-link { color: #15803d; }
 .info-card-widget.alerts .btn-link { color: #d97706; }
+.dark-theme .info-card-widget.schedule .btn-link { color: #93c5fd; }
+.dark-theme .info-card-widget.alerts .btn-link { color: #fcd34d; }
+
+
+.weekly-performance-widget .performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    text-align: center;
+}
+.performance-item .value { font-size: 2.5rem; font-weight: 700; }
+.performance-item .label { color: var(--subtle-text-color); margin: 0.25rem 0 0.5rem; }
+.performance-item .change { font-size: 0.875rem; font-weight: 500; }
+.performance-item .change.positive { color: var(--success-color); }
+.performance-item .change.negative { color: var(--danger-color); }
+
+.quick-actions-container {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+}
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.quick-action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+.quick-action-btn .material-icons-sharp {
+    font-size: 2.5rem;
+    padding: 0.75rem;
+    border-radius: 50%;
+    background-color: var(--light-color);
+}
+.dark-theme .quick-action-btn .material-icons-sharp {
+    background-color: var(--dark-color);
+}
+
+#add-widget-btn.fab { right: 3.5rem; }
 
 /* KANBAN BOARD (TASKS & SALES) */
 .kanban-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
