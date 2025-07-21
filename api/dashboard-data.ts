@@ -42,8 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             timeLogsRes,
             commentsRes,
             clientsRes,
-            invoicesRes,
-            calendarEventsRes
+            invoicesRes
         ] = await Promise.all([
             supabase.from('projects').select('*').eq('workspace_id', workspaceId),
             supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
@@ -51,11 +50,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             supabase.from('time_logs').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(20),
             supabase.from('comments').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(20),
             supabase.from('clients').select('id, name').eq('workspace_id', workspaceId),
-            supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId),
-            supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId)
+            supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId)
         ]);
+        
+        // Fetch calendar events separately to prevent crashing if table doesn't exist
+        let calendarEventsData: any[] = [];
+        try {
+            const { data, error } = await supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId);
+            if (error) {
+                console.warn(`[api/dashboard-data] Could not fetch calendar_events: ${error.message}. This is expected if the table doesn't exist yet.`);
+            } else {
+                calendarEventsData = data || [];
+            }
+        } catch (e: any) {
+            console.warn(`[api/dashboard-data] An unexpected error occurred while fetching calendar_events: ${e.message}.`);
+        }
 
-        const allResults = [projectsRes, tasksRes, taskAssigneesRes, timeLogsRes, commentsRes, clientsRes, invoicesRes, calendarEventsRes];
+
+        const allResults = [projectsRes, tasksRes, taskAssigneesRes, timeLogsRes, commentsRes, clientsRes, invoicesRes];
         for (const r of allResults) {
             if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
         }
@@ -68,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             comments: commentsRes.data || [],
             clients: clientsRes.data || [],
             invoices: invoicesRes.data || [],
-            calendarEvents: calendarEventsRes.data || [],
+            calendarEvents: calendarEventsData,
         };
         
         return res.status(200).json(keysToCamel(responseData));
