@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -97,26 +98,26 @@ function renderBoardView(filteredTasks: Task[]) {
 
         const activeTotalSeconds = activeTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
-        let columnHeaderExtras = `(${activeTasks.length})`;
-        if (activeTotalSeconds > 0) {
-             columnHeaderExtras += ` <span class="kanban-column-total-time">${formatDuration(activeTotalSeconds)}</span>`;
-        }
-
         return `
-            <div class="kanban-column" data-status="${status}">
-                <h4>${t('tasks.' + status)} ${columnHeaderExtras}</h4>
-                <div class="kanban-tasks">
-                    ${activeTasks.map(renderTaskCard).join('') || '<div class="empty-kanban-column"></div>'}
-                    ${archivedTasks.length > 0 ? `
-                        <details class="archived-tasks-container">
-                            <summary class="archived-tasks-summary">
-                                ${t('tasks.show_archived')} (${archivedTasks.length})
-                            </summary>
-                            <div class="archived-tasks-list">
-                                ${archivedTasks.map(renderTaskCard).join('')}
-                            </div>
-                        </details>
-                    ` : ''}
+            <div class="flex-shrink-0 w-72" data-status="${status}">
+                <div class="h-full flex flex-col bg-background rounded-lg">
+                    <div class="p-3 font-semibold text-text-main flex justify-between items-center">
+                        <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${activeTasks.length}</span></span>
+                        ${activeTotalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(activeTotalSeconds)}</span>` : ''}
+                    </div>
+                    <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3 kanban-tasks">
+                        ${activeTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
+                        ${archivedTasks.length > 0 ? `
+                            <details class="py-2">
+                                <summary class="cursor-pointer text-sm font-medium text-text-subtle hover:text-text-main flex items-center justify-center">
+                                    ${t('tasks.show_archived')} (${archivedTasks.length})
+                                </summary>
+                                <div class="space-y-3 mt-3">
+                                    ${archivedTasks.map(renderTaskCard).join('')}
+                                </div>
+                            </details>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
             `;
@@ -125,8 +126,8 @@ function renderBoardView(filteredTasks: Task[]) {
     const boardHtml = columnsToRender.map(renderColumn).join('');
         
     return `
-    <div class="tasks-board-view-container">
-        <div class="kanban-board ${isWorkflowAdvanced ? 'workflow-advanced' : ''}">
+    <div class="flex-1 overflow-x-auto">
+        <div class="inline-flex h-full space-x-4 p-1">
             ${boardHtml}
         </div>
     </div>
@@ -138,9 +139,9 @@ function renderListView(filteredTasks: Task[]) {
     const archivedTasks = filteredTasks.filter(t => t.isArchived);
 
     if (activeTasks.length === 0 && archivedTasks.length === 0) {
-        return `<div class="empty-state">
-            <span class="material-icons-sharp">search_off</span>
-            <h3>${t('tasks.no_tasks_match_filters')}</h3>
+        return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
+            <span class="material-icons-sharp text-5xl text-text-subtle">search_off</span>
+            <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
         </div>`;
     }
 
@@ -149,62 +150,24 @@ function renderListView(filteredTasks: Task[]) {
         const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
         const isRunning = !!state.activeTimers[task.id];
 
-        const taskTagsIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
-        const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
-
-        const subtasks = state.tasks.filter(t => t.parentId === task.id);
-        const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
-        const checklist = task.checklist || [];
-        const completedChecklistItems = checklist.filter(c => c.completed).length;
-        const attachments = state.attachments.filter(a => a.taskId === task.id);
-        const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
-
         return `
-            <div class="task-list-row clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                 <div class="task-list-col" data-label="${t('tasks.col_task')}">
-                    <div class="task-name-wrapper">
-                        <strong>${task.name}</strong>
-                        ${tags.length > 0 ? `
-                            <div class="tag-list" style="margin-top: 0.5rem;">
-                                ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="task-meta-icons">
-                            ${checklist.length > 0 ? `
-                                <span title="${t('modals.checklist')}">
-                                    <span class="material-icons-sharp">checklist_rtl</span>
-                                    ${completedChecklistItems}/${checklist.length}
-                                </span>` : ''}
-                            ${subtasks.length > 0 ? `
-                                <span title="${t('modals.subtasks')}">
-                                    <span class="material-icons-sharp">checklist</span>
-                                    ${t('tasks.subtask_progress').replace('{completed}', completedSubtasks.toString()).replace('{total}', subtasks.length.toString())}
-                                </span>` : ''}
-                            ${attachments.length > 0 ? `<span title="${t('modals.attachments')}"><span class="material-icons-sharp">attachment</span> ${attachments.length}</span>` : ''}
-                            ${dependencies.length > 0 ? `<span title="${t('modals.dependencies')}"><span class="material-icons-sharp">link</span> ${dependencies.length}</span>` : ''}
-                            ${task.recurrence && task.recurrence !== 'none' ? `<span title="${t('modals.repeat')}"><span class="material-icons-sharp">repeat</span></span>` : ''}
-                        </div>
-                    </div>
-                 </div>
-                 <div class="task-list-col" data-label="${t('tasks.col_project')}">${project?.name || t('misc.not_applicable')}</div>
-                 <div class="task-list-col" data-label="${t('modals.assignees')}">
-                    <div class="avatar-stack">
+            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background" data-task-id="${task.id}" role="button" tabindex="0">
+                 <div class="font-medium">${task.name}</div>
+                 <div>${project?.name || t('misc.not_applicable')}</div>
+                 <div>
+                    <div class="flex -space-x-2">
                         ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
-                            <div class="avatar" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
-                        `).join('') : `
-                            <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
-                                <span class="material-icons-sharp icon-sm">person_outline</span>
-                            </div>
-                        `}
+                            <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
+                        `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
                     </div>
                  </div>
-                 <div class="task-list-col" data-label="${t('tasks.col_due_date')}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-                 <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
-                 <div class="task-list-col" data-label="${t('tasks.col_status')}"><span class="status-badge status-${task.status}">${t('tasks.' + task.status)}</span></div>
-                 <div class="task-list-col task-time-col" data-label="${t('tasks.col_time')}">
-                     <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                     <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                        <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
+                 <div>${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
+                 <div>${task.priority ? `<span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
+                 <div><span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.' + task.status)}</span></div>
+                 <div class="flex items-center justify-end gap-2 text-text-subtle">
+                     <span class="text-sm font-mono task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
+                     <button class="p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                        <span class="material-icons-sharp text-xl">${isRunning ? 'pause_circle' : 'play_circle_outline'}</span>
                     </button>
                  </div>
             </div>
@@ -212,26 +175,26 @@ function renderListView(filteredTasks: Task[]) {
     };
 
     return `
-        <div class="task-list-container card">
-            <div class="task-list-header">
-                <div class="task-list-col">${t('tasks.col_task')}</div>
-                <div class="task-list-col">${t('tasks.col_project')}</div>
-                <div class="task-list-col">${t('modals.assignees')}</div>
-                <div class="task-list-col">${t('tasks.col_due_date')}</div>
-                <div class="task-list-col">${t('tasks.col_priority')}</div>
-                <div class="task-list-col">${t('tasks.col_status')}</div>
-                <div class="task-list-col">${t('tasks.col_time')}</div>
+        <div class="bg-content rounded-lg shadow-sm">
+            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase">
+                <div>${t('tasks.col_task')}</div>
+                <div>${t('tasks.col_project')}</div>
+                <div>${t('modals.assignees')}</div>
+                <div>${t('tasks.col_due_date')}</div>
+                <div>${t('tasks.col_priority')}</div>
+                <div>${t('tasks.col_status')}</div>
+                <div class="text-right">${t('tasks.col_time')}</div>
             </div>
-            <div class="task-list-body">
+            <div>
                 ${activeTasks.map(renderRow).join('')}
             </div>
             ${archivedTasks.length > 0 ? `
-                <details class="archived-tasks-container list-view">
-                    <summary class="archived-tasks-summary">
+                <details class="border-t border-border-color">
+                    <summary class="px-3 py-2 text-sm font-medium text-text-subtle cursor-pointer hover:bg-background flex justify-between items-center">
                         <span>${t('tasks.show_archived')}</span>
-                        <span class="count-badge">${archivedTasks.length}</span>
+                        <span class="px-2 py-0.5 text-xs rounded-full bg-background">${archivedTasks.length}</span>
                     </summary>
-                    <div class="task-list-body archived-list-body">
+                    <div>
                         ${archivedTasks.map(renderRow).join('')}
                     </div>
                 </details>
@@ -257,20 +220,20 @@ function renderCalendarView(filteredTasks: Task[]) {
     });
 
     const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday - 0, Monday - 1
+    const firstDayIndex = (new Date(year, month - 1, 1).getDay() + 6) % 7; // Monday = 0
     let daysHtml = '';
     for (let i = 0; i < firstDayIndex; i++) {
-        daysHtml += `<div class="calendar-day other-month"></div>`;
+        daysHtml += `<div class="border-r border-b border-border-color"></div>`;
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
         const tasksForDay = tasksByDay[day] || [];
         daysHtml += `
-            <div class="calendar-day">
-                <div class="day-number">${day}</div>
-                <div class="calendar-tasks">
+            <div class="border-r border-b border-border-color p-2 min-h-[120px]">
+                <div class="font-medium text-sm">${day}</div>
+                <div class="mt-1 space-y-1">
                     ${tasksForDay.map(task => `
-                        <div class="calendar-task clickable priority-${task.priority || 'low'}" data-task-id="${task.id}" role="button" tabindex="0" title="${task.name}">
+                        <div class="p-1.5 text-xs font-medium rounded-md truncate cursor-pointer ${task.priority === 'high' ? 'bg-red-100 text-red-800' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}" data-task-id="${task.id}" role="button" tabindex="0" title="${task.name}">
                            ${task.name}
                         </div>
                     `).join('')}
@@ -282,24 +245,27 @@ function renderCalendarView(filteredTasks: Task[]) {
     const totalCells = firstDayIndex + daysInMonth;
     const remainingCells = (7 - (totalCells % 7)) % 7;
     for (let i = 0; i < remainingCells; i++) {
-        daysHtml += `<div class="calendar-day other-month"></div>`;
+        daysHtml += `<div class="border-r border-b border-border-color"></div>`;
     }
 
     return `
-        <div class="card">
-            <div class="calendar-header">
-                <button class="btn-icon" data-calendar-nav="prev" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
-                <h4 class="calendar-title">${monthName}</h4>
-                <button class="btn-icon" data-calendar-nav="next" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
+        <div class="bg-content rounded-lg shadow-sm">
+            <div class="flex justify-between items-center p-4 border-b border-border-color">
+                <div class="flex items-center gap-2">
+                    <button class="p-1 rounded-full hover:bg-background" data-calendar-nav="prev" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
+                    <button class="p-1 rounded-full hover:bg-background" data-calendar-nav="next" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
+                </div>
+                <h4 class="text-lg font-semibold">${monthName}</h4>
+                <div></div>
             </div>
-            <div class="calendar-grid">
-                <div class="calendar-weekday">${t('calendar.weekdays.sun')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.mon')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.tue')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.wed')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.thu')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.fri')}</div>
-                <div class="calendar-weekday">${t('calendar.weekdays.sat')}</div>
+            <div class="grid grid-cols-7">
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.mon')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.tue')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.wed')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.thu')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.fri')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.sat')}</div>
+                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-border-color">${t('calendar.weekdays.sun')}</div>
                 ${daysHtml}
             </div>
         </div>
@@ -307,7 +273,7 @@ function renderCalendarView(filteredTasks: Task[]) {
 }
 
 function renderGanttView() {
-    return `<div id="gantt-chart-container"><svg id="gantt-chart"></svg></div>`;
+    return `<div id="gantt-chart-container" class="bg-content rounded-lg p-4"><svg id="gantt-chart"></svg></div>`;
 }
 
 export function initTasksPage() {
@@ -316,7 +282,7 @@ export function initTasksPage() {
         return;
     }
 
-    const container = document.getElementById('gantt-chart');
+    const container = document.getElementById('gantt-chart-container');
     if (!container) return;
 
     const filteredTasks = getFilteredTasks();
@@ -334,7 +300,7 @@ export function initTasksPage() {
                 end: t.dueDate!,
                 progress: t.status === 'done' ? 100 : (t.status === 'inprogress' || t.status === 'inreview' ? 50 : 0),
                 dependencies: dependencies.join(','),
-                custom_class: `priority-${t.priority || 'low'}`
+                custom_class: `gantt-priority-${t.priority || 'low'}`
             };
         });
 
@@ -343,16 +309,10 @@ export function initTasksPage() {
             on_click: (task: any) => {
                 openTaskDetail(task.id);
             },
-            on_date_change: (task: any, start: Date, end: Date) => {
-                // Optional: handle date changes from dragging in Gantt
-            },
             language: state.settings.language,
         });
     } else {
-        container.innerHTML = `<div class="empty-state">
-            <span class="material-icons-sharp">search_off</span>
-            <h3>${t('tasks.no_tasks_match_filters')}</h3>
-        </div>`;
+        container.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-text-subtle">${t('tasks.no_tasks_match_filters')}</p></div>`;
     }
 }
 
@@ -362,10 +322,10 @@ export function TasksPage() {
 
     let viewContent = '';
     if (state.tasks.filter(t => t.workspaceId === activeWorkspaceId && !t.parentId).length === 0) {
-        viewContent = `<div class="empty-state">
-            <span class="material-icons-sharp">assignment</span>
-            <h3>${t('tasks.no_tasks_found')}</h3>
-            <button class="btn btn-primary" data-modal-target="addTask">${t('tasks.new_task')}</button>
+        viewContent = `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
+            <span class="material-icons-sharp text-5xl text-text-subtle">assignment</span>
+            <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_found')}</h3>
+            <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask">${t('tasks.new_task')}</button>
         </div>`;
     } else {
         switch (state.ui.tasks.viewMode) {
@@ -376,111 +336,39 @@ export function TasksPage() {
         }
     }
     
-    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.tasks.filters;
-    const filtersActive = !!(text || assigneeId || priority || projectId || status || dateRange !== 'all' || tagIds.length > 0);
-
-    const workspaceUsers = state.workspaceMembers
-        .filter(m => m.workspaceId === activeWorkspaceId)
-        .map(m => state.users.find(u => u.id === m.userId))
-        .filter(Boolean) as User[];
-    
-    const workspaceProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId);
-    const workspaceTags = state.tags.filter(t => t.workspaceId === activeWorkspaceId);
-    const statuses: Task['status'][] = ['backlog', 'todo', 'inprogress', 'inreview', 'done'];
-
-
-    const filterBar = `
-        <div class="tasks-filter-bar">
-            <div class="form-group search-group">
-                <input type="text" id="task-filter-text" class="form-control" placeholder="${t('tasks.search_placeholder')}" value="${text || ''}">
-            </div>
-            <div class="form-group">
-                <select id="task-filter-project" class="form-control">
-                    <option value="">${t('tasks.all_projects')}</option>
-                    ${workspaceProjects.map(p => `<option value="${p.id}" ${projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <select id="task-filter-assignee" class="form-control">
-                    <option value="">${t('tasks.all_assignees')}</option>
-                    ${workspaceUsers.map(u => `<option value="${u.id}" ${assigneeId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group task-filter-multiselect" id="task-filter-tags-container">
-                <button type="button" class="form-control" id="task-filter-tags-toggle">
-                    <span>${tagIds.length > 0 ? `${tagIds.length} Tags` : 'All Tags'}</span>
-                    <span class="material-icons-sharp">arrow_drop_down</span>
-                </button>
-                <div id="task-filter-tags-dropdown" class="multiselect-dropdown hidden">
-                    ${workspaceTags.map(tag => `
-                        <label class="multiselect-dropdown-item">
-                            <input type="checkbox" value="${tag.id}" ${tagIds.includes(tag.id) ? 'checked' : ''}>
-                            <div class="tag-chip" style="background-color: ${tag.color}20; color: ${tag.color};">${tag.name}</div>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-            <div class="form-group">
-                <select id="task-filter-priority" class="form-control">
-                    <option value="">${t('tasks.all_priorities')}</option>
-                    <option value="low" ${priority === 'low' ? 'selected' : ''}>${t('tasks.priority_low')}</option>
-                    <option value="medium" ${priority === 'medium' ? 'selected' : ''}>${t('tasks.priority_medium')}</option>
-                    <option value="high" ${priority === 'high' ? 'selected' : ''}>${t('tasks.priority_high')}</option>
-                </select>
-            </div>
-             <div class="form-group">
-                <select id="task-filter-status" class="form-control">
-                    <option value="">${t('tasks.all_statuses')}</option>
-                    ${statuses.map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${t('tasks.' + s)}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <select id="task-filter-date-range" class="form-control">
-                    <option value="all" ${dateRange === 'all' ? 'selected' : ''}>${t('tasks.date_all')}</option>
-                    <option value="today" ${dateRange === 'today' ? 'selected' : ''}>${t('tasks.date_today')}</option>
-                    <option value="tomorrow" ${dateRange === 'tomorrow' ? 'selected' : ''}>${t('tasks.date_tomorrow')}</option>
-                    <option value="yesterday" ${dateRange === 'yesterday' ? 'selected' : ''}>${t('tasks.date_yesterday')}</option>
-                    <option value="this_week" ${dateRange === 'this_week' ? 'selected' : ''}>${t('tasks.date_this_week')}</option>
-                    <option value="overdue" ${dateRange === 'overdue' ? 'selected' : ''}>${t('tasks.date_overdue')}</option>
-                </select>
-            </div>
-            ${filtersActive ? `<button class="btn-icon" id="reset-task-filters" aria-label="${t('tasks.reset_filters')}"><span class="material-icons-sharp">clear</span></button>`: ''}
-        </div>
-    `;
-
-    const filterContainer = `
-        <div class="tasks-filter-container ${state.ui.tasks.isFilterOpen ? 'is-open' : ''}">
-            <div class="card">
-                ${filterBar}
-            </div>
-        </div>
-    `;
+    const { text } = state.ui.tasks.filters;
 
     return `
-        <div>
-            <div class="kanban-header">
-                <h2>${t('tasks.title')}</h2>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div class="view-switcher">
-                        <button class="btn-icon ${state.ui.tasks.viewMode === 'board' ? 'active' : ''}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp">view_kanban</span></button>
-                        <button class="btn-icon ${state.ui.tasks.viewMode === 'list' ? 'active' : ''}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp">view_list</span></button>
-                        <button class="btn-icon ${state.ui.tasks.viewMode === 'calendar' ? 'active' : ''}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp">calendar_today</span></button>
-                        <button class="btn-icon ${state.ui.tasks.viewMode === 'gantt' ? 'active' : ''}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp">bar_chart</span></button>
+        <div class="h-full flex flex-col">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <h2 class="text-2xl font-bold">${t('tasks.title')}</h2>
+                <div class="flex items-center gap-2">
+                    <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
+                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp text-xl">view_kanban</span></button>
+                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp text-xl">view_list</span></button>
+                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'calendar' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp text-xl">calendar_today</span></button>
+                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">bar_chart</span></button>
                     </div>
-                     <button id="toggle-filters-btn" class="btn btn-secondary">
-                        <span class="material-icons-sharp">filter_list</span>
+                     <button id="toggle-filters-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
+                        <span class="material-icons-sharp text-base">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>
                     </button>
-                    <button class="btn btn-secondary" data-modal-target="automations" ${!can('manage_automations') ? 'disabled' : ''}>
-                        <span class="material-icons-sharp">smart_toy</span>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="automations" ${!can('manage_automations') ? 'disabled' : ''}>
+                        <span class="material-icons-sharp text-base">smart_toy</span>
                         <span>${t('tasks.automations_button_text')}</span>
                     </button>
-                    <button class="btn btn-primary" data-modal-target="addTask" ${!can('manage_tasks') ? 'disabled' : ''}>
-                        <span class="material-icons-sharp">add</span> ${t('tasks.new_task')}
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ${!can('manage_tasks') ? 'disabled' : ''}>
+                        <span class="material-icons-sharp text-base">add</span> ${t('tasks.new_task')}
                     </button>
                 </div>
             </div>
-            ${filterContainer}
+            
+            <div class="relative">
+                <div id="task-filter-panel" class="bg-content p-3 rounded-lg border border-border-color transition-all duration-300 overflow-hidden ${state.ui.tasks.isFilterOpen ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'}">
+                     <!-- Filter content is now handled by a dedicated handler -->
+                </div>
+            </div>
+
             ${viewContent}
         </div>
     `;

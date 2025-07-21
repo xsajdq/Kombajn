@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -29,35 +30,35 @@ export function Sidebar() {
 
 
     return `
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="material-icons-sharp">hub</span>
-        <h1>Kombajn</h1>
+    <aside class="flex flex-col h-screen w-64 bg-content border-r border-border-color text-sidebar-text">
+      <div class="flex items-center p-4 border-b border-border-color">
+        <span class="material-icons-sharp text-primary">hub</span>
+        <h1 class="text-lg font-bold ml-2 text-text-main">Kombajn</h1>
       </div>
-      <nav aria-label="Main navigation">
-        <ul class="nav-list">
+      <nav class="flex-grow p-2" aria-label="Main navigation">
+        <ul class="space-y-1">
           ${navItems.map(item => {
             const isActive = state.currentPage === item.id;
             return `
-            <li class="nav-item">
-              <a href="/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+            <li>
+              <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
                 <span class="material-icons-sharp">${item.icon}</span>
-                <span class="nav-text">${item.text}</span>
+                <span class="ml-3">${item.text}</span>
               </a>
             </li>
           `}).join('')}
         </ul>
       </nav>
-      <div class="sidebar-footer">
+      <div class="mt-auto p-2 border-t border-border-color">
           <nav aria-label="Footer navigation">
-            <ul class="nav-list">
+            <ul class="space-y-1">
              ${footerNavItems.map(item => {
                 const isActive = state.currentPage === item.id;
                 return `
-                <li class="nav-item">
-                  <a href="/${item.id}" class="${isActive ? 'active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
+                <li>
+                  <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
                     <span class="material-icons-sharp">${item.icon}</span>
-                    <span class="nav-text">${item.text}</span>
+                    <span class="ml-3">${item.text}</span>
                   </a>
                 </li>
              `}).join('')}

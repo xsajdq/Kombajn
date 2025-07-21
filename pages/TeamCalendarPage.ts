@@ -6,87 +6,85 @@ import { fetchPublicHolidays } from '../handlers/calendar.ts';
 import { formatDate } from '../utils.ts';
 
 function getUserColorClass(userId: string): string {
-    const colorIndex = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 8; // 8 available colors
-    return `user-color-${colorIndex}`;
+    const colors = [
+        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+        'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+        'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+        'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+        'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+        'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    ];
+    const colorIndex = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[colorIndex];
 }
 
 function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
-    let className = 'team-calendar-item';
+    let baseClasses = 'p-1.5 text-xs font-medium rounded-md truncate';
     let text = '';
     let handler = '';
     let title = '';
 
     if ('status' in item && 'projectId' in item) { // Task
-        className += ` type-task clickable priority-${item.priority || 'low'}`;
+        const priorityColors: Record<string, string> = {
+            high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+            medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+            low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        };
+        baseClasses += ` cursor-pointer ${priorityColors[item.priority || 'low']}`;
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        className += ` type-timeoff ${getUserColorClass(item.userId)}`;
+        baseClasses += ` ${getUserColorClass(item.userId)}`;
         text = `${userName}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
-        handler = `title="${title}"`;
     } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
         const event = item as CalendarEvent;
-        className += ` type-${event.type || 'event'}`;
+        baseClasses += ' bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
         text = event.title;
         title = `${t(`team_calendar.${event.type || 'event'}`)}: ${event.title}`;
-        handler = `title="${title}"`;
     } else if ('name' in item && 'date' in item) { // PublicHoliday
-        className += ' type-public-holiday';
+        baseClasses += ' bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
         text = item.name;
         title = `${t('team_calendar.public_holiday')}: ${item.name}`;
-        handler = `title="${title}"`;
     }
 
-    return `<div class="${className}" ${handler}>${text}</div>`;
+    return `<div class="${baseClasses}" title="${title}" ${handler}>${text}</div>`;
 }
 
-// New helper to get all items for a given date string (YYYY-MM-DD)
 function getItemsForDay(dayDateString: string) {
     const dayDate = new Date(dayDateString + 'T12:00:00Z');
     const items: (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[] = [];
     
-    // Tasks with due date
     items.push(...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.dueDate === dayDateString));
-    
-    // Time off requests spanning this day
     items.push(...state.timeOffRequests.filter(to => {
         if (to.workspaceId !== state.activeWorkspaceId || to.status !== 'approved') return false;
         const start = new Date(to.startDate + 'T00:00:00Z');
         const end = new Date(to.endDate + 'T23:59:59Z');
         return dayDate >= start && dayDate <= end;
     }));
-    
-    // Calendar events spanning this day
     items.push(...state.calendarEvents.filter(e => {
         if (e.workspaceId !== state.activeWorkspaceId) return false;
         const start = new Date(e.startDate + 'T00:00:00Z');
         const end = new Date(e.endDate + 'T23:59:59Z');
         return dayDate >= start && dayDate <= end;
     }));
-    
-    // Public holidays
     items.push(...state.publicHolidays.filter(h => h.date === dayDateString));
     
     return items;
 }
 
-
-// --- MONTH VIEW ---
 function renderMonthView(year: number, month: number) {
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstDayOfMonth = new Date(year, month - 1, 1);
-    // Sunday is 0, so we adjust to make Monday 0
     const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7; 
     const today = new Date();
 
-    let daysHtml = '';
-    for (let i = 0; i < firstDayIndex; i++) {
-        daysHtml += `<div class="calendar-day other-month"></div>`;
-    }
+    let daysHtml = Array(firstDayIndex).fill('<div class="border-r border-b border-border-color bg-background/50"></div>').join('');
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dayDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -94,9 +92,9 @@ function renderMonthView(year: number, month: number) {
         const itemsForDay = getItemsForDay(dayDateString);
 
         daysHtml += `
-            <div class="calendar-day ${isToday ? 'today' : ''}">
-                <div class="day-number">${day}</div>
-                <div class="calendar-items">
+            <div class="border-r border-b border-border-color p-2 min-h-[120px] ${isToday ? 'bg-primary/5' : ''}">
+                <div class="font-medium text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day}</div>
+                <div class="mt-1 space-y-1">
                     ${itemsForDay.map(renderCalendarItem).join('')}
                 </div>
             </div>
@@ -105,28 +103,21 @@ function renderMonthView(year: number, month: number) {
 
     const totalCells = firstDayIndex + daysInMonth;
     const remainingCells = (7 - (totalCells % 7)) % 7;
-    for (let i = 0; i < remainingCells; i++) {
-        daysHtml += `<div class="calendar-day other-month"></div>`;
-    }
+    daysHtml += Array(remainingCells).fill('<div class="border-r border-b border-border-color bg-background/50"></div>').join('');
 
+
+    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return `
-        <div class="calendar-grid-month">
-            <div class="calendar-weekday">${t('calendar.weekdays.mon')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.tue')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.wed')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.thu')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.fri')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.sat')}</div>
-            <div class="calendar-weekday">${t('calendar.weekdays.sun')}</div>
+        <div class="grid grid-cols-7">
+            ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
             ${daysHtml}
         </div>
     `;
 }
 
-// --- WEEK VIEW ---
 function renderWeekView(currentDate: Date) {
     const weekDays: Date[] = [];
-    const dayOfWeek = (currentDate.getDay() + 6) % 7; // Monday = 0
+    const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
     startDate.setDate(startDate.getDate() - dayOfWeek);
     
@@ -141,31 +132,30 @@ function renderWeekView(currentDate: Date) {
         const dayDateString = dayDate.toISOString().slice(0, 10);
         const itemsForDay = getItemsForDay(dayDateString);
         daysHtml += `
-            <div class="week-view-day-column">
-                <div class="week-view-day-header">
-                    <strong>${t(`calendar.weekdays.${dayDate.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
-                    <span>${dayDate.getDate()}</span>
+            <div class="border-r border-border-color p-2">
+                <div class="text-center mb-2">
+                    <strong class="text-sm">${t(`calendar.weekdays.${dayDate.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
+                    <p class="text-2xl font-bold">${dayDate.getDate()}</p>
                 </div>
-                <div class="calendar-items">
+                <div class="space-y-1">
                     ${itemsForDay.map(renderCalendarItem).join('')}
                 </div>
             </div>
         `;
     }
     
-    return `<div class="calendar-grid-week">${daysHtml}</div>`;
+    return `<div class="grid grid-cols-7 h-full">${daysHtml}</div>`;
 }
 
-// --- DAY VIEW ---
 function renderDayView(currentDate: Date) {
     const dayDateString = currentDate.toISOString().slice(0, 10);
     const itemsForDay = getItemsForDay(dayDateString);
     
     return `
-        <div class="day-view-list">
+        <div class="p-4 space-y-2">
             ${itemsForDay.length > 0
                 ? itemsForDay.map(renderCalendarItem).join('')
-                : `<div class="empty-state" style="padding: 2rem; border: none;"><p>${t('misc.no_events_for_day')}</p></div>`
+                : `<div class="flex items-center justify-center py-8 text-text-subtle">${t('misc.no_events_for_day')}</div>`
             }
         </div>
     `;
@@ -177,7 +167,6 @@ export async function TeamCalendarPage() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
 
-    // Fetch holidays for current, previous and next year to handle navigation
     await Promise.all([
         fetchPublicHolidays(year - 1),
         fetchPublicHolidays(year),
@@ -208,30 +197,30 @@ export async function TeamCalendarPage() {
     }
     
     return `
-        <div>
-            <div class="kanban-header">
-                <h2>${t('team_calendar.title')}</h2>
-                <div>
-                     <button class="btn btn-secondary" data-modal-target="addTimeOffRequest">
-                        <span class="material-icons-sharp">flight_takeoff</span>
+        <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-2xl font-bold">${t('team_calendar.title')}</h2>
+                <div class="flex items-center gap-2">
+                     <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addTimeOffRequest">
+                        <span class="material-icons-sharp text-base">flight_takeoff</span>
                         ${t('team_calendar.add_leave')}
                     </button>
-                    <button class="btn btn-primary" data-modal-target="addCalendarEvent">
-                        <span class="material-icons-sharp">add</span> ${t('team_calendar.add_event')}
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addCalendarEvent">
+                        <span class="material-icons-sharp text-base">add</span> ${t('team_calendar.add_event')}
                     </button>
                 </div>
             </div>
-            <div class="card">
-                <div class="calendar-header">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button class="btn-icon" data-calendar-nav="prev" data-target-calendar="team" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
-                        <button class="btn-icon" data-calendar-nav="next" data-target-calendar="team" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
-                         <h4 class="calendar-title">${viewTitle}</h4>
+            <div class="bg-content rounded-lg shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-center p-4 border-b border-border-color gap-4">
+                    <div class="flex items-center gap-2">
+                        <button class="p-1.5 rounded-full hover:bg-background text-text-subtle" data-calendar-nav="prev" data-target-calendar="team" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
+                        <button class="p-1.5 rounded-full hover:bg-background text-text-subtle" data-calendar-nav="next" data-target-calendar="team" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
+                         <h4 class="text-lg font-semibold">${viewTitle}</h4>
                     </div>
-                    <div class="view-switcher">
-                        <button class="btn btn-secondary" data-team-calendar-view="month" ${teamCalendarView === 'month' ? 'disabled' : ''}>${t('calendar.month_view')}</button>
-                        <button class="btn btn-secondary" data-team-calendar-view="week" ${teamCalendarView === 'week' ? 'disabled' : ''}>${t('calendar.week_view')}</button>
-                        <button class="btn btn-secondary" data-team-calendar-view="day" ${teamCalendarView === 'day' ? 'disabled' : ''}>${t('calendar.day_view')}</button>
+                    <div class="flex items-center p-1 bg-background rounded-lg">
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'month' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="month">${t('calendar.month_view')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'week' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="week">${t('calendar.week_view')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'day' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="day">${t('calendar.day_view')}</button>
                     </div>
                 </div>
                 ${viewContent}

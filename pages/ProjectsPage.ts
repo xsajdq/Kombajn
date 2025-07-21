@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency } from '../utils.ts';
@@ -21,20 +22,20 @@ export function ProjectsPage() {
     const today = new Date().toISOString().slice(0, 10);
 
     return `
-    <div>
-        <h2>
-            <span>${t('projects.title')}</span>
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <button class="btn btn-secondary" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp">auto_awesome</span> ${t('projects.plan_with_ai')}
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-2xl font-bold">${t('sidebar.projects')}</h2>
+            <div class="flex items-center gap-2">
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">auto_awesome</span> ${t('modals.ai_planner_title')}
                 </button>
-                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp">add</span> ${t('projects.new_project')}
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
                 </button>
             </div>
-        </h2>
+        </div>
         ${projects.length > 0 ? `
-            <div class="project-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${projects.map(project => {
                     const client = state.clients.find(c => c.id === project.clientId);
                     const tasks = state.tasks.filter(t => t.projectId === project.id);
@@ -80,65 +81,65 @@ export function ProjectsPage() {
                     const projectDueDate = latestDueDate ? latestDueDate.toISOString().slice(0, 10) : null;
                     
                     return `
-                        <div class="project-card clickable" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
-                            <div class="project-card-top">
-                                <div class="project-title-group">
-                                    <h3>${project.name}</h3>
-                                    ${overdueTasks > 0 ? `<span class="material-icons-sharp project-alert-icon" title="${overdueTasks} overdue tasks">warning_amber</span>` : ''}
-                                </div>
-                                <button class="btn-icon project-menu-btn" aria-label="Project actions menu">
-                                    <span class="material-icons-sharp">more_horiz</span>
+                        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-semibold text-lg flex items-center gap-2">
+                                    ${project.name}
+                                    ${overdueTasks > 0 ? `<span class="material-icons-sharp text-danger text-base" title="${overdueTasks} overdue tasks">warning_amber</span>` : ''}
+                                </h3>
+                                <button class="p-1 text-text-subtle rounded-full hover:bg-background project-menu-btn" aria-label="Project actions menu">
+                                    <span class="material-icons-sharp text-lg">more_horiz</span>
                                 </button>
                             </div>
 
-                            ${description ? `<p class="project-card-description">${description}${project.wikiContent && project.wikiContent.length > 150 ? '...' : ''}</p>` : ''}
+                            ${description ? `<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 150 ? '...' : ''}</p>` : ''}
                             
-                            <div class="project-card-tags">
-                                <span class="tag-badge status-${projectStatus.replace('_', '-')}">${projectStatusText}</span>
-                                ${projectPriority ? `<span class="tag-badge priority-${projectPriority}">${projectPriority.charAt(0).toUpperCase() + projectPriority.slice(1)}</span>` : ''}
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full ${projectStatus === 'completed' ? 'bg-green-100 text-green-700' : projectStatus === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">${projectStatusText}</span>
+                                ${projectPriority ? `<span class="px-2 py-1 text-xs font-medium rounded-full ${projectPriority === 'high' ? 'bg-red-100 text-red-700' : projectPriority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${projectPriority.charAt(0).toUpperCase() + projectPriority.slice(1)}</span>` : ''}
                             </div>
 
-                            <div class="project-card-progress-section">
-                                <div class="progress-label-group">
-                                    <span>${t('panels.progress')}</span>
+                            <div>
+                                <div class="flex justify-between items-center text-sm mb-1">
+                                    <span class="font-medium text-text-subtle">${t('panels.progress')}</span>
                                     <span>${Math.round(progress)}%</span>
                                 </div>
-                                <div class="progress-bar">
-                                    <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                                <div class="w-full bg-background rounded-full h-2">
+                                    <div class="bg-primary h-2 rounded-full" style="width: ${progress}%;"></div>
                                 </div>
                             </div>
                             
-                            <div class="project-card-details">
+                            <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-4">
                                 ${projectDueDate ? `
-                                <div class="detail-item">
-                                    <span class="material-icons-sharp">calendar_today</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-sharp text-base">calendar_today</span>
                                     <span>Due: ${formatDate(projectDueDate)}</span>
                                 </div>` : ''}
                                 ${client ? `
-                                <div class="detail-item">
-                                    <span class="material-icons-sharp">business</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-sharp text-base">business</span>
                                     <span>${client.name}</span>
                                 </div>` : ''}
                                 ${project.budgetCost ? `
-                                <div class="detail-item">
-                                    <span class="material-icons-sharp">monetization_on</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-sharp text-base">monetization_on</span>
                                     <span>Budget: ${formatCurrency(project.budgetCost)}</span>
                                 </div>` : ''}
                             </div>
 
-                            <div class="project-card-members">
-                                <div class="detail-item">
-                                    <span class="material-icons-sharp">group</span>
+                            <div class="flex justify-between items-center mt-auto pt-4 border-t border-border-color">
+                                <div class="flex items-center gap-2 text-sm text-text-subtle">
+                                    <span class="material-icons-sharp text-base">group</span>
                                     <span>${members.length} members</span>
                                 </div>
-                                <div class="avatar-stack">
+                                <div class="flex -space-x-2">
                                      ${memberUsers.slice(0, 4).map(u => u ? `
-                                        <div class="avatar" title="${u.name || u.initials}">
-                                            ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}">` : u.initials}
+                                        <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${u.name || u.initials}">
+                                            ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : u.initials}
                                         </div>
                                     ` : '').join('')}
                                     ${memberUsers.length > 4 ? `
-                                        <div class="avatar more-avatar">+${memberUsers.length - 4}</div>
+                                        <div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center text-xs font-semibold border-2 border-content">+${memberUsers.length - 4}</div>
                                     ` : ''}
                                 </div>
                             </div>
@@ -147,12 +148,12 @@ export function ProjectsPage() {
                 }).join('')}
             </div>
         ` : `
-            <div class="empty-state">
-                <span class="material-icons-sharp">folder_off</span>
-                <h3>${t('projects.no_projects_yet')}</h3>
-                <p>${t('projects.no_projects_desc')}</p>
-                <button class="btn btn-primary projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''}>
-                    ${t('projects.create_project')}
+            <div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
+                <span class="material-icons-sharp text-5xl text-text-subtle">folder_off</span>
+                <h3 class="text-lg font-medium mt-4">${t('projects.no_projects_yet')}</h3>
+                <p class="text-sm text-text-subtle mt-1">${t('projects.no_projects_desc')}</p>
+                <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''}>
+                    ${t('modals.add_project_title')}
                 </button>
             </div>
         `}

@@ -1,5 +1,41 @@
-@import url('themes.css');
-@import url('layout.css');
-@import url('components.css');
-@import url('pages.css');
-@import url('onboarding.css');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-color: #3b82f6; /* Blue 500 */
+    --primary-hover-color: #2563eb; /* Blue 600 */
+    --background-color: #f9fafb; /* Gray 50 */
+    --content-bg: #ffffff;
+    --text-color: #374151; /* Gray 700 */
+    --subtle-text-color: #6b7280; /* Gray 500 */
+    --border-color: #e5e7eb; /* Gray 200 */
+    --danger-color: #ef4444; /* Red 500 */
+    --success-color: #22c55e; /* Green 500 */
+    --warning-color: #f59e0b; /* Amber 500 */
+    --sidebar-text: #4b5563; /* Gray 600 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  html.dark {
+    --primary-color: #60a5fa; /* Blue 400 */
+    --primary-hover-color: #3b82f6; /* Blue 500 */
+    --background-color: #111827; /* Gray 900 */
+    --content-bg: #1f2937; /* Gray 800 */
+    --text-color: #d1d5db; /* Gray 300 */
+    --subtle-text-color: #9ca3af; /* Gray 400 */
+    --border-color: #374151; /* Gray 700 */
+    --danger-color: #f87171; /* Red 400 */
+    --success-color: #4ade80; /* Green 400 */
+    --warning-color: #fbbf24; /* Amber 400 */
+    --sidebar-text: #d1d5db;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply bg-background text-text-main antialiased;
+  }
+}

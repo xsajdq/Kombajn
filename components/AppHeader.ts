@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
@@ -14,28 +13,28 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
         .filter(w => w !== undefined);
 
     return `
-        <header class="app-header">
-             <div class="header-left">
-                <div class="workspace-switcher">
-                    <span class="material-icons-sharp">workspaces</span>
-                    <select id="workspace-switcher" class="form-control">
-                        ${userWorkspaces.map(w => `<option value="${w!.id}" ${w!.id === activeWorkspaceId ? 'selected' : ''}>${w!.name}</option>`).join('')}
+        <header class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 border-b border-border-color bg-content text-text-main">
+             <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="material-icons-sharp text-text-subtle">workspaces</span>
+                    <select id="workspace-switcher" class="bg-transparent border border-border-color rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-primary outline-none">
+                        ${userWorkspaces.map(w => `<option value="${w!.id}" ${w!.id === activeWorkspaceId ? 'selected' : ''} class="bg-content text-text-main">${w!.name}</option>`).join('')}
                     </select>
                 </div>
             </div>
-            <div class="header-right">
-                <div class="notification-wrapper">
-                    <button id="notification-bell" class="btn-icon" aria-label="${t('notifications.title')}">
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <button id="notification-bell" class="p-2 rounded-full hover:bg-background transition-colors" aria-label="${t('notifications.title')}">
                         <span class="material-icons-sharp">notifications</span>
-                        ${unreadCount > 0 ? `<span class="notification-badge">${unreadCount}</span>` : ''}
+                        ${unreadCount > 0 ? `<span class="absolute top-0 right-0 h-4 w-4 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center">${unreadCount}</span>` : ''}
                     </button>
                     ${state.ui.isNotificationsOpen ? NotificationsPopover({ currentUser, activeWorkspaceId }) : ''}
                 </div>
-                <button class="btn-icon" data-logout-button title="Log Out">
+                <button class="p-2 rounded-full hover:bg-background transition-colors" data-logout-button title="Log Out">
                     <span class="material-icons-sharp">logout</span>
                 </button>
-                <div class="avatar" title="${currentUser.name || currentUser.initials}">
-                    ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}">` : currentUser.initials}
+                <div class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold uppercase" title="${currentUser.name || currentUser.initials}">
+                    ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}" class="h-full w-full rounded-full object-cover">` : currentUser.initials}
                 </div>
             </div>
         </header>
@@ -74,32 +73,32 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
     };
 
     return `
-        <div class="notifications-popover">
-            <div class="notifications-header">
-                <h4>${t('notifications.title')}</h4>
-                <button class="btn-link" id="mark-all-read-btn">${t('notifications.mark_all_read')}</button>
+        <div class="absolute top-full right-0 mt-2 w-80 bg-content border border-border-color rounded-lg shadow-lg z-20">
+            <div class="flex justify-between items-center p-3 border-b border-border-color">
+                <h4 class="font-semibold">${t('notifications.title')}</h4>
+                <button class="text-sm text-primary hover:underline" id="mark-all-read-btn">${t('notifications.mark_all_read')}</button>
             </div>
-            <div class="notifications-tabs">
-                <div class="notification-tab ${activeTab === 'new' ? 'active' : ''}" data-tab="new">${t('notifications.tab_new')} (${unreadCount})</div>
-                <div class="notification-tab ${activeTab === 'read' ? 'active' : ''}" data-tab="read">${t('notifications.tab_read')}</div>
+            <div class="flex border-b border-border-color">
+                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'new' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab="new">${t('notifications.tab_new')} (${unreadCount})</button>
+                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'read' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab="read">${t('notifications.tab_read')}</button>
             </div>
-            <div class="notifications-body">
+            <div class="p-2 max-h-96 overflow-y-auto">
                 ${filteredNotifications.length > 0 ? `
-                    <ul class="notification-list">
+                    <ul class="divide-y divide-border-color">
                         ${filteredNotifications.map(n => `
-                            <li class="notification-item ${n.isRead ? '' : 'unread'}" data-notification-id="${n.id}">
-                                <div class="notification-item-icon">
-                                    <span class="material-icons-sharp">info</span>
+                            <li class="flex items-start gap-3 p-2 rounded-md cursor-pointer hover:bg-background notification-item ${n.isRead ? '' : 'font-semibold'}" data-notification-id="${n.id}">
+                                <div class="mt-1">
+                                    <span class="material-icons-sharp text-primary">info</span>
                                 </div>
-                                <div class="notification-item-content">
-                                    <p>${n.text}</p>
-                                    <div class="time">${timeAgo(n.createdAt)}</div>
+                                <div class="flex-1">
+                                    <p class="text-sm">${n.text}</p>
+                                    <div class="text-xs text-text-subtle mt-1">${timeAgo(n.createdAt)}</div>
                                 </div>
                             </li>
                         `).join('')}
                     </ul>
                 ` : `
-                    <p class="no-notifications">${activeTab === 'new' ? t('notifications.no_new_notifications') : t('notifications.no_notifications')}</p>
+                    <p class="text-center text-sm text-text-subtle py-8">${activeTab === 'new' ? t('notifications.no_new_notifications') : t('notifications.no_notifications')}</p>
                 `}
             </div>
         </div>

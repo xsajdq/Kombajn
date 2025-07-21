@@ -56,22 +56,22 @@ function renderKpiMetric(
     icon: string, iconBgColor: string, iconColor: string
 ) {
     const changeIndicator = percentageChange !== null ? `
-        <span class="percentage ${percentageChange >= 0 ? 'positive' : 'negative'}">
-            <span class="material-icons-sharp">${percentageChange >= 0 ? 'trending_up' : 'trending_down'}</span>
+        <span class="flex items-center text-xs ${percentageChange >= 0 ? 'text-success' : 'text-danger'}">
+            <span class="material-icons-sharp text-sm">${percentageChange >= 0 ? 'trending_up' : 'trending_down'}</span>
             ${Math.abs(percentageChange)}%
         </span>
     ` : '';
 
     return `
-        <div class="kpi-card-v2">
-            <div class="card-header">
-                <span>${title}</span>
-                <span class="material-icons-sharp" style="background-color: ${iconBgColor}; color: ${iconColor}; border-radius: 50%; padding: 4px;">${icon}</span>
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col justify-between">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-text-subtle">${title}</span>
+                <span class="material-icons-sharp text-lg" style="background-color: ${iconBgColor}; color: ${iconColor}; border-radius: 50%; padding: 4px;">${icon}</span>
             </div>
-            <div class="card-value">${value}</div>
-            <div class="card-footer">
+            <p class="text-2xl font-semibold">${value}</p>
+            <div class="flex items-center gap-1 text-xs text-text-subtle mt-1">
                 ${changeIndicator}
-                <span class="subtle-text">${footerText}</span>
+                <span>${footerText}</span>
             </div>
         </div>
     `;
@@ -83,27 +83,29 @@ function renderRecentProjectsWidget(widget: DashboardWidget, isEditing: boolean)
         .slice(0, 5);
 
     return `
-        <div class="widget-container" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="widget-header">
-                <h4>${t('dashboard.widget_recent_projects_title')}</h4>
-                <a href="/projects" class="btn-link">${t('dashboard.view_all')}</a>
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_recent_projects_title')}</h4>
+                <a href="/projects" class="text-sm text-primary hover:underline">${t('dashboard.view_all')}</a>
             </div>
-            <div class="project-list">
+            <div class="space-y-3">
                 ${recentProjects.length > 0 ? recentProjects.map(p => {
                     const tasks = state.tasks.filter(t => t.projectId === p.id);
                     const completed = tasks.filter(t => t.status === 'done').length;
                     const progress = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
                     return `
-                        <div class="project-list-item">
-                            <span class="project-name">${p.name}</span>
-                            <div class="progress-bar">
-                                <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                        <div>
+                            <div class="flex justify-between items-center text-sm mb-1">
+                                <span class="font-medium">${p.name}</span>
+                                <span class="text-text-subtle">${Math.round(progress)}%</span>
                             </div>
-                            <span class="due-date">${Math.round(progress)}%</span>
+                            <div class="w-full bg-background rounded-full h-1.5">
+                                <div class="bg-primary h-1.5 rounded-full" style="width: ${progress}%;"></div>
+                            </div>
                         </div>
                     `;
-                }).join('') : `<p class="subtle-text">No projects yet.</p>`}
+                }).join('') : `<p class="text-sm text-text-subtle">${t('projects.no_projects_yet')}</p>`}
             </div>
         </div>
     `;
@@ -114,19 +116,19 @@ function renderTodaysTasksWidget(widget: DashboardWidget, isEditing: boolean) {
     const todaysTasks = state.tasks.filter(t => t.dueDate === today && t.status !== 'done');
 
     return `
-         <div class="widget-container" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="widget-header">
-                <h4>${t('dashboard.widget_todays_tasks_title')}</h4>
-                <a href="/tasks" class="btn-link">${t('dashboard.view_all')}</a>
+         <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_todays_tasks_title')}</h4>
+                <a href="/tasks" class="text-sm text-primary hover:underline">${t('dashboard.view_all')}</a>
             </div>
-            <div class="task-list">
+            <div class="space-y-2">
                 ${todaysTasks.length > 0 ? todaysTasks.map(task => `
-                    <div class="task-list-item">
-                        <span class="priority-dot ${task.priority || 'low'}"></span>
-                        <span class="task-name">${task.name}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full ${task.priority === 'high' ? 'bg-danger' : task.priority === 'medium' ? 'bg-warning' : 'bg-primary/50'}"></span>
+                        <span class="text-sm">${task.name}</span>
                     </div>
-                `).join('') : `<p class="subtle-text">No tasks due today. Great job!</p>`}
+                `).join('') : `<p class="text-sm text-text-subtle">No tasks due today. Great job!</p>`}
             </div>
         </div>
     `;
@@ -145,13 +147,13 @@ function renderActivityFeedWidget(widget: DashboardWidget, isEditing: boolean) {
         
         if ('content' in item) {
             return {
-                text: `<strong>${user.name}</strong> commented on <strong>${task.name}</strong>`,
+                text: `<strong class="font-medium">${user.name}</strong> commented on <strong class="font-medium">${task.name}</strong>`,
                 icon: 'chat_bubble',
                 color: '#8B5CF6'
             };
         } else {
              return {
-                text: `<strong>${user.name}</strong> logged <strong>${formatDuration(item.trackedSeconds)}</strong> on <strong>${task.name}</strong>`,
+                text: `<strong class="font-medium">${user.name}</strong> logged <strong class="font-medium">${formatDuration(item.trackedSeconds)}</strong> on <strong class="font-medium">${task.name}</strong>`,
                 icon: 'timer',
                 color: '#3B82F6'
             };
@@ -159,26 +161,26 @@ function renderActivityFeedWidget(widget: DashboardWidget, isEditing: boolean) {
     };
     
     return `
-        <div class="widget-container" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-             <div class="widget-header">
-                <h4>${t('dashboard.widget_activity_feed_title')}</h4>
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+             <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_activity_feed_title')}</h4>
             </div>
-            <div class="feed-list">
+            <div class="space-y-4">
                 ${activities.length > 0 ? activities.map(item => {
                     const { text, icon, color } = getActivityText(item);
                     return `
-                        <div class="feed-item">
-                            <div class="feed-item-icon" style="background-color: ${color}20; color: ${color};">
-                                <span class="material-icons-sharp">${icon}</span>
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style="background-color: ${color}20; color: ${color};">
+                                <span class="material-icons-sharp text-lg">${icon}</span>
                             </div>
-                            <div class="feed-item-content">
-                                <p>${text}</p>
-                                <div class="time">${formatDate(item.createdAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</div>
+                            <div class="flex-1">
+                                <p class="text-sm">${text}</p>
+                                <div class="text-xs text-text-subtle mt-0.5">${formatDate(item.createdAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</div>
                             </div>
                         </div>
                     `;
-                }).join('') : `<p class="subtle-text">${t('dashboard.no_activity_yet')}</p>`}
+                }).join('') : `<p class="text-sm text-text-subtle">${t('dashboard.no_activity_yet')}</p>`}
             </div>
         </div>
     `;
@@ -193,11 +195,11 @@ function renderScheduleWidget(widget: DashboardWidget, isEditing: boolean) {
                startDate.getDate() === today.getDate();
     });
     return `
-        <div class="info-card-widget schedule" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="card-header"><span class="material-icons-sharp">calendar_month</span> ${t('dashboard.widget_schedule_title')}</div>
-            <div class="card-body"><p>You have ${meetingsToday.length} meetings scheduled for today</p></div>
-            <div class="card-footer"><a href="/team-calendar" class="btn-link">View Calendar &rarr;</a></div>
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex items-center gap-2 mb-2"><span class="material-icons-sharp text-blue-500">calendar_month</span><h4 class="font-semibold text-md text-blue-800 dark:text-blue-200">${t('dashboard.widget_schedule_title')}</h4></div>
+            <p class="text-sm text-blue-700 dark:text-blue-300 flex-grow">You have ${meetingsToday.length} meetings scheduled for today</p>
+            <a href="/team-calendar" class="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline self-start mt-2">View Calendar &rarr;</a>
         </div>
     `;
 }
@@ -209,44 +211,43 @@ function renderAlertsWidget(widget: DashboardWidget, isEditing: boolean) {
     }).length;
 
     return `
-        <div class="info-card-widget alerts" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="card-header"><span class="material-icons-sharp">warning</span> ${t('dashboard.widget_alerts_title')}</div>
-            <div class="card-body"><p>${overdueProjects} projects need attention</p></div>
-            <div class="card-footer"><a href="/projects" class="btn-link">View Alerts &rarr;</a></div>
+        <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex items-center gap-2 mb-2"><span class="material-icons-sharp text-amber-500">warning</span><h4 class="font-semibold text-md text-amber-800 dark:text-amber-200">${t('dashboard.widget_alerts_title')}</h4></div>
+            <p class="text-sm text-amber-700 dark:text-amber-300 flex-grow">${overdueProjects} projects need attention</p>
+            <a href="/projects" class="text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline self-start mt-2">View Alerts &rarr;</a>
         </div>
     `;
 }
 
 function renderWeeklyPerformanceWidget(widget: DashboardWidget, isEditing: boolean) {
-    // Dummy data for now
     return `
-        <div class="widget-container weekly-performance-widget" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="widget-header">
-                <h4>${t('dashboard.widget_weekly_performance_title')}</h4>
-                <a href="/reports" class="btn-link">Full Report</a>
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_weekly_performance_title')}</h4>
+                <a href="/reports" class="text-sm text-primary hover:underline">Full Report</a>
             </div>
-            <div class="performance-grid">
-                <div class="performance-item">
-                    <div class="value" style="color:#3B82F6;">94%</div>
-                    <div class="label">Task Completion</div>
-                    <div class="change positive">+5% from last week</div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="flex flex-col">
+                    <div class="text-3xl font-bold text-primary">94%</div>
+                    <div class="text-sm text-text-subtle">Task Completion</div>
+                    <div class="text-xs text-success mt-1">+5% from last week</div>
                 </div>
-                <div class="performance-item">
-                    <div class="value" style="color:#A855F7;">87%</div>
-                    <div class="label">Team Efficiency</div>
-                    <div class="change positive">+3% from last week</div>
+                <div class="flex flex-col">
+                    <div class="text-3xl font-bold text-purple-500">87%</div>
+                    <div class="text-sm text-text-subtle">Team Efficiency</div>
+                    <div class="text-xs text-success mt-1">+3% from last week</div>
                 </div>
-                <div class="performance-item">
-                    <div class="value" style="color:#10B981;">156h</div>
-                    <div class="label">Hours Tracked</div>
-                    <div class="change negative">Target: 160h</div>
+                <div class="flex flex-col">
+                    <div class="text-3xl font-bold text-green-500">156h</div>
+                    <div class="text-sm text-text-subtle">Hours Tracked</div>
+                    <div class="text-xs text-danger mt-1">Target: 160h</div>
                 </div>
-                 <div class="performance-item">
-                    <div class="value" style="color:#F59E0B;">${formatCurrency(24500, 'PLN')}</div>
-                    <div class="label">Revenue Generated</div>
-                    <div class="change positive">+18% from last week</div>
+                 <div class="flex flex-col">
+                    <div class="text-3xl font-bold text-amber-500">${formatCurrency(24500, 'PLN')}</div>
+                    <div class="text-sm text-text-subtle">Revenue Generated</div>
+                    <div class="text-xs text-success mt-1">+18% from last week</div>
                 </div>
             </div>
         </div>
@@ -255,13 +256,13 @@ function renderWeeklyPerformanceWidget(widget: DashboardWidget, isEditing: boole
 
 function renderQuickActionsWidget(widget: DashboardWidget, isEditing: boolean) {
     return `
-        <div class="widget-container quick-actions-container" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="btn-icon remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp">close</span></button>` : ''}
-            <div class="quick-actions-grid">
-                <button class="quick-action-btn" data-modal-target="addProject"><span class="material-icons-sharp" style="color: #6366F1;">add_business</span> ${t('dashboard.action_new_project')}</button>
-                <button class="quick-action-btn" data-modal-target="addClient"><span class="material-icons-sharp" style="color: #10B981;">person_add</span> ${t('dashboard.action_add_client')}</button>
-                <button class="quick-action-btn" data-modal-target="addInvoice"><span class="material-icons-sharp" style="color: #EF4444;">receipt_long</span> ${t('dashboard.action_create_invoice')}</button>
-                <button class="quick-action-btn" data-modal-target="addCalendarEvent"><span class="material-icons-sharp" style="color: #F59E0B;">event</span> ${t('dashboard.action_schedule_meeting')}</button>
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 h-full">
+                <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addProject"><span class="material-icons-sharp text-3xl text-indigo-500 mb-2">add_business</span><span class="text-sm font-medium">${t('dashboard.action_new_project')}</span></button>
+                <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addClient"><span class="material-icons-sharp text-3xl text-green-500 mb-2">person_add</span><span class="text-sm font-medium">${t('dashboard.action_add_client')}</span></button>
+                <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addInvoice"><span class="material-icons-sharp text-3xl text-red-500 mb-2">receipt_long</span><span class="text-sm font-medium">${t('dashboard.action_create_invoice')}</span></button>
+                <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addCalendarEvent"><span class="material-icons-sharp text-3xl text-amber-500 mb-2">event</span><span class="text-sm font-medium">${t('dashboard.action_schedule_meeting')}</span></button>
             </div>
         </div>
     `;
@@ -298,13 +299,13 @@ function renderOverviewTab() {
     }).length;
 
     return `
-        <div class="dashboard-kpi-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             ${renderKpiMetric(t('dashboard.kpi_total_revenue'), formatCurrency(totalRevenue, 'PLN'), 12.5, t('dashboard.vs_last_month'), 'attach_money', '#dcfce7', '#22c55e')}
             ${renderKpiMetric(t('dashboard.kpi_active_projects'), `${activeProjects}`, 3, t('dashboard.vs_last_month'), 'folder', '#e0e7ff', '#4f46e5')}
             ${renderKpiMetric(t('dashboard.kpi_total_clients'), `${totalClients}`, 8, t('dashboard.vs_last_month'), 'people', '#f3e8ff', '#9333ea')}
             ${renderKpiMetric(t('dashboard.kpi_overdue_projects'), `${overdueProjects}`, -5.2, t('dashboard.vs_last_month'), 'error', '#fee2e2', '#ef4444')}
         </div>
-        <div class="dashboard-widget-grid ${isEditing ? 'is-editing' : ''}">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 ${isEditing ? 'border-2 border-dashed border-border-color p-2 rounded-lg' : ''}" id="dashboard-widget-area">
             ${userWidgets.map(renderWidget).join('')}
         </div>
     `;
@@ -317,14 +318,16 @@ export function initDashboardCharts() {
 export function DashboardPage() {
     fetchDashboardData();
     const { currentUser, activeWorkspaceId } = state;
-    if (!currentUser || !activeWorkspaceId) return '<div class="widget-loader"></div>';
+    if (!currentUser || !activeWorkspaceId) return '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
     if (state.ui.dashboard.isLoading) {
         return `
-            <div class="dashboard-page-container">
-                <div class="loading-container" style="height: 60vh;">
-                    <div class="loading-progress-bar"></div>
-                    <p>Loading your dashboard...</p>
+            <div class="flex flex-col items-center justify-center h-full">
+                <div class="w-full max-w-xs text-center p-4">
+                    <div class="w-full bg-border-color rounded-full h-1.5 mb-4 overflow-hidden">
+                        <div class="bg-primary h-1.5 rounded-full animate-pulse" style="width: 75%"></div>
+                    </div>
+                    <p class="text-sm text-text-subtle">Loading your dashboard...</p>
                 </div>
             </div>
         `;
@@ -335,40 +338,42 @@ export function DashboardPage() {
     let tabContent = '';
     switch (activeTab) {
         case 'overview': tabContent = renderOverviewTab(); break;
-        case 'projects': tabContent = '<div class="empty-state"><p>Projects dashboard coming soon.</p></div>'; break;
-        case 'team': tabContent = '<div class="empty-state"><p>Team dashboard coming soon.</p></div>'; break;
-        case 'analytics': tabContent = '<div class="empty-state"><p>Analytics dashboard coming soon.</p></div>'; break;
+        case 'projects': tabContent = '<div class="flex items-center justify-center h-64"><p class="text-text-subtle">Projects dashboard coming soon.</p></div>'; break;
+        case 'team': tabContent = '<div class="flex items-center justify-center h-64"><p class="text-text-subtle">Team dashboard coming soon.</p></div>'; break;
+        case 'analytics': tabContent = '<div class="flex items-center justify-center h-64"><p class="text-text-subtle">Analytics dashboard coming soon.</p></div>'; break;
     }
 
     return `
-        <div class="dashboard-page-container">
-            <div class="dashboard-header">
-                <div class="header-left">
-                    <h2>${t('dashboard.welcome_message').replace('{name}', currentUser.name?.split(' ')[0] || '')}</h2>
-                    <p class="subtle-text">${t('dashboard.welcome_sub')}</p>
+        <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold">${t('dashboard.welcome_message').replace('{name}', currentUser.name?.split(' ')[0] || '')}</h2>
+                    <p class="text-text-subtle">${t('dashboard.welcome_sub')}</p>
                 </div>
-                <div class="header-right">
-                    <button id="toggle-dashboard-edit-mode" class="btn ${isEditing ? 'btn-primary' : 'btn-secondary'}">
-                       <span class="material-icons-sharp">${isEditing ? 'done' : 'edit'}</span>
+                <div class="flex items-center gap-2">
+                    <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
+                       <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
                        ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
                     </button>
-                    <button class="btn btn-primary" id="dashboard-quick-actions-btn">
-                        <span class="material-icons-sharp">bolt</span> Quick Actions
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" id="dashboard-quick-actions-btn">
+                        <span class="material-icons-sharp text-base">bolt</span> Quick Actions
                     </button>
                 </div>
             </div>
 
-            <div class="dashboard-tabs">
-                <button class="dashboard-tab ${activeTab === 'overview' ? 'active' : ''}" data-dashboard-tab="overview">Overview</button>
-                <button class="dashboard-tab ${activeTab === 'projects' ? 'active' : ''}" data-dashboard-tab="projects">Projects</button>
-                <button class="dashboard-tab ${activeTab === 'team' ? 'active' : ''}" data-dashboard-tab="team">Team</button>
-                <button class="dashboard-tab ${activeTab === 'analytics' ? 'active' : ''}" data-dashboard-tab="analytics">Analytics</button>
+            <div class="border-b border-border-color">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="overview">Overview</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'projects' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="projects">Projects</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'team' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="team">Team</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="analytics">Analytics</button>
+                </nav>
             </div>
             
             ${tabContent}
 
             ${isEditing && activeTab === 'overview' ? `
-                <button class="fab" id="add-widget-btn" aria-label="${t('dashboard.add_widget')}" title="${t('dashboard.add_widget')}">
+                <button class="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary-hover transition-transform transform hover:scale-105" id="add-widget-btn" aria-label="${t('dashboard.add_widget')}" title="${t('dashboard.add_widget')}">
                     <span class="material-icons-sharp">add</span>
                 </button>
             ` : ''}

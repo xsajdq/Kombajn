@@ -7,12 +7,13 @@ import { runAutomations } from './automations.ts';
 import { apiPut } from '../services/api.ts';
 
 let draggedItemId: string | null = null;
-let draggedItemType: 'task' | 'deal' | null = null;
+let draggedItemType: 'task' | 'deal' | 'widget' | null = null;
 
 export function handleDragStart(e: DragEvent) {
     const target = e.target as HTMLElement;
     const taskCard = target.closest<HTMLElement>('.task-card');
     const dealCard = target.closest<HTMLElement>('.deal-card');
+    const widget = target.closest<HTMLElement>('[data-widget-id]');
 
     let itemCard: HTMLElement | null = null;
     let id: string | undefined;
@@ -25,51 +26,62 @@ export function handleDragStart(e: DragEvent) {
         itemCard = dealCard;
         draggedItemType = 'deal';
         id = itemCard.dataset.dealId;
+    } else if (widget && state.ui.dashboard.isEditing) {
+        itemCard = widget;
+        draggedItemType = 'widget';
+        id = itemCard.dataset.widgetId;
     }
 
     if (itemCard && id && e.dataTransfer) {
         draggedItemId = id;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', draggedItemId);
-        setTimeout(() => itemCard!.classList.add('dragging'), 0);
+        setTimeout(() => itemCard!.classList.add('opacity-50'), 0);
     }
 }
 
 export function handleDragEnd(e: DragEvent) {
-    const itemCard = (e.target as HTMLElement).closest('.task-card, .deal-card');
-    if (itemCard) {
-        itemCard.classList.remove('dragging');
-    }
+    document.querySelectorAll('.opacity-50').forEach(el => el.classList.remove('opacity-50'));
     draggedItemId = null;
     draggedItemType = null;
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('[data-status], [data-stage], [data-widget-id]').forEach(el => el.classList.remove('border-primary', 'border-dashed'));
 }
 
 export function handleDragOver(e: DragEvent) {
     e.preventDefault();
-    const column = (e.target as HTMLElement).closest<HTMLElement>('.kanban-column');
+    
+    if (draggedItemType === 'widget') {
+        const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('[data-widget-id]');
+        if (dropTargetElement && dropTargetElement.dataset.widgetId !== draggedItemId) {
+            document.querySelectorAll('[data-widget-id]').forEach(el => el.classList.remove('border-primary', 'border-dashed'));
+            dropTargetElement.classList.add('border-primary', 'border-dashed');
+        }
+        return;
+    }
+
+    const column = (e.target as HTMLElement).closest<HTMLElement>('[data-status], [data-stage]');
     if (column) {
-        // Only allow dropping tasks on status columns and deals on stage columns
         const isTaskColumn = !!column.dataset.status;
         const isDealColumn = !!column.dataset.stage;
 
         if ((draggedItemType === 'task' && isTaskColumn) || (draggedItemType === 'deal' && isDealColumn)) {
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-            column.classList.add('drag-over');
-        } else {
-             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+             document.querySelectorAll('[data-status], [data-stage]').forEach(el => el.classList.remove('bg-primary/10'));
+            column.classList.add('bg-primary/10');
         }
     }
 }
 
 export async function handleDrop(e: DragEvent) {
     e.preventDefault();
-    const column = (e.target as HTMLElement).closest<HTMLElement>('.kanban-column');
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('[data-status], [data-stage]').forEach(el => el.classList.remove('bg-primary/10'));
     
-    if (!column || !draggedItemId || !draggedItemType || !state.currentUser) {
+    if (!draggedItemId || !draggedItemType || !state.currentUser) {
         return;
     }
+    
+    const column = (e.target as HTMLElement).closest<HTMLElement>('[data-status], [data-stage]');
+    if (!column) return;
+
 
     if (draggedItemType === 'task') {
         const newStatus = column.dataset.status as Task['status'];

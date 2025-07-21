@@ -60,111 +60,126 @@ export function InvoicesPage() {
     };
 
     const summaryComponent = `
-        <div class="invoice-summary-grid">
-            <div class="card stat-card">
-                <h4>${t('invoices.title')}</h4>
-                <div class="stat-card-value">${summary.count}</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-content p-4 rounded-lg shadow-sm">
+                <h4 class="text-sm font-medium text-text-subtle">${t('invoices.title')}</h4>
+                <div class="text-2xl font-bold mt-1">${summary.count}</div>
             </div>
-            <div class="card stat-card">
-                <h4>${t('invoices.col_total')}</h4>
-                <div class="stat-card-value">${formatCurrency(summary.totalAmount)}</div>
+            <div class="bg-content p-4 rounded-lg shadow-sm">
+                <h4 class="text-sm font-medium text-text-subtle">${t('invoices.col_total')}</h4>
+                <div class="text-2xl font-bold mt-1">${formatCurrency(summary.totalAmount)}</div>
             </div>
-            <div class="card stat-card">
-                <h4>${t('invoices.status_overdue')}</h4>
-                <div class="stat-card-value overdue">${formatCurrency(summary.overdueAmount)}</div>
+            <div class="bg-content p-4 rounded-lg shadow-sm">
+                <h4 class="text-sm font-medium text-text-subtle">${t('invoices.status_overdue')}</h4>
+                <div class="text-2xl font-bold mt-1 text-danger">${formatCurrency(summary.overdueAmount)}</div>
             </div>
         </div>
     `;
 
     const filterBar = `
-        <div id="invoice-filters-bar" class="card reports-filter-bar" style="margin-bottom: 1.5rem;">
-            <div class="form-group">
-                <label>${t('reports.filter_date_range')}</label>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="date" id="invoice-filter-date-start" class="form-control" value="${state.ui.invoiceFilters.dateStart}">
-                    <span>-</span>
-                    <input type="date" id="invoice-filter-date-end" class="form-control" value="${state.ui.invoiceFilters.dateEnd}">
+        <div id="invoice-filters-bar" class="bg-content p-4 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div class="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+                <div>
+                    <label class="text-xs text-text-subtle mb-1 block">${t('reports.filter_date_range')}</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="invoice-filter-date-start" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${state.ui.invoiceFilters.dateStart}">
+                        <span>-</span>
+                        <input type="date" id="invoice-filter-date-end" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${state.ui.invoiceFilters.dateEnd}">
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>${t('invoices.col_client')}</label>
-                <select id="invoice-filter-client" class="form-control">
-                    <option value="all">${t('invoices.all_clients')}</option>
-                    ${workspaceClients.map(c => `<option value="${c.id}" ${state.ui.invoiceFilters.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>${t('invoices.col_status')}</label>
-                <select id="invoice-filter-status" class="form-control">
-                    <option value="all">${t('invoices.all_statuses')}</option>
-                    ${statuses.map(s => `<option value="${s}" ${state.ui.invoiceFilters.status === s ? 'selected' : ''}>${t('invoices.status_' + s)}</option>`).join('')}
-                </select>
+                <div>
+                    <label for="invoice-filter-client" class="text-xs text-text-subtle mb-1 block">${t('invoices.col_client')}</label>
+                    <select id="invoice-filter-client" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
+                        <option value="all">${t('invoices.all_clients')}</option>
+                        ${workspaceClients.map(c => `<option value="${c.id}" ${state.ui.invoiceFilters.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label for="invoice-filter-status" class="text-xs text-text-subtle mb-1 block">${t('invoices.col_status')}</label>
+                    <select id="invoice-filter-status" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
+                        <option value="all">${t('invoices.all_statuses')}</option>
+                        ${statuses.map(s => `<option value="${s}" ${state.ui.invoiceFilters.status === s ? 'selected' : ''}>${t('invoices.status_' + s)}</option>`).join('')}
+                    </select>
+                </div>
             </div>
         </div>
     `;
 
     return `
-        <div>
-            <h2>
-                <span>${t('invoices.title')}</span>
-                 <button class="btn btn-primary" data-modal-target="addInvoice" ${!canCreate ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp">add</span> ${t('invoices.new_invoice')}
+        <div class="space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
+                 <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!canCreate ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
                 </button>
-            </h2>
+            </div>
             ${filterBar}
             ${summaryComponent}
             ${filteredInvoices.length > 0 ? `
-                <div class="card invoice-list-container">
-                     <div class="invoice-list-header">
-                        <div>${t('invoices.col_number')}</div>
-                        <div>${t('invoices.col_client')}</div>
-                        <div>${t('invoices.col_issued')}</div>
-                        <div>${t('invoices.col_due')}</div>
-                        <div>${t('invoices.col_total')}</div>
-                        <div>${t('invoices.col_status')}</div>
-                        <div>${t('invoices.col_actions')}</div>
-                    </div>
-                    <div class="invoice-list-body">
-                    ${filteredInvoices.map(invoice => {
-                        const client = state.clients.find(c => c.id === invoice.clientId);
-                        const total = calculateInvoiceTotal(invoice);
-                        const statusBadgeClass = `status-${invoice.effectiveStatus}`;
+                <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
+                     <table class="w-full text-sm text-left">
+                        <thead class="bg-background text-xs text-text-subtle uppercase">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">${t('invoices.col_number')}</th>
+                                <th scope="col" class="px-4 py-3">${t('invoices.col_client')}</th>
+                                <th scope="col" class="px-4 py-3">${t('invoices.col_issued')}</th>
+                                <th scope="col" class="px-4 py-3">${t('invoices.col_due')}</th>
+                                <th scope="col" class="px-4 py-3 text-right">${t('invoices.col_total')}</th>
+                                <th scope="col" class="px-4 py-3">${t('invoices.col_status')}</th>
+                                <th scope="col" class="px-4 py-3 text-right">${t('invoices.col_actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        ${filteredInvoices.map(invoice => {
+                            const client = state.clients.find(c => c.id === invoice.clientId);
+                            const total = calculateInvoiceTotal(invoice);
+                             const statusColors = {
+                                paid: 'bg-success/10 text-success',
+                                pending: 'bg-warning/10 text-warning',
+                                overdue: 'bg-danger/10 text-danger'
+                            };
+                            const statusBadgeClass = statusColors[invoice.effectiveStatus] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 
-                        return `
-                             <div class="invoice-list-row">
-                                <div data-label="${t('invoices.col_number')}">${invoice.invoiceNumber}</div>
-                                <div data-label="${t('invoices.col_client')}">${client?.name || t('misc.not_applicable')}</div>
-                                <div data-label="${t('invoices.col_issued')}">${formatDate(invoice.issueDate)}</div>
-                                <div data-label="${t('invoices.col_due')}">${formatDate(invoice.dueDate)}</div>
-                                <div data-label="${t('invoices.col_total')}">${formatCurrency(total)}</div>
-                                <div data-label="${t('invoices.col_status')}">
-                                    <span class="status-badge ${statusBadgeClass}">${t('invoices.status_' + invoice.effectiveStatus)}</span>
-                                    ${invoice.emailStatus === 'sent' ? `<span class="material-icons-sharp" title="${t('invoices.status_sent')}" style="color: var(--success-color); vertical-align: middle; margin-left: 0.5rem;">mark_email_read</span>` : ''}
-                                </div>
-                                <div data-label="${t('invoices.col_actions')}" style="display: flex; gap: 0.5rem;">
-                                    <button class="btn-icon" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')}" aria-label="${t('invoices.send_by_email')}">
-                                        <span class="material-icons-sharp">outgoing_mail</span>
-                                    </button>
-                                    <button class="btn-icon" data-download-invoice-id="${invoice.id}" aria-label="${t('invoices.download_pdf')}">
-                                        <span class="material-icons-sharp">picture_as_pdf</span>
-                                    </button>
-                                    ${canManage ? `
-                                        <button class="btn-icon" data-toggle-invoice-status-id="${invoice.id}" aria-label="${invoice.status === 'paid' ? t('invoices.mark_as_unpaid') : t('invoices.mark_as_paid')}">
-                                            <span class="material-icons-sharp">${invoice.status === 'paid' ? 'cancel' : 'check_circle'}</span>
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                    </div>
+                            return `
+                                 <tr class="border-b border-border-color hover:bg-background">
+                                    <td class="px-4 py-3 font-medium">${invoice.invoiceNumber}</td>
+                                    <td class="px-4 py-3">${client?.name || t('misc.not_applicable')}</td>
+                                    <td class="px-4 py-3">${formatDate(invoice.issueDate)}</td>
+                                    <td class="px-4 py-3">${formatDate(invoice.dueDate)}</td>
+                                    <td class="px-4 py-3 text-right font-medium">${formatCurrency(total)}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusBadgeClass}">${t('invoices.status_' + invoice.effectiveStatus)}</span>
+                                            ${invoice.emailStatus === 'sent' ? `<span class="material-icons-sharp text-success text-base" title="${t('invoices.status_sent')}">mark_email_read</span>` : ''}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')}" aria-label="${t('invoices.send_by_email')}">
+                                                <span class="material-icons-sharp text-lg">outgoing_mail</span>
+                                            </button>
+                                            <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-download-invoice-id="${invoice.id}" aria-label="${t('invoices.download_pdf')}">
+                                                <span class="material-icons-sharp text-lg">picture_as_pdf</span>
+                                            </button>
+                                            ${canManage ? `
+                                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-toggle-invoice-status-id="${invoice.id}" aria-label="${invoice.status === 'paid' ? t('invoices.mark_as_unpaid') : t('invoices.mark_as_paid')}">
+                                                    <span class="material-icons-sharp text-lg">${invoice.status === 'paid' ? 'cancel' : 'check_circle'}</span>
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                        </tbody>
+                    </table>
                 </div>
             ` : `
-                 <div class="empty-state">
-                    <span class="material-icons-sharp">receipt_long</span>
-                    <h3>${t('invoices.no_invoices_yet')}</h3>
-                    <p>${t('invoices.no_invoices_desc')}</p>
-                     <button class="btn btn-primary" data-modal-target="addInvoice" ${!canCreate ? 'disabled' : ''}>
+                 <div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
+                    <span class="material-icons-sharp text-5xl text-text-subtle">receipt_long</span>
+                    <h3 class="text-lg font-medium mt-4">${t('invoices.no_invoices_yet')}</h3>
+                    <p class="text-sm text-text-subtle mt-1">${t('invoices.no_invoices_desc')}</p>
+                     <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!canCreate ? 'disabled' : ''}>
                         ${t('invoices.new_invoice')}
                     </button>
                 </div>

@@ -1,6 +1,8 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -12,19 +14,19 @@ function renderChatMessage(message: ChatMessage) {
 
     const renderMessageBody = (content: string) => {
         const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-        const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
+        const html = content.replace(mentionRegex, `<strong class="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md">@$1</strong>`);
         return `<p>${html}</p>`;
     };
 
     return `
-        <div class="message-item">
-            <div class="avatar">${user.initials}</div>
-            <div class="message-content">
-                <div class="message-header">
-                    <strong>${user.name}</strong>
-                    <span class="time">${formatDate(message.createdAt, { hour: 'numeric', minute: 'numeric' })}</span>
+        <div class="flex items-start gap-3 p-3 hover:bg-background rounded-lg">
+            <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0">${user.initials}</div>
+            <div class="flex-1">
+                <div class="flex items-baseline gap-2">
+                    <strong class="text-sm font-semibold">${user.name}</strong>
+                    <span class="text-xs text-text-subtle">${formatDate(message.createdAt, { hour: 'numeric', minute: 'numeric' })}</span>
                 </div>
-                <div class="message-body">
+                <div class="text-sm prose dark:prose-invert max-w-none">
                     ${renderMessageBody(message.content)}
                 </div>
             </div>
@@ -50,41 +52,42 @@ export function ChatPage() {
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     return `
-        <div class="chat-layout">
-            <aside class="chat-sidebar">
-                <h3>${t('sidebar.chat')}</h3>
-                <ul class="channel-list">
+        <div class="flex h-full bg-content rounded-lg shadow-sm border border-border-color">
+            <aside class="w-72 bg-background/50 border-r border-border-color flex flex-col">
+                <h3 class="text-lg font-semibold p-4 border-b border-border-color">${t('sidebar.chat')}</h3>
+                <ul class="flex-1 overflow-y-auto p-2 space-y-1">
                     ${channels.map(channel => `
-                        <li class="channel-item ${channel.id === activeChannelId ? 'active' : ''}" data-channel-id="${channel.id}">
-                            <span class="material-icons-sharp">${channel.projectId ? 'folder' : 'public'}</span>
+                        <li class="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-sm font-medium ${channel.id === activeChannelId ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-channel-id="${channel.id}">
+                            <span class="material-icons-sharp text-base">${channel.projectId ? 'folder' : 'public'}</span>
                             <span>${channel.name}</span>
                         </li>
                     `).join('')}
                 </ul>
             </aside>
-            <main class="chat-main">
+            <main class="flex-1 flex flex-col">
                 ${activeChannel ? `
-                    <div class="chat-header">
-                        <h4>${activeChannel.name}</h4>
+                    <div class="p-4 border-b border-border-color">
+                        <h4 class="font-semibold">${activeChannel.name}</h4>
                     </div>
-                    <div class="message-list">
-                        <div class="message-list-inner">
+                    <div class="flex-1 overflow-y-auto p-4 message-list">
+                        <div class="space-y-1">
                             ${messages.map(renderChatMessage).join('')}
                         </div>
                     </div>
-                    <div class="chat-form-container">
-                        <form id="chat-form" class="chat-form">
-                            <div class="rich-text-input-container">
-                                <div id="chat-message-input" class="rich-text-input" contenteditable="true" role="textbox" aria-multiline="false" data-placeholder="${t('modals.add_comment')}"></div>
+                    <div class="p-4 border-t border-border-color">
+                        <form id="chat-form" class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <div id="chat-message-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition min-h-[40px]" contenteditable="true" role="textbox" aria-multiline="false" data-placeholder="${t('modals.add_comment')}"></div>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="chat-send-btn">
+                            <button type="submit" class="p-2 rounded-md bg-primary text-white hover:bg-primary-hover" id="chat-send-btn">
                                 <span class="material-icons-sharp">send</span>
                             </button>
                         </form>
                     </div>
                 ` : `
-                    <div class="empty-state">
-                        <p>Select a channel to start chatting.</p>
+                    <div class="flex flex-col items-center justify-center h-full text-center">
+                        <span class="material-icons-sharp text-5xl text-text-subtle">chat</span>
+                        <p class="mt-2 text-text-subtle">Select a channel to start chatting.</p>
                     </div>
                 `}
             </main>

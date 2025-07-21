@@ -2,6 +2,8 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType } from '../types.ts';
@@ -13,23 +15,22 @@ export function SettingsPage() {
     const canManage = can('manage_workspace_settings');
 
     const renderGeneralSettings = () => `
-        <div class="setting-item">
+        <div class="flex justify-between items-center py-4 border-b border-border-color">
             <div>
-                <h4>${t('settings.theme')}</h4>
-                <p class="subtle-text">${t('settings.theme_desc')}</p>
+                <h4 class="font-semibold">${t('settings.theme')}</h4>
+                <p class="text-sm text-text-subtle">${t('settings.theme_desc')}</p>
             </div>
-            <select id="theme-switcher" class="form-control" style="max-width: 200px;">
+            <select id="theme-switcher" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                 <option value="light" ${state.settings.theme === 'light' ? 'selected' : ''}>${t('settings.theme_light')}</option>
                 <option value="dark" ${state.settings.theme === 'dark' ? 'selected' : ''}>${t('settings.theme_dark')}</option>
-                <option value="minimal" ${state.settings.theme === 'minimal' ? 'selected' : ''}>${t('settings.theme_minimal')}</option>
             </select>
         </div>
-        <div class="setting-item">
+        <div class="flex justify-between items-center py-4">
             <div>
-                <h4>${t('settings.language')}</h4>
-                <p class="subtle-text">${t('settings.language_desc')}</p>
+                <h4 class="font-semibold">${t('settings.language')}</h4>
+                <p class="text-sm text-text-subtle">${t('settings.language_desc')}</p>
             </div>
-            <select id="language-switcher" class="form-control" style="max-width: 200px;">
+            <select id="language-switcher" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                 <option value="en" ${state.settings.language === 'en' ? 'selected' : ''}>${t('settings.english')}</option>
                 <option value="pl" ${state.settings.language === 'pl' ? 'selected' : ''}>${t('settings.polish')}</option>
             </select>
@@ -41,48 +42,48 @@ export function SettingsPage() {
         if (!user) return '';
 
         return `
-            <div class="profile-settings-container">
-                <div class="card">
-                    <h4>${t('settings.profile_details')}</h4>
-                    <form id="update-profile-form">
-                        <div class="form-group">
-                            <label for="profile-avatar">${t('settings.avatar')}</label>
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div class="avatar" style="width: 64px; height: 64px; font-size: 1.5rem;" id="avatar-preview">
-                                    ${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="User avatar">` : user.initials}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="bg-content p-5 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-lg mb-4">${t('settings.profile_details')}</h4>
+                    <form id="update-profile-form" class="space-y-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-sm font-medium text-text-subtle">${t('settings.avatar')}</label>
+                            <div class="flex items-center gap-4">
+                                <div id="avatar-preview" class="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xl font-semibold">
+                                    ${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="User avatar" class="w-full h-full rounded-full object-cover">` : user.initials}
                                 </div>
-                                <label for="avatar-upload" class="btn btn-secondary">${t('settings.upload_avatar')}</label>
+                                <label for="avatar-upload" class="cursor-pointer px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.upload_avatar')}</label>
                                 <input type="file" id="avatar-upload" class="hidden" accept="image/png, image/jpeg">
                             </div>
                         </div>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label for="profile-full-name">${t('settings.full_name')}</label>
-                            <input type="text" id="profile-full-name" class="form-control" value="${user.name || ''}" required>
+                        <div class="flex flex-col gap-1.5">
+                            <label for="profile-full-name" class="text-sm font-medium text-text-subtle">${t('settings.full_name')}</label>
+                            <input type="text" id="profile-full-name" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${user.name || ''}" required>
                         </div>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label for="profile-email">${t('settings.email_address')}</label>
-                            <input type="email" id="profile-email" class="form-control" value="${user.email || ''}" readonly disabled>
+                        <div class="flex flex-col gap-1.5">
+                            <label for="profile-email" class="text-sm font-medium text-text-subtle">${t('settings.email_address')}</label>
+                            <input type="email" id="profile-email" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${user.email || ''}" readonly disabled>
                         </div>
-                        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem;">
-                            <span id="profile-update-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
-                            <button type="submit" class="btn btn-primary">${t('settings.update_profile')}</button>
+                        <div class="flex justify-end items-center gap-3 pt-4">
+                            <span id="profile-update-status" class="text-sm transition-opacity duration-300"></span>
+                            <button type="submit" class="px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('settings.update_profile')}</button>
                         </div>
                     </form>
                 </div>
-                <div class="card">
-                    <h4>${t('settings.change_password')}</h4>
-                    <form id="update-password-form">
-                        <div class="form-group">
-                            <label for="password-new">${t('settings.new_password')}</label>
-                            <input type="password" id="password-new" class="form-control" required minlength="6">
+                <div class="bg-content p-5 rounded-lg shadow-sm">
+                    <h4 class="font-semibold text-lg mb-4">${t('settings.change_password')}</h4>
+                    <form id="update-password-form" class="space-y-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label for="password-new" class="text-sm font-medium text-text-subtle">${t('settings.new_password')}</label>
+                            <input type="password" id="password-new" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required minlength="6">
                         </div>
-                         <div class="form-group" style="margin-top:1rem;">
-                            <label for="password-confirm">${t('settings.confirm_new_password')}</label>
-                            <input type="password" id="password-confirm" class="form-control" required minlength="6">
+                         <div class="flex flex-col gap-1.5">
+                            <label for="password-confirm" class="text-sm font-medium text-text-subtle">${t('settings.confirm_new_password')}</label>
+                            <input type="password" id="password-confirm" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required minlength="6">
                         </div>
-                        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem;">
-                            <span id="password-update-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
-                            <button type="submit" class="btn btn-primary">${t('settings.update_password')}</button>
+                        <div class="flex justify-end items-center gap-3 pt-4">
+                             <span id="password-update-status" class="text-sm transition-opacity duration-300"></span>
+                            <button type="submit" class="px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('settings.update_password')}</button>
                         </div>
                     </form>
                 </div>
@@ -95,33 +96,33 @@ export function SettingsPage() {
         const fieldTypes: CustomFieldType[] = ['text', 'number', 'date', 'checkbox'];
 
         return `
-            <div class="setting-item">
-                <div>
-                    <h4>${t('settings.tab_custom_fields')}</h4>
-                    <p class="subtle-text">Add custom fields to your tasks to capture more specific information.</p>
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_custom_fields')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Add custom fields to your tasks to capture more specific information.</p>
+            </div>
+            <div class="bg-content p-5 rounded-lg shadow-sm">
+                <div class="divide-y divide-border-color">
+                ${customFields.length > 0 ? customFields.map(field => `
+                    <div class="flex justify-between items-center py-3">
+                        <span class="font-medium">${field.name} <span class="text-text-subtle ml-2 text-xs capitalize">(${t(`settings.field_type_${field.type}`)})</span></span>
+                        <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-field-id="${field.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp text-lg">delete</span></button>
+                    </div>
+                `).join('') : `<p class="text-center text-sm text-text-subtle py-8">${t('settings.no_custom_fields')}</p>`}
                 </div>
             </div>
-            <div class="card" style="margin-top: 1rem;">
-                ${customFields.length > 0 ? customFields.map(field => `
-                    <div class="setting-item">
-                        <span><strong>${field.name}</strong> (${t(`settings.field_type_${field.type}`)})</span>
-                        <button class="btn-icon delete-custom-field-btn" data-field-id="${field.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
+            <form id="add-custom-field-form" class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                 <div class="flex gap-4 items-end">
+                    <div class="flex-grow flex flex-col gap-1.5">
+                        <label for="custom-field-name" class="text-sm font-medium text-text-subtle">${t('settings.field_name')}</label>
+                        <input type="text" id="custom-field-name" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required>
                     </div>
-                `).join('') : `<p class="subtle-text">${t('settings.no_custom_fields')}</p>`}
-            </div>
-            <form id="add-custom-field-form" class="card" style="margin-top: 1.5rem;">
-                 <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                    <div class="form-group" style="flex-grow: 1;">
-                        <label for="custom-field-name">${t('settings.field_name')}</label>
-                        <input type="text" id="custom-field-name" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="custom-field-type">${t('settings.field_type')}</label>
-                        <select id="custom-field-type" class="form-control">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="custom-field-type" class="text-sm font-medium text-text-subtle">${t('settings.field_type')}</label>
+                        <select id="custom-field-type" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                             ${fieldTypes.map(type => `<option value="${type}">${t(`settings.field_type_${type}`)}</option>`).join('')}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-secondary">${t('settings.add_field')}</button>
+                    <button type="submit" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.add_field')}</button>
                 </div>
             </form>
         `;
@@ -134,70 +135,74 @@ export function SettingsPage() {
         
         return `
             <form id="workspace-settings-form">
-                <div class="card">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-                        <div>
-                            <h4>${t('settings.company_details')}</h4>
-                            <div class="form-group">
-                                <label for="companyName">${t('settings.company_name')}</label>
-                                <input type="text" id="companyName" data-field="companyName" class="form-control" value="${workspace.companyName || ''}">
+                <div class="bg-content p-5 rounded-lg shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2 space-y-4">
+                            <h4 class="font-semibold text-lg">${t('settings.company_details')}</h4>
+                            <div class="flex flex-col gap-1.5">
+                                <label for="companyName" class="text-sm font-medium text-text-subtle">${t('settings.company_name')}</label>
+                                <input type="text" id="companyName" data-field="companyName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyName || ''}">
                             </div>
-                            <div class="form-group" style="margin-top:1rem;">
-                                <label for="companyAddress">${t('settings.company_address')}</label>
-                                <textarea id="companyAddress" data-field="companyAddress" class="form-control" rows="3">${workspace.companyAddress || ''}</textarea>
+                            <div class="flex flex-col gap-1.5">
+                                <label for="companyAddress" class="text-sm font-medium text-text-subtle">${t('settings.company_address')}</label>
+                                <textarea id="companyAddress" data-field="companyAddress" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" rows="3">${workspace.companyAddress || ''}</textarea>
                             </div>
-                            <div class="form-group" style="margin-top:1rem;">
-                                <label for="companyVatId">${t('settings.company_vat_id')}</label>
-                                <input type="text" id="companyVatId" data-field="companyVatId" class="form-control" value="${workspace.companyVatId || ''}">
-                            </div>
-                             <div class="form-group" style="margin-top:1rem;">
-                                <label for="companyEmail">${t('settings.company_email')}</label>
-                                <input type="email" id="companyEmail" data-field="companyEmail" class="form-control" value="${workspace.companyEmail || ''}">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-1.5">
+                                    <label for="companyVatId" class="text-sm font-medium text-text-subtle">${t('settings.company_vat_id')}</label>
+                                    <input type="text" id="companyVatId" data-field="companyVatId" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyVatId || ''}">
+                                </div>
+                                 <div class="flex flex-col gap-1.5">
+                                    <label for="companyEmail" class="text-sm font-medium text-text-subtle">${t('settings.company_email')}</label>
+                                    <input type="email" id="companyEmail" data-field="companyEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyEmail || ''}">
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <h4>${t('settings.company_logo')}</h4>
-                            <div class="form-group">
-                                 <label>${t('settings.logo_preview')}</label>
-                                 <div class="logo-preview" style="height: 80px; background-color: var(--light-color); border-radius: var(--border-radius); display:flex; align-items:center; justify-content:center; margin-bottom: 1rem;">
-                                    ${workspace.companyLogo ? `<img src="${workspace.companyLogo}" style="max-height: 100%; max-width: 100%; object-fit: contain;">` : `<span class="subtle-text">No logo</span>`}
+                        <div class="space-y-4">
+                            <h4 class="font-semibold text-lg">${t('settings.company_logo')}</h4>
+                            <div class="flex flex-col gap-1.5">
+                                 <label class="text-sm font-medium text-text-subtle">${t('settings.logo_preview')}</label>
+                                 <div class="h-24 bg-background border border-border-color rounded-md flex items-center justify-center">
+                                    ${workspace.companyLogo ? `<img src="${workspace.companyLogo}" class="max-h-full max-w-full object-contain p-2">` : `<span class="text-text-subtle text-sm">No logo</span>`}
                                  </div>
                                  <input type="file" id="logo-upload" class="hidden" accept="image/png, image/jpeg">
-                                 <div style="display:flex; gap: 0.5rem;">
-                                    <label for="logo-upload" class="btn btn-secondary">${t('settings.upload_logo')}</label>
-                                    ${workspace.companyLogo ? `<button id="remove-logo-btn" class="btn btn-secondary" style="background-color: var(--danger-color); color: var(--white-color); border-color: var(--danger-color);">${t('settings.remove_logo')}</button>` : ''}
+                                 <div class="flex gap-2">
+                                    <label for="logo-upload" class="cursor-pointer px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.upload_logo')}</label>
+                                    ${workspace.companyLogo ? `<button id="remove-logo-btn" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger">${t('settings.remove_logo')}</button>` : ''}
                                  </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                 <div class="card" style="margin-top: 1.5rem;">
-                    <h4>${t('settings.bank_details')}</h4>
-                    <div class="form-group">
-                        <label for="companyBankName">${t('settings.bank_name')}</label>
-                        <input type="text" id="companyBankName" data-field="companyBankName" class="form-control" value="${workspace.companyBankName || ''}">
-                    </div>
-                     <div class="form-group" style="margin-top:1rem;">
-                        <label for="companyBankAccount">${t('settings.bank_account')}</label>
-                        <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="form-control" value="${workspace.companyBankAccount || ''}">
+                 <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                    <h4 class="font-semibold text-lg mb-4">${t('settings.bank_details')}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label for="companyBankName" class="text-sm font-medium text-text-subtle">${t('settings.bank_name')}</label>
+                            <input type="text" id="companyBankName" data-field="companyBankName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyBankName || ''}">
+                        </div>
+                         <div class="flex flex-col gap-1.5">
+                            <label for="companyBankAccount" class="text-sm font-medium text-text-subtle">${t('settings.bank_account')}</label>
+                            <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyBankAccount || ''}">
+                        </div>
                     </div>
                 </div>
-                <div class="card" style="margin-top: 1.5rem;">
-                    <h4>Workspace Preferences</h4>
-                    <div class="setting-item" style="padding: 1rem 0 0; border-top: 1px solid var(--border-color); margin-top: 1rem;">
+                <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                    <h4 class="font-semibold text-lg mb-4">Workspace Preferences</h4>
+                    <div class="flex justify-between items-center py-4 border-t border-border-color">
                         <div>
-                            <h4>${t('settings.default_workflow')}</h4>
-                            <p class="subtle-text">${t('settings.workflow_desc')}</p>
+                            <h4 class="font-semibold">${t('settings.default_workflow')}</h4>
+                            <p class="text-sm text-text-subtle">${t('settings.workflow_desc')}</p>
                         </div>
-                        <select id="workspace-kanban-workflow" class="form-control" style="max-width: 200px;">
+                        <select id="workspace-kanban-workflow" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                             <option value="simple" ${currentWorkflow !== 'advanced' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
                             <option value="advanced" ${currentWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
                         </select>
                     </div>
                 </div>
-                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                    <span id="workspace-save-status" class="subtle-text" style="transition: opacity 0.3s ease;"></span>
-                    <button type="button" id="save-workspace-settings-btn" class="btn btn-primary">${t('modals.save')}</button>
+                <div class="flex justify-end items-center gap-3 mt-8 pt-4 border-t border-border-color">
+                    <span id="workspace-save-status" class="text-sm transition-opacity duration-300"></span>
+                    <button type="button" id="save-workspace-settings-btn" class="px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('modals.save')}</button>
                 </div>
             </form>
         `;
@@ -215,11 +220,11 @@ export function SettingsPage() {
         ];
 
         return `
-            <div class="setting-item">
-                <h4>${t('settings.tab_integrations')}</h4>
-                <p class="subtle-text">Connect your other tools to Kombajn to streamline your workflow.</p>
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_integrations')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Connect your other tools to Kombajn to streamline your workflow.</p>
             </div>
-            <div class="integrations-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 ${integrations.map(int => {
                     let connectionStatus = '';
                     if (int.instance?.isActive) {
@@ -231,25 +236,23 @@ export function SettingsPage() {
                     }
 
                     return `
-                        <div class="integration-card ${!int.enabled ? 'coming-soon' : ''}">
-                            <div class="integration-card-header">
-                                <div class="integration-card-logo">
-                                    <img src="${int.logo}" alt="${int.title} logo">
-                                    <h4>${int.title}</h4>
+                        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col ${!int.enabled ? 'opacity-50' : ''}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <img src="${int.logo}" alt="${int.title} logo" class="w-8 h-8">
+                                    <h4 class="font-semibold">${int.title}</h4>
                                 </div>
-                                <span class="integration-status-badge ${int.instance?.isActive ? 'active' : ''} ${!int.enabled ? 'coming-soon-badge' : ''}">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${int.instance?.isActive ? 'bg-success/10 text-success' : (!int.enabled ? 'bg-background' : 'bg-background')}">
                                     ${int.instance?.isActive ? 'Connected' : (!int.enabled ? t('integrations.coming_soon') : 'Not Connected')}
                                 </span>
                             </div>
-                            <p>${int.desc}</p>
-                            <div class="integration-card-footer">
+                            <p class="text-sm text-text-subtle my-3 flex-grow">${int.desc}</p>
+                            <div class="flex justify-between items-center mt-auto pt-3 border-t border-border-color">
+                                <p class="text-xs text-text-subtle">${connectionStatus}</p>
                                 ${int.enabled ? (
                                     int.instance?.isActive 
-                                    ? `
-                                        <p class="integration-connection-status">${connectionStatus}</p>
-                                        <button class="btn btn-secondary" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>
-                                    `
-                                    : `<button class="btn btn-primary" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
+                                    ? `<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>`
+                                    : `<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
                                 ) : ''}
                             </div>
                         </div>
@@ -260,21 +263,11 @@ export function SettingsPage() {
 
     let tabContent = '';
     switch (activeTab) {
-        case 'general':
-            tabContent = renderGeneralSettings();
-            break;
-        case 'profile':
-            tabContent = renderProfileSettings();
-            break;
-        case 'customFields':
-            if (canManage) tabContent = renderCustomFieldsSettings();
-            break;
-        case 'workspace':
-            if (canManage) tabContent = renderWorkspaceSettings();
-            break;
-        case 'integrations':
-            if (canManage) tabContent = renderIntegrationsSettings();
-            break;
+        case 'general': tabContent = renderGeneralSettings(); break;
+        case 'profile': tabContent = renderProfileSettings(); break;
+        case 'customFields': if (canManage) tabContent = renderCustomFieldsSettings(); break;
+        case 'workspace': if (canManage) tabContent = renderWorkspaceSettings(); break;
+        case 'integrations': if (canManage) tabContent = renderIntegrationsSettings(); break;
     }
 
     const navItems = [
@@ -285,15 +278,14 @@ export function SettingsPage() {
         { id: 'customFields', icon: 'post_add', text: t('settings.tab_custom_fields'), needsPermission: true },
     ].filter(item => !item.needsPermission || canManage);
 
-
     return `
-        <div class="settings-page-layout">
-            <nav class="settings-nav-menu">
-                <h3>${t('settings.title')}</h3>
-                <ul>
+        <div class="flex gap-8 h-full">
+            <nav class="flex flex-col w-56 shrink-0">
+                <h3 class="text-xl font-bold p-4">${t('settings.title')}</h3>
+                <ul class="space-y-1 p-2">
                 ${navItems.map(item => `
                     <li>
-                        <a href="#" class="settings-nav-item ${activeTab === item.id ? 'active' : ''}" data-tab="${item.id}">
+                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab="${item.id}">
                             <span class="material-icons-sharp">${item.icon}</span>
                             <span>${item.text}</span>
                         </a>
@@ -301,7 +293,7 @@ export function SettingsPage() {
                 `).join('')}
                 </ul>
             </nav>
-            <main class="settings-content">
+            <main class="flex-1 space-y-6">
                 ${tabContent}
             </main>
         </div>

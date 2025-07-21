@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -12,19 +11,19 @@ function renderDealCard(deal: Deal) {
     const owner = state.users.find(u => u.id === deal.ownerId);
 
     return `
-        <div class="deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true">
-            <p class="deal-card-name">${deal.name}</p>
-            <p class="deal-card-value">${formatCurrency(deal.value, 'PLN')}</p>
-            <div class="deal-card-client">
-                <span class="material-icons-sharp icon-sm">business</span>
+        <div class="bg-content p-3 rounded-md shadow-sm border border-border-color cursor-pointer deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true">
+            <p class="font-semibold text-sm mb-2">${deal.name}</p>
+            <p class="text-lg font-bold text-primary mb-2">${formatCurrency(deal.value, 'PLN')}</p>
+            <div class="flex items-center text-xs text-text-subtle mb-3">
+                <span class="material-icons-sharp text-sm mr-1.5">business</span>
                 <span>${client?.name || t('misc.no_client')}</span>
             </div>
-            <div class="deal-card-footer">
+            <div class="flex justify-between items-center">
                 ${owner ? `
-                    <div class="avatar" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
+                    <div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
                 ` : `
-                    <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
-                         <span class="material-icons-sharp icon-sm">person_outline</span>
+                    <div class="w-6 h-6 rounded-full bg-background flex items-center justify-center text-text-subtle" title="${t('tasks.unassigned')}">
+                         <span class="material-icons-sharp text-base">person_outline</span>
                     </div>
                 `}
             </div>
@@ -33,16 +32,15 @@ function renderDealCard(deal: Deal) {
 }
 
 export function SalesPage() {
-    fetchSalesData(); // Call the data fetching logic
+    fetchSalesData();
 
     if (state.ui.sales.isLoading) {
         return `
-            <div class="kanban-header">
-                <h2>${t('sales.title')}</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
             </div>
-            <div class="loading-container" style="height: 60vh;">
-                <div class="loading-progress-bar"></div>
-                <p>Loading sales pipeline...</p>
+            <div class="flex items-center justify-center h-96">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>`;
     }
 
@@ -62,30 +60,31 @@ export function SalesPage() {
     });
 
     return `
-        <div class="sales-page-container">
-            <div class="kanban-header">
-                <h2>${t('sales.title')}</h2>
-                <button class="btn btn-primary" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
-                    <span class="material-icons-sharp">add</span> ${t('sales.new_deal')}
+        <div class="h-full flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
+                    <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
                 </button>
             </div>
-            <div class="sales-board-wrapper">
-                <div class="sales-board">
+            <div class="flex-1 overflow-x-auto">
+                <div class="inline-flex h-full space-x-4 p-1">
                     ${stages.map(stage => {
                         const columnDeals = dealsByStage[stage];
                         const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
                         return `
-                            <div class="kanban-column" data-stage="${stage}">
-                                <div class="kanban-column-header">
-                                    <h4>${t(`sales.stage_${stage}`)}</h4>
-                                    <span class="subtle-text">${columnDeals.length}</span>
-                                </div>
-                                <div class="kanban-column-summary">
-                                    ${formatCurrency(totalValue, 'PLN')}
-                                </div>
-                                <div class="kanban-tasks">
-                                    ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="empty-kanban-column"></div>`}
+                             <div class="flex-shrink-0 w-72 kanban-column" data-stage="${stage}">
+                                <div class="h-full flex flex-col bg-background rounded-lg">
+                                    <div class="p-3 font-semibold text-text-main flex justify-between items-center">
+                                        <span>${t(`sales.stage_${stage}`)} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
+                                    </div>
+                                    <div class="px-3 pb-2 text-sm font-medium text-text-subtle border-b border-border-color">
+                                        ${formatCurrency(totalValue, 'PLN')}
+                                    </div>
+                                    <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3">
+                                        ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="h-full"></div>`}
+                                    </div>
                                 </div>
                             </div>
                         `;

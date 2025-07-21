@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, formatDate } from '../utils.ts';
@@ -37,8 +38,6 @@ function getFilteredData() {
         const client = state.projects.find(p => p.id === t.projectId)?.clientId;
         if (finalClientId && client !== finalClientId) return false;
 
-        // Date check (optional, tasks don't always have dates)
-        // For productivity, we might want to check completion date, but for simplicity, we check due date.
         if (t.dueDate) {
             const dueDate = new Date(t.dueDate);
             if (dueDate < startDate || dueDate > endDate) return false;
@@ -102,33 +101,29 @@ function renderProductivityReports(tasks: Task[], timeLogs: TimeLog[]) {
     }).sort((a, b) => b.completedCount - a.completedCount);
 
     return `
-        <div class="card">
-            <h4>${t('reports.report_task_status_title')}</h4>
-            <div class="chart-container">
-                <canvas id="taskStatusChart"></canvas>
-            </div>
+        <div class="bg-content p-4 rounded-lg shadow-sm">
+            <h4 class="font-semibold mb-4">${t('reports.report_task_status_title')}</h4>
+            <div class="h-64"><canvas id="taskStatusChart"></canvas></div>
         </div>
-        <div class="card">
-             <div class="report-card-header">
-                <h4>${t('reports.report_user_activity_title')}</h4>
-            </div>
-            <div class="report-table-container">
-                <table class="report-table">
-                    <thead>
+        <div class="bg-content p-4 rounded-lg shadow-sm">
+             <h4 class="font-semibold mb-4">${t('reports.report_user_activity_title')}</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
-                            <th>${t('reports.col_user')}</th>
-                            <th>${t('reports.col_tasks_completed')}</th>
-                            <th>${t('reports.col_time_tracked')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_user')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_tasks_completed')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_time_tracked')}</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-border-color">
                         ${userActivity.length > 0 ? userActivity.map(data => `
                             <tr>
-                                <td>${data.user.name || data.user.initials}</td>
-                                <td>${data.completedCount}</td>
-                                <td>${formatDuration(data.trackedTimeSeconds)}</td>
+                                <td class="px-4 py-2">${data.user.name || data.user.initials}</td>
+                                <td class="px-4 py-2">${data.completedCount}</td>
+                                <td class="px-4 py-2">${formatDuration(data.trackedTimeSeconds)}</td>
                             </tr>
-                        `).join('') : `<tr><td colspan="3">${t('reports.no_data')}</td></tr>`}
+                        `).join('') : `<tr><td colspan="3" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>
                 </table>
             </div>
@@ -146,37 +141,37 @@ function renderTimeTrackingReports(timeLogs: TimeLog[]) {
     }).sort((a,b) => new Date(b.log.createdAt).getTime() - new Date(a.log.createdAt).getTime());
 
     return `
-        <div class="card" style="grid-column: 1 / -1;">
-            <div class="report-card-header">
-                <h4>${t('reports.report_time_tracking_title')}</h4>
-                <div class="export-buttons">
-                    <button class="btn-icon export-csv-btn" title="${t('reports.export_csv')}"><span class="material-icons-sharp">description</span></button>
-                    <button class="btn-icon export-pdf-btn" title="${t('reports.export_pdf')}"><span class="material-icons-sharp">picture_as_pdf</span></button>
+        <div class="bg-content p-4 rounded-lg shadow-sm col-span-1 lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold">${t('reports.report_time_tracking_title')}</h4>
+                <div class="flex gap-2">
+                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color export-csv-btn" title="${t('reports.export_csv')}"><span class="material-icons-sharp text-lg">description</span></button>
+                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color export-pdf-btn" title="${t('reports.export_pdf')}"><span class="material-icons-sharp text-lg">picture_as_pdf</span></button>
                 </div>
             </div>
-            <div class="report-table-container">
-                <table class="report-table">
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
-                           <th>${t('reports.col_date')}</th>
-                           <th>${t('reports.col_user')}</th>
-                           <th>${t('reports.col_project')}</th>
-                           <th>${t('reports.col_task')}</th>
-                           <th>${t('reports.col_time')}</th>
-                           <th>${t('reports.col_comment')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_date')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_user')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_project')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_task')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_time')}</th>
+                           <th class="px-4 py-2 text-left">${t('reports.col_comment')}</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-border-color">
                         ${logsWithDetails.length > 0 ? logsWithDetails.map(({ log, user, task, project }) => `
                             <tr>
-                                <td>${formatDate(log.createdAt)}</td>
-                                <td>${user?.name || user?.initials || ''}</td>
-                                <td>${project?.name || ''}</td>
-                                <td>${task?.name || ''}</td>
-                                <td>${formatDuration(log.trackedSeconds)}</td>
-                                <td>${log.comment || ''}</td>
+                                <td class="px-4 py-2 whitespace-nowrap">${formatDate(log.createdAt)}</td>
+                                <td class="px-4 py-2">${user?.name || user?.initials || ''}</td>
+                                <td class="px-4 py-2">${project?.name || ''}</td>
+                                <td class="px-4 py-2">${task?.name || ''}</td>
+                                <td class="px-4 py-2">${formatDuration(log.trackedSeconds)}</td>
+                                <td class="px-4 py-2">${log.comment || ''}</td>
                             </tr>
-                        `).join('') : `<tr><td colspan="6">${t('reports.no_data')}</td></tr>`}
+                        `).join('') : `<tr><td colspan="6" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>
                 </table>
             </div>
@@ -199,37 +194,33 @@ function renderFinancialReports(invoices: Invoice[]) {
     }).sort((a,b) => b.daysOverdue - a.daysOverdue);
 
     return `
-        <div class="card">
-            <h4>${t('reports.report_revenue_by_client_title')}</h4>
-            <div class="chart-container">
-                <canvas id="revenueByClientChart"></canvas>
-            </div>
+        <div class="bg-content p-4 rounded-lg shadow-sm">
+            <h4 class="font-semibold mb-4">${t('reports.report_revenue_by_client_title')}</h4>
+            <div class="h-64"><canvas id="revenueByClientChart"></canvas></div>
         </div>
-        <div class="card">
-            <div class="report-card-header">
-                <h4>${t('reports.report_overdue_invoices_title')}</h4>
-            </div>
-            <div class="report-table-container">
-                <table class="report-table">
-                    <thead>
+        <div class="bg-content p-4 rounded-lg shadow-sm">
+            <h4 class="font-semibold mb-4">${t('reports.report_overdue_invoices_title')}</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
-                            <th>${t('reports.col_invoice_number')}</th>
-                            <th>${t('reports.col_client')}</th>
-                            <th>${t('reports.col_due_date')}</th>
-                            <th>${t('reports.col_amount')}</th>
-                            <th>${t('reports.col_days_overdue')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_invoice_number')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_client')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_due_date')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_amount')}</th>
+                            <th class="px-4 py-2 text-left">${t('reports.col_days_overdue')}</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-border-color">
                          ${overdueInvoices.length > 0 ? overdueInvoices.map(({ invoice, client, total, daysOverdue }) => `
                             <tr>
-                                <td>${invoice.invoiceNumber}</td>
-                                <td>${client?.name || ''}</td>
-                                <td>${formatDate(invoice.dueDate)}</td>
-                                <td>${total.toFixed(2)}</td>
-                                <td>${daysOverdue}</td>
+                                <td class="px-4 py-2">${invoice.invoiceNumber}</td>
+                                <td class="px-4 py-2">${client?.name || ''}</td>
+                                <td class="px-4 py-2">${formatDate(invoice.dueDate)}</td>
+                                <td class="px-4 py-2">${total.toFixed(2)}</td>
+                                <td class="px-4 py-2">${daysOverdue}</td>
                             </tr>
-                        `).join('') : `<tr><td colspan="5">${t('reports.no_data')}</td></tr>`}
+                        `).join('') : `<tr><td colspan="5" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>
                 </table>
             </div>
@@ -241,7 +232,6 @@ export function initReportsPage() {
     destroyCharts();
     const { tasks, invoices } = getFilteredData();
 
-    // Init Task Status Chart
     const taskStatusCtx = (document.getElementById('taskStatusChart') as HTMLCanvasElement | null)?.getContext('2d');
     if (taskStatusCtx) {
         const statusCounts = tasks.reduce((acc, task) => {
@@ -264,7 +254,6 @@ export function initReportsPage() {
         });
     }
 
-    // Init Revenue by Client Chart
     const revenueCtx = (document.getElementById('revenueByClientChart') as HTMLCanvasElement | null)?.getContext('2d');
     if (revenueCtx) {
         const revenueByClient = invoices.reduce((acc, invoice) => {
@@ -283,8 +272,8 @@ export function initReportsPage() {
                 datasets: [{
                     label: t('reports.report_revenue_by_client_title'),
                     data: Object.values(revenueByClient),
-                    backgroundColor: 'rgba(74, 144, 226, 0.6)',
-                    borderColor: 'rgba(74, 144, 226, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1
                 }]
             },
@@ -321,45 +310,47 @@ export function ReportsPage() {
     }
     
     return `
-        <div>
-            <h2>${t('reports.title')}</h2>
-            <div class="reports-tabs">
-                <div class="report-tab ${activeTab === 'productivity' ? 'active' : ''}" data-tab="productivity">${t('reports.tab_productivity')}</div>
-                <div class="report-tab ${activeTab === 'time' ? 'active' : ''}" data-tab="time">${t('reports.tab_time')}</div>
-                <div class="report-tab ${activeTab === 'financial' ? 'active' : ''}" data-tab="financial">${t('reports.tab_financial')}</div>
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold">${t('reports.title')}</h2>
+            <div class="border-b border-border-color">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'productivity' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'} report-tab" data-tab="productivity">${t('reports.tab_productivity')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'time' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'} report-tab" data-tab="time">${t('reports.tab_time')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'financial' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'} report-tab" data-tab="financial">${t('reports.tab_financial')}</button>
+                </nav>
             </div>
-            <div id="reports-filters" class="reports-filter-bar card">
-                <div class="form-group">
-                    <label for="report-filter-date-start">${t('reports.filter_date_range')}</label>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="date" id="report-filter-date-start" class="form-control" value="${filters.dateStart}">
+            <div id="reports-filters" class="bg-content p-4 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="report-filter-date-start" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_date_range')}</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="report-filter-date-start" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${filters.dateStart}">
                         <span>-</span>
-                        <input type="date" id="report-filter-date-end" class="form-control" value="${filters.dateEnd}">
+                        <input type="date" id="report-filter-date-end" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${filters.dateEnd}">
                     </div>
                 </div>
-                 <div class="form-group">
-                    <label for="report-filter-project">${t('reports.filter_project')}</label>
-                    <select id="report-filter-project" class="form-control">
+                 <div>
+                    <label for="report-filter-project" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_project')}</label>
+                    <select id="report-filter-project" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                         <option value="all">${t('reports.all_projects')}</option>
                         ${workspaceProjects.map(p => `<option value="${p.id}" ${filters.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
                     </select>
                 </div>
-                 <div class="form-group">
-                    <label for="report-filter-user">${t('reports.filter_user')}</label>
-                    <select id="report-filter-user" class="form-control">
+                 <div>
+                    <label for="report-filter-user" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_user')}</label>
+                    <select id="report-filter-user" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                         <option value="all">${t('reports.all_users')}</option>
                          ${workspaceUsers.map(u => `<option value="${u.id}" ${filters.userId === u.id ? 'selected' : ''}>${u.name || u.initials}</option>`).join('')}
                     </select>
                 </div>
-                 <div class="form-group">
-                    <label for="report-filter-client">${t('reports.filter_client')}</label>
-                    <select id="report-filter-client" class="form-control">
+                 <div>
+                    <label for="report-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_client')}</label>
+                    <select id="report-filter-client" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                         <option value="all">${t('reports.all_clients')}</option>
                         ${workspaceClients.map(c => `<option value="${c.id}" ${filters.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                     </select>
                 </div>
             </div>
-            <div class="reports-grid">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 ${tabContent}
             </div>
         </div>

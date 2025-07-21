@@ -1,4 +1,5 @@
 
+
 import { t } from '../i18n.ts';
 import { state } from '../state.ts';
 
@@ -11,44 +12,44 @@ function renderSetupPage() {
     if (pendingRequest) {
         const workspaceName = workspaces.find(w => w.id === pendingRequest.workspaceId)?.name || 'a workspace';
         return `
-            <div class="card" style="max-width: 550px; width: 100%; text-align: center;">
-                <h3>${t('setup.request_pending_title')}</h3>
-                <p style="margin-top: 1rem; line-height: 1.6;">${t('setup.request_pending_message').replace('{workspaceName}', workspaceName)}</p>
-                <button class="btn btn-secondary" style="margin-top: 1.5rem;" data-logout-button>Log Out</button>
+            <div class="bg-content p-8 rounded-lg shadow-md max-w-lg w-full text-center">
+                <h3 class="text-xl font-bold">${t('setup.request_pending_title')}</h3>
+                <p class="mt-4 leading-relaxed text-text-subtle">${t('setup.request_pending_message').replace('{workspaceName}', workspaceName)}</p>
+                <button class="mt-6 px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" data-logout-button>Log Out</button>
             </div>
         `;
     }
 
     return `
-        <div class="card" style="max-width: 800px; width: 100%;">
-            <h2 style="text-align: center; margin-bottom: 2rem;">${t('setup.title')}, ${currentUser.name || currentUser.initials}!</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+        <div class="bg-content p-8 rounded-lg shadow-md max-w-3xl w-full">
+            <h2 class="text-center text-2xl font-bold mb-6">${t('setup.title')}, ${currentUser.name || currentUser.initials}!</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 
-                <div class="setup-option-card">
-                    <h4>${t('setup.create_workspace_header')}</h4>
-                    <form id="create-workspace-setup-form" novalidate>
-                        <div class="form-group">
+                <div class="p-6 bg-background rounded-lg border border-border-color">
+                    <h4 class="font-semibold mb-4 text-center">${t('setup.create_workspace_header')}</h4>
+                    <form id="create-workspace-setup-form" novalidate class="space-y-4">
+                        <div class="flex flex-col gap-1.5">
                             <label for="new-workspace-name-setup" class="sr-only">${t('setup.create_workspace_placeholder')}</label>
-                            <input type="text" id="new-workspace-name-setup" class="form-control" required placeholder="${t('setup.create_workspace_placeholder')}">
+                            <input type="text" id="new-workspace-name-setup" class="w-full bg-white dark:bg-gray-800 border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required placeholder="${t('setup.create_workspace_placeholder')}">
                         </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">${t('setup.create_workspace_button')}</button>
+                        <button type="submit" class="w-full px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('setup.create_workspace_button')}</button>
                     </form>
                 </div>
                 
-                <div class="setup-option-card">
-                    <h4>${t('setup.join_workspace_header')}</h4>
-                    <form id="join-workspace-setup-form" novalidate>
-                        <div class="form-group">
+                <div class="p-6 bg-background rounded-lg border border-border-color">
+                    <h4 class="font-semibold mb-4 text-center">${t('setup.join_workspace_header')}</h4>
+                    <form id="join-workspace-setup-form" novalidate class="space-y-4">
+                        <div class="flex flex-col gap-1.5">
                             <label for="join-workspace-name-setup" class="sr-only">${t('setup.join_workspace_placeholder')}</label>
-                            <input type="text" id="join-workspace-name-setup" class="form-control" required placeholder="${t('setup.join_workspace_placeholder')}">
+                            <input type="text" id="join-workspace-name-setup" class="w-full bg-white dark:bg-gray-800 border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required placeholder="${t('setup.join_workspace_placeholder')}">
                         </div>
-                        <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">${t('setup.join_workspace_button')}</button>
+                        <button type="submit" class="w-full px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('setup.join_workspace_button')}</button>
                     </form>
                 </div>
 
             </div>
-             <div style="text-align: center; margin-top: 2rem;">
-                <button class="btn btn-link" data-logout-button>Log Out</button>
+             <div class="text-center mt-8">
+                <button class="text-sm text-text-subtle hover:underline" data-logout-button>Log Out</button>
             </div>
         </div>
     `;
@@ -56,19 +57,19 @@ function renderSetupPage() {
 
 export function AuthPage({ isSetup = false } = {}) {
     const content = isSetup ? renderSetupPage() : `
-        <div class="card" style="max-width: 450px; width: 100%; padding: 0;">
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-auth-tab="login">Login</button>
-                <button class="auth-tab" data-auth-tab="register">Register</button>
+        <div class="bg-content rounded-lg shadow-md max-w-md w-full">
+            <div class="flex border-b border-border-color">
+                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px active" data-auth-tab="login">Login</button>
+                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px" data-auth-tab="register">Register</button>
             </div>
-            <div id="auth-form-container" style="padding: 2rem;">
+            <div id="auth-form-container" class="p-8">
                 ${renderLoginForm()}
             </div>
         </div>
     `;
     
     return `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; padding: 1rem; background-color: var(--background-color);">
+        <div class="flex justify-center items-center min-h-screen p-4 bg-background">
             ${content}
         </div>
     `;
@@ -76,40 +77,40 @@ export function AuthPage({ isSetup = false } = {}) {
 
 export function renderLoginForm() {
     return `
-        <form id="loginForm" novalidate>
-            <h3 style="text-align: center; margin-bottom: 1.5rem;">Welcome Back</h3>
-            <div id="login-error" class="auth-error" style="display: none;"></div>
-            <div class="form-group">
-                <label for="loginEmail">Email</label>
-                <input type="email" id="loginEmail" class="form-control" required autocomplete="email">
+        <form id="loginForm" novalidate class="space-y-4">
+            <h3 class="text-center text-xl font-bold mb-6">Welcome Back</h3>
+            <div id="login-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>
+            <div class="flex flex-col gap-1.5">
+                <label for="loginEmail" class="text-sm font-medium text-text-subtle">Email</label>
+                <input type="email" id="loginEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="email">
             </div>
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="loginPassword">Password</label>
-                <input type="password" id="loginPassword" class="form-control" required autocomplete="current-password">
+            <div class="flex flex-col gap-1.5">
+                <label for="loginPassword" class="text-sm font-medium text-text-subtle">Password</label>
+                <input type="password" id="loginPassword" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="current-password">
             </div>
-            <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Log In</button>
+            <button type="submit" id="login-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('modals.save') === 'Save' ? 'Log In' : 'Zaloguj'}</button>
         </form>
     `;
 }
 
 export function renderRegisterForm() {
     return `
-        <form id="registerForm" novalidate>
-            <h3 style="text-align: center; margin-bottom: 1.5rem;">Create Account</h3>
-            <div id="register-error" class="auth-error" style="display: none;"></div>
-            <div class="form-group">
-                <label for="registerName">Full Name</label>
-                <input type="text" id="registerName" class="form-control" required autocomplete="name">
+        <form id="registerForm" novalidate class="space-y-4">
+            <h3 class="text-center text-xl font-bold mb-6">Create Account</h3>
+            <div id="register-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>
+            <div class="flex flex-col gap-1.5">
+                <label for="registerName" class="text-sm font-medium text-text-subtle">Full Name</label>
+                <input type="text" id="registerName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="name">
             </div>
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="registerEmail">Email</label>
-                <input type="email" id="registerEmail" class="form-control" required autocomplete="email">
+            <div class="flex flex-col gap-1.5">
+                <label for="registerEmail" class="text-sm font-medium text-text-subtle">Email</label>
+                <input type="email" id="registerEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="email">
             </div>
-            <div class="form-group" style="margin-top: 1rem;">
-                <label for="registerPassword">Password (min. 6 characters)</label>
-                <input type="password" id="registerPassword" class="form-control" required minlength="6" autocomplete="new-password">
+            <div class="flex flex-col gap-1.5">
+                <label for="registerPassword" class="text-sm font-medium text-text-subtle">Password (min. 6 characters)</label>
+                <input type="password" id="registerPassword" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required minlength="6" autocomplete="new-password">
             </div>
-            <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Register</button>
+            <button type="submit" id="register-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Register</button>
         </form>
     `;
 }

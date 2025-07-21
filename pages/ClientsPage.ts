@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -10,9 +11,7 @@ export function ClientsPage() {
     const clients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
     const canManage = can('manage_clients');
 
-    // Calculate summary stats
     const totalClients = clients.length;
-    // For now, "active" means any client that exists.
     const activeClients = totalClients;
     const totalProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId).length;
     
@@ -23,150 +22,141 @@ export function ClientsPage() {
         }, 0);
 
     return `
-    <div class="clients-page-container">
-        <div class="page-header">
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h2>${t('clients.title')}</h2>
-                <p class="subtle-text">Manage your client relationships</p>
+                <h2 class="text-2xl font-bold">${t('clients.title')}</h2>
+                <p class="text-text-subtle">Manage your client relationships</p>
             </div>
-            <button class="btn btn-primary" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
-                <span class="material-icons-sharp">add</span> Add Client
+            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
+                <span class="material-icons-sharp text-base">add</span> Add Client
             </button>
         </div>
 
-        <div class="clients-toolbar card">
-            <div class="form-group search-group">
-                 <span class="material-icons-sharp">search</span>
-                 <input type="text" id="client-search" class="form-control" placeholder="Search clients...">
+        <div class="bg-content p-3 rounded-lg border border-border-color flex flex-col sm:flex-row items-center gap-3">
+            <div class="relative w-full sm:w-auto flex-grow">
+                 <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
+                 <input type="text" id="client-search" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" placeholder="Search clients...">
             </div>
-            <div class="form-group">
-                <select id="client-status-filter" class="form-control">
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <button class="btn btn-secondary">
-                <span class="material-icons-sharp">filter_list</span>
+            <select id="client-status-filter" class="w-full sm:w-auto bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+            <button class="w-full sm:w-auto px-3 py-2 text-sm font-medium flex items-center justify-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
+                <span class="material-icons-sharp text-base">filter_list</span>
                 Filter
             </button>
         </div>
 
-        <div class="clients-summary-grid">
-            <div class="summary-card">
-                <div class="summary-card-icon" style="color: #3b82f6; background-color: #dbeafe;">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-content p-4 rounded-lg flex items-center gap-4">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-500">
                     <span class="material-icons-sharp">business</span>
                 </div>
-                <div class="summary-card-info">
-                    <p>Total Clients</p>
-                    <strong>${totalClients}</strong>
+                <div>
+                    <p class="text-sm text-text-subtle">Total Clients</p>
+                    <strong class="text-xl font-semibold">${totalClients}</strong>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="summary-card-icon" style="color: #22c55e; background-color: #dcfce7;">
+            <div class="bg-content p-4 rounded-lg flex items-center gap-4">
+                <div class="p-3 rounded-full bg-green-100 text-green-500">
                     <span class="material-icons-sharp">person</span>
                 </div>
-                <div class="summary-card-info">
-                    <p>Active Clients</p>
-                    <strong>${activeClients}</strong>
+                <div>
+                    <p class="text-sm text-text-subtle">Active Clients</p>
+                    <strong class="text-xl font-semibold">${activeClients}</strong>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="summary-card-icon" style="color: #a855f7; background-color: #f3e8ff;">
+            <div class="bg-content p-4 rounded-lg flex items-center gap-4">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-500">
                     <span class="material-icons-sharp">folder</span>
                 </div>
-                <div class="summary-card-info">
-                    <p>Total Projects</p>
-                    <strong>${totalProjects}</strong>
+                <div>
+                    <p class="text-sm text-text-subtle">Total Projects</p>
+                    <strong class="text-xl font-semibold">${totalProjects}</strong>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="summary-card-icon" style="color: #f97316; background-color: #ffedd5;">
+            <div class="bg-content p-4 rounded-lg flex items-center gap-4">
+                <div class="p-3 rounded-full bg-orange-100 text-orange-500">
                     <span class="material-icons-sharp">payments</span>
                 </div>
-                <div class="summary-card-info">
-                    <p>Total Revenue</p>
-                    <strong>${formatCurrency(totalRevenue, 'USD')}</strong>
+                <div>
+                    <p class="text-sm text-text-subtle">Total Revenue</p>
+                    <strong class="text-xl font-semibold">${formatCurrency(totalRevenue, 'USD')}</strong>
                 </div>
             </div>
         </div>
 
         ${clients.length > 0 ? `
-            <div class="clients-grid-v2">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${clients.map(client => {
-                    const projectsForClient = state.projects.filter(p => p.clientId === client.id);
-                    const projectCount = projectsForClient.length;
-                    
+                    const projectCount = state.projects.filter(p => p.clientId === client.id).length;
                     const revenueForClient = state.invoices
                         .filter(i => i.clientId === client.id && i.status === 'paid')
-                        .reduce((sum, invoice) => sum + invoice.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
-                    
-                    const clientInvoices = state.invoices.filter(i => i.clientId === client.id);
-                    const sinceDate = clientInvoices.length > 0 
-                        ? clientInvoices.reduce((earliest, inv) => new Date(inv.issueDate) < new Date(earliest) ? inv.issueDate : earliest, clientInvoices[0].issueDate)
-                        : null;
+                        .reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
+                    const firstInvoiceDate = state.invoices
+                        .filter(i => i.clientId === client.id)
+                        .map(i => new Date(i.issueDate))
+                        .sort((a,b) => a.getTime() - b.getTime())[0];
 
-                    const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : {
-                        name: client.contactPerson,
-                        email: client.email,
-                        phone: client.phone,
-                        role: 'Primary Contact'
-                    };
-                    
+                    const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : { name: client.contactPerson, email: client.email, phone: client.phone };
                     const initials = (client.name || '').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
                     return `
-                    <div class="card client-card-v2">
-                        <div class="client-card-v2-header">
-                            <div class="client-avatar">${initials}</div>
-                            <div class="client-info">
-                                <strong>${client.name}</strong>
-                                <p>${primaryContact?.name || ''}</p>
+                    <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg font-semibold">${initials}</div>
+                                <div>
+                                    <strong class="font-semibold text-lg">${client.name}</strong>
+                                    <p class="text-sm text-text-subtle">${primaryContact?.name || ''}</p>
+                                </div>
                             </div>
-                            <span class="status-tag active">Active</span>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Active</span>
                         </div>
-                        <div class="client-card-v2-body">
-                            <div class="contact-item">
-                                <span class="material-icons-sharp">email</span>
+                        <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4">
+                            <div class="flex items-center gap-2">
+                                <span class="material-icons-sharp text-base">email</span>
                                 <span>${primaryContact?.email || t('misc.not_applicable')}</span>
                             </div>
-                            <div class="contact-item">
-                                <span class="material-icons-sharp">phone</span>
+                            <div class="flex items-center gap-2">
+                                <span class="material-icons-sharp text-base">phone</span>
                                 <span>${primaryContact?.phone || t('misc.not_applicable')}</span>
                             </div>
-                             <div class="contact-item">
-                                <span class="material-icons-sharp">location_on</span>
+                             <div class="flex items-center gap-2">
+                                <span class="material-icons-sharp text-base">location_on</span>
                                 <span>${client.address || t('misc.not_applicable')}</span>
                             </div>
                         </div>
-                        <div class="client-card-v2-footer">
-                            <div class="footer-stat">
-                                <label>Projects</label>
-                                <strong>${projectCount}</strong>
+                        <div class="flex justify-between items-center text-center border-t border-border-color pt-4">
+                            <div>
+                                <label class="text-xs text-text-subtle">Projects</label>
+                                <strong class="block font-semibold">${projectCount}</strong>
                             </div>
-                            <div class="footer-stat">
-                                <label>Revenue</label>
-                                <strong>${formatCurrency(revenueForClient, 'USD')}</strong>
+                            <div>
+                                <label class="text-xs text-text-subtle">Revenue</label>
+                                <strong class="block font-semibold">${formatCurrency(revenueForClient, 'USD')}</strong>
                             </div>
-                            <div class="footer-stat">
-                                <label>Since</label>
-                                <strong>${sinceDate ? sinceDate.replace(/-/g, '-') : t('misc.not_applicable')}</strong>
+                            <div>
+                                <label class="text-xs text-text-subtle">Since</label>
+                                <strong class="block font-semibold">${firstInvoiceDate ? formatDate(firstInvoiceDate.toISOString(), { year: 'numeric', month: '2-digit', day: '2-digit'}) : t('misc.not_applicable')}</strong>
                             </div>
                         </div>
-                        <div class="client-card-v2-actions">
-                            <button class="btn btn-primary" data-client-id="${client.id}">View Details</button>
-                            <button class="btn btn-secondary" data-modal-target="addClient" data-client-id="${client.id}">Edit</button>
-                            <button class="btn btn-secondary danger" data-delete-client-id="${client.id}">Delete</button>
+                        <div class="flex items-center gap-2 border-t border-border-color pt-4">
+                            <button class="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-client-id="${client.id}">View Details</button>
+                            <button class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addClient" data-client-id="${client.id}">Edit</button>
+                            <button class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-delete-client-id="${client.id}">Delete</button>
                         </div>
                     </div>
                 `}).join('')}
             </div>
         ` : `
-            <div class="empty-state">
-                <span class="material-icons-sharp">people_outline</span>
-                <h3>${t('clients.no_clients_yet')}</h3>
-                <p>${t('clients.no_clients_desc')}</p>
-                 <button class="btn btn-primary" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
+            <div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
+                <span class="material-icons-sharp text-5xl text-text-subtle">people_outline</span>
+                <h3 class="text-lg font-medium mt-4">${t('clients.no_clients_yet')}</h3>
+                <p class="text-sm text-text-subtle mt-1">${t('clients.no_clients_desc')}</p>
+                 <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
                     ${t('clients.add_client')}
                 </button>
             </div>

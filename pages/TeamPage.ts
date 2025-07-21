@@ -27,58 +27,59 @@ async function renderEmployeesTab() {
     const userLimitReached = members.length >= usage.users;
 
     return `
-        <div class="hr-content-header">
-            <h3>${t('hr.tabs.employees')}</h3>
-            <div class="hr-controls">
-                <div class="form-group search-group" style="margin: 0;">
-                     <input type="text" id="employee-search" class="form-control" placeholder="Search by name or email...">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">${t('hr.tabs.employees')}</h3>
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                     <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
+                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Search by name or email...">
                 </div>
                 ${canInviteUsers ? `
-                <button class="btn btn-primary" id="hr-invite-member-btn" ${userLimitReached ? 'disabled' : ''} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp">add</span> ${t('hr.invite_member')}
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" id="hr-invite-member-btn" ${userLimitReached ? 'disabled' : ''} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">add</span> ${t('hr.invite_member')}
                 </button>
                 ` : ''}
             </div>
         </div>
-        <div class="card card-table">
-            <div class="hr-employee-table">
-                <div class="hr-table-header">
+        <div class="bg-content rounded-lg shadow-sm">
+            <div class="w-full text-sm">
+                <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
                     <div>${t('hr.employee')}</div>
                     <div>Role</div>
                     <div>Email</div>
-                    <div>${t('hr.actions')}</div>
+                    <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="hr-table-body">
+                <div class="divide-y divide-border-color">
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
                         return `
-                        <div class="hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
-                            <div class="hr-employee-cell" data-label="Employee">
-                                <div class="avatar">${user.initials}</div>
-                                <div class="member-info">
-                                    <strong>${displayName} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
+                        <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
+                            <div class="flex items-center gap-3" data-label="Employee">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
+                                <div class="font-semibold">
+                                    ${displayName} ${isSelf ? `<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
                                 </div>
                             </div>
                             <div data-label="Role">
                                 ${canManageRoles && !isOwner && !isSelf ? `
-                                    <select class="form-control" data-change-role-for-member-id="${member.id}">
+                                    <select class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" data-change-role-for-member-id="${member.id}">
                                         ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
                                             <option value="${role}" ${member.role === role ? 'selected' : ''}>${t(`hr.role_${role}`)}</option>
                                         `).join('')}
                                     </select>
-                                ` : `<span class="status-badge status-backlog">${t(`hr.role_${member.role}`)}</span>`}
+                                ` : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
                             </div>
                             <div data-label="Email">
-                                <span class="subtle-text">${user.email || t('misc.not_applicable')}</span>
+                                <span class="text-text-subtle">${user.email || t('misc.not_applicable')}</span>
                             </div>
-                            <div data-label="Actions">
-                                <button class="btn-icon" data-modal-target="employeeDetail" data-user-id="${user.id}" title="View/Edit Details">
-                                    <span class="material-icons-sharp">edit_note</span>
+                            <div class="flex justify-end items-center gap-1" data-label="Actions">
+                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="View/Edit Details">
+                                    <span class="material-icons-sharp text-lg">edit_note</span>
                                 </button>
                                 ${canRemoveUsers && !isOwner && !isSelf ? `
-                                    <button class="btn-icon" data-remove-member-id="${member.id}" title="${t('hr.remove')}"><span class="material-icons-sharp danger-icon">person_remove</span></button>
+                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-remove-member-id="${member.id}" title="${t('hr.remove')}"><span class="material-icons-sharp text-lg">person_remove</span></button>
                                 ` : ''}
                             </div>
                         </div>
@@ -87,27 +88,29 @@ async function renderEmployeesTab() {
             </div>
         </div>
 
-        <div id="hr-invite-flyout-backdrop" class="hr-invite-flyout-backdrop"></div>
-        <div id="hr-invite-flyout" class="hr-invite-flyout">
-            <div class="hr-invite-flyout-content">
-                <h4>${t('hr.invite_member')}</h4>
-                 <form id="invite-user-form">
-                    <div class="form-group">
-                        <label for="invite-email">${t('hr.invite_by_email')}</label>
-                        <input type="email" id="invite-email" class="form-control" required>
+        <div id="hr-invite-flyout-backdrop" class="fixed inset-0 bg-black/50 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+        <div id="hr-invite-flyout" class="fixed top-0 right-0 h-full w-96 bg-content shadow-lg transform translate-x-full transition-transform duration-300 z-40 flex flex-col">
+            <div class="p-4 border-b border-border-color">
+                <h4 class="font-semibold text-lg">${t('hr.invite_member')}</h4>
+            </div>
+             <form id="invite-user-form" class="p-4 flex-1 flex flex-col">
+                <div class="space-y-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="invite-email" class="text-sm font-medium text-text-subtle">${t('hr.invite_by_email')}</label>
+                        <input type="email" id="invite-email" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required>
                     </div>
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label for="invite-role">${t('hr.select_role')}</label>
-                        <select id="invite-role" class="form-control">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="invite-role" class="text-sm font-medium text-text-subtle">${t('hr.select_role')}</label>
+                        <select id="invite-role" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                             ${ALL_ROLES.filter(r => r !== 'owner').map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="hr-invite-cancel-btn">${t('modals.cancel')}</button>
-                        <button type="submit" class="btn btn-primary">${t('hr.invite')}</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="mt-auto pt-4 flex justify-end items-center gap-2">
+                    <button type="button" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" id="hr-invite-cancel-btn">${t('modals.cancel')}</button>
+                    <button type="submit" class="px-3 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('hr.invite')}</button>
+                </div>
+            </form>
         </div>
     `;
 }
@@ -121,67 +124,67 @@ function renderRequestsTab() {
      );
 
      if (pendingLeaveRequests.length === 0 && pendingJoinRequests.length === 0) {
-        return `<div class="empty-state">
-            <span class="material-icons-sharp">inbox</span>
-            <h3>${t('hr.no_pending_requests')}</h3>
+        return `<div class="flex flex-col items-center justify-center h-full text-center">
+            <span class="material-icons-sharp text-5xl text-text-subtle">inbox</span>
+            <h3 class="text-lg font-medium mt-2">${t('hr.no_pending_requests')}</h3>
         </div>`;
      }
 
      return `
-        <div class="hr-content-header">
-            <h3>${t('hr.tabs.requests')}</h3>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">${t('hr.tabs.requests')}</h3>
         </div>
-        <div class="hr-requests-grid">
-            <div class="requests-column">
-                <h4>${t('hr.join_requests_title')} (${pendingJoinRequests.length})</h4>
-                <div class="request-cards-list">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div>
+                <h4 class="font-semibold mb-3">${t('hr.join_requests_title')} (${pendingJoinRequests.length})</h4>
+                <div class="space-y-3">
                     ${pendingJoinRequests.length > 0 ? pendingJoinRequests.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
                         if (!user) return '';
                         return `
-                            <div class="request-card">
-                                <div class="request-card-user">
-                                    <div class="avatar">${user.initials}</div>
+                            <div class="bg-content p-3 rounded-lg flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
                                     <div>
-                                        <strong>${user.name || user.initials}</strong>
-                                        <p class="subtle-text">${user.email}</p>
+                                        <strong class="text-sm font-semibold">${user.name || user.initials}</strong>
+                                        <p class="text-xs text-text-subtle">${user.email}</p>
                                     </div>
                                 </div>
-                                <div class="request-card-actions">
-                                    <button class="btn btn-secondary" data-reject-join-request-id="${request.id}">${t('hr.reject')}</button>
-                                    <button class="btn btn-primary" data-approve-join-request-id="${request.id}">${t('hr.approve')}</button>
+                                <div class="flex items-center gap-2">
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background" data-reject-join-request-id="${request.id}">${t('hr.reject')}</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-approve-join-request-id="${request.id}">${t('hr.approve')}</button>
                                 </div>
                             </div>
                         `;
-                    }).join('') : `<p class="subtle-text" style="padding: 1rem;">${t('hr.no_pending_requests')}</p>`}
+                    }).join('') : `<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
                 </div>
             </div>
-            <div class="requests-column">
-                <h4>Leave Requests (${pendingLeaveRequests.length})</h4>
-                <div class="request-cards-list">
+            <div>
+                <h4 class="font-semibold mb-3">Leave Requests (${pendingLeaveRequests.length})</h4>
+                <div class="space-y-3">
                     ${pendingLeaveRequests.length > 0 ? pendingLeaveRequests.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
                         return `
-                            <div class="request-card">
-                                <div class="request-card-user">
-                                    <div class="avatar">${user?.initials || '?'}</div>
+                            <div class="bg-content p-3 rounded-lg flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user?.initials || '?'}</div>
                                     <div>
-                                        <strong>${user?.name || 'Unknown User'}</strong>
-                                        <p class="subtle-text">${t(`team_calendar.leave_type_${request.type}`)}</p>
+                                        <strong class="text-sm font-semibold">${user?.name || 'Unknown User'}</strong>
+                                        <p class="text-xs text-text-subtle">${t(`team_calendar.leave_type_${request.type}`)}</p>
                                     </div>
                                 </div>
-                                <div class="request-card-details">
-                                    <div>${formatDate(request.startDate)}</div>
-                                    <span class="material-icons-sharp">arrow_forward</span>
-                                    <div>${formatDate(request.endDate)}</div>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span>${formatDate(request.startDate, {month: 'short', day: 'numeric'})}</span>
+                                    <span class="material-icons-sharp text-text-subtle text-base">arrow_forward</span>
+                                    <span>${formatDate(request.endDate, {month: 'short', day: 'numeric'})}</span>
                                 </div>
-                                <div class="request-card-actions">
-                                    <button class="btn-icon" data-reject-request-id="${request.id}" title="Reject"><span class="material-icons-sharp danger-icon">close</span></button>
-                                    <button class="btn-icon" data-approve-request-id="${request.id}" title="Approve"><span class="material-icons-sharp success-icon">check</span></button>
+                                <div class="flex items-center gap-1">
+                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-reject-request-id="${request.id}" title="Reject"><span class="material-icons-sharp text-lg">close</span></button>
+                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-success" data-approve-request-id="${request.id}" title="Approve"><span class="material-icons-sharp text-lg">check</span></button>
                                 </div>
                             </div>
                         `;
-                    }).join('') : `<p class="subtle-text" style="padding: 1rem;">${t('hr.no_pending_requests')}</p>`}
+                    }).join('') : `<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
                 </div>
             </div>
         </div>
@@ -197,50 +200,42 @@ function renderVacationTab() {
     const canManage = can('manage_roles');
 
     return `
-        <div class="hr-content-header">
-            <h3>${t('hr.tabs.vacation')}</h3>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">${t('hr.tabs.vacation')}</h3>
         </div>
-        <div class="card card-table">
-            <div class="hr-vacation-table">
-                <div class="hr-table-header">
+        <div class="bg-content rounded-lg shadow-sm">
+            <div class="w-full text-sm">
+                <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
                     <div>${t('hr.employee')}</div>
                     <div>${t('hr.vacation_pool')}</div>
                     <div>${t('hr.vacation_used')}</div>
                     <div>${t('hr.vacation_remaining')}</div>
-                    <div class="actions-col">${t('hr.actions')}</div>
+                    <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="hr-table-body">
+                <div class="divide-y divide-border-color">
                     ${workspaceUsers.map(user => {
                         const vacationInfo = getVacationInfo(user, state.timeOffRequests, state.publicHolidays);
                         const usagePercentage = vacationInfo.pool.hours > 0 ? (vacationInfo.used.hours / vacationInfo.pool.hours) * 100 : 0;
                         return `
-                            <div class="hr-table-row">
-                                <div data-label="${t('hr.employee')}">
-                                    ${user.name || user.initials}
-                                </div>
+                            <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 items-center">
+                                <div data-label="${t('hr.employee')}">${user.name || user.initials}</div>
                                 <div data-label="${t('hr.vacation_pool')}">
-                                    <div class="vacation-cell">
-                                        <span>${vacationInfo.pool.days} ${t('hr.days')}</span>
-                                        <span class="subtle-text">(${vacationInfo.pool.hours} ${t('hr.hours')})</span>
-                                    </div>
+                                    <span>${vacationInfo.pool.days} ${t('hr.days')}</span>
+                                    <span class="text-text-subtle ml-1">(${vacationInfo.pool.hours} ${t('hr.hours')})</span>
                                 </div>
                                 <div data-label="${t('hr.vacation_used')}">
-                                    <div class="vacation-cell">
+                                    <div class="flex items-center gap-2">
                                         <span>${vacationInfo.used.days} ${t('hr.days')}</span>
-                                        <div class="vacation-progress-bar">
-                                            <div class="vacation-progress-bar-inner" style="width: ${usagePercentage}%;"></div>
-                                        </div>
+                                        <div class="w-20 h-2 bg-background rounded-full"><div class="h-2 rounded-full bg-primary" style="width: ${usagePercentage}%;"></div></div>
                                     </div>
                                 </div>
                                 <div data-label="${t('hr.vacation_remaining')}">
-                                    <div class="vacation-cell">
-                                        <span>${vacationInfo.remaining.days} ${t('hr.days')}</span>
-                                        <span class="subtle-text">(${vacationInfo.remaining.hours} ${t('hr.hours')})</span>
-                                    </div>
+                                    <span>${vacationInfo.remaining.days} ${t('hr.days')}</span>
+                                    <span class="text-text-subtle ml-1">(${vacationInfo.remaining.hours} ${t('hr.hours')})</span>
                                 </div>
-                                <div class="actions-col" data-label="${t('hr.actions')}">
+                                <div class="text-right" data-label="${t('hr.actions')}">
                                     ${canManage ? `
-                                    <button class="btn btn-secondary btn-sm" data-modal-target="adjustVacationAllowance" data-user-id="${user.id}" data-current-allowance="${vacationInfo.pool.hours}">
+                                    <button class="px-2 py-1 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="adjustVacationAllowance" data-user-id="${user.id}" data-current-allowance="${vacationInfo.pool.hours}">
                                         ${t('hr.manage_vacation')}
                                     </button>
                                     ` : ''}
@@ -257,10 +252,10 @@ function renderVacationTab() {
 
 export async function HRPage() {
     if (!can('view_hr')) {
-        return `<div class="empty-state">
-            <span class="material-icons-sharp">lock</span>
-            <h3>${t('hr.access_denied')}</h3>
-            <p>${t('hr.access_denied_desc')}</p>
+        return `<div class="flex flex-col items-center justify-center h-full text-center">
+            <span class="material-icons-sharp text-5xl text-text-subtle">lock</span>
+            <h3 class="text-lg font-medium mt-2">${t('hr.access_denied')}</h3>
+            <p class="text-sm text-text-subtle">${t('hr.access_denied_desc')}</p>
         </div>`;
     }
     
@@ -285,20 +280,20 @@ export async function HRPage() {
     ];
 
     return `
-        <div class="hr-page-layout">
-            <nav class="hr-nav-menu">
-                <h3>${t('hr.title')}</h3>
-                <ul>
+        <div class="flex gap-8 h-full">
+            <nav class="flex flex-col w-56 shrink-0">
+                <h3 class="text-xl font-bold p-4">${t('hr.title')}</h3>
+                <ul class="space-y-1 p-2">
                 ${navItems.map(item => `
                     <li>
-                        <a href="#" class="hr-nav-item ${activeTab === item.id ? 'active' : ''}" data-hr-tab="${item.id}">
+                        <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-hr-tab="${item.id}">
                             ${item.text}
                         </a>
                     </li>
                 `).join('')}
                 </ul>
             </nav>
-            <main class="hr-content">
+            <main class="flex-1 overflow-y-auto">
                 ${tabContent}
             </main>
         </div>
