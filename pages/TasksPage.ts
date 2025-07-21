@@ -99,25 +99,23 @@ function renderBoardView(filteredTasks: Task[]) {
         const activeTotalSeconds = activeTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
         return `
-            <div class="flex-shrink-0 w-72" data-status="${status}">
-                <div class="h-full flex flex-col bg-background rounded-lg">
-                    <div class="p-3 font-semibold text-text-main flex justify-between items-center">
-                        <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${activeTasks.length}</span></span>
-                        ${activeTotalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(activeTotalSeconds)}</span>` : ''}
-                    </div>
-                    <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3 kanban-tasks">
-                        ${activeTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
-                        ${archivedTasks.length > 0 ? `
-                            <details class="py-2">
-                                <summary class="cursor-pointer text-sm font-medium text-text-subtle hover:text-text-main flex items-center justify-center">
-                                    ${t('tasks.show_archived')} (${archivedTasks.length})
-                                </summary>
-                                <div class="space-y-3 mt-3">
-                                    ${archivedTasks.map(renderTaskCard).join('')}
-                                </div>
-                            </details>
-                        ` : ''}
-                    </div>
+            <div class="tasks-board-column" data-status="${status}">
+                <div class="tasks-board-column-header">
+                    <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${activeTasks.length}</span></span>
+                    ${activeTotalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(activeTotalSeconds)}</span>` : ''}
+                </div>
+                <div class="tasks-board-column-body kanban-tasks">
+                    ${activeTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
+                    ${archivedTasks.length > 0 ? `
+                        <details class="py-2">
+                            <summary class="cursor-pointer text-sm font-medium text-text-subtle hover:text-text-main flex items-center justify-center">
+                                ${t('tasks.show_archived')} (${archivedTasks.length})
+                            </summary>
+                            <div class="space-y-3 mt-3">
+                                ${archivedTasks.map(renderTaskCard).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
                 </div>
             </div>
             `;
@@ -127,7 +125,7 @@ function renderBoardView(filteredTasks: Task[]) {
         
     return `
     <div class="flex-1 overflow-x-auto">
-        <div class="inline-flex h-full space-x-4 p-1">
+        <div class="tasks-board-container">
             ${boardHtml}
         </div>
     </div>

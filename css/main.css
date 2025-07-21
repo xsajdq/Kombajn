@@ -39,3 +39,114 @@
     @apply bg-background text-text-main antialiased;
   }
 }
+
+@layer components {
+  /* == Tasks Page == */
+  .tasks-board-container {
+    @apply inline-flex h-full space-x-4 p-1;
+  }
+
+  .tasks-board-column {
+    @apply flex-shrink-0 w-80 h-full flex flex-col;
+  }
+
+  .tasks-board-column-header {
+    @apply px-3 pt-3 pb-2 font-semibold text-text-main flex justify-between items-center;
+  }
+
+  .tasks-board-column-body {
+    @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-3;
+  }
+
+  .task-card {
+    @apply bg-content p-4 rounded-lg shadow-sm border border-border-color space-y-3 cursor-pointer transition-shadow hover:shadow-md;
+  }
+
+  .task-card-header {
+    @apply flex justify-between items-start gap-2;
+  }
+
+  .task-card-name {
+    @apply font-medium text-sm text-text-main;
+  }
+
+  .task-card .btn-icon {
+    @apply text-text-subtle w-6 h-6 flex-shrink-0;
+  }
+  .task-card .btn-icon:hover {
+    @apply bg-background text-text-main;
+  }
+
+  /* Checklist Styles */
+  .task-card-checklist-items {
+    @apply space-y-1.5;
+  }
+  .task-card-checklist-item {
+    @apply flex items-center gap-2 text-sm text-text-main;
+  }
+  .task-card-checklist-item.completed .checklist-item-text {
+    @apply line-through text-text-subtle;
+  }
+  .task-card-checklist-item .material-icons-sharp {
+    @apply text-lg text-text-subtle;
+  }
+  .task-card-checklist-item.completed .material-icons-sharp {
+    @apply text-primary;
+  }
+
+  /* Priority and Body Styles */
+  .task-card-body {
+    @apply flex flex-wrap gap-2;
+  }
+  .task-card-priority {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .priority-low { @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200; }
+  .priority-medium { @apply bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200; }
+  .priority-high { @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200; }
+
+  /* Footer Styles */
+  .task-card-footer {
+    @apply flex justify-between items-end;
+  }
+  .task-card-stats {
+    @apply flex flex-col items-start gap-2 text-sm text-text-subtle;
+  }
+  .stat-item {
+    @apply flex items-center gap-1.5;
+  }
+  .stat-item .material-icons-sharp {
+    @apply text-base;
+  }
+  
+  /* Small Avatar for Task Card */
+  .avatar-small {
+    @apply w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content;
+  }
+  .avatar-stack .avatar-small {
+    @apply -ml-2;
+  }
+  .avatar-stack .avatar-small:first-child {
+    @apply ml-0;
+  }
+
+  /* Task Card Menu */
+  .task-card-menu {
+    @apply absolute z-20 bg-content rounded-md shadow-lg border border-border-color w-40 flex flex-col py-1;
+  }
+  .task-menu-item {
+    @apply flex items-center gap-2 px-3 py-1.5 text-sm text-left w-full hover:bg-background;
+  }
+  .task-menu-item.danger {
+    @apply text-danger;
+  }
+  .task-menu-item.danger:hover {
+    @apply bg-danger/10;
+  }
+  .task-menu-item .material-icons-sharp {
+    @apply text-base text-text-subtle;
+  }
+  .task-menu-item.danger .material-icons-sharp {
+    @apply text-danger;
+  }
+}

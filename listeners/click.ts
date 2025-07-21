@@ -150,6 +150,13 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
+    const archiveTaskBtn = target.closest<HTMLElement>('[data-archive-task-id]');
+    if (archiveTaskBtn) {
+        taskHandlers.handleToggleTaskArchive(archiveTaskBtn.dataset.archiveTaskId!);
+        closeAllTaskMenus();
+        return;
+    }
+    
     const deleteTaskBtn = target.closest<HTMLElement>('[data-delete-task-id]');
     if (deleteTaskBtn) {
         taskHandlers.handleDeleteTask(deleteTaskBtn.dataset.deleteTaskId!);
@@ -292,13 +299,6 @@ export async function handleClick(e: MouseEvent) {
         const taskId = statusToggleBtn.dataset.taskId!;
         taskHandlers.handleToggleProjectTaskStatus(taskId);
         return; 
-    }
-
-    const archiveTaskBtn = target.closest<HTMLElement>('[data-archive-task-id]');
-    if (archiveTaskBtn) {
-        taskHandlers.handleToggleTaskArchive(archiveTaskBtn.dataset.archiveTaskId!);
-        closeAllTaskMenus();
-        return;
     }
     
     const unarchiveTaskBtn = target.closest<HTMLElement>('[data-unarchive-task-id]');

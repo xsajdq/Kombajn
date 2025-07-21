@@ -16,11 +16,7 @@ export function renderTaskCard(task: Task) {
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const comments = state.comments.filter(c => c.taskId === task.id);
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
-
-    // Show top 3 checklist items, and a counter for the rest.
-    const checklistPreviewItems = checklist.slice(0, 3);
-    const remainingChecklistCount = checklist.length - checklistPreviewItems.length;
-
+    const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
 
     return `
         <div class="task-card clickable" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
@@ -30,63 +26,36 @@ export function renderTaskCard(task: Task) {
                     <span class="material-icons-sharp">more_vert</span>
                 </button>
             </div>
-            
-            ${subtasks.length > 0 ? `
-                <div class="task-card-subtasks">
-                    <ul class="task-card-subtask-items">
-                        ${subtasks.map(subtask => `
-                            <li class="task-card-subtask-item ${subtask.status === 'done' ? 'completed' : ''}">
-                                <span class="material-icons-sharp icon-sm">${subtask.status === 'done' ? 'check_box' : 'check_box_outline_blank'}</span>
-                                ${subtask.name}
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-            ` : ''}
-
-            ${tags.length > 0 ? `
-                <div class="task-card-tags">
-                    ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
-                </div>
-            ` : ''}
 
             ${checklist.length > 0 ? `
                 <div class="task-card-checklist">
-                    <label>${t('modals.checklist')}</label>
                     <ul class="task-card-checklist-items">
-                        ${checklistPreviewItems.map(item => `
+                        ${checklist.map(item => `
                             <li class="task-card-checklist-item ${item.completed ? 'completed' : ''}">
-                                <span class="checklist-item-checkbox"></span>
+                                <span class="material-icons-sharp icon-sm">${item.completed ? 'check_box' : 'check_box_outline_blank'}</span>
                                 <span class="checklist-item-text">${item.text}</span>
                             </li>
                         `).join('')}
                     </ul>
-                    ${remainingChecklistCount > 0 ? `
-                        <p class="checklist-more-items">+${remainingChecklistCount} more items</p>
-                    ` : ''}
                 </div>
             `: ''}
 
+            <div class="task-card-body">
+                ${task.priority ? `<div class="task-card-priority priority-${task.priority}">${t('tasks.priority_' + task.priority)}</div>` : ''}
+            </div>
+
             <div class="task-card-footer">
-                 <div class="task-card-meta">
-                    ${task.priority ? `<span class="priority-label priority-${task.priority}" title="${t('tasks.priority_' + task.priority)}">${t('tasks.priority_' + task.priority)}</span>` : ''}
-                    ${task.dueDate ? `<div class="stat-item" title="${t('tasks.col_due_date')}"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate)}</span></div>` : ''}
-                    ${task.estimatedHours ? `<div class="stat-item" title="${t('modals.estimated_hours')}"><span class="material-icons-sharp icon-sm">schedule</span><span>${task.estimatedHours}h</span></div>` : ''}
-                    ${comments.length > 0 ? `<div class="stat-item" title="${comments.length} comments">
-                         <span class="material-icons-sharp icon-sm">chat_bubble_outline</span>
-                         <span>${comments.length}</span>
-                    </div>` : ''}
-                     ${attachments.length > 0 ? `<div class="stat-item" title="${attachments.length} attachments">
-                         <span class="material-icons-sharp icon-sm">attachment</span>
-                         <span>${attachments.length}</span>
-                    </div>` : ''}
-                 </div>
-                 <div class="avatar-stack">
+                <div class="task-card-stats">
+                    ${task.dueDate ? `<div class="stat-item" title="${t('tasks.col_due_date')}"><span class="material-icons-sharp icon-sm">event</span><span>${formatDate(task.dueDate, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>` : ''}
+                    ${totalTrackedSeconds > 0 ? `<div class="stat-item" title="${t('tasks.col_time')}"><span class="material-icons-sharp icon-sm">schedule</span><span class="task-tracked-time">${formatDuration(totalTrackedSeconds)}</span></div>` : ''}
+                    ${comments.length > 0 ? `<div class="stat-item" title="${comments.length} comments"><span class="material-icons-sharp icon-sm">chat_bubble_outline</span><span>${comments.length}</span></div>` : ''}
+                </div>
+                <div class="avatar-stack">
                     ${taskAssignees.slice(0, 3).map(assignee => `
-                        <div class="avatar" title="${assignee!.name || assignee!.initials || 'Unassigned'}">${assignee!.initials || '?'}</div>
+                        <div class="avatar-small" title="${assignee!.name || assignee!.initials || 'Unassigned'}">${assignee!.initials || '?'}</div>
                     `).join('')}
-                    ${taskAssignees.length > 3 ? `<div class="avatar more-avatar">+${taskAssignees.length - 3}</div>` : ''}
-                 </div>
+                    ${taskAssignees.length > 3 ? `<div class="avatar-small more-avatar">+${taskAssignees.length - 3}</div>` : ''}
+                </div>
             </div>
         </div>
     `;
