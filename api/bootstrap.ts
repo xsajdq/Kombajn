@@ -1,5 +1,4 @@
 
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToCamel } from './_lib/supabaseAdmin';
 
@@ -76,7 +75,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             notificationsRes,
             joinRequestsRes,
             integrationsRes,
-            filterViewsRes,
         ] = await Promise.all([
             supabase.from('profiles').select('*').in('id', allMemberUserIds),
             supabase.from('workspaces').select('*, "planHistory"').in('id', userWorkspaceIds),
@@ -84,13 +82,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
             supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),
             supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
-            supabase.from('filter_views').select('*').eq('user_id', user.id),
         ]);
         console.log('[api/bootstrap] Parallel fetch finished.');
         
+        // Handle filter_views separately to prevent crash if table doesn't exist
+        let filterViewsData: any[] = [];
+        try {
+            const { data: filterViews, error: filterViewsError } = await supabase
+                .from('filter_views')
+                .select('*')
+                .eq('user_id', user.id);
+            
+            if (filterViewsError) {
+                // Log the error but don't fail the entire bootstrap process.
+                // This is a common case if the user hasn't run the migration for this new table.
+                console.warn(`[api/bootstrap] Could not fetch filter_views: ${filterViewsError.message}. This is expected if the table doesn't exist yet. Returning empty array.`);
+            } else {
+                filterViewsData = filterViews || [];
+            }
+        } catch (e: any) {
+            console.warn(`[api/bootstrap] An unexpected error occurred while fetching filter_views: ${e.message}. Returning empty array.`);
+        }
+
         // This type definition helps TypeScript understand the structure of Supabase query results
         type SupabaseResponse = { error: any; data: any; };
-        const allResults: SupabaseResponse[] = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes, filterViewsRes];
+        const allResults: SupabaseResponse[] = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
         
         for (const r of allResults) {
             if (r.error) {
@@ -108,7 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             notifications: notificationsRes.data || [],
             workspace_join_requests: joinRequestsRes.data || [],
             integrations: integrationsRes.data || [],
-            filter_views: filterViewsRes.data || [],
+            filter_views: filterViewsData,
             // All other large tables are deferred and will be loaded by the client on-demand
             projects: [], tasks: [], clients: [], deals: [], time_logs: [], comments: [], task_assignees: [], 
             tags: [], task_tags: [], objectives: [], key_results: [], deal_notes: [], invoices: [], 
