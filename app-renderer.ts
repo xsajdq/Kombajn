@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -37,11 +32,7 @@ async function AppLayout() {
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
 
-    // The detail panel is now managed by the page itself for Clients and Projects
-    const shouldShowGlobalSidePanel = (openedProjectId && state.currentPage !== 'projects') || 
-                                      (openedClientId && state.currentPage !== 'clients') || 
-                                      (openedDealId && state.currentPage !== 'sales');
-
+    const shouldShowGlobalSidePanel = !!(openedProjectId || openedClientId || openedDealId);
 
     if (!currentUser || !activeWorkspaceId) {
         // This state should ideally not be reached if the top-level auth check works,
@@ -61,9 +52,9 @@ async function AppLayout() {
             </main>
             
             <div id="side-panel-container" class="${shouldShowGlobalSidePanel ? 'is-open' : ''}">
-                ${(openedProjectId && state.currentPage !== 'projects') ? ProjectDetailPanel({ projectId: openedProjectId }) : ''}
-                ${(openedClientId && state.currentPage !== 'clients') ? ClientDetailPanel({ clientId: openedClientId }) : ''}
-                ${(openedDealId && state.currentPage !== 'sales') ? DealDetailPanel({ dealId: openedDealId }) : ''}
+                ${openedProjectId ? ProjectDetailPanel({ projectId: openedProjectId }) : ''}
+                ${openedClientId ? ClientDetailPanel({ clientId: openedClientId }) : ''}
+                ${openedDealId ? DealDetailPanel({ dealId: openedDealId }) : ''}
             </div>
             <div id="side-panel-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ${ shouldShowGlobalSidePanel ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }"></div>
 
@@ -76,6 +67,13 @@ async function AppLayout() {
         <div id="mention-popover-container"></div>
     </div>
     `;
+}
+
+export function renderMentionPopover() {
+    const container = document.getElementById('mention-popover-container');
+    if (container) {
+        container.innerHTML = MentionPopover();
+    }
 }
 
 export async function renderApp() {
@@ -159,12 +157,5 @@ export async function renderApp() {
 
     if (state.currentPage === 'dashboard') {
         initDashboardCharts();
-    }
-}
-
-export function renderMentionPopover() {
-    const container = document.getElementById('mention-popover-container');
-    if (container) {
-        container.innerHTML = MentionPopover();
     }
 }

@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -592,6 +593,14 @@ export interface AppState {
             step: number;
         };
         sales: {
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
+        };
+        clients: {
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
+        };
+        invoices: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
         };

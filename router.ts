@@ -1,5 +1,4 @@
 
-
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -17,10 +16,7 @@ import { SalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
-import { openDealPanel, showModal } from './handlers/ui.ts';
-import { renderApp } from './app-renderer.ts';
-
-let isHandlingUrlNav = false;
+import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -47,22 +43,13 @@ export async function router() {
 
 
     // This part handles opening a detail view from a direct URL load (deep linking).
-    // The check prevents a re-render loop when interacting inside an open panel.
-    if (id && !isHandlingUrlNav) {
-        isHandlingUrlNav = true;
-        let shouldReRender = false;
+    if (id) {
         switch (state.currentPage) {
             case 'projects':
-                if (state.ui.openedProjectId !== id) {
-                    state.ui.openedProjectId = id;
-                    shouldReRender = true;
-                }
+                if (state.ui.openedProjectId !== id) openProjectPanel(id);
                 break;
             case 'clients':
-                if (state.ui.openedClientId !== id) {
-                    state.ui.openedClientId = id;
-                    shouldReRender = true;
-                }
+                if (state.ui.openedClientId !== id) openClientPanel(id);
                 break;
             case 'tasks':
                 if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
@@ -70,22 +57,10 @@ export async function router() {
                 }
                 break;
             case 'sales':
-                if (state.ui.openedDealId !== id) {
-                    state.ui.openedDealId = id;
-                    shouldReRender = true;
-                }
+                if (state.ui.openedDealId !== id) openDealPanel(id);
                 break;
         }
-        if (shouldReRender) {
-             // Defer re-render to allow state to update first
-            setTimeout(() => {
-                renderApp();
-                isHandlingUrlNav = false;
-            }, 0);
-        } else {
-            isHandlingUrlNav = false;
-        }
-    } else if (!id) {
+    } else {
         // If there's no ID in the URL, ensure all panels are closed.
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;

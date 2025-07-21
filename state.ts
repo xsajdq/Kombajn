@@ -1,5 +1,6 @@
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -110,6 +111,8 @@ export function getInitialState(): AppState {
             hr: { activeTab: 'employees' },
             onboarding: { isActive: false, step: 0 },
             sales: { isLoading: false, loadedWorkspaceId: null },
+            clients: { isLoading: false, loadedWorkspaceId: null },
+            invoices: { isLoading: false, loadedWorkspaceId: null },
         },
     };
 }
