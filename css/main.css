@@ -4,34 +4,48 @@
 
 @layer base {
   :root {
-    --primary-color: #3b82f6; /* Blue 500 */
-    --primary-hover-color: #2563eb; /* Blue 600 */
-    --background-color: #f9fafb; /* Gray 50 */
-    --content-bg: #ffffff;
-    --text-color: #374151; /* Gray 700 */
-    --subtle-text-color: #6b7280; /* Gray 500 */
-    --border-color: #e5e7eb; /* Gray 200 */
-    --danger-color: #ef4444; /* Red 500 */
-    --success-color: #22c55e; /* Green 500 */
-    --warning-color: #f59e0b; /* Amber 500 */
-    --sidebar-text: #4b5563; /* Gray 600 */
+    --primary-color-rgb: 59 130 246; /* Blue 500 */
+    --primary-hover-color-rgb: 37 99 235; /* Blue 600 */
+    --background-color-rgb: 249 250 251; /* Gray 50 */
+    --content-bg-rgb: 255 255 255;
+    --text-color-rgb: 55 65 81; /* Gray 700 */
+    --subtle-text-color-rgb: 107 114 128; /* Gray 500 */
+    --border-color-rgb: 229 231 235; /* Gray 200 */
+    --danger-color-rgb: 239 68 68; /* Red 500 */
+    --success-color-rgb: 34 197 94; /* Green 500 */
+    --warning-color-rgb: 245 158 11; /* Amber 500 */
+    --sidebar-text-rgb: 75 85 99; /* Gray 600 */
+
+    /* For reference and potential non-tailwind usage */
+    --primary-color: rgb(var(--primary-color-rgb));
+    --primary-hover-color: rgb(var(--primary-hover-color-rgb));
+    --background-color: rgb(var(--background-color-rgb));
+    --content-bg: rgb(var(--content-bg-rgb));
+    --text-color: rgb(var(--text-color-rgb));
+    --subtle-text-color: rgb(var(--subtle-text-color-rgb));
+    --border-color: rgb(var(--border-color-rgb));
+    --danger-color: rgb(var(--danger-color-rgb));
+    --success-color: rgb(var(--success-color-rgb));
+    --warning-color: rgb(var(--warning-color-rgb));
+    --sidebar-text: rgb(var(--sidebar-text-rgb));
+
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
   html.dark {
-    --primary-color: #60a5fa; /* Blue 400 */
-    --primary-hover-color: #3b82f6; /* Blue 500 */
-    --background-color: #111827; /* Gray 900 */
-    --content-bg: #1f2937; /* Gray 800 */
-    --text-color: #d1d5db; /* Gray 300 */
-    --subtle-text-color: #9ca3af; /* Gray 400 */
-    --border-color: #374151; /* Gray 700 */
-    --danger-color: #f87171; /* Red 400 */
-    --success-color: #4ade80; /* Green 400 */
-    --warning-color: #fbbf24; /* Amber 400 */
-    --sidebar-text: #d1d5db;
+    --primary-color-rgb: 96 165 250; /* Blue 400 */
+    --primary-hover-color-rgb: 59 130 246; /* Blue 500 */
+    --background-color-rgb: 17 24 39; /* Gray 900 */
+    --content-bg-rgb: 31 41 55; /* Gray 800 */
+    --text-color-rgb: 209 213 219; /* Gray 300 */
+    --subtle-text-color-rgb: 156 163 175; /* Gray 400 */
+    --border-color-rgb: 55 65 81; /* Gray 700 */
+    --danger-color-rgb: 248 113 113; /* Red 400 */
+    --success-color-rgb: 74 222 128; /* Green 400 */
+    --warning-color-rgb: 251 191 36; /* Amber 400 */
+    --sidebar-text-rgb: 209 213 219;
   }
 
   body {
