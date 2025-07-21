@@ -87,47 +87,74 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
     const renderTasksTab = () => {
         const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
 
-        const statusOrder: Task['status'][] = ['inprogress', 'inreview', 'todo', 'backlog', 'done'];
-        const sortedTasks = [...projectTasks].sort((a, b) => {
-            const statusA = statusOrder.indexOf(a.status);
-            const statusB = statusOrder.indexOf(b.status);
-            if (statusA !== statusB) {
-                return statusA - statusB;
+        // Group tasks by status
+        const tasksByStatus: Record<string, Task[]> = {
+            inprogress: [], inreview: [], todo: [], backlog: [], done: []
+        };
+        projectTasks.forEach(task => {
+            if (tasksByStatus[task.status]) {
+                tasksByStatus[task.status].push(task);
             }
-            // Optional: further sort by due date within the same status
-            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-            return dateA - dateB;
         });
+
+        const renderTaskRow = (task: Task) => {
+            const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+            const isDone = task.status === 'done';
+            const statusIcon = isDone ? 'check_circle' : 'radio_button_unchecked';
+            const iconClass = isDone ? 'done' : 'open';
+
+            return `
+                <div class="project-task-row clickable" data-task-id="${task.id}" role="button" tabindex="0">
+                    <button class="btn-icon task-status-toggle" data-task-id="${task.id}" aria-label="Toggle task status">
+                        <span class="material-icons-sharp icon-sm ${iconClass}">${statusIcon}</span>
+                    </button>
+                    <p class="task-name ${isDone ? 'is-done' : ''}">${task.name}</p>
+                    <div class="task-meta">
+                        ${task.dueDate ? `<span class="task-due-date">${formatDate(task.dueDate, { month: 'short', day: 'numeric' })}</span>` : '<span></span>'}
+                        <div class="avatar-stack">
+                            ${assignees.slice(0, 2).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                            ${assignees.length > 2 ? `<div class="avatar more-avatar">+${assignees.length - 2}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderTaskSection = (title: string, tasks: Task[]) => {
+            if (tasks.length === 0) return '';
+            return `
+                <div class="project-task-group">
+                    <h5 class="task-group-title">${title} (${tasks.length})</h5>
+                    <div class="task-group-list">
+                        ${tasks.map(renderTaskRow).join('')}
+                    </div>
+                </div>
+            `;
+        };
+        
+        const inProgressAndReview = [...tasksByStatus.inprogress, ...tasksByStatus.inreview];
+        const todoAndBacklog = [...tasksByStatus.todo, ...tasksByStatus.backlog];
+        const doneTasks = tasksByStatus.done;
 
         return `
             <div class="side-panel-content">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4>${t('panels.tasks')}</h4>
-                        <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
-                            <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span> ${t('panels.add_task')}
-                        </button>
-                    </div>
-                    <ul class="project-tasks-list-minimal">
-                        ${sortedTasks.map(task => {
-                            const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-                            const isDone = task.status === 'done';
-                            return `
-                                <li class="project-task-item-minimal clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                                    <input type="checkbox" class="task-status-checkbox" data-task-id="${task.id}" ${isDone ? 'checked' : ''}>
-                                    <p class="task-name ${isDone ? 'is-done' : ''}">${task.name}</p>
-                                    <div class="task-meta">
-                                        ${task.dueDate ? `<span class="task-due-date">${formatDate(task.dueDate)}</span>` : '<span></span>'}
-                                        <div class="avatar-stack">
-                                            ${assignees.slice(0, 3).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
-                                            ${assignees.length > 3 ? `<div class="avatar more-avatar">+${assignees.length - 3}</div>` : ''}
-                                        </div>
-                                    </div>
-                                </li>
-                            `;
-                        }).join('')}
-                    </ul>
+                <div class="project-tasks-header">
+                    <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
+                        <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span> ${t('panels.add_task')}
+                    </button>
+                </div>
+                <div class="project-tasks-list-modern">
+                    ${renderTaskSection(t('tasks.inprogress'), inProgressAndReview)}
+                    ${renderTaskSection(t('tasks.todo'), todoAndBacklog)}
+
+                    ${doneTasks.length > 0 ? `
+                        <details class="project-task-group-collapsible">
+                            <summary class="task-group-title">${t('tasks.done')} (${doneTasks.length})</summary>
+                            <div class="task-group-list">
+                                ${doneTasks.map(renderTaskRow).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
                 </div>
             </div>
         `;
