@@ -42,16 +42,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             timeLogsRes,
             commentsRes,
             clientsRes,
+            invoicesRes,
+            calendarEventsRes
         ] = await Promise.all([
             supabase.from('projects').select('*').eq('workspace_id', workspaceId),
             supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
             supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
             supabase.from('time_logs').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(20),
             supabase.from('comments').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(20),
-            supabase.from('clients').select('*').eq('workspace_id', workspaceId),
+            supabase.from('clients').select('id, name').eq('workspace_id', workspaceId),
+            supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId),
+            supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId)
         ]);
 
-        const allResults = [projectsRes, tasksRes, taskAssigneesRes, timeLogsRes, commentsRes, clientsRes];
+        const allResults = [projectsRes, tasksRes, taskAssigneesRes, timeLogsRes, commentsRes, clientsRes, invoicesRes, calendarEventsRes];
         for (const r of allResults) {
             if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
         }
@@ -63,6 +67,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             timeLogs: timeLogsRes.data || [],
             comments: commentsRes.data || [],
             clients: clientsRes.data || [],
+            invoices: invoicesRes.data || [],
+            calendarEvents: calendarEventsRes.data || [],
         };
         
         return res.status(200).json(keysToCamel(responseData));

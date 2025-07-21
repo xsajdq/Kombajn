@@ -26,8 +26,8 @@ export async function addWidget(type: DashboardWidgetType) {
         type,
         x: 0,
         y: 0,
-        w: 6, 
-        h: 4,
+        w: 4, 
+        h: 6,
         sortOrder: maxSortOrder + 1,
         config: {}
     };
@@ -74,11 +74,11 @@ export async function handleWidgetConfigSave(widgetId: string) {
     const originalConfig = { ...widget.config };
     let newConfig = { ...originalConfig };
 
-    if (widget.type === 'projectStatus') {
-        const select = document.getElementById('widget-project-select') as HTMLSelectElement;
-        if (select) {
-            newConfig.projectId = select.value;
-        }
+    if (widget.type === 'recentProjects') { // Example for future config
+        // const select = document.getElementById('widget-project-select') as HTMLSelectElement;
+        // if (select) {
+        //     newConfig.projectId = select.value;
+        // }
     }
     
     widget.config = newConfig;

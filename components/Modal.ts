@@ -532,7 +532,7 @@ export function Modal() {
         title = t('modals.configure_widget');
         body = `
             <form id="widgetConfigForm" data-widget-id="${widget.id}">
-                ${widget.type === 'projectStatus' ? `
+                ${widget.type === 'recentProjects' ? `
                     <div class="form-group">
                         <label for="widget-project-select">${t('modals.project')}</label>
                         <select id="widget-project-select" class="form-control" required>
@@ -547,7 +547,7 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addWidget') {
-        const widgetTypes: DashboardWidgetType[] = ['myTasks', 'projectStatus', 'teamWorkload', 'recentActivity'];
+        const widgetTypes: DashboardWidgetType[] = ['recentProjects', 'todaysTasks', 'activityFeed'];
         title = t('modals.add_widget');
         body = `
             <div class="item-list">

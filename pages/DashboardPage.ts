@@ -1,264 +1,311 @@
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
-import { formatDuration, camelToSnake } from '../utils.ts';
+import type { DashboardWidget, Task, TimeLog, Comment, Project, Client, Invoice, CalendarEvent, DashboardWidgetType } from '../types.ts';
+import { formatDuration, camelToSnake, formatDate, formatCurrency } from '../utils.ts';
 import { can } from '../permissions.ts';
 import { apiFetch } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
-
 
 declare const Chart: any;
 
 let charts: { [key: string]: any } = {};
 
 async function fetchDashboardData() {
-    // Guard against no workspace or already loading
     if (!state.activeWorkspaceId || state.ui.dashboard.isLoading) return;
 
-    // If data for the current workspace is already loaded, just init charts and exit.
     if (state.ui.dashboard.loadedWorkspaceId === state.activeWorkspaceId) {
         initDashboardCharts();
         return;
     }
 
     state.ui.dashboard.isLoading = true;
-    // Don't render here. The initial render that called DashboardPage is enough.
-    // The DashboardPage function will render the loader based on this flag.
+    renderApp(); 
 
     try {
         const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
         
-        // Populate state with dashboard-specific data
         state.projects = data.projects || [];
         state.tasks = data.tasks || [];
         state.taskAssignees = data.taskAssignees || [];
         state.timeLogs = data.timeLogs || [];
         state.comments = data.comments || [];
         state.clients = data.clients || [];
+        state.invoices = data.invoices || [];
+        state.calendarEvents = data.calendarEvents || [];
         
-        // Mark this workspace as loaded
         state.ui.dashboard.loadedWorkspaceId = state.activeWorkspaceId;
         
     } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        // On failure, nullify the loaded ID so it can be retried.
         state.ui.dashboard.loadedWorkspaceId = null;
     } finally {
         state.ui.dashboard.isLoading = false;
-        // Re-render the app with the newly fetched data or to remove the loader on error.
         renderApp();
     }
 }
-
 
 function destroyCharts() {
     Object.values(charts).forEach(chart => chart.destroy());
     charts = {};
 }
 
-function renderMyTasksWidget(widget: DashboardWidget) {
-    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
-    const myAssignedTaskIds = new Set(state.taskAssignees.filter(a => a.userId === state.currentUser?.id).map(a => a.taskId));
-    const tasks = state.tasks.filter(task => myAssignedTaskIds.has(task.id) && task.status !== 'done');
-    const content = tasks.length > 0
-        ? `<ul class="widget-task-list">${tasks.map(task => `
-            <li class="clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                <span>${task.name}</span>
-                <span class="subtle-text">${state.projects.find(p => p.id === task.projectId)?.name}</span>
-            </li>`).join('')}</ul>`
-        : `<div class="empty-widget"><span class="material-icons-sharp">task_alt</span>${t('dashboard.no_tasks_assigned')}</div>`;
-    return content;
-}
+// --- NEW WIDGET RENDERERS ---
 
-function renderProjectStatusWidget(widget: DashboardWidget) {
-    if (!widget.config.projectId) {
-        return `<div class="empty-widget"><span class="material-icons-sharp">folder_special</span>${t('dashboard.select_project_for_widget')}</div>`;
-    }
-    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
-    return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
-}
-
-function renderTeamWorkloadWidget(widget: DashboardWidget) {
-    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
-    return `<div class="chart-container"><canvas id="widget-chart-${widget.id}"></canvas></div>`;
-}
-
-function renderRecentActivityWidget(widget: DashboardWidget) {
-    if (state.ui.dashboard.isLoading) return '<div class="widget-loader"></div>';
-    const activities = [...state.comments, ...state.timeLogs]
-        .filter(item => item.workspaceId === state.activeWorkspaceId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10);
-    
-    if (activities.length === 0) {
-        return `<div class="empty-widget"><span class="material-icons-sharp">history</span>${t('dashboard.no_activity_yet')}</div>`;
-    }
-
-    return `<ul class="widget-task-list">${activities.map(item => {
-        const user = state.users.find(u => u.id === item.userId);
-        const task = state.tasks.find(t => t.id === item.taskId);
-        if (!task) return ''; // Don't render activity for tasks not loaded
-        if ('content' in item) { // Comment
-             return `<li class="clickable" data-task-id="${item.taskId}" role="button" tabindex="0"><span><strong>${user?.name}</strong> commented on ${task?.name || ''}</span><span class="subtle-text"></span></li>`;
-        } else { // TimeLog
-             return `<li class="clickable" data-task-id="${item.taskId}" role="button" tabindex="0"><span><strong>${user?.name}</strong> logged ${formatDuration(item.trackedSeconds)} on ${task?.name || ''}</span></li>`;
-        }
-    }).join('')}</ul>`;
-}
-
-
-function renderWidget(widget: DashboardWidget) {
-    let content = '';
-    let title = t(`dashboard.widget_${camelToSnake(widget.type)}_title`);
-    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    const gridCols = workspace?.dashboardGridColumns || 12;
-
-    switch (widget.type) {
-        case 'myTasks':
-            content = renderMyTasksWidget(widget);
-            break;
-        case 'projectStatus':
-            const project = state.projects.find(p => p.id === widget.config.projectId);
-            if (project) title = `${t('dashboard.widget_project_status_title')}: ${project.name}`;
-            content = renderProjectStatusWidget(widget);
-            break;
-        case 'teamWorkload':
-            content = renderTeamWorkloadWidget(widget);
-            break;
-        case 'recentActivity':
-            content = renderRecentActivityWidget(widget);
-            break;
-    }
-
-    const isEditing = state.ui.dashboard.isEditing;
+function renderKpiMetric(
+    title: string,
+    value: string,
+    percentageChange: number | null,
+    footerText: string,
+    icon: string,
+    iconBgColor: string,
+    iconColor: string
+) {
+    const changeIndicator = percentageChange !== null ? `
+        <span class="percentage ${percentageChange >= 0 ? 'positive' : 'negative'}">
+            <span class="material-icons-sharp">${percentageChange >= 0 ? 'trending_up' : 'trending_down'}</span>
+            ${Math.abs(percentageChange)}%
+        </span>
+    ` : '';
 
     return `
-        <div class="widget-card" 
-            draggable="${isEditing}" 
-            data-widget-id="${widget.id}" 
-            style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
-            <div class="widget-header">
-                <h4>${title}</h4>
-                ${isEditing ? `
-                    <div class="widget-controls">
-                        <button class="btn-icon" data-resize-action="decrease" data-widget-id="${widget.id}" title="${t('dashboard.decrease_width')}" ${widget.w <= 1 ? 'disabled' : ''}>
-                            <span class="material-icons-sharp">remove</span>
-                        </button>
-                        <button class="btn-icon" data-resize-action="increase" data-widget-id="${widget.id}" title="${t('dashboard.increase_width')}" ${widget.w >= gridCols ? 'disabled' : ''}>
-                            <span class="material-icons-sharp">add</span>
-                        </button>
-                        <button class="btn-icon" data-configure-widget-id="${widget.id}" title="${t('modals.configure_widget')}"><span class="material-icons-sharp">settings</span></button>
-                        <button class="btn-icon" data-remove-widget-id="${widget.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
-                    </div>
-                ` : ''}
+        <div class="kpi-card-v2">
+            <div class="card-header">
+                <span>${title}</span>
+                <span class="material-icons-sharp" style="background-color: ${iconBgColor}; color: ${iconColor}; border-radius: 50%; padding: 4px;">${icon}</span>
             </div>
-            <div class="widget-content">
-                ${content}
+            <div class="card-value">${value}</div>
+            <div class="card-footer">
+                ${changeIndicator}
+                <span class="subtle-text">${footerText}</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderRecentProjectsWidget(widget: DashboardWidget) {
+    const recentProjects = state.projects
+        .filter(p => p.workspaceId === state.activeWorkspaceId)
+        .slice(0, 5); // Simple "recent" logic for now
+
+    return `
+        <div class="recent-projects-widget">
+            <div class="widget-header">
+                <h4>${t('dashboard.widget_recent_projects_title')}</h4>
+                <a href="/projects" class="btn-link">${t('dashboard.view_all')}</a>
+            </div>
+            <div class="project-list">
+                ${recentProjects.map(p => {
+                    const tasks = state.tasks.filter(t => t.projectId === p.id);
+                    const completed = tasks.filter(t => t.status === 'done').length;
+                    const progress = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
+                    return `
+                        <div class="project-list-item">
+                            <span class="project-name">${p.name}</span>
+                            <div class="progress-bar">
+                                <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                            </div>
+                            <span class="due-date">${Math.round(progress)}%</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderTodaysTasksWidget(widget: DashboardWidget) {
+    const today = new Date().toISOString().slice(0, 10);
+    const todaysTasks = state.tasks.filter(t => t.dueDate === today && t.status !== 'done');
+
+    return `
+         <div class="todays-tasks-widget">
+            <div class="widget-header">
+                <h4>${t('dashboard.widget_todays_tasks_title')}</h4>
+                <a href="/tasks" class="btn-link">${t('dashboard.view_all')}</a>
+            </div>
+            <div class="task-list">
+                ${todaysTasks.length > 0 ? todaysTasks.map(task => `
+                    <div class="task-list-item">
+                        <span class="priority-dot ${task.priority || 'low'}"></span>
+                        <span class="task-name">${task.name}</span>
+                    </div>
+                `).join('') : `<p class="subtle-text">No tasks due today. Great job!</p>`}
+            </div>
+        </div>
+    `;
+}
+
+function renderActivityFeedWidget(widget: DashboardWidget) {
+     const activities = [...state.comments, ...state.timeLogs]
+        .filter(item => item.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+    
+    const clientMap = new Map(state.clients.map(c => [c.id, c.name]));
+    const projectMap = new Map(state.projects.map(p => [p.id, {name: p.name, clientId: p.clientId}]));
+
+    const getActivityText = (item: Comment | TimeLog) => {
+        const user = state.users.find(u => u.id === item.userId);
+        const task = state.tasks.find(t => t.id === item.taskId);
+        if (!user || !task) return { text: '...', icon: 'help', color: '' };
+        
+        if ('content' in item) {
+            return {
+                text: `<strong>${user.name}</strong> commented on <strong>${task.name}</strong>`,
+                icon: 'chat_bubble',
+                color: '#8B5CF6'
+            };
+        } else {
+             return {
+                text: `<strong>${user.name}</strong> logged <strong>${formatDuration(item.trackedSeconds)}</strong> on <strong>${task.name}</strong>`,
+                icon: 'timer',
+                color: '#3B82F6'
+            };
+        }
+    };
+    
+    return `
+        <div class="activity-feed-widget">
+             <div class="widget-header">
+                <h4>${t('dashboard.widget_activity_feed_title')}</h4>
+            </div>
+            <div class="feed-list">
+                ${activities.map(item => {
+                    const { text, icon, color } = getActivityText(item);
+                    return `
+                        <div class="feed-item">
+                            <div class="feed-item-icon" style="background-color: ${color}20; color: ${color};">
+                                <span class="material-icons-sharp">${icon}</span>
+                            </div>
+                            <div class="feed-item-content">
+                                <p>${text}</p>
+                                <div class="time">${formatDate(item.createdAt, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderScheduleWidget() {
+    const today = new Date();
+    const meetingsToday = state.calendarEvents.filter(e => {
+        const startDate = new Date(e.startDate);
+        return startDate.getFullYear() === today.getFullYear() &&
+               startDate.getMonth() === today.getMonth() &&
+               startDate.getDate() === today.getDate();
+    });
+    return `
+        <div class="info-card-widget schedule">
+            <div class="card-header"><span class="material-icons-sharp">calendar_month</span> ${t('dashboard.widget_schedule_title')}</div>
+            <div class="card-body"><p>You have ${meetingsToday.length} meetings scheduled for today</p></div>
+            <div class="card-footer"><a href="/team-calendar" class="btn-link">View Calendar &rarr;</a></div>
+        </div>
+    `;
+}
+function renderAlertsWidget() {
+     const overdueProjects = state.projects.filter(p => {
+        const tasks = state.tasks.filter(t => t.projectId === p.id);
+        return tasks.some(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done');
+    }).length;
+
+    return `
+        <div class="info-card-widget alerts">
+            <div class="card-header"><span class="material-icons-sharp">warning</span> ${t('dashboard.widget_alerts_title')}</div>
+            <div class="card-body"><p>${overdueProjects} projects need attention</p></div>
+            <div class="card-footer"><a href="/projects" class="btn-link">View Alerts &rarr;</a></div>
+        </div>
+    `;
+}
+function renderQuickActionsWidget() {
+    return `
+        <div class="widget-container">
+            <div class="widget-header"><h4>${t('dashboard.widget_quick_actions_title')}</h4></div>
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" data-modal-target="addProject"><span class="material-icons-sharp">add_business</span> ${t('dashboard.action_new_project')}</button>
+                <button class="quick-action-btn" data-modal-target="addClient"><span class="material-icons-sharp">person_add</span> ${t('dashboard.action_add_client')}</button>
+                <button class="quick-action-btn" data-modal-target="addInvoice"><span class="material-icons-sharp">receipt_long</span> ${t('dashboard.action_create_invoice')}</button>
+                <button class="quick-action-btn" data-modal-target="addCalendarEvent"><span class="material-icons-sharp">event</span> ${t('dashboard.action_schedule_meeting')}</button>
             </div>
         </div>
     `;
 }
 
 export function initDashboardCharts() {
-    if (state.ui.dashboard.isLoading) return;
-    destroyCharts();
-
-    const userWidgets = state.dashboardWidgets.filter(w =>
-        w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId
-    );
-
-    userWidgets.forEach(widget => {
-        const chartCanvas = document.getElementById(`widget-chart-${widget.id}`) as HTMLCanvasElement;
-        if (!chartCanvas) return;
-
-        if (widget.type === 'projectStatus' && widget.config.projectId) {
-            const tasks = state.tasks.filter(t => t.projectId === widget.config.projectId);
-            const statusCounts = tasks.reduce((acc, task) => {
-                acc[task.status] = (acc[task.status] || 0) + 1;
-                return acc;
-            }, {} as Record<Task['status'], number>);
-            
-            charts[widget.id] = new Chart(chartCanvas.getContext('2d')!, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusCounts).map(s => t(`tasks.${s}`)),
-                    datasets: [{
-                        data: Object.values(statusCounts),
-                        backgroundColor: ['#636e72', '#f39c12', '#4a90e2', '#8e44ad', '#2ecc71'],
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }}}
-            });
-        }
-         if (widget.type === 'teamWorkload') {
-            const tasks = state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.status !== 'done');
-            const workload = tasks.reduce((acc, task) => {
-                const assignees = state.taskAssignees.filter(a => a.taskId === task.id);
-                assignees.forEach(assignee => {
-                    acc[assignee.userId] = (acc[assignee.userId] || 0) + 1;
-                });
-                return acc;
-            }, {} as Record<string, number>);
-
-            const userNames = Object.keys(workload).map(userId => state.users.find(u => u.id === userId)?.name || 'Unknown');
-
-            charts[widget.id] = new Chart(chartCanvas.getContext('2d')!, {
-                type: 'bar',
-                data: {
-                    labels: userNames,
-                    datasets: [{
-                        label: 'Active Tasks',
-                        data: Object.values(workload),
-                        backgroundColor: 'rgba(74, 144, 226, 0.6)',
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }}}
-            });
-        }
-    });
+    // This can be expanded later if new charts are added.
 }
-
 
 export function DashboardPage() {
     fetchDashboardData();
+    const { currentUser, activeWorkspaceId } = state;
+    if (!currentUser || !activeWorkspaceId) return '<div class="widget-loader"></div>';
 
-    const { isEditing } = state.ui.dashboard;
-    const userWidgets = state.dashboardWidgets
-        .filter(w => w.userId === state.currentUser?.id && w.workspaceId === state.activeWorkspaceId)
-        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-
-    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    const gridCols = workspace?.dashboardGridColumns || 12;
+    if (state.ui.dashboard.isLoading) {
+        return `
+            <div class="dashboard-page-container">
+                <div class="loading-container" style="height: 60vh;">
+                    <div class="loading-progress-bar"></div>
+                    <p>Loading your dashboard...</p>
+                </div>
+            </div>
+        `;
+    }
     
-    const canManage = can('manage_workspace_settings');
+    // --- CALCULATE KPIs ---
+    const totalRevenue = state.invoices
+        .filter(i => i.workspaceId === activeWorkspaceId && i.status === 'paid')
+        .reduce((sum, invoice) => sum + invoice.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
+    const activeProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId).length;
+    const totalClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId).length;
+    const overdueProjects = state.projects.filter(p => {
+        const tasks = state.tasks.filter(t => t.projectId === p.id);
+        return tasks.some(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'done');
+    }).length;
 
     return `
-        <div>
+        <div class="dashboard-page-container">
             <div class="dashboard-header">
-                <h2>${t('dashboard.title')}</h2>
-                <div>
-                    ${isEditing && canManage ? `
-                        <div class="grid-columns-control">
-                            <label for="dashboard-grid-columns">${t('dashboard.grid_columns')}:</label>
-                            <select id="dashboard-grid-columns" class="form-control">
-                                ${[4, 6, 8, 10, 12].map(c => `<option value="${c}" ${gridCols === c ? 'selected' : ''}>${c}</option>`).join('')}
-                            </select>
-                        </div>
-                    ` : ''}
-                     <button id="add-widget-btn" class="btn btn-secondary" style="${isEditing ? '' : 'display: none;'}">
-                        <span class="material-icons-sharp">add</span> ${t('dashboard.add_widget')}
+                <div class="header-left">
+                    <h2>${t('dashboard.welcome_message').replace('{name}', currentUser.name?.split(' ')[0] || '')}</h2>
+                    <p class="subtle-text">${t('dashboard.welcome_sub')}</p>
+                </div>
+                <div class="header-right">
+                    <button id="toggle-dashboard-edit-mode" class="btn btn-secondary">
+                       <span class="material-icons-sharp">edit</span>
+                       ${t('dashboard.edit_dashboard')}
                     </button>
-                    <button id="toggle-dashboard-edit-mode" class="btn btn-primary">
-                       <span class="material-icons-sharp">${isEditing ? 'done' : 'edit'}</span>
-                       ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
+                    <button class="btn btn-primary" id="dashboard-quick-actions">
+                        <span class="material-icons-sharp">bolt</span> Quick Actions
                     </button>
                 </div>
             </div>
-            <div class="dashboard-grid ${isEditing ? 'editing' : ''}" style="grid-template-columns: repeat(${gridCols}, 1fr); grid-auto-flow: dense;">
-                ${userWidgets.map(widget => renderWidget(widget)).join('')}
+
+            <div class="dashboard-tabs">
+                <button class="dashboard-tab active">Overview</button>
+                <button class="dashboard-tab">Projects</button>
+                <button class="dashboard-tab">Team</button>
+                <button class="dashboard-tab">Analytics</button>
+            </div>
+
+            <div class="dashboard-kpi-grid">
+                ${renderKpiMetric(t('dashboard.kpi_total_revenue'), formatCurrency(totalRevenue), 12.5, t('dashboard.vs_last_month'), 'attach_money', '#dcfce7', '#22c55e')}
+                ${renderKpiMetric(t('dashboard.kpi_active_projects'), `${activeProjects}`, 3, t('dashboard.vs_last_month'), 'folder', '#e0e7ff', '#4f46e5')}
+                ${renderKpiMetric(t('dashboard.kpi_total_clients'), `${totalClients}`, 8, t('dashboard.vs_last_month'), 'people', '#f3e8ff', '#9333ea')}
+                ${renderKpiMetric(t('dashboard.kpi_overdue_projects'), `${overdueProjects}`, -5.2, t('dashboard.vs_last_month'), 'error', '#fee2e2', '#ef4444')}
+            </div>
+
+            <div class="dashboard-main-grid">
+                ${renderRecentProjectsWidget({} as DashboardWidget)}
+                ${renderTodaysTasksWidget({} as DashboardWidget)}
+                ${renderActivityFeedWidget({} as DashboardWidget)}
+                <div class="info-cards-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    ${renderScheduleWidget()}
+                    ${renderAlertsWidget()}
+                </div>
+                 ${renderQuickActionsWidget()}
             </div>
         </div>
     `;

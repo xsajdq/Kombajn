@@ -92,18 +92,31 @@ function renderBoardView(filteredTasks: Task[]) {
         
     const renderColumn = (status: Task['status']) => {
         const columnTasks = tasksByStatus[status];
-        const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+        const activeTasks = columnTasks.filter(t => !t.isArchived);
+        const archivedTasks = columnTasks.filter(t => t.isArchived);
+
+        const activeTotalSeconds = activeTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
-        let columnHeaderExtras = `(${columnTasks.length})`;
-        if (totalSeconds > 0) {
-             columnHeaderExtras += ` <span class="kanban-column-total-time">${formatDuration(totalSeconds)}</span>`;
+        let columnHeaderExtras = `(${activeTasks.length})`;
+        if (activeTotalSeconds > 0) {
+             columnHeaderExtras += ` <span class="kanban-column-total-time">${formatDuration(activeTotalSeconds)}</span>`;
         }
 
         return `
             <div class="kanban-column" data-status="${status}">
                 <h4>${t('tasks.' + status)} ${columnHeaderExtras}</h4>
                 <div class="kanban-tasks">
-                    ${columnTasks.map(renderTaskCard).join('') || '<div class="empty-kanban-column"></div>'}
+                    ${activeTasks.map(renderTaskCard).join('') || '<div class="empty-kanban-column"></div>'}
+                    ${archivedTasks.length > 0 ? `
+                        <details class="archived-tasks-container">
+                            <summary class="archived-tasks-summary">
+                                ${t('tasks.show_archived')} (${archivedTasks.length})
+                            </summary>
+                            <div class="archived-tasks-list">
+                                ${archivedTasks.map(renderTaskCard).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
                 </div>
             </div>
             `;
@@ -121,12 +134,82 @@ function renderBoardView(filteredTasks: Task[]) {
 }
 
 function renderListView(filteredTasks: Task[]) {
-    if (filteredTasks.length === 0) {
+    const activeTasks = filteredTasks.filter(t => !t.isArchived);
+    const archivedTasks = filteredTasks.filter(t => t.isArchived);
+
+    if (activeTasks.length === 0 && archivedTasks.length === 0) {
         return `<div class="empty-state">
             <span class="material-icons-sharp">search_off</span>
             <h3>${t('tasks.no_tasks_match_filters')}</h3>
         </div>`;
     }
+
+    const renderRow = (task: Task) => {
+        const project = state.projects.find(p => p.id === task.projectId);
+        const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+        const isRunning = !!state.activeTimers[task.id];
+
+        const taskTagsIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
+        const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
+
+        const subtasks = state.tasks.filter(t => t.parentId === task.id);
+        const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
+        const checklist = task.checklist || [];
+        const completedChecklistItems = checklist.filter(c => c.completed).length;
+        const attachments = state.attachments.filter(a => a.taskId === task.id);
+        const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
+
+        return `
+            <div class="task-list-row clickable" data-task-id="${task.id}" role="button" tabindex="0">
+                 <div class="task-list-col" data-label="${t('tasks.col_task')}">
+                    <div class="task-name-wrapper">
+                        <strong>${task.name}</strong>
+                        ${tags.length > 0 ? `
+                            <div class="tag-list" style="margin-top: 0.5rem;">
+                                ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="task-meta-icons">
+                            ${checklist.length > 0 ? `
+                                <span title="${t('modals.checklist')}">
+                                    <span class="material-icons-sharp">checklist_rtl</span>
+                                    ${completedChecklistItems}/${checklist.length}
+                                </span>` : ''}
+                            ${subtasks.length > 0 ? `
+                                <span title="${t('modals.subtasks')}">
+                                    <span class="material-icons-sharp">checklist</span>
+                                    ${t('tasks.subtask_progress').replace('{completed}', completedSubtasks.toString()).replace('{total}', subtasks.length.toString())}
+                                </span>` : ''}
+                            ${attachments.length > 0 ? `<span title="${t('modals.attachments')}"><span class="material-icons-sharp">attachment</span> ${attachments.length}</span>` : ''}
+                            ${dependencies.length > 0 ? `<span title="${t('modals.dependencies')}"><span class="material-icons-sharp">link</span> ${dependencies.length}</span>` : ''}
+                            ${task.recurrence && task.recurrence !== 'none' ? `<span title="${t('modals.repeat')}"><span class="material-icons-sharp">repeat</span></span>` : ''}
+                        </div>
+                    </div>
+                 </div>
+                 <div class="task-list-col" data-label="${t('tasks.col_project')}">${project?.name || t('misc.not_applicable')}</div>
+                 <div class="task-list-col" data-label="${t('modals.assignees')}">
+                    <div class="avatar-stack">
+                        ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
+                            <div class="avatar" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
+                        `).join('') : `
+                            <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
+                                <span class="material-icons-sharp icon-sm">person_outline</span>
+                            </div>
+                        `}
+                    </div>
+                 </div>
+                 <div class="task-list-col" data-label="${t('tasks.col_due_date')}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
+                 <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
+                 <div class="task-list-col" data-label="${t('tasks.col_status')}"><span class="status-badge status-${task.status}">${t('tasks.' + task.status)}</span></div>
+                 <div class="task-list-col task-time-col" data-label="${t('tasks.col_time')}">
+                     <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
+                     <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                        <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
+                    </button>
+                 </div>
+            </div>
+        `;
+    };
 
     return `
         <div class="task-list-container card">
@@ -140,73 +223,19 @@ function renderListView(filteredTasks: Task[]) {
                 <div class="task-list-col">${t('tasks.col_time')}</div>
             </div>
             <div class="task-list-body">
-                ${filteredTasks.map(task => {
-                    const project = state.projects.find(p => p.id === task.projectId);
-                    const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-                    const isRunning = !!state.activeTimers[task.id];
-
-                    const taskTagsIds = new Set(state.taskTags.filter(tt => tt.taskId === task.id).map(tt => tt.tagId));
-                    const tags = state.tags.filter(tag => taskTagsIds.has(tag.id));
-
-                    const subtasks = state.tasks.filter(t => t.parentId === task.id);
-                    const completedSubtasks = subtasks.filter(t => t.status === 'done').length;
-                    const checklist = task.checklist || [];
-                    const completedChecklistItems = checklist.filter(c => c.completed).length;
-                    const attachments = state.attachments.filter(a => a.taskId === task.id);
-                    const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
-
-                    return `
-                        <div class="task-list-row clickable" data-task-id="${task.id}" role="button" tabindex="0">
-                             <div class="task-list-col" data-label="${t('tasks.col_task')}">
-                                <div class="task-name-wrapper">
-                                    <strong>${task.name}</strong>
-                                    ${tags.length > 0 ? `
-                                        <div class="tag-list" style="margin-top: 0.5rem;">
-                                            ${tags.map(tag => `<div class="tag-chip" style="background-color: ${tag.color}1A; color: ${tag.color};">${tag.name}</div>`).join('')}
-                                        </div>
-                                    ` : ''}
-                                    <div class="task-meta-icons">
-                                        ${checklist.length > 0 ? `
-                                            <span title="${t('modals.checklist')}">
-                                                <span class="material-icons-sharp">checklist_rtl</span>
-                                                ${completedChecklistItems}/${checklist.length}
-                                            </span>` : ''}
-                                        ${subtasks.length > 0 ? `
-                                            <span title="${t('modals.subtasks')}">
-                                                <span class="material-icons-sharp">checklist</span>
-                                                ${t('tasks.subtask_progress').replace('{completed}', completedSubtasks.toString()).replace('{total}', subtasks.length.toString())}
-                                            </span>` : ''}
-                                        ${attachments.length > 0 ? `<span title="${t('modals.attachments')}"><span class="material-icons-sharp">attachment</span> ${attachments.length}</span>` : ''}
-                                        ${dependencies.length > 0 ? `<span title="${t('modals.dependencies')}"><span class="material-icons-sharp">link</span> ${dependencies.length}</span>` : ''}
-                                        ${task.recurrence && task.recurrence !== 'none' ? `<span title="${t('modals.repeat')}"><span class="material-icons-sharp">repeat</span></span>` : ''}
-                                    </div>
-                                </div>
-                             </div>
-                             <div class="task-list-col" data-label="${t('tasks.col_project')}">${project?.name || t('misc.not_applicable')}</div>
-                             <div class="task-list-col" data-label="${t('modals.assignees')}">
-                                <div class="avatar-stack">
-                                    ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
-                                        <div class="avatar" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
-                                    `).join('') : `
-                                        <div class="avatar-placeholder" title="${t('tasks.unassigned')}">
-                                            <span class="material-icons-sharp icon-sm">person_outline</span>
-                                        </div>
-                                    `}
-                                </div>
-                             </div>
-                             <div class="task-list-col" data-label="${t('tasks.col_due_date')}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-                             <div class="task-list-col" data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="priority-label priority-${task.priority}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
-                             <div class="task-list-col" data-label="${t('tasks.col_status')}"><span class="status-badge status-${task.status}">${t('tasks.' + task.status)}</span></div>
-                             <div class="task-list-col task-time-col" data-label="${t('tasks.col_time')}">
-                                 <span class="task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                                 <button class="btn-icon timer-controls ${isRunning ? 'running' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                                    <span class="material-icons-sharp">${isRunning ? 'pause_circle_filled' : 'play_circle_filled'}</span>
-                                </button>
-                             </div>
-                        </div>
-                    `;
-                }).join('')}
+                ${activeTasks.map(renderRow).join('')}
             </div>
+            ${archivedTasks.length > 0 ? `
+                <details class="archived-tasks-container list-view">
+                    <summary class="archived-tasks-summary">
+                        <span>${t('tasks.show_archived')}</span>
+                        <span class="count-badge">${archivedTasks.length}</span>
+                    </summary>
+                    <div class="task-list-body archived-list-body">
+                        ${archivedTasks.map(renderRow).join('')}
+                    </div>
+                </details>
+            ` : ''}
         </div>
     `;
 }
