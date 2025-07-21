@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -678,4 +673,7 @@ export async function handleClick(e: MouseEvent) {
     const attachGoogleDriveBtn = target.closest<HTMLElement>('#attach-google-drive-btn');
     if (attachGoogleDriveBtn) {
         const taskId = attachGoogleDriveBtn.dataset.taskId!;
-        taskHandlers.
+        taskHandlers.handleAttachGoogleDriveFile(taskId);
+        return;
+    }
+}
