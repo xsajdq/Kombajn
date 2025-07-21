@@ -3,6 +3,7 @@
 
 
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -35,7 +36,11 @@ async function AppLayout() {
     const { openedProjectId, openedClientId, openedDealId, modal, isCommandPaletteOpen, onboarding } = state.ui;
     const currentUser = state.currentUser;
     const activeWorkspaceId = state.activeWorkspaceId;
-    const isOverlayVisible = openedProjectId || openedClientId || openedDealId || modal.isOpen;
+
+    // The detail panel is now managed by the page itself for Clients and Projects
+    const shouldShowGlobalSidePanel = (openedProjectId && state.currentPage !== 'projects') || 
+                                      (openedClientId && state.currentPage !== 'clients') || 
+                                      (openedDealId && state.currentPage !== 'sales');
 
 
     if (!currentUser || !activeWorkspaceId) {
@@ -55,12 +60,12 @@ async function AppLayout() {
                 ${pageContent}
             </main>
             
-            <div id="side-panel-container" class="${(openedProjectId || openedClientId || openedDealId) ? 'is-open' : ''}">
-                ${openedProjectId ? ProjectDetailPanel({ projectId: openedProjectId }) : ''}
-                ${openedClientId ? ClientDetailPanel({ clientId: openedClientId }) : ''}
-                ${openedDealId ? DealDetailPanel({ dealId: openedDealId }) : ''}
+            <div id="side-panel-container" class="${shouldShowGlobalSidePanel ? 'is-open' : ''}">
+                ${(openedProjectId && state.currentPage !== 'projects') ? ProjectDetailPanel({ projectId: openedProjectId }) : ''}
+                ${(openedClientId && state.currentPage !== 'clients') ? ClientDetailPanel({ clientId: openedClientId }) : ''}
+                ${(openedDealId && state.currentPage !== 'sales') ? DealDetailPanel({ dealId: openedDealId }) : ''}
             </div>
-            <div id="side-panel-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ${ (openedProjectId || openedClientId || openedDealId) ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }"></div>
+            <div id="side-panel-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ${ shouldShowGlobalSidePanel ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }"></div>
 
         </div>
         

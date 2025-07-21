@@ -15,23 +15,6 @@
     --success-color-rgb: 34 197 94; /* Green 500 */
     --warning-color-rgb: 245 158 11; /* Amber 500 */
     --sidebar-text-rgb: 75 85 99; /* Gray 600 */
-
-    /* For reference and potential non-tailwind usage */
-    --primary-color: rgb(var(--primary-color-rgb));
-    --primary-hover-color: rgb(var(--primary-hover-color-rgb));
-    --background-color: rgb(var(--background-color-rgb));
-    --content-bg: rgb(var(--content-bg-rgb));
-    --text-color: rgb(var(--text-color-rgb));
-    --subtle-text-color: rgb(var(--subtle-text-color-rgb));
-    --border-color: rgb(var(--border-color-rgb));
-    --danger-color: rgb(var(--danger-color-rgb));
-    --success-color: rgb(var(--success-color-rgb));
-    --warning-color: rgb(var(--warning-color-rgb));
-    --sidebar-text: rgb(var(--sidebar-text-rgb));
-
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
   html.dark {
@@ -55,19 +38,133 @@
 }
 
 @layer components {
+  /* == Master-Detail Layout (Clients, Projects) == */
+  .master-detail-layout {
+    @apply grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 h-full;
+  }
+  .master-pane {
+    @apply lg:col-span-2 xl:col-span-3 min-h-0 flex flex-col gap-6;
+  }
+  .master-pane-list {
+    @apply flex-1 min-h-0 overflow-y-auto pr-2 -mr-2;
+    scrollbar-width: thin;
+  }
+  .detail-pane {
+    @apply lg:col-span-1 xl:col-span-1 bg-content rounded-lg border border-border-color shadow-sm h-full hidden lg:flex flex-col;
+  }
+  .master-detail-layout.has-detail .detail-pane {
+    @apply flex;
+  }
+   /* == Deal Detail Panel == */
+  .deal-pipeline-visualizer {
+    @apply flex items-center text-xs font-semibold text-center mb-4;
+  }
+  .pipeline-stage {
+    @apply flex-1 py-2 border-b-2 border-border-color text-text-subtle;
+  }
+  .pipeline-stage.active {
+    @apply border-primary text-primary;
+  }
+  .deal-kpi-grid {
+    @apply grid grid-cols-2 gap-4 mb-6;
+  }
+  .deal-kpi-item {
+    @apply bg-background p-3 rounded-lg;
+  }
+  .deal-kpi-item label {
+    @apply text-xs text-text-subtle block mb-1;
+  }
+  .deal-kpi-item .value {
+    @apply font-semibold flex items-center gap-2;
+  }
+  .deal-kpi-item .value .avatar {
+    @apply w-5 h-5 text-xs;
+  }
+  .add-deal-note-form {
+    @apply flex flex-col gap-2 mt-4;
+  }
+  .deal-activity-feed {
+    @apply space-y-4;
+  }
+  .deal-note-item {
+    @apply flex items-start gap-3;
+  }
+  .note-content {
+    @apply flex-1 bg-background p-3 rounded-lg;
+  }
+  .note-header {
+    @apply flex items-baseline gap-2 text-sm mb-1;
+  }
+  .note-header .subtle-text {
+    @apply text-xs;
+  }
+
+  /* == Task Detail Modal == */
+  .task-detail-modal-layout {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+  }
+  .task-detail-main {
+    @apply md:col-span-2;
+  }
+  .task-detail-sidebar {
+    @apply md:col-span-1 space-y-4;
+  }
+  .task-detail-sidebar-section {
+    @apply bg-background/50 p-3 rounded-lg;
+  }
+  .task-detail-sidebar-section h4 {
+    @apply font-semibold text-sm mb-3;
+  }
+  .task-detail-sidebar-section .form-group {
+    @apply mb-3 last:mb-0;
+  }
+  .task-detail-sidebar-section .form-group label {
+    @apply text-xs font-medium text-text-subtle mb-1 block;
+  }
+  .task-detail-title { @apply text-xl font-bold; }
+  .task-detail-description { @apply text-sm text-text-subtle mt-2 mb-4; }
+  
+  /* Tabs in Task Detail */
+  .task-detail-tabs {
+    @apply flex border-b border-border-color mb-4;
+  }
+  .task-detail-tab {
+    @apply px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors;
+  }
+  .task-detail-tab.active {
+    @apply border-primary text-primary;
+  }
+  .task-detail-tab:not(.active) {
+    @apply border-transparent text-text-subtle hover:border-border-color hover:text-text-main;
+  }
+
+  /* Activity Feed in Task Detail */
+  .activity-feed { @apply space-y-4 max-h-96 overflow-y-auto pr-2 -mr-2 mb-4; }
+  .activity-item { @apply flex gap-3; }
+  .activity-item .avatar { @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0; }
+  .activity-content { @apply flex-1; }
+  .activity-header { @apply flex items-center gap-2 text-sm; }
+  .activity-time { @apply text-xs text-text-subtle; }
+  .activity-body { @apply mt-1 text-sm bg-background p-2 rounded-md; }
+
+  /* Add Comment Form */
+  .add-comment-form { @apply mt-4 flex flex-col gap-2; }
+  .rich-text-input-container { @apply bg-background border border-border-color rounded-lg focus-within:ring-2 focus-within:ring-primary; }
+  .rich-text-input { @apply w-full p-2 text-sm outline-none bg-transparent min-h-[60px]; }
+  .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
+  .add-comment-form button { @apply self-end; }
+
+
   /* == Tasks Page (Redesigned) == */
   .tasks-board-container {
     @apply inline-flex h-full space-x-4 p-1;
   }
-
   .tasks-board-column {
     @apply flex-shrink-0 w-80 h-full flex flex-col bg-background rounded-lg;
   }
-
   .tasks-board-column-header {
     @apply px-3 pt-3 pb-2 font-semibold text-text-main flex justify-between items-center border-b border-border-color;
   }
-
   .tasks-board-column-body {
     @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-2;
     scrollbar-width: thin;

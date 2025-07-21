@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -333,7 +337,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card');
+    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid');
     if (taskElement) {
         if (target.closest('.task-card-menu-btn, .timer-controls, a, button')) {
             return;
@@ -344,7 +348,16 @@ export async function handleClick(e: MouseEvent) {
     
     const dealCard = target.closest<HTMLElement>('[data-deal-id].deal-card');
     if (dealCard) {
-        uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
+        const dealId = dealCard.dataset.dealId!;
+        if (state.currentPage === 'sales') {
+            if (state.ui.openedDealId !== dealId) {
+                state.ui.openedDealId = dealId;
+                history.pushState({}, '', `/sales/${dealId}`);
+                renderApp();
+            }
+        } else {
+            uiHandlers.updateUrlAndShowDetail('deal', dealId);
+        }
         return;
     }
 
@@ -448,19 +461,29 @@ export async function handleClick(e: MouseEvent) {
     const rejectJoinRequestBtn = target.closest<HTMLElement>('[data-reject-join-request-id]');
     if (rejectJoinRequestBtn) { teamHandlers.handleRejectJoinRequest(rejectJoinRequestBtn.dataset.rejectJoinRequestId!); return; }
 
-    const projectCard = target.closest<HTMLElement>('[data-project-id][role="button"]');
-    const projectMenuBtn = target.closest<HTMLElement>('.project-menu-btn');
-    if (projectCard && !projectMenuBtn) {
-        const insidePanel = target.closest('.side-panel');
-        if (!insidePanel) { uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!); }
+    // Master-Detail Panel Openers
+    const projectListItem = target.closest<HTMLElement>('[data-project-id]');
+    if (projectListItem && state.currentPage === 'projects') {
+        const projectId = projectListItem.dataset.projectId!;
+        if (state.ui.openedProjectId !== projectId) {
+            state.ui.openedProjectId = projectId;
+            history.pushState({}, '', `/projects/${projectId}`);
+            renderApp();
+        }
         return;
     }
-    
-    const clientCard = target.closest<HTMLElement>('[data-client-id]');
-    if (clientCard && !clientCard.closest('[data-modal-target]')) { 
-        uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!); 
-        return; 
+
+    const clientListItem = target.closest<HTMLElement>('[data-client-id]');
+    if (clientListItem && state.currentPage === 'clients') {
+        const clientId = clientListItem.dataset.clientId!;
+        if (state.ui.openedClientId !== clientId) {
+            state.ui.openedClientId = clientId;
+            history.pushState({}, '', `/clients/${clientId}`);
+            renderApp();
+        }
+        return;
     }
+
 
     if (target.closest('.btn-close-panel') || target.matches('#side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
 
@@ -655,122 +678,4 @@ export async function handleClick(e: MouseEvent) {
     const attachGoogleDriveBtn = target.closest<HTMLElement>('#attach-google-drive-btn');
     if (attachGoogleDriveBtn) {
         const taskId = attachGoogleDriveBtn.dataset.taskId!;
-        taskHandlers.handleAttachGoogleDriveFile(taskId);
-        return;
-    }
-
-
-    // Dependencies
-    const deleteDependencyBtn = target.closest<HTMLElement>('.delete-dependency-btn');
-    if (deleteDependencyBtn) { taskHandlers.handleRemoveDependency(deleteDependencyBtn.dataset.dependencyId!); return; }
-    
-    // Billing
-    const planButton = target.closest<HTMLElement>('[data-plan-id]');
-    if (planButton && !planButton.hasAttribute('disabled')) {
-        const planId = planButton.dataset.planId as PlanId;
-        const planName = t(`billing.plan_${planId}`);
-        uiHandlers.showModal('confirmPlanChange', { planId, planName });
-        return;
-    }
-    
-    // Reports
-    const reportTab = target.closest<HTMLElement>('.report-tab');
-    if (reportTab) { state.ui.reports.activeTab = reportTab.dataset.tab as any; renderApp(); return; }
-    
-    if (target.closest('.export-csv-btn')) { reportHandlers.handleExportCsv(e); return; }
-    if (target.closest('.export-pdf-btn')) { reportHandlers.handleExportPdf(e); return; }
-
-    // Wiki
-    if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
-    if (target.closest('#cancel-wiki-edit-btn')) { wikiHandlers.cancelWikiEdit(); return; }
-    if (target.closest('#save-wiki-btn')) { wikiHandlers.saveWikiEdit(); return; }
-    if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('#wiki-history-btn')?.dataset.projectId }); return; }
-    const restoreWikiBtn = target.closest<HTMLElement>('[data-restore-wiki-version-id]');
-    if (restoreWikiBtn) { wikiHandlers.handleRestoreWikiVersion(restoreWikiBtn.dataset.restoreWikiVersionId!); return; }
-
-    // Automations
-    const deleteAutomationBtn = target.closest<HTMLElement>('.delete-automation-btn');
-    if(deleteAutomationBtn) { automationHandlers.handleDeleteAutomation(deleteAutomationBtn.dataset.automationId!); return; }
-    
-    // Project Menu
-    if (projectMenuBtn) { mainHandlers.toggleProjectMenu(); return; }
-    if (target.closest('#save-as-template-btn')) {
-        const projectId = (target.closest('#save-as-template-btn') as HTMLElement).dataset.projectId!;
-        mainHandlers.handleSaveProjectAsTemplate(projectId);
-        return;
-    }
-
-    // Dashboard
-    if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
-    const dashboardTab = target.closest<HTMLElement>('[data-dashboard-tab]');
-    if (dashboardTab) {
-        state.ui.dashboard.activeTab = dashboardTab.dataset.dashboardTab as any;
-        renderApp();
-        return;
-    }
-    if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
-    const configureWidgetBtn = target.closest<HTMLElement>('[data-configure-widget-id]');
-    if (configureWidgetBtn) { dashboardHandlers.showConfigureWidgetModal(configureWidgetBtn.dataset.configureWidgetId!); return; }
-    const removeWidgetBtn = target.closest<HTMLElement>('[data-remove-widget-id]');
-    if (removeWidgetBtn) {
-        const widgetId = removeWidgetBtn.dataset.removeWidgetId!;
-        dashboardHandlers.removeWidget(widgetId);
-        return;
-    }
-    const widgetCard = target.closest<HTMLElement>('[data-widget-type]');
-    if (widgetCard && state.ui.modal.isOpen && state.ui.modal.type === 'addWidget') { 
-        dashboardHandlers.addWidget(widgetCard.dataset.widgetType as DashboardWidgetType); 
-        return; 
-    }
-    const resizeWidgetBtn = target.closest<HTMLElement>('[data-resize-action]');
-    if (resizeWidgetBtn) {
-        const widgetId = resizeWidgetBtn.dataset.widgetId!;
-        const action = resizeWidgetBtn.dataset.resizeAction as 'increase' | 'decrease';
-        dashboardHandlers.handleWidgetResize(widgetId, action);
-        return;
-    }
-
-    // CHAT
-    const channelItem = target.closest<HTMLElement>('[data-channel-id]');
-    if (channelItem) { mainHandlers.handleSwitchChannel(channelItem.dataset.channelId!); return; }
-    
-    // Workspace Settings
-    const saveWorkspaceBtn = target.closest<HTMLElement>('#save-workspace-settings-btn');
-    if (saveWorkspaceBtn) { teamHandlers.handleSaveWorkspaceSettings(); return; }
-    
-    const removeLogoBtn = target.closest<HTMLElement>('#remove-logo-btn');
-    if (removeLogoBtn) {
-        const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-        if (workspace) { workspace.companyLogo = undefined; teamHandlers.handleSaveWorkspaceSettings(); }
-        return;
-    }
-    
-    // Time Log Saving
-    const saveTimeLogNoCommentBtn = target.closest('#save-without-comment');
-    if (saveTimeLogNoCommentBtn) {
-        const { taskId, trackedSeconds } = state.ui.modal.data;
-        await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds);
-        return;
-    }
-    const saveTimeLogWithCommentBtn = target.closest('#modal-save-btn');
-    if (saveTimeLogWithCommentBtn && state.ui.modal.type === 'addCommentToTimeLog') {
-        const { taskId, trackedSeconds } = state.ui.modal.data;
-        const comment = (document.getElementById('timelog-comment') as HTMLTextAreaElement).value.trim();
-        await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment);
-        return;
-    }
-    
-    // Integrations
-    const connectIntegrationBtn = target.closest<HTMLElement>('[data-connect-provider]');
-    if (connectIntegrationBtn) {
-        const provider = connectIntegrationBtn.dataset.connectProvider as 'slack' | 'google_drive';
-        if (provider) { await integrationHandlers.connectIntegration(provider); }
-        return;
-    }
-    const disconnectIntegrationBtn = target.closest<HTMLElement>('[data-disconnect-provider]');
-    if (disconnectIntegrationBtn) {
-        const provider = disconnectIntegrationBtn.dataset.disconnectProvider as 'slack' | 'google_drive';
-        if (provider) { await integrationHandlers.disconnectIntegration(provider); }
-        return;
-    }
-}
+        taskHandlers.

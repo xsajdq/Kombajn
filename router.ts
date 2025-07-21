@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -16,7 +17,7 @@ import { SalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
-import { openClientPanel, openDealPanel, openProjectPanel, showModal } from './handlers/ui.ts';
+import { openDealPanel, showModal } from './handlers/ui.ts';
 import { renderApp } from './app-renderer.ts';
 
 let isHandlingUrlNav = false;
@@ -53,13 +54,13 @@ export async function router() {
         switch (state.currentPage) {
             case 'projects':
                 if (state.ui.openedProjectId !== id) {
-                    openProjectPanel(id);
+                    state.ui.openedProjectId = id;
                     shouldReRender = true;
                 }
                 break;
             case 'clients':
                 if (state.ui.openedClientId !== id) {
-                    openClientPanel(id);
+                    state.ui.openedClientId = id;
                     shouldReRender = true;
                 }
                 break;
@@ -70,7 +71,7 @@ export async function router() {
                 break;
             case 'sales':
                 if (state.ui.openedDealId !== id) {
-                    openDealPanel(id);
+                    state.ui.openedDealId = id;
                     shouldReRender = true;
                 }
                 break;

@@ -1,10 +1,12 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 import { fetchSalesData } from '../handlers/deals.ts';
 import { formatCurrency } from '../utils.ts';
+import { DealDetailPanel } from '../components/DealDetailPanel.ts';
 
 function renderDealCard(deal: Deal) {
     const client = state.clients.find(c => c.id === deal.clientId);
@@ -31,28 +33,12 @@ function renderDealCard(deal: Deal) {
     `;
 }
 
-export function SalesPage() {
-    fetchSalesData();
-
-    if (state.ui.sales.isLoading) {
-        return `
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
-            </div>
-            <div class="flex items-center justify-center h-96">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>`;
-    }
-
-    const canManage = can('manage_deals');
+function renderKanbanBoard() {
     const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
-    
     const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
-
     const dealsByStage: { [key in Deal['stage']]: Deal[] } = {
         lead: [], contacted: [], demo: [], proposal: [], won: [], lost: [],
     };
-
     deals.forEach(deal => {
         if (dealsByStage[deal.stage]) {
             dealsByStage[deal.stage].push(deal);
@@ -60,37 +46,63 @@ export function SalesPage() {
     });
 
     return `
-        <div class="h-full flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
-                    <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
-                </button>
-            </div>
-            <div class="flex-1 overflow-x-auto">
-                <div class="inline-flex h-full space-x-4 p-1">
-                    ${stages.map(stage => {
-                        const columnDeals = dealsByStage[stage];
-                        const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
+        <div class="flex-1 overflow-x-auto">
+            <div class="inline-flex h-full space-x-4 p-1">
+                ${stages.map(stage => {
+                    const columnDeals = dealsByStage[stage];
+                    const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
-                        return `
-                             <div class="flex-shrink-0 w-72 kanban-column" data-stage="${stage}">
-                                <div class="h-full flex flex-col bg-background rounded-lg">
-                                    <div class="p-3 font-semibold text-text-main flex justify-between items-center">
-                                        <span>${t(`sales.stage_${stage}`)} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
-                                    </div>
-                                    <div class="px-3 pb-2 text-sm font-medium text-text-subtle border-b border-border-color">
-                                        ${formatCurrency(totalValue, 'PLN')}
-                                    </div>
-                                    <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3">
-                                        ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="h-full"></div>`}
-                                    </div>
-                                </div>
+                    return `
+                         <div class="flex-shrink-0 w-72 h-full flex flex-col bg-background rounded-lg" data-stage="${stage}">
+                            <div class="p-3 font-semibold text-text-main flex justify-between items-center border-b border-border-color">
+                                <span>${t(`sales.stage_${stage}`)} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
                             </div>
-                        `;
-                    }).join('')}
-                </div>
+                            <div class="px-3 py-2 text-sm font-medium text-text-subtle border-b border-border-color">
+                                ${formatCurrency(totalValue, 'PLN')}
+                            </div>
+                            <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3">
+                                ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="h-full"></div>`}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
+    `;
+}
+
+export function SalesPage() {
+    fetchSalesData();
+    const canManage = can('manage_deals');
+    const { openedDealId, sales: { isLoading } } = state.ui;
+
+    const mainContent = isLoading ? `
+        <div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+    ` : renderKanbanBoard();
+
+    return `
+    <div class="h-full flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
+            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
+                <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
+            </button>
+        </div>
+        <div class="master-detail-layout flex-1 min-h-0 ${openedDealId ? 'has-detail' : ''}">
+            <div class="master-pane flex flex-col">
+                ${mainContent}
+            </div>
+            <div class="detail-pane">
+                ${openedDealId ? DealDetailPanel({ dealId: openedDealId }) : `
+                    <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                        <span class="material-icons-sharp text-5xl text-text-subtle">add_business</span>
+                        <p class="mt-2 text-text-subtle">Select a deal to see details</p>
+                    </div>
+                `}
+            </div>
+        </div>
+    </div>
     `;
 }
