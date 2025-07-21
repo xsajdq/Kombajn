@@ -61,7 +61,6 @@ const translations = {
         calendar: { prev_month: 'Previous month', next_month: 'Next month', weekdays: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }, month_view: 'Month', week_view: 'Week', day_view: 'Day' },
         team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other' },
         clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client', active_projects: 'Active Projects' },
-        projects: { title: 'Projects', new_project: 'New Project', plan_with_ai: 'Plan with AI', no_projects_yet: 'No Projects Yet', no_projects_desc: 'Create your first project to start organizing your work.', create_project: 'Create Project', project_is_private: 'Private Project', members: 'Members', overdue_tasks: 'Overdue' },
         reports: {
             title: 'Reports',
             tab_productivity: 'Productivity', tab_time: 'Time Tracking', tab_financial: 'Financial',
@@ -173,30 +172,30 @@ const translations = {
             action_new_project: 'Nowy projekt', action_add_client: 'Dodaj klienta', action_create_invoice: 'Utwórz fakturę', action_schedule_meeting: 'Zaplanuj spotkanie',
             view_all: 'Zobacz wszystko',
             edit_dashboard: 'Edytuj pulpit', add_widget: 'Dodaj widżet', done_editing: 'Zakończ edycję',
-            no_tasks_assigned: 'Nie masz przypisanych żadnych zadań.',
+            no_tasks_assigned: 'Brak przypisanych zadań.',
             select_project_for_widget: 'Wybierz projekt, aby wyświetlić dane.',
             no_activity_yet: 'Brak ostatniej aktywności w tym obszarze roboczym.',
             grid_columns: 'Liczba kolumn',
-            increase_width: 'Poszerz widżet',
-            decrease_width: 'Zwęź widżet',
+            increase_width: 'Zwiększ szerokość',
+            decrease_width: 'Zmniejsz szerokość',
         },
         tasks: {
-            title: 'Zadania', new_task: 'Nowe zadanie', board_view: 'Tablica', list_view: 'Lista', calendar_view: 'Kalendarz', gantt_view: 'Gantt',
-            search_placeholder: "Szukaj po nazwie lub opisie...",
-            all_assignees: "Wszyscy przypisani", all_priorities: "Wszystkie priorytety", all_projects: "Wszystkie projekty", all_statuses: "Wszystkie statusy",
-            filter_by_date: "Filtruj po dacie", date_all: "Dowolna data", date_today: "Dzisiaj", date_tomorrow: "Jutro", date_yesterday: "Wczoraj", date_this_week: "Ten tydzień", date_overdue: "Zaległe",
-            reset_filters: "Resetuj filtry",
+            title: 'Zadania', new_task: 'Nowe zadanie', board_view: 'Tablica', list_view: 'Lista', calendar_view: 'Kalendarz', gantt_view: 'Wykres Gantta',
+            search_placeholder: 'Szukaj po nazwie lub opisie...',
+            all_assignees: 'Wszyscy przypisani', all_priorities: 'Wszystkie priorytety', all_projects: 'Wszystkie projekty', all_statuses: 'Wszystkie statusy',
+            filter_by_date: 'Filtruj po dacie', date_all: 'Dowolna data', date_today: 'Dzisiaj', date_tomorrow: 'Jutro', date_yesterday: 'Wczoraj', date_this_week: 'W tym tygodniu', date_overdue: 'Zaległe',
+            reset_filters: 'Resetuj filtry',
             filters_button_text: 'Filtry',
             automations_button_text: 'Automatyzacje',
-            backlog: "Backlog", todo: "Do zrobienia", inprogress: "W toku", inreview: "Weryfikacja", done: "Zakończone",
-            no_tasks_found: "Nie znaleziono zadań. Kliknij 'Nowe zadanie', aby je utworzyć.", no_tasks_match_filters: "Brak zadań pasujących do obecnych filtrów.",
+            backlog: 'Backlog', todo: 'Do zrobienia', inprogress: 'W toku', inreview: 'W recenzji', done: 'Ukończone',
+            no_tasks_found: "Nie znaleziono zadań. Kliknij 'Nowe zadanie', aby je utworzyć.", no_tasks_match_filters: 'Brak zadań pasujących do obecnych filtrów.',
             col_task: 'Zadanie', col_project: 'Projekt', col_assignee: 'Przypisany', col_due_date: 'Termin', col_priority: 'Priorytet', col_status: 'Status', col_time: 'Czas',
-            unassigned: "Nieprzypisane", priority_none: "Brak", priority_low: "Niski", priority_medium: "Średni", priority_high: "Wysoki",
+            unassigned: 'Nieprzypisane', priority_none: 'Brak', priority_low: 'Niski', priority_medium: 'Średni', priority_high: 'Wysoki',
             start_timer: 'Uruchom stoper', stop_timer: 'Zatrzymaj stoper',
             subtask_progress: '{completed}/{total}',
             subtasks: 'Podzadania',
             archive: 'Archiwizuj',
-            unarchive: 'Cofnij z archiwum',
+            unarchive: 'Przywróć z archiwum',
             archive_all_done: 'Archiwizuj ukończone',
             show_archived: 'Pokaż zarchiwizowane'
         },
@@ -205,47 +204,46 @@ const translations = {
             new_deal: 'Nowa Szansa',
             stage_lead: 'Nowy Lead',
             stage_contacted: 'Nawiązano Kontakt',
-            stage_demo: 'Umówiono Demo',
+            stage_demo: 'Zaplanowano Demo',
             stage_proposal: 'Wysłano Ofertę',
-            stage_won: 'Wygrana',
-            stage_lost: 'Przegrana',
-            no_deals: 'Brak szans w tym etapie.',
+            stage_won: 'Wygrany',
+            stage_lost: 'Przegrany',
+            no_deals: 'Brak szans na tym etapie.',
             deal_value: 'Wartość',
-            deal_owner: 'Opiekun',
+            deal_owner: 'Właściciel',
             deal_client: 'Klient',
-            expected_close: 'Przew. zamknięcie'
+            expected_close: 'Przewidywane zamknięcie'
         },
-        calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Niedz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' }, month_view: 'Miesiąc', week_view: 'Tydzień', day_view: 'Dzień' },
-        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop/zwolnienie', time_off: 'Urlop/Zwolnienie', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto państwowe', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inne' },
-        clients: { title: 'Klienci', new_client: 'Nowy Klient', no_clients_yet: 'Brak Klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj Klienta', active_projects: 'Aktywne Projekty' },
-        projects: { title: 'Projekty', new_project: 'Nowy Projekt', plan_with_ai: 'Zaplanuj z AI', no_projects_yet: 'Brak Projektów', no_projects_desc: 'Utwórz swój pierwszy projekt, aby zacząć organizować pracę.', create_project: 'Utwórz Projekt', project_is_private: 'Projekt prywatny', members: 'Członkowie', overdue_tasks: 'Zaległe' },
+        calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Ndz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' }, month_view: 'Miesiąc', week_view: 'Tydzień', day_view: 'Dzień' },
+        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny' },
+        clients: { title: 'Klienci', new_client: 'Nowy klient', no_clients_yet: 'Brak klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj klienta', active_projects: 'Aktywne projekty' },
         reports: {
             title: 'Raporty',
             tab_productivity: 'Produktywność', tab_time: 'Śledzenie czasu', tab_financial: 'Finanse',
             filter_date_range: 'Zakres dat', filter_project: 'Projekt', filter_user: 'Użytkownik', filter_client: 'Klient',
             all_projects: 'Wszystkie projekty', all_users: 'Wszyscy użytkownicy', all_clients: 'Wszyscy klienci',
             report_task_status_title: 'Status zadań', report_user_activity_title: 'Aktywność użytkowników',
-            report_time_tracking_title: 'Szczegóły śledzenia czasu', report_revenue_by_client_title: 'Przychody według klientów', report_overdue_invoices_title: 'Zaległe faktury',
+            report_time_tracking_title: 'Szczegóły śledzenia czasu', report_revenue_by_client_title: 'Przychód wg klienta', report_overdue_invoices_title: 'Zaległe faktury',
             export_csv: 'Eksportuj CSV', export_pdf: 'Eksportuj PDF',
             no_data: 'Brak danych dla wybranych filtrów.',
-            col_user: 'Użytkownik', col_tasks_completed: 'Zakończone zadania', col_time_tracked: 'Zarejestrowany czas',
+            col_user: 'Użytkownik', col_tasks_completed: 'Ukończone zadania', col_time_tracked: 'Zarejestrowany czas',
             col_date: 'Data', col_task: 'Zadanie', col_project: 'Projekt', col_client: 'Klient', col_time: 'Czas', col_comment: 'Komentarz',
             col_invoice_number: 'Nr faktury', col_due_date: 'Termin płatności', col_amount: 'Kwota', col_days_overdue: 'Dni po terminie'
         },
-        invoices: { title: 'Faktury', new_invoice: 'Nowa Faktura', invoice_singular: 'Faktura', no_invoices_yet: 'Brak Faktur', no_invoices_desc: 'Utwórz swoją pierwszą fakturę, aby rozliczyć się z klientem.', col_number: 'Numer', col_client: 'Klient', col_issued: 'Wystawiono', col_due: 'Termin', col_total: 'Suma', col_status: 'Status', col_actions: 'Akcje', download_pdf: 'Pobierz PDF', unit_price: "Cena jedn.", total_price: "Cena całkowita", generated_item_desc: 'Praca nad projektem {projectName} ({hours} godzin)', generated_expense_desc: 'Wydatek: {expenseDesc}', mark_as_paid: 'Oznacz jako opłaconą', mark_as_unpaid: 'Oznacz jako nieopłaconą', all_clients: 'Wszyscy Klienci', all_statuses: 'Wszystkie Statusy', status_pending: 'Oczekująca', status_paid: 'Opłacona', status_overdue: 'Zaległa', toggle_filters: 'Pokaż/ukryj filtry', send_by_email: 'Wyślij e-mailem', status_sent: 'Wysłano', email_template_subject: 'Faktura {invoiceNumber} od {companyName}', email_template_body: 'Dzień dobry,\n\nw nawiązaniu do faktury {invoiceNumber}.\nProszę pobrać plik PDF i załączyć go do tej wiadomości przed wysłaniem.\n\nZ poważaniem,\n{companyName}', client_email_missing: 'Adres e-mail klienta nie jest skonfigurowany.' },
-        ai_assistant: { title: 'Asystent AI', description: 'Opisz swój pomysł na projekt, a sztuczna inteligencja wygeneruje listę praktycznych zadań, które pomogą Ci zacząć.', prompt_label: 'Opisz swój pomysł na projekt', prompt_placeholder: 'np. Aplikacja mobilna dla lokalnej restauracji, która umożliwia przeglądanie menu i rezerwację stolika.', project_select_label: 'Dodaj zadania do projektu', project_select_empty: 'Proszę najpierw utworzyć projekt', generate_button: 'Generuj Zadania', generating_button: 'Generowanie...', suggestions_title: 'Sugerowane zadania', add_to_project: 'Dodaj do projektu', suggestions_appear_here: 'Sugestie pojawią się tutaj', all_tasks_added: 'Wszystkie sugerowane zadania zostały dodane.' },
-        settings: { title: 'Ustawienia', theme: 'Motyw', theme_desc: 'Wybierz wygląd aplikacji.', theme_light: 'Jasny', theme_dark: 'Ciemny', theme_minimal: 'Minimalny', language: 'Język', language_desc: 'Wybierz język aplikacji.', english: 'Angielski', polish: 'Polski', default_workflow: 'Domyślny przepływ Kanban', workflow_desc: 'Wybierz domyślny zestaw kolumn dla tablicy zadań.', workflow_simple: 'Prosty (3 kolumny)', workflow_advanced: 'Zaawansowany (5 kolumn)', tab_general: 'Ogólne', tab_custom_fields: 'Pola niestandardowe', tab_workspace: 'Obszar roboczy', tab_integrations: 'Integracje', add_field: 'Dodaj pole', field_name: 'Nazwa pola', field_type: 'Typ pola', field_type_text: 'Tekst', field_type_number: 'Liczba', field_type_date: 'Data', field_type_checkbox: 'Pole wyboru', no_custom_fields: 'Nie zdefiniowano jeszcze pól niestandardowych.', company_details: 'Dane firmy', company_name: 'Nazwa firmy', company_address: 'Adres firmy', company_vat_id: 'NIP', company_email: 'Firmowy e-mail (do komunikacji)', bank_details: 'Dane bankowe', bank_name: 'Nazwa banku', bank_account: 'Konto bankowe', company_logo: 'Logo firmy', upload_logo: 'Wgraj logo', remove_logo: 'Usuń logo', logo_preview: 'Podgląd logo', tab_profile: 'Profil', profile_details: 'Szczegóły profilu', full_name: 'Imię i nazwisko', email_address: 'Adres e-mail', avatar: 'Awatar', upload_avatar: 'Wgraj nowe zdjęcie', change_password: 'Zmień hasło', new_password: 'Nowe hasło', confirm_new_password: 'Potwierdź nowe hasło', password_mismatch: "Nowe hasła nie są zgodne.", profile_updated: "Profil zaktualizowano pomyślnie!", password_updated: "Hasło zaktualizowano pomyślnie!", update_profile: "Aktualizuj profil", update_password: "Aktualizuj hasło", error_updating_profile: "Błąd aktualizacji profilu.", error_updating_password: "Błąd aktualizacji hasła." },
+        invoices: { title: 'Faktury', new_invoice: 'Nowa faktura', invoice_singular: 'Faktura', no_invoices_yet: 'Brak faktur', no_invoices_desc: 'Utwórz swoją pierwszą fakturę, aby rozliczyć się z klientem.', col_number: 'Numer', col_client: 'Klient', col_issued: 'Wystawiono', col_due: 'Termin', col_total: 'Suma', col_status: 'Status', col_actions: 'Akcje', download_pdf: 'Pobierz PDF', unit_price: 'Cena jedn.', total_price: 'Cena całk.', generated_item_desc: 'Praca nad projektem {projectName} ({hours} godzin)', generated_expense_desc: 'Wydatek: {expenseDesc}', mark_as_paid: 'Oznacz jako opłaconą', mark_as_unpaid: 'Oznacz jako nieopłaconą', all_clients: 'Wszyscy klienci', all_statuses: 'Wszystkie statusy', status_pending: 'Oczekująca', status_paid: 'Opłacona', status_overdue: 'Po terminie', toggle_filters: 'Pokaż filtry', send_by_email: 'Wyślij e-mailem', status_sent: 'Wysłana', email_template_subject: 'Faktura {invoiceNumber} od {companyName}', email_template_body: 'Dzień dobry,\n\nW nawiązaniu do faktury {invoiceNumber}.\nProszę pobrać plik PDF i załączyć go do tej wiadomości przed wysłaniem.\n\nZ poważaniem,\n{companyName}', client_email_missing: 'Adres e-mail klienta nie jest skonfigurowany.' },
+        ai_assistant: { title: 'Asystent AI', description: 'Opisz swój pomysł na projekt, a sztuczna inteligencja wygeneruje listę praktycznych zadań, które pomogą Ci zacząć.', prompt_label: 'Opisz swój pomysł na projekt', prompt_placeholder: 'np. Aplikacja mobilna dla lokalnej restauracji, która pozwala użytkownikom przeglądać menu i rezerwować stolik.', project_select_label: 'Dodaj zadania do projektu', project_select_empty: 'Najpierw utwórz projekt', generate_button: 'Generuj zadania', generating_button: 'Generowanie...', suggestions_title: 'Sugerowane zadania', add_to_project: 'Dodaj do projektu', suggestions_appear_here: 'Sugestie pojawią się tutaj', all_tasks_added: 'Wszystkie sugerowane zadania zostały dodane.' },
+        settings: { title: 'Ustawienia', theme: 'Motyw', theme_desc: 'Wybierz wygląd aplikacji.', theme_light: 'Jasny', theme_dark: 'Ciemny', theme_minimal: 'Minimalistyczny', language: 'Język', language_desc: 'Wybierz język aplikacji.', english: 'Angielski', polish: 'Polski', default_workflow: 'Domyślny przepływ Kanban', workflow_desc: 'Wybierz domyślny zestaw kolumn dla tablicy zadań.', workflow_simple: 'Prosty (3 kolumny)', workflow_advanced: 'Zaawansowany (5 kolumn)', tab_general: 'Ogólne', tab_custom_fields: 'Pola niestandardowe', tab_workspace: 'Obszar roboczy', tab_integrations: 'Integracje', add_field: 'Dodaj pole', field_name: 'Nazwa pola', field_type: 'Typ pola', field_type_text: 'Tekst', field_type_number: 'Liczba', field_type_date: 'Data', field_type_checkbox: 'Pole wyboru', no_custom_fields: 'Brak zdefiniowanych pól niestandardowych.', company_details: 'Dane firmy', company_name: 'Nazwa firmy', company_address: 'Adres firmy', company_vat_id: 'NIP', company_email: 'Firmowy e-mail (do komunikacji)', bank_details: 'Dane bankowe', bank_name: 'Nazwa banku', bank_account: 'Konto bankowe', company_logo: 'Logo firmy', upload_logo: 'Wgraj logo', remove_logo: 'Usuń logo', logo_preview: 'Podgląd logo', tab_profile: 'Profil', profile_details: 'Szczegóły profilu', full_name: 'Imię i nazwisko', email_address: 'Adres e-mail', avatar: 'Awatar', upload_avatar: 'Wgraj nowe zdjęcie', change_password: 'Zmień hasło', new_password: 'Nowe hasło', confirm_new_password: 'Potwierdź nowe hasło', password_mismatch: 'Nowe hasła nie pasują do siebie.', profile_updated: 'Profil zaktualizowany pomyślnie!', password_updated: 'Hasło zaktualizowane pomyślnie!', update_profile: 'Zaktualizuj profil', update_password: 'Zaktualizuj hasło', error_updating_profile: 'Błąd podczas aktualizacji profilu.', error_updating_password: 'Błąd podczas aktualizacji hasła.' },
         integrations: {
             slack_title: 'Slack',
             slack_desc: 'Wysyłaj powiadomienia o aktualizacjach zadań i wzmiankach na swoje kanały Slack.',
-            google_drive_title: 'Dysk Google',
+            google_drive_title: 'Google Drive',
             google_drive_desc: 'Dołączaj pliki z Dysku Google bezpośrednio do swoich zadań.',
             github_title: 'GitHub',
-            github_desc: 'Łącz pull requesty i commity z zadaniami, aby zautomatyzować pracę.',
+            github_desc: 'Łącz pull requesty i commity z zadaniami, aby zautomatyzować przepływ pracy.',
             figma_title: 'Figma',
             figma_desc: 'Osadzaj pliki Figmy w wiki projektu i opisach zadań.',
             connect: 'Połącz',
-            disconnect: 'Rozłącz',
+            disconnect: 'Odłącz',
             coming_soon: 'Wkrótce',
             connected_to: 'Połączono z {workspaceName}',
             connected_as: 'Połączono jako {email}',
@@ -254,92 +252,86 @@ const translations = {
             title: 'Kadry',
             tabs: { employees: 'Pracownicy', requests: 'Wnioski', vacation: 'Urlopy', history: 'Historia urlopów', reviews: 'Oceny' },
             invite_member: 'Zaproś członka', invite_by_email: 'Zaproś przez e-mail', select_role: 'Wybierz rolę', invite: 'Zaproś', create_workspace_title: 'Utwórz nowy obszar roboczy', workspace_name_label: 'Nazwa obszaru roboczego', create_button: 'Utwórz', members_in: 'Członkowie w', you: 'ty',
-            role_owner: 'Właściciel', role_admin: 'Admin', role_manager: 'Menedżer Projektu', role_member: 'Członek Zespołu', role_finance: 'Finanse', role_client: 'Klient',
-            cannot_remove_owner: "Nie można usunąć ostatniego właściciela obszaru roboczego.", workspace_limit_reached: "Osiągnąłeś limit obszarów roboczych dla obecnego planu.", workspace_name_exists: "Obszar roboczy o tej nazwie już istnieje. Proszę wybrać inną nazwę.", access_denied: "Dostęp zabroniony", access_denied_desc: "Nie masz uprawnień do przeglądania tej strony.", remove: "Usuń", no_pending_requests: 'Brak oczekujących wniosków urlopowych.', join_requests_title: "Prośby o dołączenie do obszaru", approve: "Zatwierdź", reject: "Odrzuć",
-            employee: "Pracownik", vacation_pool: "Pula urlopowa", vacation_used: "Wykorzystano", vacation_remaining: "Pozostało", actions: "Akcje", manage_vacation: "Zarządzaj", days: "dni", hours: "godz."
+            role_owner: 'Właściciel', role_admin: 'Admin', role_manager: 'Menedżer projektu', role_member: 'Członek zespołu', role_finance: 'Finanse', role_client: 'Klient', 
+            cannot_remove_owner: 'Nie można usunąć ostatniego właściciela obszaru roboczego.', workspace_limit_reached: 'Osiągnąłeś limit obszarów roboczych dla obecnego planu.', workspace_name_exists: 'Obszar roboczy o tej nazwie już istnieje. Wybierz inną nazwę.', access_denied: 'Dostęp zabroniony', access_denied_desc: 'Nie masz uprawnień do przeglądania tej strony.', remove: 'Usuń', no_pending_requests: 'Brak oczekujących wniosków urlopowych.', join_requests_title: 'Prośby o dołączenie', approve: 'Zatwierdź', reject: 'Odrzuć',
+            employee: 'Pracownik', vacation_pool: 'Pula urlopowa', vacation_used: 'Wykorzystano', vacation_remaining: 'Pozostało', actions: 'Akcje', manage_vacation: 'Zarządzaj', days: 'dni', hours: 'godz'
         },
-        billing: { title: 'Rozliczenia', current_plan: 'Twój obecny plan', change_plan: 'Zmień plan', workspaces: 'Obszary robocze', projects: 'Projekty', users: 'Użytkownicy', invoices_month: 'Faktury (w tym m-cu)', unlimited: 'Nielimitowane', per_month: 'miesięcznie', btn_current_plan: 'Obecny plan', btn_change_plan: 'Zmień plan', plan_free: 'Darmowy', price_free: '0 zł', plan_starter: 'Starter', price_starter: '129 zł', plan_pro: 'Pro', price_pro: '349 zł', plan_business: 'Business', price_business: '659 zł', plan_enterprise: 'Enterprise', price_enterprise: 'Skontaktuj się', feature_workspaces: '{count} obszary robocze', feature_unlimited_workspaces: 'Nielimitowane obszary robocze', feature_projects: '{count} projektów', feature_unlimited_projects: 'Nielimitowane projekty', feature_users: '{count} użytkowników', feature_unlimited_users: 'Nielimitowani użytkownicy', feature_invoices: '{count} faktur/m-c', feature_unlimited_invoices: 'Nielimitowane faktury', limit_reached_projects: 'Osiągnąłeś limit projektów dla planu {planName}. Proszę, zaktualizuj plan, aby utworzyć więcej.', limit_reached_users: 'Osiągnąłeś limit użytkowników dla planu {planName}. Proszę, zaktualizuj plan, aby zaprosić więcej osób.', limit_reached_invoices: 'Osiągnąłeś miesięczny limit faktur dla planu {planName}. Proszę, zaktualizuj plan, aby utworzyć więcej.', billing_history: 'Historia rozliczeń', history_plan: 'Plan', history_date: 'Data', confirm_plan_change_title: 'Potwierdź zmianę planu', confirm_plan_change_message: 'Czy na pewno chcesz zmienić plan na {planName}?', access_denied: 'Dostęp zabroniony', access_denied_desc: 'Tylko właściciele obszaru roboczego mogą zarządzać rozliczeniami.' },
-        panels: { close: 'Zamknij', client_details: 'Szczegóły klienta', edit_client: 'Edytuj', associated_projects: 'Powiązane projekty', projects_soon: 'Projekty tego klienta pojawią się tutaj.', project_overview: 'Przegląd', total_time_tracked: 'Całkowity zarejestrowany czas', tasks: 'Zadania', client_info: 'Informacje o kliencie', client_not_found: 'Nie znaleziono klienta.', no_tasks_in_stage: 'Brak zadań na tym etapie.', add_task: 'Dodaj zadanie', tab_tasks: 'Zadania', tab_wiki: 'Wiki', tab_files: 'Pliki', tab_access: 'Dostęp', tab_okrs: 'OKR-y', saved: 'Zapisano!', history: 'Historia', no_files: 'Nie wgrano jeszcze żadnych plików.', upload_file: 'Wgraj plik', seller: 'Sprzedawca', buyer: 'Nabywca', project_access: 'Dostęp do projektu', role_admin: 'Admin', role_editor: 'Edytor', role_commenter: 'Komentujący', role_viewer: 'Przeglądający', invite_to_project: 'Zaproś do projektu', no_automations: 'Brak skonfigurowanych automatyzacji dla tego projektu.', automations_title: 'Automatyzacje', add_automation: 'Dodaj automatyzację', when: 'Gdy', trigger_status_change: 'Status zmieni się na', then: 'Wtedy', action_assign_user: 'przypisz użytkownika', save_as_template: 'Zapisz jako szablon', progress: 'Postęp', tasks_todo: 'Do Zrobienia', tasks_overdue: 'Zaległe', team: 'Zespół', objective: 'Cel', add_key_result: 'Dodaj kluczowy rezultat', no_okrs_yet: 'Brak jeszcze zdefiniowanych OKR-ów dla tego projektu. Dodaj cel, aby zacząć.', deal_details: 'Szczegóły Szansy', activity: 'Aktywność', no_deal_activity: 'Brak aktywności dla tej szansy.', add_note: 'Dodaj notatkę', client_contacts: 'Kontakty', budget_time: 'Budżet (czas)', budget_cost: 'Budżet (koszt)', actual_cost: 'Koszt rzeczywisty', profitability: 'Rentowność', wiki_placeholder: 'Zacznij pisać dokumentację projektu tutaj. Użyj Markdown do formatowania.' },
+        billing: { title: 'Rozliczenia', current_plan: 'Twój obecny plan', change_plan: 'Zmień plan', workspaces: 'Obszary robocze', projects: 'Projekty', users: 'Użytkownicy', invoices_month: 'Faktury (w tym miesiącu)', unlimited: 'Nielimitowane', per_month: 'na miesiąc', btn_current_plan: 'Obecny plan', btn_change_plan: 'Zmień plan', plan_free: 'Darmowy', price_free: '0 zł', plan_starter: 'Starter', price_starter: '119 zł', plan_pro: 'Pro', price_pro: '329 zł', plan_business: 'Business', price_business: '619 zł', plan_enterprise: 'Enterprise', price_enterprise: 'Kontakt', feature_workspaces: '{count} obszary robocze', feature_unlimited_workspaces: 'Nielimitowane obszary robocze', feature_projects: '{count} projekty', feature_unlimited_projects: 'Nielimitowane projekty', feature_users: '{count} użytkowników', feature_unlimited_users: 'Nielimitowani użytkownicy', feature_invoices: '{count} faktur/mc', feature_unlimited_invoices: 'Nielimitowane faktury', limit_reached_projects: 'Osiągnąłeś limit projektów dla planu {planName}. Zmień plan, aby tworzyć więcej.', limit_reached_users: 'Osiągnąłeś limit użytkowników dla planu {planName}. Zmień plan, aby zapraszać więcej.', limit_reached_invoices: 'Osiągnąłeś miesięczny limit faktur dla planu {planName}. Zmień plan, aby tworzyć więcej.', billing_history: 'Historia rozliczeń', history_plan: 'Plan', history_date: 'Data', confirm_plan_change_title: 'Potwierdź zmianę planu', confirm_plan_change_message: 'Czy na pewno chcesz zmienić plan na {planName}?', access_denied: 'Dostęp zabroniony', access_denied_desc: 'Tylko właściciele obszaru roboczego mogą zarządzać rozliczeniami.' },
+        panels: { close: 'Zamknij', client_details: 'Szczegóły klienta', edit_client: 'Edytuj', associated_projects: 'Powiązane projekty', projects_soon: 'Projekty tego klienta pojawią się tutaj.', project_overview: 'Przegląd', total_time_tracked: 'Całkowity zarejestrowany czas', tasks: 'Zadania', client_info: 'Informacje o kliencie', client_not_found: 'Nie znaleziono klienta.', no_tasks_in_stage: 'Brak zadań na tym etapie.', add_task: 'Dodaj zadanie', tab_tasks: 'Zadania', tab_wiki: 'Wiki', tab_files: 'Pliki', tab_access: 'Dostęp', tab_okrs: 'OKR-y', saved: 'Zapisano!', history: 'Historia', no_files: 'Brak wgranych plików.', upload_file: 'Wgraj plik', seller: 'Sprzedawca', buyer: 'Nabywca', project_access: 'Dostęp do projektu', role_admin: 'Admin', role_editor: 'Edytor', role_commenter: 'Komentujący', role_viewer: 'Przeglądający', invite_to_project: 'Zaproś do projektu', no_automations: 'Brak skonfigurowanych automatyzacji dla tego projektu.', automations_title: 'Automatyzacje', add_automation: 'Dodaj automatyzację', when: 'Gdy', trigger_status_change: 'Status zmieni się na', then: 'Wtedy', action_assign_user: 'przypisz użytkownika', save_as_template: 'Zapisz jako szablon', progress: 'Postęp', tasks_todo: 'Zadania do zrobienia', tasks_overdue: 'Zaległe', team: 'Zespół', objective: 'Cel', add_key_result: 'Dodaj kluczowy rezultat', no_okrs_yet: 'Brak zdefiniowanych OKR-ów dla tego projektu. Dodaj cel, aby zacząć.', deal_details: 'Szczegóły szansy', activity: 'Aktywność', no_deal_activity: 'Brak aktywności dla tej szansy.', add_note: 'Dodaj notatkę', client_contacts: 'Kontakty', budget_time: 'Budżet (Czas)', budget_cost: 'Budżet (Koszt)', actual_cost: 'Rzeczywisty koszt', profitability: 'Rentowność', wiki_placeholder: 'Zacznij pisać dokumentację projektu tutaj. Użyj Markdown do formatowania.' },
         modals: {
             cancel: 'Anuluj', save: 'Zapisz', create_project: 'Utwórz projekt',
-            add_client_title: 'Dodaj Nowego Klienta', edit_client_title: 'Edytuj Klienta',
-            company_name: 'Nazwa Firmy', vat_id: 'NIP', contact_person: 'Osoba Kontaktowa', email: 'E-mail', phone: 'Telefon',
-            add_project_title: 'Dodaj Nowy Projekt', project_name: 'Nazwa Projektu', assign_to_client: 'Przypisz do klienta', select_a_client: 'Wybierz klienta', hourly_rate: 'Domyślna stawka godzinowa (PLN)', privacy: 'Prywatność', privacy_public: 'Publiczny', privacy_public_desc: 'Wszyscy w obszarze roboczym widzą ten projekt.', privacy_private: 'Prywatny', privacy_private_desc: 'Tylko zaproszeni członkowie widzą ten projekt.', invite_members: 'Zaproś członków', create_from_template: 'Utwórz z szablonu', select_template: 'Brak (zacznij od zera)',
-            ai_planner_title: "Zaplanuj Nowy Projekt z AI", ai_planner_goal_label: "Jaki jest główny cel tego projektu?", ai_planner_goal_placeholder: "np. Stworzenie i wdrożenie nowej strony marketingowej dla lokalnej piekarni w celu zwiększenia zamówień online.",
-            add_task_title: 'Dodaj Nowe Zadanie', task_name: 'Nazwa Zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', select_a_project_error: 'Musisz wybrać projekt, aby utworzyć zadanie.', assignees: 'Przypisani', unassigned: 'Nieprzypisany', start_date: 'Data rozpoczęcia', due_date: 'Termin wykonania',
-            task_details_title: 'Szczegóły Zadania', status: 'Status', priority: 'Priorytet',
-            status_backlog: 'Backlog', status_todo: 'Do zrobienia', status_inprogress: 'W toku', status_inreview: 'Weryfikacja', status_done: 'Zakończone',
+            add_client_title: 'Dodaj nowego klienta', edit_client_title: 'Edytuj klienta',
+            company_name: 'Nazwa firmy', vat_id: 'NIP', contact_person: 'Osoba kontaktowa', email: 'E-mail', phone: 'Telefon',
+            add_project_title: 'Dodaj nowy projekt', project_name: 'Nazwa projektu', assign_to_client: 'Przypisz do klienta', select_a_client: 'Wybierz klienta', hourly_rate: 'Domyślna stawka godzinowa (PLN)', privacy: 'Prywatność', privacy_public: 'Publiczny', privacy_public_desc: 'Wszyscy w obszarze roboczym mogą zobaczyć ten projekt.', privacy_private: 'Prywatny', privacy_private_desc: 'Tylko zaproszeni członkowie mogą zobaczyć ten projekt.', invite_members: 'Zaproś członków', create_from_template: 'Utwórz z szablonu', select_template: 'Brak (zacznij od zera)',
+            ai_planner_title: 'Zaplanuj nowy projekt z AI', ai_planner_goal_label: 'Jaki jest główny cel tego projektu?', ai_planner_goal_placeholder: 'np. Stworzenie i wdrożenie nowej strony marketingowej dla lokalnej piekarni w celu zwiększenia zamówień online.',
+            add_task_title: 'Dodaj nowe zadanie', task_name: 'Nazwa zadania', description: 'Opis', project: 'Projekt', select_a_project: 'Wybierz projekt', select_a_project_error: 'Musisz wybrać projekt, aby utworzyć zadanie.', assignees: 'Przypisani', unassigned: 'Nieprzypisane', start_date: 'Data rozpoczęcia', due_date: 'Termin',
+            task_details_title: 'Szczegóły zadania', status: 'Status', priority: 'Priorytet',
+            status_backlog: 'Backlog', status_todo: 'Do zrobienia', status_inprogress: 'W toku', status_inreview: 'W recenzji', status_done: 'Ukończone',
             priority_none: 'Brak', priority_low: 'Niski', priority_medium: 'Średni', priority_high: 'Wysoki',
             details: 'Szczegóły', activity: 'Aktywność', no_activity: 'Brak aktywności.', add_comment: 'Dodaj komentarz...', comment_button: 'Skomentuj', logged: 'zarejestrował(a)',
-            add_timelog_comment_title: 'Dodaj komentarz do swojego wpisu czasu', time_tracked: 'Zarejestrowany czas', save_without_comment: 'Zapisz bez komentarza', save_log: 'Zapisz wpis', comment_placeholder: 'Nad czym pracowałeś/aś?',
-            create_invoice_title: 'Utwórz Fakturę', client: 'Klient', issue_date: 'Data wystawienia', invoice_items: 'Pozycje na fakturze', item_description: 'Opis', item_qty: 'Ilość', item_price: 'Cena jedn.', add_item: 'Dodaj pozycję', remove_item: 'Usuń pozycję', total: 'Suma', generate_from_time: 'Generuj z nierozliczonego czasu i wydatków',
-            automations_title: 'Automatyzacje Projektu',
+            add_timelog_comment_title: 'Dodaj komentarz do swojego zapisu czasu', time_tracked: 'Zarejestrowany czas', save_without_comment: 'Zapisz bez komentarza', save_log: 'Zapisz czas', comment_placeholder: 'Nad czym pracowałeś/aś?',
+            create_invoice_title: 'Utwórz fakturę', client: 'Klient', issue_date: 'Data wystawienia', invoice_items: 'Pozycje na fakturze', item_description: 'Opis', item_qty: 'Ilość', item_price: 'Cena jedn.', add_item: 'Dodaj pozycję', remove_item: 'Usuń pozycję', total: 'Suma', generate_from_time: 'Generuj z nierozliczonego czasu i wydatków',
+            automations_title: 'Automatyzacje projektu',
             configure_widget: 'Konfiguruj widżet', add_widget: 'Dodaj widżet do pulpitu',
-            wiki_history_title: 'Historia Wiki', version_from: 'Wersja z {date} autorstwa {user}', restore: 'Przywróć',
-            checklist: 'Lista zadań', subtasks: 'Podzadania', attachments: 'Załączniki', dependencies: 'Zależności',
-            add_subtask: 'Dodaj nowe podzadanie...', add_dependency: 'Dodaj zależność (zadanie musi być ukończone jako pierwsze)', select_task: 'Wybierz zadanie', blocked_by: 'Blokowane przez', blocking: 'Blokuje',
+            wiki_history_title: 'Historia Wiki', version_from: 'Wersja z {date} przez {user}', restore: 'Przywróć',
+            checklist: 'Checklista', subtasks: 'Podzadania', attachments: 'Załączniki', dependencies: 'Zależności',
+            add_subtask: 'Dodaj nowe podzadanie...', add_dependency: 'Dodaj zależność (zadanie musi być ukończone jako pierwsze)', select_task: 'Wybierz zadanie', blocked_by: 'Blokowane przez', blocking: 'Blokujące',
             add_attachment: 'Dodaj załącznik',
             attach_from_drive: 'Dołącz z Dysku Google',
             repeat: 'Powtarzaj', repeat_none: 'Nie powtarza się', repeat_daily: 'Codziennie', repeat_weekly: 'Tygodniowo', repeat_monthly: 'Miesięcznie',
             custom_fields: 'Pola niestandardowe',
-            add_manual_time_log_title: 'Dodaj ręczny wpis czasu', add_time_log_button: 'Dodaj czas', time_to_log: 'Czas do zaraportowania (np. 1h 30m)', time_placeholder: 'np. 2h 30m', date_worked: 'Data pracy',
-            okrs: 'OKR-y', add_objective_title: 'Dodaj Cel (Objective)', objective_title: 'Tytuł celu', add_key_result_title: 'Dodaj Kluczowy Rezultat', kr_title: 'Tytuł kluczowego rezultatu', kr_type: 'Typ', kr_type_number: 'Liczbowy', kr_type_percentage: 'Procentowy', kr_start: 'Wartość początkowa', kr_target: 'Wartość docelowa', kr_current: 'Wartość aktualna',
+            add_manual_time_log_title: 'Dodaj ręczny zapis czasu', add_time_log_button: 'Dodaj czas', time_to_log: 'Czas do zapisania (np. 1h 30m)', time_placeholder: 'np. 2h 30m', date_worked: 'Data pracy',
+            okrs: 'OKR-y', add_objective_title: 'Dodaj cel', add_key_result_title: 'Dodaj kluczowy rezultat', kr_title: 'Tytuł kluczowego rezultatu', kr_type: 'Typ', kr_type_number: 'Liczba', kr_type_percentage: 'Procent', kr_start: 'Wartość początkowa', kr_target: 'Wartość docelowa', kr_current: 'Aktualna wartość', objective_title: 'Tytuł celu',
             expenses: 'Wydatki', add_expense_title: 'Dodaj wydatek', expense_description: 'Opis', expense_amount: 'Kwota (PLN)',
-            employee_detail_title: 'Szczegóły pracownika', contract_notes: 'Notatki dot. umowy', employment_notes: 'Notatki dot. zatrudnienia i kadrowe',
-            add_time_off_request_title: 'Zgłoś urlop/zwolnienie', leave_type: 'Rodzaj nieobecności', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inne',
-            reject_request_title: 'Odrzuć wniosek', rejection_reason: 'Powód odrzucenia (wymagany)',
-            status_pending: 'Oczekująca', status_paid: 'Opłacona', status_overdue: 'Zaległa', status_approved: 'Zatwierdzony', status_rejected: 'Odrzucony',
-            add_deal_title: 'Dodaj nową szansę', edit_deal_title: 'Edytuj szansę', deal_name: 'Nazwa szansy', deal_client: 'Klient', deal_value: 'Wartość (PLN)', deal_owner: 'Opiekun', deal_stage: 'Etap', deal_close_date: 'Przewidywana data zamknięcia',
-            adjust_vacation_title: 'Dostosuj pulę urlopową', total_allowance_hours: 'Całkowita pula urlopowa (godziny)',
+            employee_detail_title: 'Szczegóły pracownika', contract_notes: 'Notatki do umowy', employment_notes: 'Notatki kadrowe i zatrudnienia',
+            add_time_off_request_title: 'Zgłoś urlop', leave_type: 'Rodzaj urlopu', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny',
+            reject_request_title: 'Odrzuć wniosek', rejection_reason: 'Powód odrzucenia (wymagane)',
+            status_pending: 'Oczekująca', status_paid: 'Opłacona', status_overdue: 'Po terminie', status_approved: 'Zatwierdzony', status_rejected: 'Odrzucony',
+            add_deal_title: 'Dodaj nową szansę', edit_deal_title: 'Edytuj szansę', deal_name: 'Nazwa szansy', deal_client: 'Klient', deal_value: 'Wartość (PLN)', deal_owner: 'Właściciel', deal_stage: 'Etap', deal_close_date: 'Przewidywana data zamknięcia',
+            adjust_vacation_title: 'Dostosuj pulę urlopową', total_allowance_hours: 'Całkowita pula urlopowa (w godzinach)',
             tags: 'Tagi',
             note_placeholder: 'Dodaj notatkę...',
-            health_status: 'Kondycja klienta', health_status_good: 'Dobra', health_status_at_risk: 'Zagrożona', health_status_neutral: 'Neutralna', category: 'Kategoria', estimated_hours: 'Szacowane godziny (np. 2.5h)', task_type: 'Typ zadania', task_type_feature: 'Funkcjonalność', task_type_bug: 'Błąd', task_type_chore: 'Zadanie tech.', budget_cost: 'Budżet (koszt)', contacts: 'Kontakty', contact_role: 'Rola', add_contact: 'Dodaj kontakt', project_category: 'Kategoria projektu'
+            health_status: 'Kondycja klienta', health_status_good: 'Dobra', health_status_at_risk: 'Zagrożona', health_status_neutral: 'Neutralna', category: 'Kategoria', estimated_hours: 'Szacowane godziny (np. 2.5h)', task_type: 'Typ zadania', task_type_feature: 'Funkcjonalność', task_type_bug: 'Błąd', task_type_chore: 'Obowiązek', budget_cost: 'Budżet (Koszt)', contacts: 'Kontakty', contact_role: 'Rola', add_contact: 'Dodaj kontakt', project_category: 'Kategoria projektu'
         },
-        misc: { not_applicable: 'B/D', no_project: 'Brak projektu', no_client: 'Brak klienta', edit: 'Edytuj', no_events_for_day: 'Brak wydarzeń i zadań na ten dzień.', copy_link: 'Kopiuj link', copied: 'Skopiowano!' },
-        notifications: { title: 'Powiadomienia', mark_all_read: 'Oznacz wszystkie jako przeczytane', no_notifications: 'Nie masz żadnych powiadomień.', tab_new: 'Nowe', tab_read: 'Przeczytane', no_new_notifications: 'Nie masz nowych powiadomień.', comment_added: '{user} skomentował(a) {taskName}', task_assigned: 'Przydzielono Ci zadanie {taskName}', status_changed: 'Status dla {taskName} zmieniono na {status}', user_mentioned: '{user} wspomniał(a) o Tobie w {taskName}', join_request: '{user} chce dołączyć do obszaru roboczego {workspaceName}' },
-        command_palette: { placeholder: 'Wpisz komendę lub szukaj...', no_results: 'Nie znaleziono wyników', cmd_new_task: 'Utwórz nowe zadanie', cmd_toggle_theme: 'Zmień motyw jasny/ciemny', cmd_go_dashboard: 'Przejdź do Pulpitu', cmd_go_projects: 'Przejdź do Projektów', cmd_go_tasks: 'Przejdź do Zadań', cmd_go_settings: 'Przejdź do Ustawień', cmd_toggle_notifications: 'Pokaż/ukryj powiadomienia', cmd_new_project: 'Utwórz nowy projekt', cmd_new_client: 'Utwórz nowego klienta', cmd_new_invoice: 'Utwórz nową fakturę', cmd_go_hr: 'Przejdź do Kadr' },
-        setup: { title: "Zaczynajmy", create_workspace_header: "Utwórz nowy obszar roboczy", create_workspace_placeholder: "Nazwa Twojej firmy lub zespołu", create_workspace_button: "Utwórz obszar", join_workspace_header: "Lub dołącz do istniejącego", join_workspace_placeholder: "Wpisz nazwę obszaru roboczego", join_workspace_button: "Wyślij prośbę o dołączenie", request_pending_title: "Wysłano prośbę!", request_pending_message: "Twoja prośba o dołączenie do <strong>{workspaceName}</strong> została wysłana. Zostaniesz powiadomiony/a, gdy właściciel ją zatwierdzi. Sprawdź ponownie później." },
+        misc: { not_applicable: 'B/D', no_project: 'Brak projektu', no_client: 'Brak klienta', edit: 'Edytuj', no_events_for_day: 'Brak wydarzeń lub zadań na ten dzień.', copy_link: 'Kopiuj link', copied: 'Skopiowano!' },
+        notifications: { title: 'Powiadomienia', mark_all_read: 'Oznacz wszystkie jako przeczytane', no_notifications: 'Nie masz żadnych powiadomień.', tab_new: 'Nowe', tab_read: 'Przeczytane', no_new_notifications: 'Nie masz nowych powiadomień.', comment_added: '{user} skomentował(a) {taskName}', task_assigned: 'Zostałeś/aś przypisany(a) do zadania {taskName}', status_changed: 'Status zadania {taskName} został zmieniony na {status}', user_mentioned: '{user} wspomniał(a) o Tobie w {taskName}', join_request: '{user} chce dołączyć do obszaru roboczego {workspaceName}' },
+        command_palette: { placeholder: 'Wpisz komendę lub szukaj...', no_results: 'Nie znaleziono wyników', cmd_new_task: 'Utwórz nowe zadanie', cmd_toggle_theme: 'Zmień motyw jasny/ciemny', cmd_go_dashboard: 'Przejdź do pulpitu', cmd_go_projects: 'Przejdź do projektów', cmd_go_tasks: 'Przejdź do zadań', cmd_go_settings: 'Przejdź do ustawień', cmd_toggle_notifications: 'Pokaż/ukryj powiadomienia', cmd_new_project: 'Utwórz nowy projekt', cmd_new_client: 'Utwórz nowego klienta', cmd_new_invoice: 'Utwórz nową fakturę', cmd_go_hr: 'Przejdź do Kadr' },
+        setup: { title: 'Skonfigurujmy Twoje konto', create_workspace_header: 'Utwórz nowy obszar roboczy', create_workspace_placeholder: 'Nazwa Twojej firmy lub zespołu', create_workspace_button: 'Utwórz obszar roboczy', join_workspace_header: 'Lub dołącz do istniejącego', join_workspace_placeholder: 'Wpisz nazwę obszaru roboczego', join_workspace_button: 'Wyślij prośbę o dołączenie', request_pending_title: 'Wysłano prośbę!', request_pending_message: 'Twoja prośba o dołączenie do <strong>{workspaceName}</strong> została wysłana. Zostaniesz powiadomiony/a, gdy właściciel ją zatwierdzi. Sprawdź ponownie później.' },
         onboarding: {
-            step0_title: "Witaj w Kombajnie!",
-            step0_content: "Pozwól, że w minutę oprowadzę Cię po najważniejszych funkcjach aplikacji.",
-            step1_title: "Projekty",
-            step1_content: "To serce Twojego obszaru roboczego. Cała praca jest zorganizowana w projektach.",
-            step2_title: "Stwórz Swój Pierwszy Projekt",
-            step2_content: "Kliknij tutaj, aby utworzyć swój pierwszy projekt. Możesz przypisać go do klienta i zacząć dodawać zadania.",
-            step3_title: "Widok Zadań",
-            step3_content: "Tutaj zobaczysz wszystkie zadania ze wszystkich projektów w jednym miejscu. Możesz przełączać się między widokiem tablicy, listy i kalendarza.",
-            step4_title: "Ustawienia",
-            step4_content: "W tym miejscu możesz dostosować swój obszar roboczy, profil i ustawienia aplikacji.",
-            step5_title: "Wszystko Gotowe!",
-            step5_content: "To wszystko! Jesteś gotowy/a do pracy. Eksploruj aplikację i stwórz coś niesamowitego.",
-            next: "Dalej",
-            skip: "Pomiń",
-            finish: "Zakończ"
+            step0_title: 'Witaj w Kombajn!',
+            step0_content: 'Zróbmy szybki przegląd, aby pokazać Ci najważniejsze funkcje. To zajmie tylko minutę.',
+            step1_title: 'Projekty',
+            step1_content: 'To serce Twojego obszaru roboczego. Cała Twoja praca jest zorganizowana w projektach.',
+            step2_title: 'Utwórz swój pierwszy projekt',
+            step2_content: 'Kliknij tutaj, aby utworzyć swój pierwszy projekt. Możesz przypisać go do klienta i zacząć dodawać zadania.',
+            step3_title: 'Widok zadań',
+            step3_content: 'Tutaj możesz zobaczyć wszystkie zadania ze wszystkich swoich projektów w jednym miejscu. Możesz przełączać się między widokami tablicy, listy i kalendarza.',
+            step4_title: 'Ustawienia',
+            step4_content: 'Dostosuj swój obszar roboczy, profil i ustawienia aplikacji tutaj.',
+            step5_title: 'Wszystko gotowe!',
+            step5_content: 'To wszystko! Jesteś gotowy/a do rozpoczęcia pracy. Zachęcamy do eksplorowania i tworzenia niesamowitych rzeczy.',
+            next: 'Dalej',
+            skip: 'Pomiń',
+            finish: 'Zakończ'
         }
     }
 };
 
-export function t(key: string): string {
-    const lang = state.settings.language;
+export function t(key: string, replacements?: { [key: string]: string }): string {
+    const lang = state.settings.language || 'en';
     const keys = key.split('.');
-    
-    // A recursive helper to safely traverse the translation object
-    const findTranslation = (obj: any, path: string[]): string | undefined => {
-        if (!obj || path.length === 0) {
-            return typeof obj === 'string' ? obj : undefined;
+    let result = (translations as any)[lang];
+    for (const k of keys) {
+        result = result?.[k];
+        if (result === undefined) {
+            console.warn(`Translation not found for key: ${key} in language: ${lang}`);
+            return key;
         }
-        const [currentKey, ...rest] = path;
-        const nextObj = obj[currentKey];
-        return findTranslation(nextObj, rest);
-    };
-
-    const translationObject = (translations as any)[lang];
-    const result = findTranslation(translationObject, keys);
-
-    if (result === undefined) {
-        console.warn(`Translation not found for key: ${key} in language: ${lang}`);
-        return key; // Fallback to the key itself
     }
-    
+    if (replacements) {
+        Object.keys(replacements).forEach(rKey => {
+            result = result.replace(`{${rKey}}`, replacements[rKey]);
+        });
+    }
     return result;
 }
