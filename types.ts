@@ -84,6 +84,7 @@ export type ProjectRole = 'admin' | 'editor' | 'commenter' | 'viewer';
 
 export interface ProjectMember {
     id: string; // Unique ID for this project membership
+    workspaceId: string;
     projectId: string;
     userId: string;
     role: ProjectRole;
