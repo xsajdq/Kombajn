@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -24,6 +25,7 @@ import * as onboardingHandlers from '../handlers/onboarding.ts';
 import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
+import * as filterHandlers from '../handlers/filters.ts';
 import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
 import { apiFetch } from '../services/api.ts';
 
@@ -211,16 +213,9 @@ export async function handleClick(e: MouseEvent) {
         const checkbox = tagsFilterItem.querySelector('input[type="checkbox"]') as HTMLInputElement;
         if (checkbox && e.target !== checkbox) {
             checkbox.checked = !checkbox.checked;
+            // Manually dispatch change event
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
         }
-        const tagId = checkbox.value;
-        const selectedTagIds = new Set(state.ui.taskFilters.tagIds);
-        if (checkbox.checked) {
-            selectedTagIds.add(tagId);
-        } else {
-            selectedTagIds.delete(tagId);
-        }
-        state.ui.taskFilters.tagIds = Array.from(selectedTagIds);
-        renderApp();
         // Do not return, let other logic handle closing if needed.
     } else if (!target.closest('#task-filter-tags-container')) {
         document.getElementById('task-filter-tags-dropdown')?.classList.add('hidden');
@@ -287,7 +282,7 @@ export async function handleClick(e: MouseEvent) {
 
     const viewSwitcher = target.closest<HTMLElement>('[data-view-mode]');
     if(viewSwitcher) { 
-        state.ui.tasksViewMode = viewSwitcher.dataset.viewMode as any; 
+        state.ui.tasks.viewMode = viewSwitcher.dataset.viewMode as any; 
         renderApp(); 
         return; 
     }
@@ -616,11 +611,18 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    // Task Filters
+    // Task Filters & Saved Views
     if (target.closest('#toggle-filters-btn')) { uiHandlers.toggleTaskFilters(); return; }
+    const applyFilterViewBtn = target.closest<HTMLElement>('[data-apply-filter-view-id]');
+    if (applyFilterViewBtn) {
+        filterHandlers.applyFilterView(applyFilterViewBtn.dataset.applyFilterViewId!);
+        return;
+    }
+    if (target.closest('#save-task-filter-view-btn')) { filterHandlers.saveCurrentFilterView(); return; }
+    if (target.closest('#update-task-filter-view-btn')) { filterHandlers.updateActiveFilterView(); return; }
+    if (target.closest('#delete-task-filter-view-btn')) { filterHandlers.deleteActiveFilterView(); return; }
     if (target.closest('#reset-task-filters')) {
-        state.ui.taskFilters = { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [] };
-        renderApp();
+        filterHandlers.resetFilters();
         return;
     }
     

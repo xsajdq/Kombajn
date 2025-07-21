@@ -1,7 +1,7 @@
 
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest } from '../types.ts';
+import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
 import { closeSidePanels, closeModal } from './ui.ts';
 import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
@@ -416,7 +416,6 @@ export async function handleSetVacationAllowance(userId: string, hours: number) 
     }
 }
 
-
 export async function handleRemoveUserFromProject(projectMemberId: string) {
     const memberIndex = state.projectMembers.findIndex(pm => pm.id === projectMemberId);
     if (memberIndex === -1) return;
@@ -433,5 +432,45 @@ export async function handleRemoveUserFromProject(projectMemberId: string) {
         state.projectMembers.splice(memberIndex, 0, removedMember);
         renderApp();
         alert("Failed to remove user from project.");
+    }
+}
+
+export async function handleChangeProjectMemberRole(projectMemberId: string, newRole: ProjectRole) {
+    const member = state.projectMembers.find(pm => pm.id === projectMemberId);
+    if (!member) return;
+
+    const originalRole = member.role;
+    member.role = newRole; // Optimistic update
+    renderApp();
+
+    try {
+        await apiPut('project_members', { id: projectMemberId, role: newRole });
+    } catch (error) {
+        console.error("Failed to change project member role:", error);
+        member.role = originalRole; // Revert
+        renderApp();
+        alert("Could not update member role.");
+    }
+}
+
+export async function handleAddMemberToProject(projectId: string, userId: string, role: ProjectRole) {
+    if (!projectId || !userId || !role) {
+        alert("Please select a member and a role.");
+        return;
+    }
+
+    const newMemberPayload: Omit<ProjectMember, 'id'> = {
+        projectId,
+        userId,
+        role,
+    };
+
+    try {
+        const [savedMember] = await apiPost('project_members', newMemberPayload);
+        state.projectMembers.push(savedMember);
+        renderApp(); // This will re-render the access tab with the new member
+    } catch (error) {
+        console.error("Failed to add member to project:", error);
+        alert("Could not add member to project.");
     }
 }

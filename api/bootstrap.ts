@@ -45,6 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 dashboard_widgets: [],
                 workspace_join_requests: joinRequests || [],
                 integrations: [],
+                filter_views: [],
                 // Ensure other arrays are empty to prevent client-side errors
                 projects: [], tasks: [], clients: [], deals: [], time_logs: [], dependencies: [],
                 comments: [], task_assignees: [], tags: [], task_tags: [], 
@@ -74,7 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             dashboardWidgetsRes,
             notificationsRes,
             joinRequestsRes,
-            integrationsRes
+            integrationsRes,
+            filterViewsRes,
         ] = await Promise.all([
             supabase.from('profiles').select('*').in('id', allMemberUserIds),
             supabase.from('workspaces').select('*, "planHistory"').in('id', userWorkspaceIds),
@@ -82,12 +84,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
             supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),
             supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
+            supabase.from('filter_views').select('*').eq('user_id', user.id),
         ]);
         console.log('[api/bootstrap] Parallel fetch finished.');
         
         // This type definition helps TypeScript understand the structure of Supabase query results
         type SupabaseResponse = { error: any; data: any; };
-        const allResults: SupabaseResponse[] = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
+        const allResults: SupabaseResponse[] = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes, filterViewsRes];
         
         for (const r of allResults) {
             if (r.error) {
@@ -105,6 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             notifications: notificationsRes.data || [],
             workspace_join_requests: joinRequestsRes.data || [],
             integrations: integrationsRes.data || [],
+            filter_views: filterViewsRes.data || [],
             // All other large tables are deferred and will be loaded by the client on-demand
             projects: [], tasks: [], clients: [], deals: [], time_logs: [], comments: [], task_assignees: [], 
             tags: [], task_tags: [], objectives: [], key_results: [], deal_notes: [], invoices: [], 

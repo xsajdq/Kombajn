@@ -1,8 +1,7 @@
 
-
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
-import type { Role, Task, CustomFieldType } from '../types.ts';
+import type { Role, Task, CustomFieldType, ProjectRole } from '../types.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
@@ -194,6 +193,15 @@ export async function handleSubmit(e: SubmitEvent) {
             // taskHandlers.addChecklistItem(taskId, text);
             console.log("Add checklist item handler to be implemented.");
             input.value = '';
+        }
+        return;
+    } else if (target.id === 'add-project-member-form') {
+        const addProjectMemberForm = target.closest<HTMLFormElement>('#add-project-member-form');
+        if (addProjectMemberForm) {
+            const projectId = addProjectMemberForm.dataset.projectId!;
+            const userId = (addProjectMemberForm.querySelector('#project-member-select') as HTMLSelectElement).value;
+            const role = (addProjectMemberForm.querySelector('#project-role-select') as HTMLSelectElement).value as ProjectRole;
+            await teamHandlers.handleAddMemberToProject(projectId, userId, role);
         }
         return;
     }

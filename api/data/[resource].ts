@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, keysToSnake } from '../_lib/supabaseAdmin';
 
-const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts'];
+const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resource = req.query.resource as string;
@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const query = (supabase.from(resource) as any).delete().eq('id', id);
 
             // Add an ownership check for dashboard widgets for extra security
-            if (resource === 'dashboard_widgets') {
+            if (resource === 'dashboard_widgets' || resource === 'filter_views') {
                 query.eq('user_id', user.id);
             }
 

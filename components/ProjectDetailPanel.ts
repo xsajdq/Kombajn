@@ -246,44 +246,50 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         return `
         <div class="side-panel-content">
             <div class="card">
-                <h4>${t('panels.project_access')}</h4>
+                <h4>${t('panels.project_access')} (${projectMembers.length})</h4>
                 <div class="team-member-list">
                     ${projectMembers.map(pm => {
                         const userName = pm.user!.name || pm.user!.initials;
+                        const isSelf = pm.user!.id === state.currentUser?.id;
                         return `
                         <div class="team-member-item">
                             <div class="avatar">${pm.user!.initials}</div>
                             <div class="member-info">
-                                <strong>${userName} ${pm.user!.id === state.currentUser?.id ? `(${t('hr.you')})` : ''}</strong>
-                                <p>${pm.user!.email}</p>
+                                <strong>${userName} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
+                                <p class="subtle-text">${pm.user!.email}</p>
                             </div>
                             <div class="member-actions">
-                                <select class="form-control" data-project-member-id="${pm.id}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''} aria-label="Change role for ${userName}">
+                                <select class="form-control" data-project-member-id="${pm.id}" ${isSelf ? 'disabled' : ''} aria-label="Change role for ${userName}">
                                     ${projectRoles.map(r => `<option value="${r}" ${pm.role === r ? 'selected' : ''}>${t(`panels.role_${r}`)}</option>`).join('')}
                                 </select>
-                                <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${userName}" ${pm.user!.id === state.currentUser?.id ? 'disabled' : ''}>
-                                    <span class="material-icons-sharp" style="color: var(--danger-color);">person_remove</span>
+                                <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${userName}" ${isSelf ? 'disabled' : ''}>
+                                    <span class="material-icons-sharp danger-icon">person_remove</span>
                                 </button>
                             </div>
                         </div>`}).join('')}
                 </div>
             </div>
-            <div class="card">
+            <div class="card" style="margin-top: 1.5rem;">
                 <h4>${t('panels.invite_to_project')}</h4>
                 <form id="add-project-member-form" data-project-id="${projectId}">
-                     <div class="form-group" style="margin-bottom: 1rem;">
-                        <label for="project-member-select">${t('hr.member')}</label>
-                        <select id="project-member-select" class="form-control" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>
-                            ${workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || user!.initials}</option>`).join('')}
-                        </select>
+                     <div class="invite-form-grid">
+                        <div class="form-group">
+                            <label for="project-member-select">${t('hr.member')}</label>
+                            <select id="project-member-select" class="form-control" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>
+                                 ${workspaceUsersNotInProject.length > 0
+                                    ? workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || user!.initials}</option>`).join('')
+                                    : `<option disabled selected>All members are in the project</option>`
+                                 }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="project-role-select">${t('hr.role')}</label>
+                            <select id="project-role-select" class="form-control">
+                                ${projectRoles.map(r => `<option value="editor" ${r === 'editor' ? 'selected' : ''}>${t(`panels.role_${r}`)}</option>`).join('')}
+                            </select>
+                        </div>
                      </div>
-                     <div class="form-group" style="margin-bottom: 1rem;">
-                        <label for="project-role-select">${t('hr.role')}</label>
-                        <select id="project-role-select" class="form-control">
-                            ${projectRoles.map(r => `<option value="${r}">${t(`panels.role_${r}`)}</option>`).join('')}
-                        </select>
-                     </div>
-                     <button type="submit" class="btn btn-primary" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>${t('hr.invite')}</button>
+                     <button type="submit" class="btn btn-primary" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''} style="margin-top: 1.5rem;">${t('hr.invite')}</button>
                 </form>
             </div>
         </div>

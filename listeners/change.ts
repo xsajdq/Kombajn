@@ -1,12 +1,12 @@
 
-
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Role, Task, AppState } from '../types.ts';
+import type { Role, Task, AppState, ProjectRole } from '../types.ts';
 import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
 import * as mainHandlers from '../handlers/main.ts';
+import * as filterHandlers from '../handlers/filters.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
 
 
@@ -18,6 +18,14 @@ export function handleChange(e: Event) {
         const memberId = select.dataset.changeRoleForMemberId!;
         const newRole = select.value as Role;
         teamHandlers.handleChangeUserRole(memberId, newRole);
+        return;
+    }
+
+    const projectRoleSelect = target.closest<HTMLSelectElement>('[data-project-member-id]');
+    if (projectRoleSelect) {
+        const memberId = projectRoleSelect.dataset.projectMemberId!;
+        const newRole = projectRoleSelect.value as ProjectRole;
+        teamHandlers.handleChangeProjectMemberRole(memberId, newRole);
         return;
     }
 
@@ -173,6 +181,13 @@ export function handleChange(e: Event) {
                 renderApp();
             });
         }
+        return;
+    }
+
+    // Task Filter Change
+    const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
+    if (taskFilterInput) {
+        filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
         return;
     }
 }

@@ -12,7 +12,7 @@ declare const Gantt: any;
 let ganttChart: any = null;
 
 function getFilteredTasks(): Task[] {
-    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.taskFilters;
+    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.tasks.filters;
     let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
 
     const member = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId);
@@ -282,7 +282,7 @@ function renderGanttView() {
 }
 
 export function initTasksPage() {
-    if (state.ui.tasksViewMode !== 'gantt') {
+    if (state.ui.tasks.viewMode !== 'gantt') {
         ganttChart = null; // Destroy gantt instance if we switch away
         return;
     }
@@ -339,7 +339,7 @@ export function TasksPage() {
             <button class="btn btn-primary" data-modal-target="addTask">${t('tasks.new_task')}</button>
         </div>`;
     } else {
-        switch (state.ui.tasksViewMode) {
+        switch (state.ui.tasks.viewMode) {
             case 'board': viewContent = renderBoardView(filteredTasks); break;
             case 'list': viewContent = renderListView(filteredTasks); break;
             case 'calendar': viewContent = renderCalendarView(filteredTasks); break;
@@ -347,7 +347,7 @@ export function TasksPage() {
         }
     }
     
-    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.taskFilters;
+    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.tasks.filters;
     const filtersActive = !!(text || assigneeId || priority || projectId || status || dateRange !== 'all' || tagIds.length > 0);
 
     const workspaceUsers = state.workspaceMembers
@@ -420,7 +420,7 @@ export function TasksPage() {
     `;
 
     const filterContainer = `
-        <div class="tasks-filter-container ${state.ui.isTaskFilterOpen ? 'is-open' : ''}">
+        <div class="tasks-filter-container ${state.ui.tasks.isFilterOpen ? 'is-open' : ''}">
             <div class="card">
                 ${filterBar}
             </div>
@@ -433,10 +433,10 @@ export function TasksPage() {
                 <h2>${t('tasks.title')}</h2>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div class="view-switcher">
-                        <button class="btn-icon ${state.ui.tasksViewMode === 'board' ? 'active' : ''}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp">view_kanban</span></button>
-                        <button class="btn-icon ${state.ui.tasksViewMode === 'list' ? 'active' : ''}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp">view_list</span></button>
-                        <button class="btn-icon ${state.ui.tasksViewMode === 'calendar' ? 'active' : ''}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp">calendar_today</span></button>
-                        <button class="btn-icon ${state.ui.tasksViewMode === 'gantt' ? 'active' : ''}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp">bar_chart</span></button>
+                        <button class="btn-icon ${state.ui.tasks.viewMode === 'board' ? 'active' : ''}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp">view_kanban</span></button>
+                        <button class="btn-icon ${state.ui.tasks.viewMode === 'list' ? 'active' : ''}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp">view_list</span></button>
+                        <button class="btn-icon ${state.ui.tasks.viewMode === 'calendar' ? 'active' : ''}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp">calendar_today</span></button>
+                        <button class="btn-icon ${state.ui.tasks.viewMode === 'gantt' ? 'active' : ''}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp">bar_chart</span></button>
                     </div>
                      <button id="toggle-filters-btn" class="btn btn-secondary">
                         <span class="material-icons-sharp">filter_list</span>

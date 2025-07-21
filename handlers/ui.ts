@@ -56,7 +56,7 @@ export function toggleCommandPalette(force?: boolean) {
 }
 
 export function toggleTaskFilters(force?: boolean) {
-    state.ui.isTaskFilterOpen = force ?? !state.ui.isTaskFilterOpen;
+    state.ui.tasks.isFilterOpen = force ?? !state.ui.tasks.isFilterOpen;
     renderApp();
 }
 
