@@ -13,8 +13,12 @@ declare const Gantt: any;
 let ganttChart: any = null;
 
 function getFilteredTasks(): Task[] {
-    const { text, assigneeId, priority, projectId, status, dateRange, tagIds } = state.ui.tasks.filters;
+    const { text, assigneeId, priority, projectId, status, dateRange, tagIds, isArchived } = state.ui.tasks.filters;
     let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
+    
+    if (!isArchived) {
+        allTasks = allTasks.filter(task => !task.isArchived);
+    }
 
     const member = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId);
     if (member && member.role === 'client' && state.currentUser) {
@@ -104,17 +108,12 @@ function renderBoardView(filteredTasks: Task[]) {
                     <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${activeTasks.length}</span></span>
                     ${activeTotalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(activeTotalSeconds)}</span>` : ''}
                 </div>
-                <div class="tasks-board-column-body kanban-tasks">
+                <div class="tasks-board-column-body">
                     ${activeTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
-                    ${archivedTasks.length > 0 ? `
-                        <details class="py-2">
-                            <summary class="cursor-pointer text-sm font-medium text-text-subtle hover:text-text-main flex items-center justify-center">
-                                ${t('tasks.show_archived')} (${archivedTasks.length})
-                            </summary>
-                            <div class="space-y-3 mt-3">
-                                ${archivedTasks.map(renderTaskCard).join('')}
-                            </div>
-                        </details>
+                    ${state.ui.tasks.filters.isArchived && archivedTasks.length > 0 ? `
+                        <div class="space-y-2 mt-2 pt-2 border-t border-dashed border-border-color">
+                            ${archivedTasks.map(renderTaskCard).join('')}
+                        </div>
                     ` : ''}
                 </div>
             </div>
@@ -135,8 +134,11 @@ function renderBoardView(filteredTasks: Task[]) {
 function renderListView(filteredTasks: Task[]) {
     const activeTasks = filteredTasks.filter(t => !t.isArchived);
     const archivedTasks = filteredTasks.filter(t => t.isArchived);
+    const { isArchived } = state.ui.tasks.filters;
 
-    if (activeTasks.length === 0 && archivedTasks.length === 0) {
+    const tasksToRender = isArchived ? [...activeTasks, ...archivedTasks] : activeTasks;
+
+    if (tasksToRender.length === 0) {
         return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
             <span class="material-icons-sharp text-5xl text-text-subtle">search_off</span>
             <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
@@ -149,8 +151,11 @@ function renderListView(filteredTasks: Task[]) {
         const isRunning = !!state.activeTimers[task.id];
 
         return `
-            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background" data-task-id="${task.id}" role="button" tabindex="0">
-                 <div class="font-medium">${task.name}</div>
+            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background ${task.isArchived ? 'opacity-60' : ''}" data-task-id="${task.id}" role="button" tabindex="0">
+                 <div class="font-medium flex items-center gap-2">
+                    ${task.isArchived ? `<span class="material-icons-sharp text-base text-text-subtle" title="${t('tasks.archive')}d">archive</span>` : ''}
+                    ${task.name}
+                </div>
                  <div>${project?.name || t('misc.not_applicable')}</div>
                  <div>
                     <div class="flex -space-x-2">
@@ -184,19 +189,8 @@ function renderListView(filteredTasks: Task[]) {
                 <div class="text-right">${t('tasks.col_time')}</div>
             </div>
             <div>
-                ${activeTasks.map(renderRow).join('')}
+                ${tasksToRender.map(renderRow).join('')}
             </div>
-            ${archivedTasks.length > 0 ? `
-                <details class="border-t border-border-color">
-                    <summary class="px-3 py-2 text-sm font-medium text-text-subtle cursor-pointer hover:bg-background flex justify-between items-center">
-                        <span>${t('tasks.show_archived')}</span>
-                        <span class="px-2 py-0.5 text-xs rounded-full bg-background">${archivedTasks.length}</span>
-                    </summary>
-                    <div>
-                        ${archivedTasks.map(renderRow).join('')}
-                    </div>
-                </details>
-            ` : ''}
         </div>
     `;
 }
