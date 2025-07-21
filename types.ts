@@ -281,7 +281,7 @@ export interface Automation {
     action: AutomationAction;
 }
 
-export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts';
+export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance';
 export interface DashboardWidget {
     id: string;
     userId: string;
