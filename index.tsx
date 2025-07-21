@@ -1,3 +1,4 @@
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -39,6 +40,7 @@ export async function fetchInitialData(session: Session) {
     state.users = data.profiles || [];
     state.workspaceJoinRequests = data.workspaceJoinRequests || [];
     state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    state.integrations = data.integrations || [];
 
     // Manually map workspace structure to create nested subscription object
     state.workspaces = (data.workspaces || []).map((w: any) => ({
