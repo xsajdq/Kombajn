@@ -1,6 +1,6 @@
 
 
-import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact } from './types.ts';
+import type { AppState, Workspace, User, WorkspaceMember, Role, Client, Project, Task, Invoice, TimeLog, Comment, Notification, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldValue, Automation, DashboardWidget, ProjectMember, Channel, ProjectTemplate, WikiHistory, ChatMessage, Objective, KeyResult, TimeOffRequest, CalendarEvent, Expense, Deal, WorkspaceJoinRequest, TaskAssignee, Tag, TaskTag, Integration, ClientContact, FilterView } from './types.ts';
 
 export function generateId(): string {
     // A more robust ID generator
@@ -78,6 +78,7 @@ export function getInitialState(): AppState {
         workspaceJoinRequests: [],
         publicHolidays: [],
         integrations: [],
+        filterViews: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme,
@@ -95,10 +96,12 @@ export function getInitialState(): AppState {
             commandPaletteQuery: '',
             commandPaletteActiveIndex: 0,
             mention: { query: null, target: null, activeIndex: 0, rect: null },
-            tasksViewMode: 'board',
-            tasksKanbanMode: 'simple',
-            isTaskFilterOpen: false,
-            taskFilters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [] },
+            tasks: {
+                viewMode: 'board',
+                isFilterOpen: false,
+                filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false },
+                activeFilterViewId: null,
+            },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',

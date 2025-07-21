@@ -309,6 +309,25 @@ export type Command = {
 
 export type DateRangeFilter = 'all' | 'today' | 'tomorrow' | 'yesterday' | 'this_week' | 'overdue';
 
+export interface TaskFilters {
+    text: string;
+    assigneeId: string;
+    priority: string;
+    projectId: string;
+    status: string;
+    dateRange: DateRangeFilter;
+    tagIds: string[];
+    isArchived: boolean;
+}
+
+export interface FilterView {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    name: string;
+    filters: TaskFilters;
+}
+
 // --- NEW ---
 export interface ProjectTemplate {
     id: string;
@@ -491,6 +510,7 @@ export interface AppState {
     workspaceJoinRequests: WorkspaceJoinRequest[];
     publicHolidays: PublicHoliday[];
     integrations: Integration[];
+    filterViews: FilterView[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -515,17 +535,11 @@ export interface AppState {
             activeIndex: number;
             rect: DOMRect | null;
         };
-        tasksViewMode: 'board' | 'list' | 'calendar' | 'gantt';
-        tasksKanbanMode: 'simple' | 'advanced'; // Note: This might be deprecated by the new filter design
-        isTaskFilterOpen: boolean;
-        taskFilters: {
-            text: string;
-            assigneeId: string;
-            priority: string;
-            projectId: string;
-            status: string;
-            dateRange: DateRangeFilter;
-            tagIds: string[];
+        tasks: {
+            viewMode: 'board' | 'list' | 'calendar' | 'gantt';
+            isFilterOpen: boolean;
+            filters: TaskFilters;
+            activeFilterViewId: string | null;
         };
         invoiceFilters: {
             clientId: string;

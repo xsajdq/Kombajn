@@ -1,10 +1,11 @@
 
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
 import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification } from './types.ts';
+import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification, FilterView } from './types.ts';
 import { initSupabase, subscribeToUserChannel, switchWorkspaceChannel, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 import * as auth from './services/auth.ts';
@@ -41,6 +42,7 @@ export async function fetchInitialData(session: Session) {
     state.workspaceJoinRequests = data.workspaceJoinRequests || [];
     state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
     state.integrations = data.integrations || [];
+    state.filterViews = data.filterViews || [];
 
     // Manually map workspace structure to create nested subscription object
     state.workspaces = (data.workspaces || []).map((w: any) => ({
