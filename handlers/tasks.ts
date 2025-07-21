@@ -487,3 +487,37 @@ export async function handleToggleTaskArchive(taskId: string) {
         renderApp();
     }
 }
+
+export async function handleDeleteTask(taskId: string) {
+    const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    if (!confirm('Are you sure you want to permanently delete this task and all its related data (comments, time logs, etc)? This action cannot be undone.')) {
+        return;
+    }
+
+    const [removedTask] = state.tasks.splice(taskIndex, 1);
+    // Remove related data from state
+    state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
+    state.comments = state.comments.filter(c => c.taskId !== taskId);
+    state.timeLogs = state.timeLogs.filter(l => l.taskId !== taskId);
+    state.dependencies = state.dependencies.filter(d => d.blockedTaskId !== taskId && d.blockingTaskId !== taskId);
+    state.taskTags = state.taskTags.filter(tt => tt.taskId !== taskId);
+    state.customFieldValues = state.customFieldValues.filter(cfv => cfv.taskId !== taskId);
+    // Subtasks are also tasks, so they need to be removed as well.
+    state.tasks = state.tasks.filter(t => t.parentId !== taskId);
+
+    renderApp();
+
+    try {
+        // The backend should have cascading deletes set up for this to work properly.
+        await apiFetch(`/api/data/tasks`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: taskId }),
+        });
+    } catch (error) {
+        console.error("Failed to delete task:", error);
+        alert('Could not delete the task from the server. The page may need to be refreshed to see the correct state.');
+        // Reverting is very complex here because of all the related data.
+    }
+}

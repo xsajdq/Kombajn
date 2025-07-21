@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -40,9 +38,89 @@ function renderClientContactFormRow(contact?: any) {
     `;
 }
 
+// --- NEW TASK MENU HELPERS ---
+function closeAllTaskMenus() {
+    document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
+}
+
+function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
+    closeAllTaskMenus(); // Close any other open menu
+
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'task-card-menu';
+    menu.innerHTML = `
+        <button class="task-menu-item" data-edit-task-id="${taskId}">
+            <span class="material-icons-sharp">edit</span>
+            <span>${t('misc.edit')}</span>
+        </button>
+        <button class="task-menu-item" data-archive-task-id="${taskId}">
+            <span class="material-icons-sharp">archive</span>
+            <span>${task.isArchived ? t('tasks.unarchive') : t('tasks.archive')}</span>
+        </button>
+        <button class="task-menu-item danger" data-delete-task-id="${taskId}">
+            <span class="material-icons-sharp">delete</span>
+            <span>${t('hr.remove')}</span>
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+    const btnRect = buttonElement.getBoundingClientRect();
+    const menuHeight = menu.offsetHeight;
+    const menuWidth = menu.offsetWidth;
+    
+    let top = btnRect.bottom + window.scrollY + 5;
+    let left = btnRect.right + window.scrollX - menuWidth;
+
+    // Adjust if menu goes off-screen
+    if (top + menuHeight > window.innerHeight + window.scrollY) {
+        top = btnRect.top + window.scrollY - menuHeight - 5;
+    }
+    if (left < 0) {
+        left = btnRect.left + window.scrollX;
+    }
+
+    menu.style.position = 'absolute';
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+}
+// --- END NEW HELPERS ---
+
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
+
+    // --- START TASK MENU LOGIC ---
+    const menuBtn = target.closest<HTMLElement>('.task-card-menu-btn');
+    if (menuBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskId = menuBtn.closest<HTMLElement>('[data-task-id]')!.dataset.taskId!;
+        showTaskCardMenu(taskId, menuBtn);
+        return;
+    }
+
+    if (!target.closest('.task-card-menu')) {
+        closeAllTaskMenus();
+    }
+    
+    const editTaskBtn = target.closest<HTMLElement>('[data-edit-task-id]');
+    if (editTaskBtn) {
+        uiHandlers.showModal('taskDetail', { taskId: editTaskBtn.dataset.editTaskId! });
+        closeAllTaskMenus();
+        return;
+    }
+
+    const deleteTaskBtn = target.closest<HTMLElement>('[data-delete-task-id]');
+    if (deleteTaskBtn) {
+        taskHandlers.handleDeleteTask(deleteTaskBtn.dataset.deleteTaskId!);
+        closeAllTaskMenus();
+        return;
+    }
+    // --- END TASK MENU LOGIC ---
+
 
     // Client Modal: Add/Remove Contact Rows
     const addContactBtn = target.closest('#add-contact-row-btn');
@@ -180,12 +258,13 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    // New Archive handlers
     const archiveTaskBtn = target.closest<HTMLElement>('[data-archive-task-id]');
     if (archiveTaskBtn) {
         taskHandlers.handleToggleTaskArchive(archiveTaskBtn.dataset.archiveTaskId!);
+        closeAllTaskMenus();
         return;
     }
+    
     const unarchiveTaskBtn = target.closest<HTMLElement>('[data-unarchive-task-id]');
     if (unarchiveTaskBtn) {
         taskHandlers.handleToggleTaskArchive(unarchiveTaskBtn.dataset.unarchiveTaskId!);
@@ -219,6 +298,9 @@ export async function handleClick(e: MouseEvent) {
 
     const taskElement = target.closest<HTMLElement>('[data-task-id].clickable');
     if (taskElement) {
+        if (target.closest('.task-card-menu-btn')) {
+            return;
+        }
         uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
         return;
     }
