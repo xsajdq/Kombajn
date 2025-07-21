@@ -20,13 +20,13 @@ export async function addWidget(type: DashboardWidgetType) {
     
     const maxSortOrder = userWidgets.reduce((max, w) => Math.max(max, w.sortOrder || 0), 0);
 
-    const newWidgetPayload = {
+    const newWidgetPayload: Omit<DashboardWidget, 'id' | 'config'> & { config: any } = {
         userId: state.currentUser.id,
         workspaceId: state.activeWorkspaceId,
         type,
-        x: 0,
+        x: 0, // x, y, w, h are not used in the new layout, but kept for schema compatibility
         y: 0,
-        w: type === 'weeklyPerformance' ? 12 : 4, 
+        w: 4, 
         h: 6,
         sortOrder: maxSortOrder + 1,
         config: {}
@@ -74,13 +74,6 @@ export async function handleWidgetConfigSave(widgetId: string) {
 
     const originalConfig = { ...widget.config };
     let newConfig = { ...originalConfig };
-
-    if (widget.type === 'recentProjects') { // Example for future config
-        // const select = document.getElementById('widget-project-select') as HTMLSelectElement;
-        // if (select) {
-        //     newConfig.projectId = select.value;
-        // }
-    }
     
     widget.config = newConfig;
 
@@ -98,36 +91,33 @@ export async function handleWidgetConfigSave(widgetId: string) {
 let draggedWidgetId: string | null = null;
 
 export function handleWidgetDragStart(e: DragEvent) {
-    const target = e.target as HTMLElement;
-    if (!target.classList.contains('widget-card') || !state.ui.dashboard.isEditing) return;
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
+    if (!target || !state.ui.dashboard.isEditing) return;
     draggedWidgetId = target.dataset.widgetId!;
-    target.classList.add('dragging');
+    setTimeout(() => target.classList.add('dragging'), 0);
     e.dataTransfer!.effectAllowed = 'move';
 }
 
 export function handleWidgetDragEnd(e: DragEvent) {
-    const target = e.target as HTMLElement;
-    if (target.classList) {
-        target.classList.remove('dragging');
-    }
-    document.querySelectorAll('.widget-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.widget-container.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.widget-container.drag-over').forEach(el => el.classList.remove('drag-over'));
     draggedWidgetId = null;
 }
 
 export function handleWidgetDragOver(e: DragEvent) {
     e.preventDefault();
-    if (!state.ui.dashboard.isEditing) return;
-    const target = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
-    if (target && target.dataset.widgetId !== draggedWidgetId) {
-        document.querySelectorAll('.widget-card.drag-over').forEach(el => el.classList.remove('drag-over'));
-        target.classList.add('drag-over');
+    if (!state.ui.dashboard.isEditing || !draggedWidgetId) return;
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
+    if (dropTargetElement && dropTargetElement.dataset.widgetId !== draggedWidgetId) {
+        document.querySelectorAll('.widget-container.drag-over').forEach(el => el.classList.remove('drag-over'));
+        dropTargetElement.classList.add('drag-over');
     }
 }
 
 export async function handleWidgetDrop(e: DragEvent) {
     e.preventDefault();
     if (!state.ui.dashboard.isEditing) return;
-    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-card');
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
     if (!dropTargetElement || !draggedWidgetId) return;
 
     const dropTargetId = dropTargetElement.dataset.widgetId!;
@@ -162,7 +152,7 @@ export async function handleWidgetDrop(e: DragEvent) {
             userWidgets.map((widget, index) =>
                 apiPut('dashboard_widgets', {
                     id: widget.id,
-                    sortOrder: index,
+                    sort_order: index, // Send snake_case to the API handler
                 })
             )
         );
@@ -174,47 +164,45 @@ export async function handleWidgetDrop(e: DragEvent) {
     }
 }
 
-export async function handleGridColumnsChange(columns: number) {
+export async function handleGridColumnsChange(newCount: number) {
     if (!state.activeWorkspaceId) return;
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
-    
-    const originalColumns = workspace.dashboardGridColumns;
-    workspace.dashboardGridColumns = columns;
+
+    const originalCount = workspace.dashboardGridColumns;
+    workspace.dashboardGridColumns = newCount;
     renderApp();
 
     try {
-        await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: columns });
+        await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: newCount });
     } catch (error) {
-        console.error("Failed to save grid column preference:", error);
-        workspace.dashboardGridColumns = originalColumns;
+        console.error("Failed to save grid column settings:", error);
+        workspace.dashboardGridColumns = originalCount;
         renderApp();
-        alert("Could not save your grid layout preference.");
     }
 }
 
-export async function handleWidgetResize(widgetId: string, direction: 'increase' | 'decrease') {
+export async function handleWidgetResize(widgetId: string, action: 'increase' | 'decrease') {
     const widget = state.dashboardWidgets.find(w => w.id === widgetId);
-    const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!widget || !workspace) return;
-    
-    const gridCols = workspace.dashboardGridColumns || 12;
-    const originalWidth = widget.w;
-    
-    let newWidth = widget.w + (direction === 'increase' ? 1 : -1);
-    newWidth = Math.max(1, Math.min(newWidth, gridCols)); // Clamp between 1 and max columns
+    if (!widget) return;
 
-    if (newWidth === originalWidth) return;
+    const originalWidth = widget.w;
+    const newWidth = action === 'increase' ? widget.w + 1 : widget.w - 1;
+    
+    // Some basic constraints
+    if (newWidth < 1 || newWidth > 12) { // Assuming a 12-column grid
+        return;
+    }
 
     widget.w = newWidth;
-    renderApp();
+    renderApp(); // Optimistic update
 
     try {
-        await apiPut('dashboard_widgets', { id: widget.id, w: newWidth });
+        await apiPut('dashboard_widgets', { id: widgetId, w: newWidth });
     } catch (error) {
-        console.error("Failed to save widget width:", error);
-        alert("Could not save widget size.");
-        widget.w = originalWidth;
+        console.error("Failed to update widget width:", error);
+        widget.w = originalWidth; // Revert on failure
         renderApp();
+        alert("Could not resize widget.");
     }
 }

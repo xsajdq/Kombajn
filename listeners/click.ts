@@ -683,6 +683,12 @@ export async function handleClick(e: MouseEvent) {
 
     // Dashboard
     if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
+    const dashboardTab = target.closest<HTMLElement>('[data-dashboard-tab]');
+    if (dashboardTab) {
+        state.ui.dashboard.activeTab = dashboardTab.dataset.dashboardTab as any;
+        renderApp();
+        return;
+    }
     if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
     const configureWidgetBtn = target.closest<HTMLElement>('[data-configure-widget-id]');
     if (configureWidgetBtn) { dashboardHandlers.showConfigureWidgetModal(configureWidgetBtn.dataset.configureWidgetId!); return; }

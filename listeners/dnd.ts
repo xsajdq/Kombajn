@@ -1,11 +1,19 @@
 
+
 import * as dndHandlers from '../handlers/dnd.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
 
 // Combine D&D handlers into one file
 export function handleDragStart(e: DragEvent) {
-    dndHandlers.handleDragStart(e);
-    dashboardHandlers.handleWidgetDragStart(e);
+    const taskCard = (e.target as HTMLElement).closest('.task-card');
+    const dealCard = (e.target as HTMLElement).closest('.deal-card');
+    const widget = (e.target as HTMLElement).closest('.widget-container');
+
+    if (taskCard || dealCard) {
+        dndHandlers.handleDragStart(e);
+    } else if (widget) {
+        dashboardHandlers.handleWidgetDragStart(e);
+    }
 }
 export function handleDragEnd(e: DragEvent) {
     dndHandlers.handleDragEnd(e);
