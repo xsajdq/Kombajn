@@ -170,12 +170,19 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
     const addWidgetBtn = target.closest<HTMLElement>('[data-add-widget-type]');
     if (addWidgetBtn) {
-        dashboardHandlers.addWidget(addWidgetBtn.dataset.addWidgetType as DashboardWidgetType);
+        const type = addWidgetBtn.dataset.addWidgetType as DashboardWidgetType;
+        const metric = addWidgetBtn.dataset.metricType as any;
+        dashboardHandlers.addWidget(type, metric);
         return;
     }
     const removeWidgetBtn = target.closest<HTMLElement>('.remove-widget-btn');
     if (removeWidgetBtn) {
         dashboardHandlers.removeWidget(removeWidgetBtn.dataset.removeWidgetId!);
+        return;
+    }
+    const configureWidgetBtn = target.closest<HTMLElement>('[data-configure-widget-id]');
+    if (configureWidgetBtn) {
+        dashboardHandlers.showConfigureWidgetModal(configureWidgetBtn.dataset.configureWidgetId!);
         return;
     }
 

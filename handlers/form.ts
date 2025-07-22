@@ -406,6 +406,15 @@ export async function handleFormSubmit() {
             return; // Handler closes modal
         }
 
+        if (type === 'configureWidget') {
+            const form = document.getElementById('configure-widget-form') as HTMLFormElement;
+            if (form) {
+                const widgetId = form.dataset.widgetId!;
+                await dashboardHandlers.handleWidgetConfigSave(widgetId);
+            }
+            return; 
+        }
+
         closeModal();
         renderApp();
 

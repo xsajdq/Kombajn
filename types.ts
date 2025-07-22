@@ -1,6 +1,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -296,6 +297,8 @@ export interface DashboardWidget {
     config: {
         title?: string;
         projectId?: string;
+        userId?: string;
+        metric?: 'totalRevenue' | 'activeProjects' | 'totalClients' | 'overdueProjects';
     };
 }
 

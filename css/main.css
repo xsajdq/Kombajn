@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -280,13 +279,16 @@
   .remove-widget-btn {
     @apply absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger z-10;
   }
+  .configure-widget-btn {
+    @apply absolute top-2 right-10 p-1 rounded-full text-text-subtle hover:bg-background hover:text-primary z-10;
+  }
   [data-widget-id][draggable="true"] {
     @apply cursor-move;
   }
-  [data-widget-id].dragging {
-    @apply opacity-50;
+  .dragging {
+    @apply opacity-50 ring-2 ring-primary ring-offset-2;
   }
-  [data-widget-id].drag-over {
+  .drag-over {
     @apply outline-dashed outline-2 outline-offset-2 outline-primary;
   }
 }

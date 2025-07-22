@@ -271,25 +271,61 @@ export function Modal() {
         title = t('modals.add_widget');
         footer = `<button class="btn-close-modal">${t('modals.cancel')}</button>`;
         const widgetTypes: { type: DashboardWidgetType, icon: string, name: string }[] = [
+            { type: 'kpiMetric', icon: 'payments', name: t('dashboard.kpi_total_revenue') },
+            { type: 'kpiMetric', icon: 'folder_special', name: t('dashboard.kpi_active_projects') },
+            { type: 'kpiMetric', icon: 'groups', name: t('dashboard.kpi_total_clients') },
+            { type: 'kpiMetric', icon: 'warning', name: t('dashboard.kpi_overdue_projects') },
             { type: 'recentProjects', icon: 'folder', name: t('dashboard.widget_recent_projects_title') },
             { type: 'todaysTasks', icon: 'checklist', name: t('dashboard.widget_todays_tasks_title') },
             { type: 'activityFeed', icon: 'history', name: t('dashboard.widget_activity_feed_title') },
             { type: 'quickActions', icon: 'bolt', name: t('dashboard.widget_quick_actions_title') },
             { type: 'schedule', icon: 'calendar_month', name: t('dashboard.widget_schedule_title') },
-            { type: 'alerts', icon: 'warning', name: t('dashboard.widget_alerts_title') },
-            { type: 'weeklyPerformance', icon: 'show_chart', name: t('dashboard.widget_weekly_performance_title') },
+            { type: 'alerts', icon: 'notification_important', name: t('dashboard.widget_alerts_title') },
         ];
         body = `
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                ${widgetTypes.map(w => `
-                    <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors text-center" data-add-widget-type="${w.type}">
+                ${widgetTypes.map(w => {
+                    let metricType = '';
+                    if (w.type === 'kpiMetric') {
+                        if (w.name === t('dashboard.kpi_total_revenue')) metricType = 'totalRevenue';
+                        if (w.name === t('dashboard.kpi_active_projects')) metricType = 'activeProjects';
+                        if (w.name === t('dashboard.kpi_total_clients')) metricType = 'totalClients';
+                        if (w.name === t('dashboard.kpi_overdue_projects')) metricType = 'overdueProjects';
+                    }
+                    return `
+                    <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors text-center" data-add-widget-type="${w.type}" data-metric-type="${metricType}">
                         <span class="material-icons-sharp text-3xl text-primary mb-2">${w.icon}</span>
                         <span class="text-sm font-medium">${w.name}</span>
                     </button>
-                `).join('')}
+                `}).join('')}
             </div>
         `;
     }
+    
+    if (state.ui.modal.type === 'configureWidget') {
+        const widget = modalData.widget as DashboardWidget;
+        title = t('modals.configure_widget');
+        let configBody = '';
+
+        if (widget.type === 'todaysTasks') {
+            const currentUserId = widget.config?.userId || state.currentUser?.id;
+            configBody = `
+                <form id="configure-widget-form" data-widget-id="${widget.id}">
+                    <div class="${formGroupClasses}">
+                        <label for="widget-user-select" class="${labelClasses}">Show tasks for:</label>
+                        <select id="widget-user-select" name="userId" class="${formControlClasses}">
+                            ${workspaceMembers.map(user => `<option value="${user!.id}" ${currentUserId === user!.id ? 'selected' : ''}>${user!.name || user!.email}</option>`).join('')}
+                        </select>
+                    </div>
+                </form>
+            `;
+        } else {
+            configBody = `<p class="text-text-subtle">This widget is not configurable.</p>`;
+            footer = `<button class="btn-close-modal">${t('panels.close')}</button>`;
+        }
+        body = configBody;
+    }
+
 
     // Other modals will still work but will look unstyled until they are refactored.
     if (state.ui.modal.type === 'taskDetail') {
