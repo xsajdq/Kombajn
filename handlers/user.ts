@@ -98,7 +98,7 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
     if (statusEl) statusEl.textContent = 'Saving...';
     
     try {
-        await apiFetch('/api/auth/update-password', { method: 'POST', body: JSON.stringify({ newPassword }) });
+        await apiFetch('/api?action=auth-update-password', { method: 'POST', body: JSON.stringify({ newPassword }) });
         
         if (statusEl) {
             statusEl.textContent = t('settings.password_updated');

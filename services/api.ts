@@ -66,14 +66,14 @@ export async function apiFetch(resource: string, options: RequestInit = {}, sess
 
 
 export function apiPost(resource: string, body: any) {
-    return apiFetch(`/api/data/${resource}`, {
+    return apiFetch(`/api?action=data&resource=${resource}`, {
         method: 'POST',
         body: JSON.stringify(body),
     });
 }
 
 export function apiPut(resource: string, body: any) {
-    return apiFetch(`/api/data/${resource}`, {
+    return apiFetch(`/api?action=data&resource=${resource}`, {
         method: 'PUT',
         body: JSON.stringify(body),
     });

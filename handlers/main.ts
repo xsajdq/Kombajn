@@ -19,7 +19,7 @@ async function fetchPageData(pageName: PageName, endpoint: string) {
     renderApp();
 
     try {
-        const data = await apiFetch(`/api/${endpoint}?workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api?action=${endpoint}&workspaceId=${state.activeWorkspaceId}`);
         
         Object.keys(data).forEach(key => {
             if (Array.isArray(state[key as keyof typeof state])) {

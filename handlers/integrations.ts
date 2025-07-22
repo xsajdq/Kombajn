@@ -9,7 +9,7 @@ export function connectIntegration(provider: 'slack' | 'google_drive') {
     if (!activeWorkspaceId || !currentUser) return;
     
     // The backend will handle the redirect to the provider's auth page.
-    const connectUrl = `/api/auth/connect/${provider}?workspaceId=${activeWorkspaceId}`;
+    const connectUrl = `/api?action=auth-connect-${provider}&workspaceId=${activeWorkspaceId}`;
 
     const authWindow = window.open(connectUrl, '_blank', 'width=600,height=700,popup=true');
 
@@ -25,7 +25,7 @@ export function connectIntegration(provider: 'slack' | 'google_drive') {
 
         if (success) {
             // Refetch integrations to get the new connected status
-            const integrations = await apiFetch('/api/data/integrations');
+            const integrations = await apiFetch(`/api?action=data&resource=integrations`);
             state.integrations = integrations;
             renderApp();
         } else if (error) {
