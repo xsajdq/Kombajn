@@ -127,6 +127,16 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
 
+    // --- FAB Logic ---
+    const fabContainer = document.getElementById('fab-container');
+    if (target.closest('#fab-main-btn')) {
+        fabContainer?.classList.toggle('is-open');
+        return;
+    }
+    if (fabContainer?.classList.contains('is-open') && !target.closest('.fab-container')) {
+        fabContainer.classList.remove('is-open');
+    }
+
     // --- START TASK MENU LOGIC ---
     const menuBtn = target.closest<HTMLElement>('.task-card-menu-btn');
     if (menuBtn) {
@@ -384,7 +394,7 @@ export async function handleClick(e: MouseEvent) {
     }
 
     // Detail Panel Openers (Reverted Logic)
-    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid, .task-list-row[data-task-id], .project-task-row[data-task-id]');
+    const taskElement = target.closest<HTMLElement>('.task-card, .grid[data-task-id], .task-list-row[data-task-id], .project-task-row[data-task-id]');
     if (taskElement) {
         if (target.closest('.task-card-menu-btn, .timer-controls, a, button, .task-status-toggle')) return;
         uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
@@ -641,7 +651,6 @@ export async function handleClick(e: MouseEvent) {
 
 
     // Global buttons that might be anywhere
-    if (target.closest('#fab-new-task')) { uiHandlers.showModal('addTask'); return; }
     if (target.closest('.btn-close-modal')) { uiHandlers.closeModal(); return; }
     const modal = target.closest<HTMLElement>('[role="dialog"]');
     if (modal && e.target === modal) {

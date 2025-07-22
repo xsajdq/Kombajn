@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -333,14 +332,13 @@ export function TasksPage() {
     return `
         <div class="h-full flex flex-col">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <h2 class="text-2xl font-bold">${t('tasks.title')}</h2>
+                <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
+                    <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'board' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp text-xl">grid_view</span></button>
+                    <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'list' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp text-xl">view_list</span></button>
+                    <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'calendar' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp text-xl">calendar_today</span></button>
+                    <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">analytics</span></button>
+                </div>
                 <div class="flex items-center gap-2">
-                    <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp text-xl">view_kanban</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp text-xl">view_list</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'calendar' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp text-xl">calendar_today</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-primary/10 text-primary' : 'text-text-subtle hover:bg-background'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">bar_chart</span></button>
-                    </div>
                      <button id="toggle-filters-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
                         <span class="material-icons-sharp text-base">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>
