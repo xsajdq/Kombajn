@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -16,7 +15,7 @@ export async function fetchSalesData() {
     renderApp(); // Show loader
 
     try {
-        const data = await apiFetch(`/api/sales-data?workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api?action=sales-data&workspaceId=${state.activeWorkspaceId}`);
         
         // This endpoint returns deals, clients, and owners (users)
         state.deals = data.deals || [];
