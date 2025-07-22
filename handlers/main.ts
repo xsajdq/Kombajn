@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice } from '../types.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -21,15 +20,15 @@ async function fetchPageData(pageName: PageName, action: string) {
     try {
         const data = await apiFetch(`/api?action=${action}&workspaceId=${state.activeWorkspaceId}`);
         
-        Object.keys(data).forEach(key => {
-            if (Array.isArray(state[key as keyof typeof state])) {
-                // This logic merges data fetched for a page into the global state.
-                // It avoids duplicates by checking IDs.
-                const existingIds = new Set((state[key as keyof typeof state] as any[]).map(item => item.id));
-                const newData = (data[key] || []).filter((item: any) => !existingIds.has(item.id));
-                (state[key as keyof typeof state] as any[]).push(...newData);
-            }
-        });
+        if (data) {
+            Object.keys(data).forEach(key => {
+                if (key in state && Array.isArray(state[key as keyof typeof state])) {
+                    const existingIds = new Set((state[key as keyof typeof state] as any[]).map(item => item.id));
+                    const newData = (data[key] || []).filter((item: any) => !existingIds.has(item.id));
+                    (state[key as keyof typeof state] as any[]).push(...newData);
+                }
+            });
+        }
         
         uiState.loadedWorkspaceId = state.activeWorkspaceId;
     } catch (error) {
