@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -386,6 +381,17 @@ export async function handleFormSubmit() {
 
             if (taskId && timeString && dateString) {
                 await timerHandlers.handleSaveManualTimeLog(taskId, timeString, dateString, comment || undefined);
+            }
+        }
+
+        if (type === 'assignGlobalTime') {
+            const trackedSeconds = data.trackedSeconds as number;
+            const projectId = (document.getElementById('assign-time-project-select') as HTMLSelectElement).value;
+            const taskId = (document.getElementById('assign-time-task-select') as HTMLSelectElement).value;
+            const comment = (document.getElementById('global-timelog-comment') as HTMLTextAreaElement).value.trim();
+
+            if (taskId && trackedSeconds > 0) {
+                await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment || undefined);
             }
         }
         

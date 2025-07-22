@@ -1,5 +1,4 @@
 
-
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -211,6 +210,18 @@ async function init() {
         
         // Timer update interval
         setInterval(() => {
+            // Update Global Timer
+            const { isRunning, startTime } = state.ui.globalTimer;
+            if (isRunning && startTime) {
+                const elapsedSeconds = (Date.now() - startTime) / 1000;
+                const formattedTime = formatDuration(elapsedSeconds);
+                const display = document.getElementById('global-timer-display');
+                if (display && display.textContent !== formattedTime) {
+                    display.textContent = formattedTime;
+                }
+            }
+            
+            // Update Task-specific Timers
             if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
 
             Object.keys(state.activeTimers).forEach(taskId => {

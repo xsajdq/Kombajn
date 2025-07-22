@@ -68,3 +68,21 @@ export async function handleSaveManualTimeLog(taskId: string, timeString: string
     const [savedLog] = await apiPost('time_logs', timeLogPayload);
     state.timeLogs.push(savedLog);
 }
+
+export function startGlobalTimer() {
+    if (!state.ui.globalTimer.isRunning) {
+        state.ui.globalTimer.isRunning = true;
+        state.ui.globalTimer.startTime = Date.now();
+        renderApp(); // To update the play/pause icon
+    }
+}
+
+export function stopGlobalTimer() {
+    const { isRunning, startTime } = state.ui.globalTimer;
+    if (isRunning && startTime) {
+        const trackedSeconds = (Date.now() - startTime) / 1000;
+        state.ui.globalTimer.isRunning = false;
+        state.ui.globalTimer.startTime = null;
+        showModal('assignGlobalTime', { trackedSeconds });
+    }
+}

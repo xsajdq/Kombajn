@@ -2,6 +2,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
+import { formatDuration } from '../utils.ts';
 
 export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
     const userNotifications = state.notifications.filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId);
@@ -11,6 +12,9 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
         .filter(m => m.userId === currentUser.id)
         .map(m => state.workspaces.find(w => w.id === m.workspaceId))
         .filter(w => w !== undefined);
+    
+    const { isRunning, startTime } = state.ui.globalTimer;
+    const elapsedSeconds = isRunning && startTime ? (Date.now() - startTime) / 1000 : 0;
 
     return `
         <header class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 border-b border-border-color bg-content text-text-main">
@@ -23,6 +27,15 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                 </div>
             </div>
             <div class="flex items-center gap-4">
+                <div id="global-timer-container" class="flex items-center gap-2">
+                    <span class="font-mono text-sm font-medium ${isRunning ? 'text-primary' : ''}" id="global-timer-display">
+                        ${formatDuration(elapsedSeconds)}
+                    </span>
+                    <button id="global-timer-toggle" class="p-2 rounded-full hover:bg-background transition-colors ${isRunning ? 'text-primary' : ''}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                        <span class="material-icons-sharp">${isRunning ? 'pause_circle' : 'play_circle'}</span>
+                    </button>
+                </div>
+
                 <div class="relative">
                     <button id="notification-bell" class="p-2 rounded-full hover:bg-background transition-colors" aria-label="${t('notifications.title')}">
                         <span class="material-icons-sharp">notifications</span>

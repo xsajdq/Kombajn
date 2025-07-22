@@ -162,6 +162,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // --- End: Fetch ALL operational data ---
 
                 for (const r of allResults) if (r.error) throw new Error(`A database query failed during bootstrap: ${r.error.message}`);
+                
+                // FIX: Process invoices to rename 'invoice_line_items' to 'items'
+                const processedInvoices = (invoicesRes.data || []).map(invoice => {
+                    const newInvoice = { ...invoice, items: invoice.invoice_line_items || [] };
+                    delete (newInvoice as any).invoice_line_items;
+                    return newInvoice;
+                });
 
                 const responseData = {
                     current_user: allProfilesRes.data?.find((p: any) => p.id === user.id) || null,
@@ -185,7 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     objectives: objectivesRes.data || [],
                     key_results: keyResultsRes.data || [],
                     deal_notes: dealNotesRes.data || [],
-                    invoices: invoicesRes.data || [],
+                    invoices: processedInvoices, // Use the processed invoices
                     expenses: expensesRes.data || [],
                     project_members: projectMembersRes.data || [],
                     dependencies: dependenciesRes.data || []
@@ -284,8 +291,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 for (const r of [clientsRes, projectsRes, invoicesRes]) if (r.error) throw new Error(`Clients/Invoices data fetch failed: ${r.error.message}`);
                 
+                 // FIX: Process invoices to rename 'invoice_line_items' to 'items'
+                const processedInvoices = (invoicesRes.data || []).map(invoice => {
+                    const newInvoice = { ...invoice, items: invoice.invoice_line_items || [] };
+                    delete (newInvoice as any).invoice_line_items;
+                    return newInvoice;
+                });
+
                 return res.status(200).json(keysToCamel({
-                    clients: clientsRes.data || [], projects: projectsRes.data || [], invoices: invoicesRes.data || [],
+                    clients: clientsRes.data || [], projects: projectsRes.data || [], invoices: processedInvoices,
                 }));
             }
             case 'projects-page-data': {

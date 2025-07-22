@@ -434,6 +434,113 @@ export function Modal() {
         maxWidth = 'max-w-4xl';
     }
 
+    if (state.ui.modal.type === 'addManualTimeLog') {
+        title = t('modals.add_manual_time_log_title');
+        body = `
+            <form id="manualTimeLogForm" class="space-y-4">
+                <div class="${formGroupClasses}">
+                    <label for="timeLogAmount" class="${labelClasses}">${t('modals.time_to_log')}</label>
+                    <input type="text" id="timeLogAmount" class="${formControlClasses}" required placeholder="${t('modals.time_placeholder')}">
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="timeLogDate" class="${labelClasses}">${t('modals.date_worked')}</label>
+                    <input type="date" id="timeLogDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="timeLogComment" class="${labelClasses}">${t('modals.comment_placeholder')}</label>
+                    <textarea id="timeLogComment" class="${formControlClasses}" rows="2"></textarea>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'assignGlobalTime') {
+        title = t('modals.add_timelog_comment_title');
+        const { trackedSeconds, selectedProjectId } = modalData;
+        const filteredTasks = selectedProjectId ? state.tasks.filter(t => t.projectId === selectedProjectId) : [];
+
+        body = `
+            <form id="assignGlobalTimeForm" class="space-y-4">
+                <p class="text-sm text-text-subtle">${t('modals.time_tracked')}: <strong class="text-base text-text-main font-semibold">${formatDuration(trackedSeconds)}</strong></p>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="assign-time-project-select" class="${labelClasses}">${t('modals.project')}</label>
+                        <select id="assign-time-project-select" class="${formControlClasses}" required>
+                            <option value="">${t('modals.select_a_project')}</option>
+                            ${workspaceProjects.map(p => `<option value="${p.id}" ${selectedProjectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="assign-time-task-select" class="${labelClasses}">${t('tasks.col_task')}</label>
+                        <select id="assign-time-task-select" class="${formControlClasses}" required ${!selectedProjectId ? 'disabled' : ''}>
+                            <option value="">Select a task</option>
+                            ${filteredTasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="global-timelog-comment" class="${labelClasses}">${t('modals.comment_placeholder')}</label>
+                    <textarea id="global-timelog-comment" class="${formControlClasses}" rows="3"></textarea>
+                </div>
+            </form>
+        `;
+    }
+    
+    if (state.ui.modal.type === 'addTimeOffRequest') {
+        title = t('modals.add_time_off_request_title');
+        body = `
+            <form id="timeOffRequestForm" class="space-y-4">
+                <div class="${formGroupClasses}">
+                    <label for="leaveType" class="${labelClasses}">${t('modals.leave_type')}</label>
+                    <select id="leaveType" class="${formControlClasses}">
+                        <option value="vacation">${t('modals.leave_type_vacation')}</option>
+                        <option value="sick_leave">${t('modals.leave_type_sick_leave')}</option>
+                        <option value="other">${t('modals.leave_type_other')}</option>
+                    </select>
+                </div>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="leaveStartDate" class="${labelClasses}">${t('modals.start_date')}</label>
+                        <input type="date" id="leaveStartDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="leaveEndDate" class="${labelClasses}">${t('modals.due_date')}</label>
+                        <input type="date" id="leaveEndDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addCalendarEvent') {
+        title = t('team_calendar.add_event');
+        body = `
+            <form id="calendarEventForm" class="space-y-4">
+                <div class="${formGroupClasses}">
+                    <label for="eventTitle" class="${labelClasses}">${t('modals.task_name')}</label>
+                    <input type="text" id="eventTitle" class="${formControlClasses}" required>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="eventType" class="${labelClasses}">${t('modals.task_type')}</label>
+                    <select id="eventType" class="${formControlClasses}">
+                        <option value="event">${t('team_calendar.event')}</option>
+                        <option value="on-call">${t('team_calendar.on_call')}</option>
+                    </select>
+                </div>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="eventStartDate" class="${labelClasses}">${t('modals.start_date')}</label>
+                        <input type="date" id="eventStartDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="eventEndDate" class="${labelClasses}">${t('modals.due_date')}</label>
+                        <input type="date" id="eventEndDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
 
     return `
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">

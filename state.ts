@@ -114,6 +114,10 @@ export function getInitialState(): AppState {
             clients: { isLoading: false, loadedWorkspaceId: null },
             invoices: { isLoading: false, loadedWorkspaceId: null },
             projects: { isLoading: false, loadedWorkspaceId: null },
+            globalTimer: {
+                isRunning: false,
+                startTime: null,
+            },
         },
     };
 }

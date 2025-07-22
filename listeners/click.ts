@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -126,6 +127,16 @@ async function handleDeleteClient(clientId: string) {
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
+
+    // --- Global Timer ---
+    if (target.closest('#global-timer-toggle')) {
+        if (state.ui.globalTimer.isRunning) {
+            timerHandlers.stopGlobalTimer();
+        } else {
+            timerHandlers.startGlobalTimer();
+        }
+        return;
+    }
 
     // --- FAB Logic ---
     const fabContainer = document.getElementById('fab-container');
@@ -653,7 +664,7 @@ export async function handleClick(e: MouseEvent) {
     
     // Wiki buttons
     if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
-    if (target.closest('#cancel-wiki-edit-btn')) { wikiHandlers.cancelWikiEdit(); return; }
+    if (target.closest('#cancel-wiki-btn')) { wikiHandlers.cancelWikiEdit(); return; }
     if (target.closest('#save-wiki-btn')) { wikiHandlers.saveWikiEdit(); return; }
     if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('[data-project-id]')?.dataset.projectId }); return; }
     const restoreWikiBtn = target.closest<HTMLElement>('[data-restore-history-id]');

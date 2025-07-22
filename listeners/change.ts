@@ -1,5 +1,4 @@
 
-
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -238,6 +237,14 @@ export function handleChange(e: Event) {
     if (target.id === 'automation-project-selector') {
         const projectId = (target as HTMLSelectElement).value;
         state.ui.modal.data = { ...state.ui.modal.data, selectedProjectId: projectId };
+        renderApp();
+        return;
+    }
+
+    // Assign Global Time Modal Project Selector
+    if (target.id === 'assign-time-project-select') {
+        const projectId = (target as HTMLSelectElement).value;
+        state.ui.modal.data.selectedProjectId = projectId;
         renderApp();
         return;
     }
