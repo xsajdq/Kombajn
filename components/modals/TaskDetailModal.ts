@@ -77,7 +77,7 @@ function renderActivityTab(task: Task) {
                 }
             }).join('') : `<p class="subtle-text">${t('modals.no_activity')}</p>`}
         </div>
-        <form id="add-comment-form" class="add-comment-form">
+        <form id="add-comment-form" data-task-id="${task.id}" class="add-comment-form">
             <div class="rich-text-input-container">
                 <div
                     id="task-comment-input"
@@ -378,7 +378,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                 </div>
 
                 <div class="task-detail-sidebar-section">
-                    <h4>People</h4>
+                    <h4>${t('modals.people')}</h4>
                     <div class="form-group">
                         <label>${t('modals.assignees')}</label>
                         <div class="multiselect-container" data-type="assignee" data-task-id="${task.id}">
@@ -388,6 +388,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                                 `: '').join('') : `<span class="subtle-text">${t('modals.unassigned')}</span>`}
                             </div>
                             <div class="multiselect-dropdown hidden">
+                                <div class="multiselect-list">
                                 ${workspaceMembers.map(user => `
                                     <label class="multiselect-list-item">
                                         <input type="checkbox" value="${user.id}" ${assignedUserIds.has(user.id) ? 'checked' : ''}>
@@ -395,6 +396,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                                         <span>${user.name || user.email}</span>
                                     </label>
                                 `).join('')}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -424,7 +426,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                 </div>
 
                 <div class="task-detail-sidebar-section">
-                    <h4>Dates</h4>
+                    <h4>${t('modals.dates')}</h4>
                     <div class="form-group">
                         <label>${t('modals.start_date')}</label>
                         <input type="date" class="form-control" data-field="startDate" value="${task.startDate || ''}" onchange="this.dispatchEvent(new Event('change', { bubbles: true }))" ${!canManage ? 'disabled' : ''}>

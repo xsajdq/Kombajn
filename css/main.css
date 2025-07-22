@@ -102,18 +102,43 @@
     @apply text-xs;
   }
 
-  /* == Task Detail Modal == */
+  /* == Redesigned Task Detail Modal == */
   .task-detail-modal-layout {
-    @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+    @apply grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-x-6;
   }
-  .task-detail-main {
-    @apply md:col-span-2;
+  .task-detail-main-header {
+    @apply flex justify-between items-start;
   }
-  .task-detail-sidebar {
-    @apply md:col-span-1 space-y-4;
+  .task-detail-title { @apply text-xl font-bold; }
+  .task-detail-description { @apply text-sm text-text-subtle mt-2 mb-4; }
+  .task-detail-tabs {
+    @apply flex border-b border-border-color my-4;
   }
+  .task-detail-tab {
+    @apply px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer;
+  }
+  .task-detail-tab.active {
+    @apply border-primary text-primary;
+  }
+  .task-detail-tab:not(.active) {
+    @apply border-transparent text-text-subtle hover:border-border-color hover:text-text-main;
+  }
+  .activity-feed { @apply space-y-4 max-h-96 overflow-y-auto pr-2 -mr-2 mb-4; }
+  .activity-item { @apply flex gap-3; }
+  .activity-item .avatar { @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0; }
+  .activity-content { @apply flex-1; }
+  .activity-header { @apply flex items-center gap-2 text-sm; }
+  .activity-time { @apply text-xs text-text-subtle; }
+  .activity-body { @apply mt-1 text-sm bg-background p-2 rounded-md; }
+  .timelog-comment { @apply text-sm text-text-subtle italic; }
+  .add-comment-form { @apply mt-4 flex flex-col gap-2; }
+  .rich-text-input-container { @apply bg-background border border-border-color rounded-lg focus-within:ring-2 focus-within:ring-primary; }
+  .rich-text-input { @apply w-full p-2 text-sm outline-none bg-transparent min-h-[60px]; }
+  .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
+  .add-comment-form button { @apply self-end; }
+  .task-detail-sidebar { @apply space-y-4; }
   .task-detail-sidebar-section {
-    @apply bg-background/50 p-3 rounded-lg;
+    @apply bg-background p-4 rounded-lg;
   }
   .task-detail-sidebar-section h4 {
     @apply font-semibold text-sm mb-3;
@@ -124,39 +149,36 @@
   .task-detail-sidebar-section .form-group label {
     @apply text-xs font-medium text-text-subtle mb-1 block;
   }
-  .task-detail-title { @apply text-xl font-bold; }
-  .task-detail-description { @apply text-sm text-text-subtle mt-2 mb-4; }
-  
-  /* Tabs in Task Detail */
-  .task-detail-tabs {
-    @apply flex border-b border-border-color mb-4;
+  .form-control {
+    @apply w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
   }
-  .task-detail-tab {
-    @apply px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors;
+  .multiselect-container {
+    @apply relative;
   }
-  .task-detail-tab.active {
-    @apply border-primary text-primary;
+  .multiselect-display {
+    @apply flex items-center gap-1 p-2 rounded-md bg-background border border-border-color cursor-pointer min-h-[40px];
   }
-  .task-detail-tab:not(.active) {
-    @apply border-transparent text-text-subtle hover:border-border-color hover:text-text-main;
+  .multiselect-display .avatar {
+     @apply w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold;
   }
-
-  /* Activity Feed in Task Detail */
-  .activity-feed { @apply space-y-4 max-h-96 overflow-y-auto pr-2 -mr-2 mb-4; }
-  .activity-item { @apply flex gap-3; }
-  .activity-item .avatar { @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0; }
-  .activity-content { @apply flex-1; }
-  .activity-header { @apply flex items-center gap-2 text-sm; }
-  .activity-time { @apply text-xs text-text-subtle; }
-  .activity-body { @apply mt-1 text-sm bg-background p-2 rounded-md; }
-
-  /* Add Comment Form */
-  .add-comment-form { @apply mt-4 flex flex-col gap-2; }
-  .rich-text-input-container { @apply bg-background border border-border-color rounded-lg focus-within:ring-2 focus-within:ring-primary; }
-  .rich-text-input { @apply w-full p-2 text-sm outline-none bg-transparent min-h-[60px]; }
-  .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
-  .add-comment-form button { @apply self-end; }
-
+  .multiselect-dropdown {
+    @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-10;
+  }
+  .multiselect-list {
+    @apply max-h-48 overflow-y-auto p-1;
+  }
+  .multiselect-list-item {
+    @apply flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer text-sm;
+  }
+  .multiselect-list-item input {
+    @apply w-4 h-4 rounded text-primary focus:ring-primary;
+  }
+  .multiselect-add-new {
+    @apply p-2 border-b border-border-color;
+  }
+  .tag-chip {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full border;
+  }
 
   /* == Tasks Page (Redesigned) == */
   .tasks-board-container {
@@ -273,14 +295,20 @@
   }
 
   /* Dashboard Edit Mode */
-  .dashboard-editing {
+  .dashboard-editing [data-widget-id] {
+    @apply relative;
+  }
+  .dashboard-widget-grid {
+    @apply grid gap-6;
+  }
+  .dashboard-editing .dashboard-widget-grid {
     @apply border-2 border-dashed border-border-color p-2 rounded-lg;
   }
   .remove-widget-btn {
-    @apply absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger z-10;
+    @apply absolute top-2 right-2 p-1 rounded-full bg-content text-text-subtle hover:bg-background hover:text-danger z-10;
   }
   .configure-widget-btn {
-    @apply absolute top-2 right-10 p-1 rounded-full text-text-subtle hover:bg-background hover:text-primary z-10;
+    @apply absolute top-2 right-10 p-1 rounded-full bg-content text-text-subtle hover:bg-background hover:text-primary z-10;
   }
   [data-widget-id][draggable="true"] {
     @apply cursor-move;
@@ -290,5 +318,224 @@
   }
   .drag-over {
     @apply outline-dashed outline-2 outline-offset-2 outline-primary;
+  }
+
+  .col-span-1 { grid-column: span 1 / span 1; }
+  .col-span-2 { grid-column: span 2 / span 2; }
+  .col-span-3 { grid-column: span 3 / span 3; }
+  .col-span-4 { grid-column: span 4 / span 4; }
+  .row-span-1 { grid-row: span 1 / span 1; }
+  .row-span-2 { grid-row: span 2 / span 2; }
+  
+  /* == Project Detail Panel (Redesigned) == */
+  .side-panel-header h2 {
+      @apply text-xl font-bold;
+  }
+  .side-panel-header .subtle-text {
+      @apply text-sm;
+  }
+  .project-header-menu {
+      @apply absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10;
+  }
+  .btn-menu-item {
+      @apply flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-background;
+  }
+  .side-panel-tabs {
+      @apply flex border-b border-border-color px-4 shrink-0;
+  }
+  .side-panel-tab {
+      @apply px-2 py-3 text-sm font-medium border-b-2 -mb-px cursor-pointer transition-colors;
+  }
+  .side-panel-tab.active {
+      @apply border-primary text-primary;
+  }
+  .side-panel-tab:not(.active) {
+      @apply border-transparent text-text-subtle hover:text-text-main;
+  }
+  
+  /* Overview Tab */
+  .project-overview-grid {
+      @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+  }
+  .kpi-card {
+      @apply bg-background p-4 rounded-lg space-y-2;
+  }
+  .kpi-label {
+      @apply text-xs font-medium text-text-subtle;
+  }
+  .kpi-value {
+      @apply text-xl font-semibold;
+  }
+  .kpi-value.overdue, .kpi-value.negative {
+      @apply text-danger;
+  }
+  .kpi-value.positive {
+      @apply text-success;
+  }
+  .kpi-progress-bar {
+      @apply w-full bg-border-color rounded-full h-2;
+  }
+  .kpi-progress-bar-inner {
+      @apply h-2 rounded-full bg-primary;
+  }
+  .kpi-progress-bar-inner.cost-bar {
+      @apply bg-warning;
+  }
+  .card {
+      @apply bg-content p-4 rounded-lg shadow-sm;
+  }
+  .project-wiki-view {
+      @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;
+  }
+  .project-wiki-view .subtle-text {
+      @apply not-prose;
+  }
+  
+  /* Tasks Tab */
+  .project-tasks-header {
+      @apply flex justify-end mb-4;
+  }
+  .project-tasks-list-modern {
+      @apply space-y-4;
+  }
+  .project-task-group-collapsible summary {
+      @apply cursor-pointer;
+  }
+  .task-group-title {
+      @apply text-sm font-semibold text-text-subtle uppercase tracking-wider mb-2;
+  }
+  .task-group-list {
+      @apply space-y-1;
+  }
+  .project-task-row {
+      @apply flex items-center gap-3 p-2 rounded-md hover:bg-background;
+  }
+  .task-name {
+      @apply flex-1 text-sm;
+  }
+  .task-name.is-done {
+      @apply line-through text-text-subtle;
+  }
+  .task-status-toggle .icon-sm.done {
+      @apply text-success;
+  }
+  .task-meta {
+      @apply flex items-center gap-3 text-xs text-text-subtle;
+  }
+  .avatar-stack .avatar {
+      @apply w-6 h-6 text-xs;
+  }
+  
+  /* Wiki Tab */
+  .project-wiki-container {
+      @apply p-4;
+  }
+  .project-wiki-toolbar {
+      @apply flex items-center mb-4;
+  }
+  .wiki-editor-layout {
+      @apply grid grid-cols-2 gap-4 border border-border-color rounded-lg;
+  }
+  .project-wiki-editor {
+      @apply w-full h-96 p-3 bg-background border-none rounded-l-lg focus:ring-0 resize-none font-mono text-sm;
+  }
+  .project-wiki-preview {
+      @apply w-full h-96 p-3 overflow-y-auto;
+  }
+  
+  /* Files Tab */
+  .attachment-list {
+      @apply space-y-2;
+  }
+  .attachment-item {
+      @apply flex items-center gap-3 p-2 rounded-md hover:bg-background;
+  }
+  .attachment-info {
+      @apply flex-1;
+  }
+  .attachment-info strong {
+      @apply text-sm font-medium;
+  }
+  .attachment-icon-external {
+      @apply w-6 h-6;
+  }
+  
+  /* Access Tab */
+  .team-member-list {
+      @apply space-y-1;
+  }
+  .team-member-item {
+      @apply flex items-center gap-3 p-2 rounded-md;
+  }
+  .member-info {
+      @apply flex-1;
+  }
+  .member-info strong {
+      @apply text-sm font-medium;
+  }
+  .member-actions {
+      @apply flex items-center gap-2;
+  }
+  .danger-icon {
+      @apply text-danger;
+  }
+  .invite-form-grid {
+      @apply grid grid-cols-[2fr,1fr] gap-4;
+  }
+  
+  /* OKRs Tab */
+  .okr-card {
+      @apply bg-background p-4 rounded-lg mb-4;
+  }
+  .okr-objective-header {
+      @apply flex items-start gap-4;
+  }
+  .okr-objective-icon {
+      @apply w-8 h-8 flex items-center justify-center rounded-full bg-primary/20 text-primary;
+  }
+  .okr-objective-details {
+      @apply flex-1;
+  }
+  .okr-objective-details h4 {
+      @apply font-semibold;
+  }
+  .okr-objective-details p {
+      @apply text-sm text-text-subtle;
+  }
+  .okr-objective-progress {
+      @apply w-40;
+  }
+  .progress-percentage {
+      @apply text-xs text-right text-text-subtle mt-1;
+  }
+  .key-results-list {
+      @apply mt-4 pl-12 space-y-3;
+  }
+  .key-result-item {
+      @apply flex justify-between items-center text-sm;
+  }
+  .kr-title {
+      @apply flex-1;
+  }
+  .kr-progress {
+      @apply flex items-center gap-2 w-48;
+  }
+  .kr-progress-bar {
+      @apply w-full bg-border-color rounded-full h-1.5 flex-1;
+  }
+  .kr-progress-bar-inner {
+      @apply h-1.5 rounded-full bg-primary;
+  }
+  .kr-value {
+      @apply font-semibold cursor-pointer;
+  }
+  .kr-progress-text {
+      @apply text-text-subtle;
+  }
+  .kr-current-value-edit {
+      @apply flex items-center;
+  }
+  .kr-current-value-edit input {
+      @apply w-16 p-0.5 text-sm text-right bg-background border border-border-color rounded-md;
   }
 }

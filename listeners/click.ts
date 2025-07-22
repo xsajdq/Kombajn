@@ -547,13 +547,13 @@ export async function handleClick(e: MouseEvent) {
         const tab = taskDetailTab.dataset.tab as any;
         if (tab && state.ui.taskDetail.activeTab !== tab) {
             state.ui.taskDetail.activeTab = tab;
-            const modalContent = document.querySelector('.modal-content .p-4, .modal-content .sm\\:p-6');
-            if (modalContent && state.ui.modal.data?.taskId) {
-                modalContent.innerHTML = TaskDetailModal({ taskId: state.ui.modal.data.taskId });
-            }
+            // A full app render is better here to ensure all state changes are reflected,
+            // even if it's slightly less performant. It's more reliable.
+            renderApp();
         }
         return;
     }
+
     const mentionItem = target.closest<HTMLElement>('.mention-item');
     if (mentionItem) {
         const userId = mentionItem.dataset.mentionId!;
