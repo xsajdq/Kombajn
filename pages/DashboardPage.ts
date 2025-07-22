@@ -11,40 +11,6 @@ import * as dashboardHandlers from '../handlers/dashboard.ts';
 declare const Chart: any;
 let charts: { [key: string]: any } = {};
 
-async function fetchDashboardData() {
-    if (!state.activeWorkspaceId || state.ui.dashboard.isLoading) return;
-
-    if (state.ui.dashboard.loadedWorkspaceId === state.activeWorkspaceId) {
-        initDashboardCharts(); // Re-initialize charts if data is already present
-        return;
-    }
-
-    state.ui.dashboard.isLoading = true;
-    renderApp(); 
-
-    try {
-        const data = await apiFetch(`/api/dashboard-data?workspaceId=${state.activeWorkspaceId}`);
-        
-        state.projects = data.projects || [];
-        state.tasks = data.tasks || [];
-        state.taskAssignees = data.taskAssignees || [];
-        state.timeLogs = data.timeLogs || [];
-        state.comments = data.comments || [];
-        state.clients = data.clients || [];
-        state.invoices = data.invoices || [];
-        state.calendarEvents = data.calendarEvents || [];
-        
-        state.ui.dashboard.loadedWorkspaceId = state.activeWorkspaceId;
-        
-    } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-        state.ui.dashboard.loadedWorkspaceId = null;
-    } finally {
-        state.ui.dashboard.isLoading = false;
-        renderApp();
-    }
-}
-
 function destroyCharts() {
     Object.values(charts).forEach(chart => chart.destroy());
     charts = {};
@@ -287,7 +253,7 @@ export function initDashboardCharts() {
 }
 
 export function DashboardPage() {
-    fetchDashboardData();
+    // Data for dashboard widgets is now loaded during bootstrap, so no extra fetch is needed here.
     const { currentUser, activeWorkspaceId } = state;
     if (!currentUser || !activeWorkspaceId) return '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 

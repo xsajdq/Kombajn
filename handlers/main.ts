@@ -5,51 +5,30 @@ import { renderApp } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 
-type PageName = 'clients' | 'invoices';
+type PageName = 'clients' | 'invoices' | 'projects' | 'tasks';
 
-function mergeData(data: any) {
-    // Merges data into state to prevent overwriting data from other pages
-    const dataMap = {
-        clients: new Map(state.clients.map(c => [c.id, c])),
-        projects: new Map(state.projects.map(p => [p.id, p])),
-        invoices: new Map(state.invoices.map(i => [i.id, i])),
-    };
-
-    (data.clients || []).forEach((client: Client) => {
-        const existingClient = dataMap.clients.get(client.id);
-        // Preserve existing contacts if the new data doesn't have them
-        client.contacts = client.contacts || existingClient?.contacts || [];
-        dataMap.clients.set(client.id, client);
-    });
-    (data.projects || []).forEach((project: Project) => dataMap.projects.set(project.id, project));
-    (data.invoices || []).forEach((invoice: Invoice) => {
-        const existingInvoice = dataMap.invoices.get(invoice.id);
-        // Ensure nested items are preserved if the new data doesn't contain them
-        invoice.items = invoice.items || existingInvoice?.items || [];
-        dataMap.invoices.set(invoice.id, invoice);
-    });
-
-
-    state.clients = Array.from(dataMap.clients.values());
-    state.projects = Array.from(dataMap.projects.values());
-    state.invoices = Array.from(dataMap.invoices.values());
-}
-
-
-export async function fetchClientsAndInvoicesData(pageName: PageName) {
-    const uiState = state.ui[pageName];
+async function fetchPageData(pageName: PageName, endpoint: string) {
+    const uiState = state.ui[pageName as keyof typeof state.ui] as any;
     if (!state.activeWorkspaceId || uiState.isLoading) return;
 
     if (uiState.loadedWorkspaceId === state.activeWorkspaceId) {
-        return; // Data already loaded for this workspace
+        return; 
     }
 
     uiState.isLoading = true;
     renderApp();
 
     try {
-        const data = await apiFetch(`/api/get-clients-page-data?workspaceId=${state.activeWorkspaceId}`);
-        mergeData(data);
+        const data = await apiFetch(`/api/${endpoint}?workspaceId=${state.activeWorkspaceId}`);
+        
+        Object.keys(data).forEach(key => {
+            if (Array.isArray(state[key as keyof typeof state])) {
+                const existingIds = new Set((state[key as keyof typeof state] as any[]).map(item => item.id));
+                const newData = (data[key] || []).filter((item: any) => !existingIds.has(item.id));
+                (state[key as keyof typeof state] as any[]).push(...newData);
+            }
+        });
+        
         uiState.loadedWorkspaceId = state.activeWorkspaceId;
     } catch (error) {
         console.error(`Failed to fetch ${pageName} data:`, error);
@@ -58,6 +37,19 @@ export async function fetchClientsAndInvoicesData(pageName: PageName) {
         uiState.isLoading = false;
         renderApp();
     }
+}
+
+export async function fetchClientsAndInvoicesData() {
+    await fetchPageData('clients', 'get-clients-page-data');
+    state.ui.invoices.loadedWorkspaceId = state.ui.clients.loadedWorkspaceId;
+}
+
+export async function fetchProjectsData() {
+    await fetchPageData('projects', 'projects-page-data');
+}
+
+export async function fetchTasksData() {
+    await fetchPageData('tasks', 'tasks-page-data');
 }
 
 

@@ -3,11 +3,20 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency } from '../utils.ts';
 import { can } from '../permissions.ts';
+import { fetchProjectsData } from '../handlers/main.ts';
 
 export function ProjectsPage() {
+    fetchProjectsData();
+
     const { activeWorkspaceId } = state;
     const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!activeWorkspace) return '';
+
+    if (state.ui.projects.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
 
     const usage = getUsage(activeWorkspace.id);
     const planLimits = PLANS[activeWorkspace.subscription.planId];

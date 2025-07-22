@@ -35,7 +35,7 @@ function getFilteredInvoices() {
 }
 
 export function InvoicesPage() {
-    fetchClientsAndInvoicesData('invoices');
+    fetchClientsAndInvoicesData();
 
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return '';

@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from '../utils.ts';
 import { fetchClientsAndInvoicesData } from '../handlers/main.ts';
 
 export function ClientsPage() {
-    fetchClientsAndInvoicesData('clients');
+    fetchClientsAndInvoicesData();
 
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';

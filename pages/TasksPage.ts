@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -5,7 +6,7 @@ import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
-import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
+import { getWorkspaceKanbanWorkflow, fetchTasksData } from '../handlers/main.ts';
 import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
 
 declare const Gantt: any;
@@ -309,6 +310,14 @@ export function initTasksPage() {
 }
 
 export function TasksPage() {
+    fetchTasksData();
+
+    if (state.ui.tasks.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
+
     const filteredTasks = getFilteredTasks();
     const activeWorkspaceId = state.activeWorkspaceId;
 
