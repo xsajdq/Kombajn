@@ -12,7 +12,7 @@ export async function initSupabase() {
     if (supabase) return;
 
     try {
-        const response = await fetch('/api/app-config');
+        const response = await fetch('/api?action=app-config');
         
         // Try to get a JSON body regardless of response status
         const responseBody = await response.json().catch(() => null);

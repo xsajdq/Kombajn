@@ -299,7 +299,7 @@ export async function handleAttachGoogleDriveFile(taskId: string) {
     if (!task) return;
 
     try {
-        const config = await apiFetch(`/api/app-config?action=token&provider=google_drive&workspaceId=${activeWorkspaceId}`);
+        const config = await apiFetch(`/api?action=token&provider=google_drive&workspaceId=${activeWorkspaceId}`);
         const { token, developerKey, clientId } = config;
 
         if (!token) {

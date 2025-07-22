@@ -1,6 +1,7 @@
 
+
 import { state } from '../state.ts';
-import { apiPost } from '../services/api.ts';
+import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel } from './ui.ts';
 import type { Project, Task, ProjectMember, AiSuggestedTask } from '../types.ts';
 
@@ -12,7 +13,10 @@ export async function handlePlanProjectWithAi(name: string, clientId: string, go
     }
     
     try {
-        const suggestedTasks = await apiPost('actions?action=plan-project', { goal });
+        const suggestedTasks = await apiFetch('/api?action=plan-project', {
+            method: 'POST',
+            body: JSON.stringify({ goal }),
+        });
 
         const projectData = {
             workspaceId: state.activeWorkspaceId,
