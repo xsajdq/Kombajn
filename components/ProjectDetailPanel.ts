@@ -77,7 +77,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 <div class="card" style="margin-top: 1.5rem;">
                     <h4>Project Wiki Preview</h4>
                     <div class="project-wiki-view">
-                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text not-prose">${t('panels.wiki_placeholder')}</p>`}
                     </div>
                 </div>
             </div>
@@ -198,7 +198,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
         const readView = `
             <div id="project-wiki-view" class="project-wiki-view" aria-live="polite">
-                ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+                ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text not-prose">${t('panels.wiki_placeholder')}</p>`}
             </div>
         `;
 
