@@ -391,14 +391,25 @@ export async function handleClick(e: MouseEvent) {
         }
         return;
     }
-
-    // Detail Panel Openers (Reverted Logic)
+    
+    // Detail Panel Openers (Modified Logic)
     const taskElement = target.closest<HTMLElement>('.task-card, .grid[data-task-id], .task-list-row[data-task-id], .project-task-row[data-task-id]');
     if (taskElement) {
+        // Exclude clicks on interactive elements within the task card/row
         if (target.closest('.task-card-menu-btn, .timer-controls, a, button, .task-status-toggle')) return;
-        uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
+
+        const taskId = taskElement.dataset.taskId!;
+        
+        // If the task is clicked inside the project panel, just open the modal without changing the page.
+        if (taskElement.matches('.project-task-row')) {
+            uiHandlers.showModal('taskDetail', { taskId });
+        } else {
+            // Otherwise (e.g., on the main tasks page), update the URL and show the modal.
+            uiHandlers.updateUrlAndShowDetail('task', taskId);
+        }
         return;
     }
+
 
     const projectListItem = target.closest<HTMLElement>('[data-project-id]');
     if (projectListItem) {

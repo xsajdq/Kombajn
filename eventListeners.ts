@@ -1,4 +1,5 @@
 
+
 import { handleMouseDown } from './listeners/focus.ts';
 import { handleKeydown } from './listeners/keydown.ts';
 import { handleInput } from './listeners/input.ts';
@@ -8,13 +9,18 @@ import { handleChange } from './listeners/change.ts';
 import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './listeners/dnd.ts';
 
 export function setupEventListeners() {
-    const app = document.getElementById('app')!;
-
-    app.addEventListener('mousedown', (e) => handleMouseDown(e as MouseEvent));
+    // By attaching to document, we can catch events on dynamically created elements
+    // like modals and context menus which are appended to the body.
+    document.addEventListener('mousedown', (e) => handleMouseDown(e as MouseEvent));
+    document.addEventListener('click', (e) => handleClick(e as MouseEvent));
+    
+    // Keydown should be global anyway.
     window.addEventListener('keydown', (e) => handleKeydown(e as KeyboardEvent));
+
+    // These can stay on #app as they are mostly for form elements within the main container.
+    const app = document.getElementById('app')!;
     app.addEventListener('input', (e) => handleInput(e as Event));
     app.addEventListener('submit', (e) => handleSubmit(e as SubmitEvent));
-    app.addEventListener('click', (e) => handleClick(e as MouseEvent));
     app.addEventListener('change', (e) => handleChange(e as Event));
 
     // Drag and Drop for Kanban board & Dashboard widgets

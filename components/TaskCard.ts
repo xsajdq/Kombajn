@@ -5,7 +5,12 @@ import type { Task } from '../types.ts';
 
 function getPriorityClass(priority: Task['priority']): string {
     if (!priority) return '';
-    return `priority-${priority}`;
+    const priorityMap: Record<Task['priority'] & string, string> = {
+        high: 'bg-danger/10 text-danger',
+        medium: 'bg-warning/10 text-warning',
+        low: 'bg-primary/10 text-primary',
+    };
+    return priorityMap[priority] || '';
 }
 
 export function renderTaskCard(task: Task) {

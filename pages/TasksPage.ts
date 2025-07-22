@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -124,7 +125,7 @@ function renderBoardView(filteredTasks: Task[]) {
     const boardHtml = columnsToRender.map(renderColumn).join('');
         
     return `
-    <div class="flex-1 overflow-x-auto tasks-board-scroller">
+    <div class="flex-1 overflow-y-auto">
         <div class="tasks-board-container">
             ${boardHtml}
         </div>

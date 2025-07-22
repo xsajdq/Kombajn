@@ -215,10 +215,10 @@
 
   /* == Tasks Page (Redesigned) == */
   .tasks-board-container {
-    @apply inline-flex h-full space-x-4 p-1;
+    @apply grid grid-cols-5 gap-4 h-full;
   }
   .tasks-board-column {
-    @apply flex-shrink-0 w-80 h-full flex flex-col bg-transparent;
+    @apply flex flex-col bg-transparent;
   }
   .tasks-board-column-header {
     @apply px-3 pt-3 pb-2 font-semibold text-text-main flex justify-between items-center;
@@ -241,25 +241,6 @@
   .tasks-board-column-body::-webkit-scrollbar-thumb:hover {
     background-color: rgba(var(--subtle-text-color-rgb), 0.6);
   }
-
-  .tasks-board-scroller {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--subtle-text-color-rgb), 0.4) transparent;
-  }
-  .tasks-board-scroller::-webkit-scrollbar {
-    height: 8px;
-  }
-  .tasks-board-scroller::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .tasks-board-scroller::-webkit-scrollbar-thumb {
-    background-color: rgba(var(--subtle-text-color-rgb), 0.4);
-    border-radius: 4px;
-  }
-  .tasks-board-scroller::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(var(--subtle-text-color-rgb), 0.6);
-  }
-
 
   /* Redesigned Task Card */
   .task-card {
@@ -285,9 +266,6 @@
   .task-card-priority {
     @apply self-start px-2 py-0.5 text-xs font-semibold rounded-full;
   }
-  .priority-high { @apply bg-danger/10 text-danger; }
-  .priority-medium { @apply bg-warning/10 text-warning; }
-  .priority-low { @apply bg-primary/10 text-primary; }
   
   /* Tags */
   .task-card-tags {
