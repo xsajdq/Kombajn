@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
@@ -41,6 +40,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         const profitability = (budgetCost && actualCost != null) ? budgetCost - actualCost : null;
 
         const profitabilityClass = profitability === null ? '' : (profitability >= 0 ? 'positive' : 'negative');
+        const hasWikiContent = !!project.wikiContent;
         
         return `
             <div class="side-panel-content">
@@ -76,8 +76,8 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 </div>
                 <div class="card" style="margin-top: 1.5rem;">
                     <h4>Project Wiki Preview</h4>
-                    <div class="project-wiki-view not-prose">
-                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
+                    <div class="project-wiki-view ${!hasWikiContent ? 'not-prose' : ''}">
+                         ${hasWikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
                     </div>
                 </div>
             </div>
@@ -162,6 +162,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
     const renderWikiTab = () => {
         const { isWikiEditing } = state.ui;
+        const hasWikiContent = !!project.wikiContent;
 
         const editControls = `
             <button id="cancel-wiki-edit-btn" class="btn btn-secondary btn-sm">${t('modals.cancel')}</button>
@@ -197,8 +198,8 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         `;
 
         const readView = `
-            <div id="project-wiki-view" class="project-wiki-view" aria-live="polite">
-                ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text not-prose">${t('panels.wiki_placeholder')}</p>`}
+            <div id="project-wiki-view" class="project-wiki-view ${!hasWikiContent ? 'not-prose' : ''}" aria-live="polite">
+                ${hasWikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
             </div>
         `;
 
