@@ -3,6 +3,11 @@ import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import type { Task } from '../types.ts';
 
+function getPriorityClass(priority: Task['priority']): string {
+    if (!priority) return '';
+    return `priority-${priority}`;
+}
+
 export function renderTaskCard(task: Task) {
     const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
@@ -16,7 +21,7 @@ export function renderTaskCard(task: Task) {
         .map(tt => state.tags.find(tag => tag.id === tt.tagId))
         .filter(Boolean);
 
-    const priorityClass = task.priority ? `priority-${task.priority}` : '';
+    const priorityClass = getPriorityClass(task.priority);
 
     return `
         <div class="task-card" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">

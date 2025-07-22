@@ -226,7 +226,7 @@
   .tasks-board-column-body {
     @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-2 -mx-2;
     scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
+    scrollbar-color: rgba(var(--subtle-text-color-rgb), 0.4) transparent;
   }
   .tasks-board-column-body::-webkit-scrollbar {
     width: 6px;
@@ -235,9 +235,31 @@
     background: transparent;
   }
   .tasks-board-column-body::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
+    background-color: rgba(var(--subtle-text-color-rgb), 0.4);
     border-radius: 3px;
   }
+  .tasks-board-column-body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(var(--subtle-text-color-rgb), 0.6);
+  }
+
+  .tasks-board-scroller {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--subtle-text-color-rgb), 0.4) transparent;
+  }
+  .tasks-board-scroller::-webkit-scrollbar {
+    height: 8px;
+  }
+  .tasks-board-scroller::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .tasks-board-scroller::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--subtle-text-color-rgb), 0.4);
+    border-radius: 4px;
+  }
+  .tasks-board-scroller::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(var(--subtle-text-color-rgb), 0.6);
+  }
+
 
   /* Redesigned Task Card */
   .task-card {
