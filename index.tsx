@@ -59,6 +59,24 @@ export async function fetchInitialData(session: Session) {
     const newNotificationsFromFetch = (data.notifications || []).filter((n: Notification) => !existingNotificationIds.has(n.id));
     state.notifications.push(...newNotificationsFromFetch);
 
+    // Populate all operational data
+    state.projects = data.projects || [];
+    state.tasks = data.tasks || [];
+    state.clients = data.clients || [];
+    state.deals = data.deals || [];
+    state.timeLogs = data.timeLogs || [];
+    state.comments = data.comments || [];
+    state.taskAssignees = data.taskAssignees || [];
+    state.tags = data.tags || [];
+    state.taskTags = data.taskTags || [];
+    state.objectives = data.objectives || [];
+    state.keyResults = data.keyResults || [];
+    state.dealNotes = data.dealNotes || [];
+    state.invoices = data.invoices || [];
+    state.expenses = data.expenses || [];
+    state.projectMembers = data.projectMembers || [];
+    state.dependencies = data.dependencies || [];
+
     // Set the active workspace based on the current user's memberships
     console.log("Determining active workspace...");
     const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
@@ -73,6 +91,16 @@ export async function fetchInitialData(session: Session) {
             localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId);
         }
         console.log("Active workspace set to:", state.activeWorkspaceId);
+
+        // Since we loaded all data, mark pages as loaded for this workspace
+        const loadedId = state.activeWorkspaceId;
+        state.ui.dashboard.loadedWorkspaceId = loadedId;
+        state.ui.projects.loadedWorkspaceId = loadedId;
+        state.ui.tasks.loadedWorkspaceId = loadedId;
+        state.ui.clients.loadedWorkspaceId = loadedId;
+        state.ui.invoices.loadedWorkspaceId = loadedId;
+        state.ui.sales.loadedWorkspaceId = loadedId;
+
         
         // If user is on the auth/setup page but has workspaces, redirect to dashboard.
         if (state.currentPage === 'auth' || state.currentPage === 'setup') {
