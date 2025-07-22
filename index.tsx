@@ -17,7 +17,7 @@ export async function fetchInitialData(session: Session) {
     console.log("Fetching initial data from server via bootstrap...");
     
     console.log("Bootstrap API call started.");
-    const data = await apiFetch('/api/bootstrap', {}, session);
+    const data = await apiFetch('/api?action=bootstrap', {}, session);
     console.log("Bootstrap API call finished. Data received:", !!data);
 
     if (!data) {

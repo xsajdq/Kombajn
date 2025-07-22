@@ -14,7 +14,7 @@ export async function handleAiTaskGeneration(promptText: string) {
     renderApp();
 
     try {
-        const response = await apiFetch('/api/actions?action=generate-tasks', {
+        const response = await apiFetch('/api?action=generate-tasks', {
             method: 'POST',
             body: JSON.stringify({ promptText }),
         });
@@ -151,7 +151,7 @@ export function generateInvoicePDF(invoiceId: string) {
 
 export async function sendSlackNotification(userId: string, message: string, workspaceId: string) {
     try {
-        await apiFetch('/api/actions?action=notify-slack', {
+        await apiFetch('/api?action=notify-slack', {
             method: 'POST',
             body: JSON.stringify({ userId, message, workspaceId }),
         });
