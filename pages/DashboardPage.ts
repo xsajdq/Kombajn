@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -84,7 +83,7 @@ function renderRecentProjectsWidget(widget: DashboardWidget, isEditing: boolean)
 
     return `
         <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="flex justify-between items-center mb-4">
                 <h4 class="font-semibold text-md">${t('dashboard.widget_recent_projects_title')}</h4>
                 <a href="/projects" class="text-sm text-primary hover:underline">${t('dashboard.view_all')}</a>
@@ -117,7 +116,7 @@ function renderTodaysTasksWidget(widget: DashboardWidget, isEditing: boolean) {
 
     return `
          <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="flex justify-between items-center mb-4">
                 <h4 class="font-semibold text-md">${t('dashboard.widget_todays_tasks_title')}</h4>
                 <a href="/tasks" class="text-sm text-primary hover:underline">${t('dashboard.view_all')}</a>
@@ -162,7 +161,7 @@ function renderActivityFeedWidget(widget: DashboardWidget, isEditing: boolean) {
     
     return `
         <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
              <div class="flex justify-between items-center mb-4">
                 <h4 class="font-semibold text-md">${t('dashboard.widget_activity_feed_title')}</h4>
             </div>
@@ -196,7 +195,7 @@ function renderScheduleWidget(widget: DashboardWidget, isEditing: boolean) {
     });
     return `
         <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="flex items-center gap-2 mb-2"><span class="material-icons-sharp text-blue-500">calendar_month</span><h4 class="font-semibold text-md text-blue-800 dark:text-blue-200">${t('dashboard.widget_schedule_title')}</h4></div>
             <p class="text-sm text-blue-700 dark:text-blue-300 flex-grow">You have ${meetingsToday.length} meetings scheduled for today</p>
             <a href="/team-calendar" class="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline self-start mt-2">View Calendar &rarr;</a>
@@ -212,7 +211,7 @@ function renderAlertsWidget(widget: DashboardWidget, isEditing: boolean) {
 
     return `
         <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="flex items-center gap-2 mb-2"><span class="material-icons-sharp text-amber-500">warning</span><h4 class="font-semibold text-md text-amber-800 dark:text-amber-200">${t('dashboard.widget_alerts_title')}</h4></div>
             <p class="text-sm text-amber-700 dark:text-amber-300 flex-grow">${overdueProjects} projects need attention</p>
             <a href="/projects" class="text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline self-start mt-2">View Alerts &rarr;</a>
@@ -223,7 +222,7 @@ function renderAlertsWidget(widget: DashboardWidget, isEditing: boolean) {
 function renderWeeklyPerformanceWidget(widget: DashboardWidget, isEditing: boolean) {
     return `
         <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="flex justify-between items-center mb-4">
                 <h4 class="font-semibold text-md">${t('dashboard.widget_weekly_performance_title')}</h4>
                 <a href="/reports" class="text-sm text-primary hover:underline">Full Report</a>
@@ -257,7 +256,7 @@ function renderWeeklyPerformanceWidget(widget: DashboardWidget, isEditing: boole
 function renderQuickActionsWidget(widget: DashboardWidget, isEditing: boolean) {
     return `
         <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
-             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+             ${isEditing ? `<button class="absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 h-full">
                 <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addProject"><span class="material-icons-sharp text-3xl text-indigo-500 mb-2">add_business</span><span class="text-sm font-medium">${t('dashboard.action_new_project')}</span></button>
                 <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors" data-modal-target="addClient"><span class="material-icons-sharp text-3xl text-green-500 mb-2">person_add</span><span class="text-sm font-medium">${t('dashboard.action_add_client')}</span></button>
@@ -305,7 +304,7 @@ function renderOverviewTab() {
             ${renderKpiMetric(t('dashboard.kpi_total_clients'), `${totalClients}`, 8, t('dashboard.vs_last_month'), 'people', '#f3e8ff', '#9333ea')}
             ${renderKpiMetric(t('dashboard.kpi_overdue_projects'), `${overdueProjects}`, -5.2, t('dashboard.vs_last_month'), 'error', '#fee2e2', '#ef4444')}
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 ${isEditing ? 'border-2 border-dashed border-border-color p-2 rounded-lg' : ''}" id="dashboard-widget-area">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 ${isEditing ? 'dashboard-editing' : ''}" id="dashboard-widget-area">
             ${userWidgets.map(renderWidget).join('')}
         </div>
     `;
@@ -354,9 +353,6 @@ export function DashboardPage() {
                     <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
                        <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
                        ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
-                    </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" id="dashboard-quick-actions-btn">
-                        <span class="material-icons-sharp text-base">bolt</span> Quick Actions
                     </button>
                 </div>
             </div>

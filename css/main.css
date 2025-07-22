@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -270,5 +271,22 @@
   }
   .task-menu-item.danger .material-icons-sharp {
     @apply text-danger;
+  }
+
+  /* Dashboard Edit Mode */
+  .dashboard-editing {
+    @apply border-2 border-dashed border-border-color p-2 rounded-lg;
+  }
+  .remove-widget-btn {
+    @apply absolute top-2 right-2 p-1 rounded-full text-text-subtle hover:bg-background hover:text-danger z-10;
+  }
+  [data-widget-id][draggable="true"] {
+    @apply cursor-move;
+  }
+  [data-widget-id].dragging {
+    @apply opacity-50;
+  }
+  [data-widget-id].drag-over {
+    @apply outline-dashed outline-2 outline-offset-2 outline-primary;
   }
 }

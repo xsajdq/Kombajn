@@ -267,6 +267,30 @@ export function Modal() {
         `;
     }
 
+    if (state.ui.modal.type === 'addWidget') {
+        title = t('modals.add_widget');
+        footer = `<button class="btn-close-modal">${t('modals.cancel')}</button>`;
+        const widgetTypes: { type: DashboardWidgetType, icon: string, name: string }[] = [
+            { type: 'recentProjects', icon: 'folder', name: t('dashboard.widget_recent_projects_title') },
+            { type: 'todaysTasks', icon: 'checklist', name: t('dashboard.widget_todays_tasks_title') },
+            { type: 'activityFeed', icon: 'history', name: t('dashboard.widget_activity_feed_title') },
+            { type: 'quickActions', icon: 'bolt', name: t('dashboard.widget_quick_actions_title') },
+            { type: 'schedule', icon: 'calendar_month', name: t('dashboard.widget_schedule_title') },
+            { type: 'alerts', icon: 'warning', name: t('dashboard.widget_alerts_title') },
+            { type: 'weeklyPerformance', icon: 'show_chart', name: t('dashboard.widget_weekly_performance_title') },
+        ];
+        body = `
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                ${widgetTypes.map(w => `
+                    <button class="flex flex-col items-center justify-center p-4 bg-background hover:bg-border-color rounded-lg transition-colors text-center" data-add-widget-type="${w.type}">
+                        <span class="material-icons-sharp text-3xl text-primary mb-2">${w.icon}</span>
+                        <span class="text-sm font-medium">${w.name}</span>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    }
+
     // Other modals will still work but will look unstyled until they are refactored.
     if (state.ui.modal.type === 'taskDetail') {
         const task = state.tasks.find(t => t.id === modalData.taskId);

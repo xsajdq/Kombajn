@@ -48,7 +48,7 @@ export async function fetchClientsAndInvoicesData(pageName: PageName) {
     renderApp();
 
     try {
-        const data = await apiFetch(`/api/clients-page-data?workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api/get-clients-page-data?workspaceId=${state.activeWorkspaceId}`);
         mergeData(data);
         uiState.loadedWorkspaceId = state.activeWorkspaceId;
     } catch (error) {

@@ -165,6 +165,21 @@ export async function handleClick(e: MouseEvent) {
     }
     // --- END TASK MENU LOGIC ---
 
+    // Dashboard Edit Mode
+    if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
+    if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
+    const addWidgetBtn = target.closest<HTMLElement>('[data-add-widget-type]');
+    if (addWidgetBtn) {
+        dashboardHandlers.addWidget(addWidgetBtn.dataset.addWidgetType as DashboardWidgetType);
+        return;
+    }
+    const removeWidgetBtn = target.closest<HTMLElement>('.remove-widget-btn');
+    if (removeWidgetBtn) {
+        dashboardHandlers.removeWidget(removeWidgetBtn.dataset.removeWidgetId!);
+        return;
+    }
+
+
     // Client Modal: Add/Remove Contact Rows
     const addContactBtn = target.closest('#add-contact-row-btn');
     if (addContactBtn) {

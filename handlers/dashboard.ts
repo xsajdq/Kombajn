@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
@@ -91,7 +90,7 @@ export async function handleWidgetConfigSave(widgetId: string) {
 let draggedWidgetId: string | null = null;
 
 export function handleWidgetDragStart(e: DragEvent) {
-    const target = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
+    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-widget-id]');
     if (!target || !state.ui.dashboard.isEditing) return;
     draggedWidgetId = target.dataset.widgetId!;
     setTimeout(() => target.classList.add('dragging'), 0);
@@ -99,17 +98,17 @@ export function handleWidgetDragStart(e: DragEvent) {
 }
 
 export function handleWidgetDragEnd(e: DragEvent) {
-    document.querySelectorAll('.widget-container.dragging').forEach(el => el.classList.remove('dragging'));
-    document.querySelectorAll('.widget-container.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('[data-widget-id].dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('[data-widget-id].drag-over').forEach(el => el.classList.remove('drag-over'));
     draggedWidgetId = null;
 }
 
 export function handleWidgetDragOver(e: DragEvent) {
     e.preventDefault();
     if (!state.ui.dashboard.isEditing || !draggedWidgetId) return;
-    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('[data-widget-id]');
     if (dropTargetElement && dropTargetElement.dataset.widgetId !== draggedWidgetId) {
-        document.querySelectorAll('.widget-container.drag-over').forEach(el => el.classList.remove('drag-over'));
+        document.querySelectorAll('[data-widget-id].drag-over').forEach(el => el.classList.remove('drag-over'));
         dropTargetElement.classList.add('drag-over');
     }
 }
@@ -117,7 +116,7 @@ export function handleWidgetDragOver(e: DragEvent) {
 export async function handleWidgetDrop(e: DragEvent) {
     e.preventDefault();
     if (!state.ui.dashboard.isEditing) return;
-    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('.widget-container');
+    const dropTargetElement = (e.target as HTMLElement).closest<HTMLElement>('[data-widget-id]');
     if (!dropTargetElement || !draggedWidgetId) return;
 
     const dropTargetId = dropTargetElement.dataset.widgetId!;
