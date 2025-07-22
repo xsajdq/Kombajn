@@ -5,9 +5,9 @@ import { renderApp } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 
-type PageName = 'clients' | 'invoices' | 'projects' | 'tasks';
+type PageName = 'clients' | 'invoices' | 'projects' | 'tasks' | 'sales';
 
-async function fetchPageData(pageName: PageName, endpoint: string) {
+async function fetchPageData(pageName: PageName, action: string) {
     const uiState = state.ui[pageName as keyof typeof state.ui] as any;
     if (!state.activeWorkspaceId || uiState.isLoading) return;
 
@@ -19,10 +19,12 @@ async function fetchPageData(pageName: PageName, endpoint: string) {
     renderApp();
 
     try {
-        const data = await apiFetch(`/api?action=${endpoint}&workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api?action=${action}&workspaceId=${state.activeWorkspaceId}`);
         
         Object.keys(data).forEach(key => {
             if (Array.isArray(state[key as keyof typeof state])) {
+                // This logic merges data fetched for a page into the global state.
+                // It avoids duplicates by checking IDs.
                 const existingIds = new Set((state[key as keyof typeof state] as any[]).map(item => item.id));
                 const newData = (data[key] || []).filter((item: any) => !existingIds.has(item.id));
                 (state[key as keyof typeof state] as any[]).push(...newData);
@@ -40,7 +42,8 @@ async function fetchPageData(pageName: PageName, endpoint: string) {
 }
 
 export async function fetchClientsAndInvoicesData() {
-    await fetchPageData('clients', 'get-clients-page-data');
+    await fetchPageData('clients', 'clients-page-data');
+    // Since the same endpoint fetches data for both, we can sync their loaded status.
     state.ui.invoices.loadedWorkspaceId = state.ui.clients.loadedWorkspaceId;
 }
 
