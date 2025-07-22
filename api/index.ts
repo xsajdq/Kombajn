@@ -57,6 +57,7 @@ function convertKeys(obj: any, converter: (key: string) => string): any {
 const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);
 const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
 
+
 // ============================================================================
 // AUTH CALLBACK HELPER
 // ============================================================================
@@ -190,11 +191,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         if (!req.body) return res.status(400).json({ error: 'Request body is required for DELETE operation.' });
                         if (resource === 'task_assignees') {
                             const { taskId, userId } = req.body;
-                            const { error } = await supabase.from('task_assignees').delete().match({ task_id: keysToSnake(taskId), user_id: keysToSnake(userId) });
+                            const { error } = await supabase.from('task_assignees').delete().match({ task_id: taskId, user_id: userId });
                             if (error) throw error;
                         } else if (resource === 'task_tags') {
                             const { taskId, tagId } = req.body;
-                            const { error } = await supabase.from('task_tags').delete().match({ task_id: keysToSnake(taskId), tag_id: keysToSnake(tagId) });
+                            const { error } = await supabase.from('task_tags').delete().match({ task_id: taskId, tag_id: tagId });
                             if (error) throw error;
                         } else {
                             const { id } = req.body;
@@ -320,8 +321,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 if (!deals || deals.length === 0) return res.status(200).json(keysToCamel({ deals: [], clients: [], users: [] }));
 
-                const clientIds = [...new Set(deals.map((d: { client_id: string }) => d.client_id))];
-                const ownerIds = [...new Set(deals.map((d: { owner_id: string }) => d.owner_id))];
+                const clientIds = [...new Set(deals.map((d: any) => d.client_id))];
+                const ownerIds = [...new Set(deals.map((d: any) => d.owner_id))];
 
                 const [clientsRes, usersRes] = await Promise.all([
                     supabase.from('clients').select('*, client_contacts(*)').in('id', clientIds),
@@ -334,6 +335,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).json(keysToCamel({
                     deals: deals, clients: clientsRes.data || [], users: usersRes.data || [],
                 }));
+            }
+             // ============================================================================
+            // CONFIG HANDLER
+            // ============================================================================
+            case 'app-config': {
+                if (req.method !== 'GET') return res.status(405).json({ error: "Method Not Allowed" });
+                
+                const supabaseUrl = process.env.SUPABASE_URL;
+                const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+                if (!supabaseUrl || !supabaseAnonKey) {
+                    return res.status(500).json({ error: 'Server configuration error: Supabase credentials missing.' });
+                }
+
+                return res.status(200).json({ supabaseUrl, supabaseAnonKey });
+            }
+            case 'token': { // Integration token handler
+                 if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const { provider, workspaceId } = req.query;
+                if (!provider || !workspaceId) return res.status(400).json({ error: 'Provider and Workspace ID are required.' });
+                
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
+
+                const { data: integration, error: dbError } = await supabase.from('integrations').select('*').eq('workspace_id', workspaceId).eq('provider', provider).single();
+                if (dbError || !integration || !integration.is_active) return res.status(404).json({ error: 'Active integration not found.' });
+
+                let accessToken = integration.settings.accessToken;
+                const refreshToken = integration.settings.refreshToken;
+                const tokenExpiry = integration.settings.tokenExpiry;
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+
+                if (provider === 'google_drive' && tokenExpiry && refreshToken && nowInSeconds >= tokenExpiry - 60) {
+                    const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            client_id: process.env.GOOGLE_CLIENT_ID!,
+                            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+                            refresh_token: refreshToken,
+                            grant_type: 'refresh_token',
+                        }),
+                    });
+                    const refreshedTokenData = await refreshResponse.json();
+                    if (!refreshResponse.ok) throw new Error('Failed to refresh Google token.');
+                    accessToken = refreshedTokenData.access_token;
+                    const newSettings = { ...integration.settings, accessToken, tokenExpiry: nowInSeconds + refreshedTokenData.expires_in };
+                    await supabase.from('integrations').update({ settings: newSettings }).eq('id', integration.id);
+                }
+                
+                return res.status(200).json({ token: accessToken, developerKey: process.env.GOOGLE_API_KEY, clientId: process.env.GOOGLE_CLIENT_ID });
             }
 
             // ============================================================================
@@ -405,7 +460,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 return res.status(200).send(renderClosingPage(true, undefined, 'google_drive'));
             }
-            // Other auth handlers would go here...
+             case 'auth-connect-slack': {
+                const { workspaceId } = req.query;
+                if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
+                const clientId = process.env.SLACK_CLIENT_ID;
+                if (!clientId) return res.status(500).json({ error: 'Slack Client ID not configured on server.' });
+                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-slack`;
+                const userScopes = ['chat:write', 'users:read', 'users:read.email'];
+                const authUrl = new URL('https://slack.com/oauth/v2/authorize');
+                authUrl.searchParams.set('client_id', clientId);
+                authUrl.searchParams.set('redirect_uri', redirectUri);
+                authUrl.searchParams.set('user_scope', userScopes.join(' '));
+                authUrl.searchParams.set('state', workspaceId as string);
+                return res.redirect(302, authUrl.toString());
+            }
+            case 'auth-callback-slack': {
+                const { code, state: workspaceId, error: authError } = req.query;
+                if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'slack'));
+                if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'slack'));
+                
+                const token = req.cookies['sb-access-token'];
+                if (!token) return res.status(401).send(renderClosingPage(false, 'User session not found.', 'slack'));
+                const supabaseUserClient = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } });
+                const { data: { user } } = await supabaseUserClient.auth.getUser();
+
+                if (!user) return res.status(401).send(renderClosingPage(false, 'Invalid user session.', 'slack'));
+
+                const supabaseAdmin = getSupabaseAdmin();
+                const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ code: code as string, client_id: process.env.SLACK_CLIENT_ID!, client_secret: process.env.SLACK_CLIENT_SECRET! }),
+                });
+                const tokenData = await tokenResponse.json();
+                if (!tokenData.ok) throw new Error(tokenData.error || 'Failed to fetch access token from Slack.');
+                
+                const { authed_user, team } = tokenData;
+                await supabaseAdmin.from('profiles').update({ slack_user_id: authed_user.id }).eq('id', user.id);
+                await supabaseAdmin.from('integrations').upsert({
+                    provider: 'slack', workspace_id: workspaceId, is_active: true,
+                    settings: { accessToken: authed_user.access_token, slackWorkspaceName: team.name, slackTeamId: team.id },
+                }, { onConflict: 'workspace_id, provider' });
+
+                return res.status(200).send(renderClosingPage(true, undefined, 'slack'));
+            }
 
             // ============================================================================
             // AI & ACTION HANDLERS
@@ -417,10 +515,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!process.env.API_KEY) return res.status(500).json({ error: 'Server configuration error: Missing Google AI API key.' });
 
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const systemInstruction = `You are an expert project manager...`;
-                const userPrompt = `Generate a list of tasks for the following project: "${promptText}".`;
-
-                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: userPrompt, config: { systemInstruction, responseMimeType: "application/json" } });
+                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `Generate a list of tasks for the following project: "${promptText}".`, config: { 
+                    systemInstruction: `You are an expert project manager... respond ONLY with a valid JSON array of objects...`,
+                    responseMimeType: "application/json" 
+                }});
                 let jsonStr = (response.text || '').trim().replace(/^```(\w*)?\s*\n?(.*?)\n?\s*```$/s, '$2');
                 return res.status(200).json(JSON.parse(jsonStr));
             }
@@ -438,7 +536,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }});
                 return res.status(200).json(JSON.parse((response.text || '').trim()));
             }
-            // Other action handlers...
+            case 'notify-slack': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const { userId, message, workspaceId } = req.body;
+                
+                const { data: user } = await supabase.from('profiles').select('slack_user_id').eq('id', userId).single();
+                const { data: integration } = await supabase.from('integrations').select('settings').eq('workspace_id', workspaceId).eq('provider', 'slack').single();
+                
+                if (user?.slack_user_id && integration?.settings?.accessToken) {
+                    await fetch('https://slack.com/api/chat.postMessage', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${integration.settings.accessToken}` },
+                        body: JSON.stringify({ channel: user.slack_user_id, text: message }),
+                    });
+                }
+                return res.status(200).json({ success: true });
+            }
+            case 'save-workspace-prefs': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
+
+                const { workspaceId, workflow } = req.body;
+                if (!workspaceId || !workflow || !['simple', 'advanced'].includes(workflow)) return res.status(400).json({ error: 'Invalid request body.' });
+
+                const { data: member, error: memberError } = await supabase.from('workspace_members').select('role').eq('user_id', user.id).eq('workspace_id', workspaceId).single();
+                if (memberError || !member || !['owner', 'admin'].includes(member.role)) return res.status(403).json({ error: 'Permission denied.' });
+                
+                const { data: existing } = await supabase.from('integrations').select('settings').eq('workspace_id', workspaceId).eq('provider', 'internal_settings').single();
+                const newSettings = { ...(existing?.settings || {}), defaultKanbanWorkflow: workflow };
+
+                const { data, error } = await supabase.from('integrations').upsert({ workspace_id: workspaceId, provider: 'internal_settings', is_active: false, settings: newSettings }, { onConflict: 'workspace_id, provider' }).select().single();
+                if (error) throw error;
+                
+                return res.status(200).json({ success: true, data: keysToCamel(data) });
+            }
 
             default:
                 return res.status(404).json({ error: `Action '${action}' not found.` });
