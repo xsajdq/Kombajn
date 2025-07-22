@@ -49,17 +49,45 @@ export function handleChange(e: Event) {
         }
     }
     
-    // Multi-select checkbox handling
-    const multiSelectCheckbox = target.closest<HTMLInputElement>('.multiselect-list-item input[type="checkbox"]');
-    if (multiSelectCheckbox) {
-        const container = multiSelectCheckbox.closest<HTMLElement>('.multiselect-container');
-        if (container) {
-            const type = container.dataset.type;
-            const taskId = container.dataset.taskId;
-            if (taskId && type === 'assignee') {
-                taskHandlers.handleToggleAssignee(taskId, multiSelectCheckbox.value);
-            } else if (taskId && type === 'tag') {
-                taskHandlers.handleToggleTag(taskId, multiSelectCheckbox.value);
+    // Multi-select checkbox handling for assignees in Add Task modal
+    const assigneeCheckbox = target.closest<HTMLInputElement>('#taskAssigneesSelector input[type="checkbox"]');
+    if (assigneeCheckbox) {
+        const container = document.getElementById('taskAssigneesSelector');
+        const display = container?.querySelector('.multiselect-display');
+        if (container && display) {
+            const checkedBoxes = container.querySelectorAll<HTMLInputElement>('input:checked');
+            display.innerHTML = ''; // Clear current display
+            if (checkedBoxes.length > 0) {
+                checkedBoxes.forEach(cb => {
+                    const user = state.users.find(u => u.id === cb.value);
+                    if(user) {
+                        display.innerHTML += `<div class="avatar" title="${user.name || user.initials}">${user.initials || '?'}</div>`;
+                    }
+                });
+            } else {
+                display.innerHTML = `<span class="subtle-text">Unassigned</span>`;
+            }
+        }
+        return;
+    }
+
+    // Multi-select checkbox handling for tags in Add Task modal
+    const tagCheckbox = target.closest<HTMLInputElement>('#taskTagsSelector input[type="checkbox"]');
+    if (tagCheckbox) {
+        const container = document.getElementById('taskTagsSelector');
+        const display = container?.querySelector('.multiselect-display');
+        if (container && display) {
+            const checkedBoxes = container.querySelectorAll<HTMLInputElement>('input:checked');
+            display.innerHTML = ''; // Clear
+            if (checkedBoxes.length > 0) {
+                checkedBoxes.forEach(cb => {
+                    const tag = state.tags.find(t => t.id === cb.value);
+                    if(tag) {
+                        display.innerHTML += `<span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>`;
+                    }
+                });
+            } else {
+                display.innerHTML = `<span class="subtle-text">Select tags...</span>`;
             }
         }
         return;
@@ -169,7 +197,7 @@ export function handleChange(e: Event) {
                 state.integrations.push(integration);
             }
 
-            apiFetch('/api/actions?action=save-workspace-prefs', {
+            apiFetch('/api?action=save-workspace-prefs', {
                 method: 'POST',
                 body: JSON.stringify({ workspaceId, workflow: newWorkflow }),
             }).catch(err => {

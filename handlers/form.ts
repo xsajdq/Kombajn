@@ -8,7 +8,7 @@ import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact } from '../types.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
@@ -167,30 +167,36 @@ export async function handleFormSubmit() {
         }
 
         if (type === 'addTask') {
-            const name = (document.getElementById('taskName') as HTMLInputElement).value;
-            const projectId = (document.getElementById('taskProject') as HTMLSelectElement).value;
+            const form = document.getElementById('taskForm') as HTMLFormElement;
+            const name = (form.querySelector('#taskName') as HTMLInputElement).value;
+            const projectId = (form.querySelector('#taskProject') as HTMLSelectElement).value;
             if (!name) return;
             if (!projectId) {
                 alert(t('modals.select_a_project_error'));
                 return;
             }
             
-            const estimatedHoursString = (document.getElementById('taskEstimatedHours') as HTMLInputElement).value;
+            const estimatedHoursString = (form.querySelector('#taskEstimatedHours') as HTMLInputElement).value;
 
-            const assigneeId = (document.getElementById('taskAssignee') as HTMLSelectElement).value || null;
+            const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
+            const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
+
+            const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskTags"]:checked');
+            const tagIds = Array.from(tagCheckboxes).map(cb => cb.value);
+
             const workflow = getWorkspaceKanbanWorkflow(activeWorkspaceId);
 
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
                 name: name,
-                description: (document.getElementById('taskDescription') as HTMLTextAreaElement).value,
+                description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value,
                 status: workflow === 'advanced' ? 'backlog' : 'todo',
-                startDate: (document.getElementById('taskStartDate') as HTMLInputElement).value || undefined,
-                dueDate: (document.getElementById('taskDueDate') as HTMLInputElement).value || undefined,
-                priority: ((document.getElementById('taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
+                startDate: (form.querySelector('#taskStartDate') as HTMLInputElement).value || undefined,
+                dueDate: (form.querySelector('#taskDueDate') as HTMLInputElement).value || undefined,
+                priority: ((form.querySelector('#taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
                 estimatedHours: parseDurationStringToHours(estimatedHoursString),
-                type: ((document.getElementById('taskType') as HTMLSelectElement).value as Task['type']) || null,
+                type: ((form.querySelector('#taskType') as HTMLSelectElement).value as Task['type']) || null,
             };
 
             if (data?.dealId) {
@@ -200,18 +206,30 @@ export async function handleFormSubmit() {
             const [newTask] = await apiPost('tasks', taskData);
             state.tasks.push(newTask);
             
-            if (assigneeId) {
-                const assigneeData = {
+            if (assigneeIds.length > 0) {
+                const assigneePayloads = assigneeIds.map(userId => ({
                     workspaceId: activeWorkspaceId,
                     taskId: newTask.id,
-                    userId: assigneeId
-                };
-                const [newTaskAssignee] = await apiPost('task_assignees', assigneeData);
-                state.taskAssignees.push(newTaskAssignee);
+                    userId: userId
+                }));
+                const newAssignees = await apiPost('task_assignees', assigneePayloads);
+                state.taskAssignees.push(...newAssignees);
+
+                for (const userId of assigneeIds) {
+                    if (state.currentUser && userId !== state.currentUser.id) {
+                        await createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: userId, actorId: state.currentUser.id });
+                    }
+                }
             }
 
-            if (assigneeId && state.currentUser && assigneeId !== state.currentUser.id) {
-                await createNotification('new_assignment', { taskId: newTask.id, userIdToNotify: assigneeId, actorId: state.currentUser.id });
+            if (tagIds.length > 0) {
+                const tagPayloads = tagIds.map(tagId => ({
+                    workspaceId: activeWorkspaceId,
+                    taskId: newTask.id,
+                    tagId: tagId
+                }));
+                const newTaskTags = await apiPost('task_tags', tagPayloads);
+                state.taskTags.push(...newTaskTags);
             }
         }
         

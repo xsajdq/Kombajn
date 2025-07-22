@@ -241,7 +241,7 @@
 
   /* Redesigned Task Card */
   .task-card {
-    @apply bg-content p-3 rounded-lg shadow-sm border border-border-color space-y-2.5 cursor-pointer transition-shadow hover:shadow-md;
+    @apply bg-content p-3 rounded-lg shadow-sm border border-border-color space-y-2.5 cursor-pointer transition-shadow hover:shadow-md flex flex-col;
   }
 
   .task-card-header {
@@ -261,12 +261,37 @@
   
   /* Priority Label */
   .task-card-priority {
-    @apply text-sm font-medium text-text-subtle;
+    @apply self-start px-2 py-0.5 text-xs font-semibold rounded-full;
+  }
+  .priority-high { @apply bg-danger/10 text-danger; }
+  .priority-medium { @apply bg-warning/10 text-warning; }
+  .priority-low { @apply bg-primary/10 text-primary; }
+  
+  /* Tags */
+  .task-card-tags {
+      @apply flex flex-wrap gap-1;
+  }
+  .tag-pill {
+      @apply px-2 py-0.5 text-xs font-medium rounded-full;
+  }
+
+  /* Subtasks */
+  .task-card-subtasks {
+      @apply space-y-1 pt-2 mt-2 border-t border-border-color;
+  }
+  .subtask-item {
+      @apply flex items-center gap-2 text-xs text-text-subtle;
+  }
+  .subtask-item input {
+      @apply w-3 h-3 rounded-sm border-border-color text-primary focus:ring-primary;
+  }
+  .subtask-item-name.done {
+      @apply line-through;
   }
 
   /* Footer and Stats */
   .task-card-footer {
-    @apply flex flex-wrap justify-between items-center gap-2;
+    @apply flex flex-wrap justify-between items-center gap-2 mt-auto pt-2;
   }
 
   .task-card-stats {

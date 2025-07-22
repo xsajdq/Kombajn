@@ -206,6 +206,7 @@ export function Modal() {
 
     if (state.ui.modal.type === 'addTask') {
         const projectIdFromPanel = modalData.projectId;
+        const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
 
         title = t('modals.add_task_title');
         body = `
@@ -214,11 +215,11 @@ export function Modal() {
                     <label for="taskName" class="${labelClasses}">${t('modals.task_name')}</label>
                     <input type="text" id="taskName" class="${formControlClasses}" required>
                 </div>
-                 <div class="${formGroupClasses}">
+                <div class="${formGroupClasses}">
                     <label for="taskDescription" class="${labelClasses}">${t('modals.description')}</label>
                     <textarea id="taskDescription" class="${formControlClasses}" rows="3"></textarea>
                 </div>
-                <div class="${modalFormGridClasses}">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
                     <div class="${formGroupClasses}">
                         <label for="taskProject" class="${labelClasses}">${t('modals.project')}</label>
                         <select id="taskProject" class="${formControlClasses}" required>
@@ -226,27 +227,38 @@ export function Modal() {
                             ${workspaceProjects.map(p => `<option value="${p.id}" ${projectIdFromPanel === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
                         </select>
                     </div>
+                    <div class="${formGroupClasses}">
+                        <label class="${labelClasses}">${t('modals.people')}</label>
+                        <div id="taskAssigneesSelector" class="multiselect-container" data-type="assignee">
+                            <div class="multiselect-display">
+                                <span class="subtle-text">${t('modals.unassigned')}</span>
+                            </div>
+                            <div class="multiselect-dropdown hidden">
+                                <div class="multiselect-list">
+                                ${workspaceMembers.map(user => `
+                                    <label class="multiselect-list-item">
+                                        <input type="checkbox" name="taskAssignees" value="${user!.id}">
+                                        <div class="avatar">${user!.initials || '?'}</div>
+                                        <span>${user!.name || user!.email}</span>
+                                    </label>
+                                `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label class="${labelClasses}">${t('modals.dates')}</label>
+                        <div class="grid grid-cols-2 gap-2">
+                             <input type="date" id="taskStartDate" class="${formControlClasses}" value="${new Date().toISOString().slice(0, 10)}" title="${t('modals.start_date')}">
+                             <input type="date" id="taskDueDate" class="${formControlClasses}" title="${t('modals.due_date')}">
+                        </div>
+                    </div>
                      <div class="${formGroupClasses}">
-                        <label for="taskAssignee" class="${labelClasses}">${t('modals.assignees')}</label>
-                        <select id="taskAssignee" class="${formControlClasses}">
-                            <option value="">${t('modals.unassigned')}</option>
-                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name || u!.initials}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="${formGroupClasses}">
-                        <label for="taskStartDate" class="${labelClasses}">${t('modals.start_date')}</label>
-                        <input type="date" id="taskStartDate" class="${formControlClasses}" value="${new Date().toISOString().slice(0, 10)}">
-                    </div>
-                    <div class="${formGroupClasses}">
-                        <label for="taskDueDate" class="${labelClasses}">${t('modals.due_date')}</label>
-                        <input type="date" id="taskDueDate" class="${formControlClasses}">
-                    </div>
-                    <div class="${formGroupClasses}">
                         <label for="taskPriority" class="${labelClasses}">${t('modals.priority')}</label>
                         <select id="taskPriority" class="${formControlClasses}">
                             <option value="">${t('modals.priority_none')}</option>
                             <option value="low">${t('modals.priority_low')}</option>
-                            <option value="medium">${t('modals.priority_medium')}</option>
+                            <option value="medium" selected>${t('modals.priority_medium')}</option>
                             <option value="high">${t('modals.priority_high')}</option>
                         </select>
                     </div>
@@ -263,9 +275,28 @@ export function Modal() {
                             <option value="chore">${t('modals.task_type_chore')}</option>
                         </select>
                     </div>
+                    <div class="${formGroupClasses} sm:col-span-2">
+                        <label class="${labelClasses}">${t('modals.tags')}</label>
+                        <div id="taskTagsSelector" class="multiselect-container" data-type="tag">
+                             <div class="multiselect-display">
+                                <span class="subtle-text">Select tags...</span>
+                            </div>
+                            <div class="multiselect-dropdown hidden">
+                                <div class="multiselect-list">
+                                ${workspaceTags.map(tag => `
+                                    <label class="multiselect-list-item">
+                                        <input type="checkbox" name="taskTags" value="${tag.id}">
+                                        <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                    </label>
+                                `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         `;
+        maxWidth = 'max-w-3xl';
     }
 
     if (state.ui.modal.type === 'addWidget') {
