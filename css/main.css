@@ -320,13 +320,6 @@
     @apply outline-dashed outline-2 outline-offset-2 outline-primary;
   }
 
-  .col-span-1 { grid-column: span 1 / span 1; }
-  .col-span-2 { grid-column: span 2 / span 2; }
-  .col-span-3 { grid-column: span 3 / span 3; }
-  .col-span-4 { grid-column: span 4 / span 4; }
-  .row-span-1 { grid-row: span 1 / span 1; }
-  .row-span-2 { grid-row: span 2 / span 2; }
-  
   /* == Project Detail Panel (Redesigned) == */
   .side-panel-header h2 {
       @apply text-xl font-bold;
@@ -539,3 +532,11 @@
       @apply w-16 p-0.5 text-sm text-right bg-background border border-border-color rounded-md;
   }
 }
+
+/* Custom grid utilities for dynamic classes that Tailwind might miss */
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.row-span-1 { grid-row: span 1 / span 1; }
+.row-span-2 { grid-row: span 2 / span 2; }
