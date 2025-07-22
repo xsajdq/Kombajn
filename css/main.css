@@ -380,9 +380,6 @@
   .project-wiki-view {
       @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;
   }
-  .project-wiki-view .subtle-text {
-      @apply not-prose;
-  }
   
   /* Tasks Tab */
   .project-tasks-header {
