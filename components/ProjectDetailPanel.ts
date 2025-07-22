@@ -76,8 +76,8 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 </div>
                 <div class="card" style="margin-top: 1.5rem;">
                     <h4>Project Wiki Preview</h4>
-                    <div class="project-wiki-view">
-                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text not-prose">${t('panels.wiki_placeholder')}</p>`}
+                    <div class="project-wiki-view not-prose">
+                         ${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
                     </div>
                 </div>
             </div>

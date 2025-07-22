@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -164,6 +163,36 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     // --- END TASK MENU LOGIC ---
+
+    // --- Task Detail Modal Edit Mode ---
+    const startEditBtn = target.closest('[data-task-edit-start]');
+    if (startEditBtn) {
+        state.ui.taskDetail.isEditing = true;
+        renderApp();
+        return;
+    }
+    const cancelEditBtn = target.closest('[data-task-edit-cancel]');
+    if (cancelEditBtn) {
+        state.ui.taskDetail.isEditing = false;
+        renderApp();
+        return;
+    }
+    const saveEditBtn = target.closest('[data-task-edit-save]');
+    if (saveEditBtn) {
+        const taskId = state.ui.modal.data?.taskId;
+        if (taskId) {
+            const editContainer = document.getElementById('task-detail-header-edit');
+            if (editContainer) {
+                const fieldsToUpdate = editContainer.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-field]');
+                fieldsToUpdate.forEach(field => {
+                    taskHandlers.handleTaskDetailUpdate(taskId, field.dataset.field as any, field.value);
+                });
+            }
+        }
+        state.ui.taskDetail.isEditing = false;
+        // The last handleTaskDetailUpdate will trigger a renderApp.
+        return;
+    }
 
     // Dashboard Edit Mode
     if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
@@ -340,7 +369,7 @@ export async function handleClick(e: MouseEvent) {
     }
     
     // Modified: handler for subtask click in task detail modal
-    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced.clickable');
+    const subtaskItem = target.closest<HTMLElement>('.subtask-item-enhanced');
     if (subtaskItem) {
         // This check prevents the click handler from firing when an interactive element inside is clicked.
         if (target.closest('.subtask-checkbox, .delete-subtask-btn, a, button')) {
@@ -355,9 +384,9 @@ export async function handleClick(e: MouseEvent) {
     }
 
     // Detail Panel Openers (Reverted Logic)
-    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid, .task-list-row[data-task-id]');
+    const taskElement = target.closest<HTMLElement>('[data-task-id].task-card, [data-task-id].grid, .task-list-row[data-task-id], .project-task-row[data-task-id]');
     if (taskElement) {
-        if (target.closest('.task-card-menu-btn, .timer-controls, a, button')) return;
+        if (target.closest('.task-card-menu-btn, .timer-controls, a, button, .task-status-toggle')) return;
         uiHandlers.updateUrlAndShowDetail('task', taskElement.dataset.taskId!);
         return;
     }
@@ -547,8 +576,6 @@ export async function handleClick(e: MouseEvent) {
         const tab = taskDetailTab.dataset.tab as any;
         if (tab && state.ui.taskDetail.activeTab !== tab) {
             state.ui.taskDetail.activeTab = tab;
-            // A full app render is better here to ensure all state changes are reflected,
-            // even if it's slightly less performant. It's more reliable.
             renderApp();
         }
         return;
@@ -603,6 +630,15 @@ export async function handleClick(e: MouseEvent) {
         }
         return;
     }
+    
+    // Wiki buttons
+    if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
+    if (target.closest('#cancel-wiki-edit-btn')) { wikiHandlers.cancelWikiEdit(); return; }
+    if (target.closest('#save-wiki-btn')) { wikiHandlers.saveWikiEdit(); return; }
+    if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('[data-project-id]')?.dataset.projectId }); return; }
+    const restoreWikiBtn = target.closest<HTMLElement>('[data-restore-history-id]');
+    if(restoreWikiBtn) { wikiHandlers.handleRestoreWikiVersion(restoreWikiBtn.dataset.restoreHistoryId!); return; }
+
 
     // Global buttons that might be anywhere
     if (target.closest('#fab-new-task')) { uiHandlers.showModal('addTask'); return; }
@@ -627,7 +663,7 @@ export async function handleClick(e: MouseEvent) {
     if (notificationItem) { notificationHandlers.handleNotificationClick(notificationItem.dataset.notificationId!); return; }
     if (target.closest('#mark-all-read-btn')) { notificationHandlers.markAllNotificationsAsRead(); return; }
     const notificationTab = target.closest<HTMLElement>('[data-tab]');
-    if (notificationTab && notificationTab.closest('.notification-tabs')) {
+    if (notificationTab && notificationTab.closest('.flex.border-b')) { // A bit fragile, but targets notification tabs
         state.ui.notifications.activeTab = notificationTab.dataset.tab as 'new' | 'read';
         renderApp();
         return;

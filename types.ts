@@ -2,6 +2,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -283,7 +284,7 @@ export interface Automation {
     action: AutomationAction;
 }
 
-export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance';
+export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance' | 'timeTrackingSummary' | 'invoiceSummary';
 export interface DashboardWidget {
     id: string;
     userId: string;
@@ -559,6 +560,7 @@ export interface AppState {
         isWikiEditing: boolean;
         taskDetail: {
             activeTab: 'activity' | 'checklist' | 'subtasks' | 'dependencies' | 'attachments';
+            isEditing: boolean;
         };
         dealDetail: {
             activeTab: 'activity' | 'tasks';

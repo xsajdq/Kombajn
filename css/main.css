@@ -102,13 +102,20 @@
     @apply text-xs;
   }
 
-  /* == Redesigned Task Detail Modal == */
-  .task-detail-modal-layout {
-    @apply grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-x-6;
+  /* == Redesigned Task Detail Modal (Single Column) == */
+  .task-detail-header-view-grid, .task-detail-header-edit-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3;
   }
-  .task-detail-main-header {
-    @apply flex justify-between items-start;
+  .task-detail-header-item {
+    @apply flex flex-col gap-1;
   }
+  .task-detail-header-label {
+    @apply text-xs font-medium text-text-subtle;
+  }
+  .task-detail-header-value {
+    @apply text-sm font-medium flex items-center gap-1.5;
+  }
+  
   .task-detail-title { @apply text-xl font-bold; }
   .task-detail-description { @apply text-sm text-text-subtle mt-2 mb-4; }
   .task-detail-tabs {
@@ -136,19 +143,7 @@
   .rich-text-input { @apply w-full p-2 text-sm outline-none bg-transparent min-h-[60px]; }
   .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
   .add-comment-form button { @apply self-end; }
-  .task-detail-sidebar { @apply space-y-4; }
-  .task-detail-sidebar-section {
-    @apply bg-background p-4 rounded-lg;
-  }
-  .task-detail-sidebar-section h4 {
-    @apply font-semibold text-sm mb-3;
-  }
-  .task-detail-sidebar-section .form-group {
-    @apply mb-3 last:mb-0;
-  }
-  .task-detail-sidebar-section .form-group label {
-    @apply text-xs font-medium text-text-subtle mb-1 block;
-  }
+
   .form-control {
     @apply w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
   }
@@ -156,13 +151,13 @@
     @apply relative;
   }
   .multiselect-display {
-    @apply flex items-center gap-1 p-2 rounded-md bg-background border border-border-color cursor-pointer min-h-[40px];
+    @apply flex items-center flex-wrap gap-1 p-1.5 rounded-md bg-background border border-border-color cursor-pointer min-h-[40px];
   }
   .multiselect-display .avatar {
      @apply w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold;
   }
   .multiselect-dropdown {
-    @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-10;
+    @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-20;
   }
   .multiselect-list {
     @apply max-h-48 overflow-y-auto p-1;
@@ -178,6 +173,44 @@
   }
   .tag-chip {
     @apply text-xs font-medium px-2 py-0.5 rounded-full border;
+  }
+  .mention-popover {
+    @apply fixed z-[60]; /* Higher than modal's z-index */
+  }
+
+  /* == Redesigned Subtasks Tab == */
+  .subtask-list-enhanced {
+      @apply space-y-1;
+  }
+  .subtask-item-enhanced {
+      @apply flex items-center gap-3 p-2 rounded-md hover:bg-background;
+  }
+  .subtask-item-enhanced.clickable {
+      @apply cursor-pointer;
+  }
+  .subtask-status-toggle .subtask-checkbox {
+      @apply w-4 h-4 rounded text-primary focus:ring-primary;
+  }
+  .subtask-name {
+      @apply flex-1 text-sm;
+  }
+  .subtask-name.done {
+      @apply line-through text-text-subtle;
+  }
+  .subtask-meta {
+      @apply flex items-center gap-3 text-xs text-text-subtle;
+  }
+  .subtask-meta .avatar-stack .avatar {
+      @apply w-5 h-5 text-xs;
+  }
+  .subtask-duedate {
+      @apply px-1.5 py-0.5 rounded-md bg-border-color;
+  }
+  .delete-subtask-btn {
+      @apply opacity-0 group-hover:opacity-100 transition-opacity;
+  }
+  .subtask-item-enhanced:hover .delete-subtask-btn {
+      @apply opacity-100;
   }
 
   /* == Tasks Page (Redesigned) == */
@@ -379,6 +412,9 @@
   }
   .project-wiki-view {
       @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;
+  }
+  .project-wiki-view.not-prose {
+    @apply not-prose;
   }
   
   /* Tasks Tab */

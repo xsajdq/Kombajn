@@ -1,6 +1,7 @@
 
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -99,7 +100,7 @@ export function getInitialState(): AppState {
             teamCalendarDate: now.toISOString().slice(0, 10),
             activeChannelId: null,
             isWikiEditing: false,
-            taskDetail: { activeTab: 'activity' },
+            taskDetail: { activeTab: 'activity', isEditing: false },
             dealDetail: { activeTab: 'activity' },
             modal: { isOpen: false, type: null, data: undefined, justOpened: false },
             reports: {
