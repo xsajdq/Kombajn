@@ -254,9 +254,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
 
                 const [projectsRes, clientsRes, tasksRes, projectMembersRes] = await Promise.all([
-                    supabase.from('projects').select('*, "wikiContent"').eq('workspace_id', workspaceId),
+                    supabase.from('projects').select('*').eq('workspace_id', workspaceId),
                     supabase.from('clients').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('tasks').select('id, project_id, status, due_date').eq('workspace_id', workspaceId),
+                    supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
                     supabase.from('project_members').select('*').eq('workspace_id', workspaceId)
                 ]);
 
@@ -280,6 +280,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
                 if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
 
+                const { data: workspaceProjects, error: projectsError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
+                if(projectsError) throw new Error(`Tasks page data fetch failed: ${projectsError.message}`);
+                const projectIds = workspaceProjects ? workspaceProjects.map(p => p.id) : [];
+
                 const [tasksRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes] = await Promise.all([
                     supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
                     supabase.from('projects').select('id, name').eq('workspace_id', workspaceId),
@@ -287,7 +291,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_members').select('*').eq('workspace_id', workspaceId)
+                    supabase.from('project_members').select('*').in('project_id', projectIds)
                 ]);
 
                 for (const r of [tasksRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);

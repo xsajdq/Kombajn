@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
@@ -467,7 +468,6 @@ export async function handleAddMemberToProject(projectId: string, userId: string
     }
 
     const newMemberPayload: Omit<ProjectMember, 'id'> = {
-        workspaceId: project.workspaceId,
         projectId,
         userId,
         role,
