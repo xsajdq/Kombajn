@@ -6,6 +6,7 @@ import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
 import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration } from '../utils.ts';
 import { can } from '../permissions.ts';
+import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
 const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
 const formGroupClasses = "flex flex-col gap-1.5";
@@ -324,6 +325,72 @@ export function Modal() {
             footer = `<button class="btn-close-modal">${t('panels.close')}</button>`;
         }
         body = configBody;
+    }
+
+    if (state.ui.modal.type === 'automations') {
+        title = t('modals.automations_title');
+        footer = `<button class="btn-close-modal">${t('panels.close')}</button>`;
+        
+        const selectedProjectId = modalData.selectedProjectId || '';
+        const automations = state.automations.filter(a => a.projectId === selectedProjectId);
+        const workflow = getWorkspaceKanbanWorkflow(state.activeWorkspaceId);
+        const statuses = workflow === 'advanced' ? ['backlog', 'todo', 'inprogress', 'inreview', 'done'] : ['todo', 'inprogress', 'done'];
+    
+        body = `
+            <div class="space-y-6">
+                <div>
+                    <label for="automation-project-selector" class="text-sm font-medium text-text-subtle block mb-1.5">${t('modals.project')}</label>
+                    <select id="automation-project-selector" class="form-control">
+                        <option value="">${t('modals.select_a_project')}</option>
+                        ${workspaceProjects.map(p => `<option value="${p.id}" ${selectedProjectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                    </select>
+                </div>
+                
+                ${selectedProjectId ? `
+                <div>
+                    <h4 class="font-semibold mb-3">${t('panels.automations_title')}</h4>
+                    <div class="bg-background rounded-lg p-3 space-y-2">
+                        ${automations.length > 0 ? automations.map(auto => {
+                            const user = workspaceMembers.find(u => u?.id === auto.action.userId);
+                            return `
+                                <div class="flex justify-between items-center p-2 rounded-md hover:bg-content">
+                                    <div>
+                                        <p class="text-sm"><span class="font-semibold">${t('panels.when')}</span> ${t('panels.trigger_status_change')} <span class="font-semibold">${t(`tasks.${auto.trigger.status}`)}</span></p>
+                                        <p class="text-sm"><span class="font-semibold">${t('panels.then')}</span> ${t('panels.action_assign_user')} <span class="font-semibold">${user?.name || '...'}</span></p>
+                                    </div>
+                                    <button class="btn-icon" data-delete-automation-id="${auto.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp text-danger">delete</span></button>
+                                </div>
+                            `
+                        }).join('') : `<p class="text-sm text-text-subtle text-center py-4">${t('panels.no_automations')}</p>`}
+                    </div>
+                </div>
+    
+                <div>
+                    <h4 class="font-semibold mb-3">${t('panels.add_automation')}</h4>
+                    <form id="add-automation-form" class="bg-background rounded-lg p-3 space-y-4">
+                         <input type="hidden" id="automation-project" value="${selectedProjectId}">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-medium text-text-subtle block mb-1.5">${t('panels.when')} ${t('panels.trigger_status_change')}</label>
+                                <select id="automation-trigger-status" class="form-control">
+                                    ${statuses.map(s => `<option value="${s}">${t(`tasks.${s}`)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-text-subtle block mb-1.5">${t('panels.then')} ${t('panels.action_assign_user')}</label>
+                                <select id="automation-action-user" class="form-control">
+                                    ${workspaceMembers.map(u => u ? `<option value="${u.id}">${u.name}</option>` : '').join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button type="submit" class="btn btn-primary">${t('panels.add_automation')}</button>
+                        </div>
+                    </form>
+                </div>
+                ` : ''}
+            </div>
+        `;
     }
 
 

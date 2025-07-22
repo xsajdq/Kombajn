@@ -419,25 +419,27 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                         ${client?.name || t('misc.no_client')}
                     </p>
                 </div>
-                 <div id="project-menu-toggle" class="btn-icon" style="position: relative;" role="button" aria-haspopup="true" aria-expanded="false">
-                    <span class="material-icons-sharp">more_vert</span>
-                    <div class="project-header-menu hidden card">
-                        <button id="save-as-template-btn" class="btn-menu-item" data-project-id="${project.id}">
-                             <span class="material-icons-sharp">content_copy</span> ${t('panels.save_as_template')}
-                        </button>
+                <div class="flex items-center gap-2">
+                    <div id="project-menu-toggle" class="btn-icon" style="position: relative;" role="button" aria-haspopup="true" aria-expanded="false">
+                        <span class="material-icons-sharp">more_vert</span>
+                        <div class="project-header-menu hidden card">
+                            <button id="save-as-template-btn" class="btn-menu-item" data-project-id="${project.id}">
+                                <span class="material-icons-sharp">content_copy</span> ${t('panels.save_as_template')}
+                            </button>
+                        </div>
                     </div>
+                    <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
+                        <span class="material-icons-sharp">close</span>
+                    </button>
                 </div>
-                 <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
-                    <span class="material-icons-sharp">close</span>
-                </button>
             </div>
-            <div class="side-panel-tabs" role="tablist" aria-label="Project sections">
+            <nav class="side-panel-tabs" role="tablist" aria-label="Project sections">
                 ${tabs.map(tab => `
-                    <div class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
+                    <button class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
                         ${tab.text}
-                    </div>
+                    </button>
                 `).join('')}
-            </div>
+            </nav>
             ${tabs.find(t => t.id === openedProjectTab)?.content || ''}
         </div>
     `;

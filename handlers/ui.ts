@@ -98,16 +98,9 @@ export function closeSidePanels(shouldRender = true) {
         state.ui.isWikiEditing = false; // Reset wiki edit state when any panel closes
         updateUrlOnPanelClose(); // Update URL when panel is closed
         if (shouldRender) {
-            // The root cause of the bug was that renderApp was being called inside a transitionend listener,
-            // which often doesn't fire correctly if the element is being removed from the DOM by a parent re-render.
-            // The correct, simpler approach is to update the state and then immediately call renderApp.
-            // The app-renderer will see that openedProjectId is null and will not apply the 'is-open' class,
-            // which will correctly trigger the CSS slide-out animation.
             renderApp();
         }
         if (lastFocusedElement) {
-            // Attempt to restore focus. It might not always work if the element was removed,
-            // but it's better than the complex transitionend logic.
             lastFocusedElement.focus();
             lastFocusedElement = null;
         }

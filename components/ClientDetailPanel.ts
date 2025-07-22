@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -45,13 +44,18 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
         <div class="side-panel" role="region" aria-label="Client Details Panel">
             <div class="side-panel-header">
                 <h2>${client.name}</h2>
-                <button class="btn-icon" data-copy-link="clients/${client.id}" title="${t('misc.copy_link')}">
-                    <span class="material-icons-sharp">link</span>
-                </button>
-                 <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}" ${!canManage ? 'disabled' : ''}>${t('misc.edit')}</button>
-                 <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
-                    <span class="material-icons-sharp">close</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button class="btn-icon" data-copy-link="clients/${client.id}" title="${t('misc.copy_link')}">
+                        <span class="material-icons-sharp">link</span>
+                    </button>
+                    ${canManage ? `
+                        <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}">${t('misc.edit')}</button>
+                        <button class="btn-icon" data-delete-client-id="${client.id}" title="Delete Client"><span class="material-icons-sharp text-danger">delete</span></button>
+                    ` : ''}
+                    <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
+                        <span class="material-icons-sharp">close</span>
+                    </button>
+                </div>
             </div>
             <div class="side-panel-content">
                 <div class="side-panel-section">
@@ -68,7 +72,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
 
                 <div class="side-panel-section">
                     <h4>${t('panels.client_contacts')}</h4>
-                     ${client.contacts.length > 0 ? `
+                     ${client.contacts && client.contacts.length > 0 ? `
                         <div class="contact-card-list">
                             ${client.contacts.map(contact => `
                                 <div class="contact-card-new">

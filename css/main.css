@@ -576,6 +576,29 @@
   .fab-container.is-open .fab-option:nth-child(1) { transition-delay: 0.1s; }
   .fab-container.is-open .fab-option:nth-child(2) { transition-delay: 0.05s; }
   .fab-container.is-open .fab-option:nth-child(3) { transition-delay: 0s; }
+
+    /* == Client Detail Panel (Redesigned) == */
+  .side-panel-section { @apply bg-background p-4 rounded-lg; }
+  .side-panel-content { @apply space-y-4; }
+  .side-panel-section h4 { @apply text-sm font-semibold mb-3 uppercase tracking-wider text-text-subtle; }
+  .client-detail-grid { @apply grid grid-cols-2 gap-4; }
+  .client-detail-item { @apply flex items-center gap-3; }
+  .client-detail-item .material-icons-sharp { @apply text-text-subtle text-xl; }
+  .client-detail-item label { @apply text-xs text-text-subtle block; }
+  .client-detail-item p { @apply text-sm font-medium; }
+  .health-status-badge { @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full mt-4; }
+  .health-status-badge.health-good { @apply bg-success/10 text-success; }
+  .health-status-badge.health-at-risk { @apply bg-danger/10 text-danger; }
+  .health-status-badge.health-neutral { @apply bg-background text-text-subtle; }
+  .contact-card-list { @apply space-y-3; }
+  .contact-card-new { @apply bg-content p-3 rounded-md border border-border-color; }
+  .contact-card-header { @apply flex justify-between items-baseline mb-2; }
+  .contact-card-body { @apply flex flex-col gap-1 text-sm text-text-subtle; }
+  .contact-card-body span { @apply flex items-center gap-2; }
+  .icon-sm { @apply text-base; }
+  .item-list { @apply space-y-1; }
+  .item-card { @apply flex items-center gap-3 p-2 rounded-md hover:bg-background; }
+  .associated-projects-list .material-icons-sharp { @apply text-text-subtle; }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

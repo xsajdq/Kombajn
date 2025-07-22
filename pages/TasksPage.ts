@@ -6,6 +6,7 @@ import type { Task, User } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
+import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
 
 declare const Gantt: any;
 
@@ -354,8 +355,8 @@ export function TasksPage() {
             </div>
             
             <div class="relative">
-                <div id="task-filter-panel" class="bg-content p-3 rounded-lg border border-border-color transition-all duration-300 overflow-hidden ${state.ui.tasks.isFilterOpen ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'}">
-                     <!-- Filter content is now handled by a dedicated handler -->
+                <div id="task-filter-panel" class="bg-content p-4 rounded-lg border border-border-color transition-all duration-300 overflow-hidden ${state.ui.tasks.isFilterOpen ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0'}">
+                     ${TaskFilterPanel()}
                 </div>
             </div>
 

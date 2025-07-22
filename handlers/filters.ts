@@ -94,12 +94,10 @@ export async function deleteActiveFilterView() {
 
 export function handleFilterChange(element: HTMLInputElement | HTMLSelectElement) {
     const key = element.dataset.filterKey as keyof TaskFilters;
-    let value: string | string[] | boolean;
+    let value: string | boolean;
 
     if (element.type === 'checkbox') {
         value = (element as HTMLInputElement).checked;
-    } else if (element.id === 'task-filter-tags') {
-        value = Array.from((element as HTMLSelectElement).selectedOptions).map(opt => opt.value);
     } else {
         value = element.value;
     }

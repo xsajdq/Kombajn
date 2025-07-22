@@ -206,7 +206,6 @@ export async function handleClick(e: MouseEvent) {
 
     // Dashboard Edit Mode
     if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
-    if (target.closest('#add-widget-btn')) { uiHandlers.showModal('addWidget'); return; }
     const addWidgetBtn = target.closest<HTMLElement>('[data-add-widget-type]');
     if (addWidgetBtn) {
         const type = addWidgetBtn.dataset.addWidgetType as DashboardWidgetType;
@@ -309,7 +308,7 @@ export async function handleClick(e: MouseEvent) {
     // Close popovers if click is outside
     if (!target.closest('#notification-bell') && state.ui.isNotificationsOpen) { notificationHandlers.toggleNotificationsPopover(false); }
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) { uiHandlers.toggleCommandPalette(false); }
-    if (!target.closest('.project-menu-btn') && !target.closest('.project-header-menu')) { mainHandlers.closeProjectMenu(); }
+    if (!target.closest('#project-menu-toggle') && !target.closest('.project-header-menu')) { mainHandlers.closeProjectMenu(); }
 
 
     const navLink = target.closest('a');
@@ -403,7 +402,7 @@ export async function handleClick(e: MouseEvent) {
 
     const projectListItem = target.closest<HTMLElement>('[data-project-id]');
     if (projectListItem) {
-        if (target.closest('a, button, .project-menu-btn')) return;
+        if (target.closest('a, button, .project-menu-btn, #project-menu-toggle')) return;
         uiHandlers.updateUrlAndShowDetail('project', projectListItem.dataset.projectId!);
         return;
     }
@@ -648,6 +647,8 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('[data-project-id]')?.dataset.projectId }); return; }
     const restoreWikiBtn = target.closest<HTMLElement>('[data-restore-history-id]');
     if(restoreWikiBtn) { wikiHandlers.handleRestoreWikiVersion(restoreWikiBtn.dataset.restoreHistoryId!); return; }
+    if (target.closest('#project-menu-toggle')) { mainHandlers.toggleProjectMenu(); return; }
+    if (target.closest('#save-as-template-btn')) { mainHandlers.handleSaveProjectAsTemplate(target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!); return; }
 
 
     // Global buttons that might be anywhere
@@ -691,6 +692,12 @@ export async function handleClick(e: MouseEvent) {
         if (confirm('Are you sure?')) {
             teamHandlers.handleRemoveUserFromProject(removeProjectMemberBtn.dataset.removeProjectMemberId!);
         }
+        return;
+    }
+
+    const deleteAutomationBtn = target.closest<HTMLElement>('[data-delete-automation-id]');
+    if (deleteAutomationBtn) {
+        automationHandlers.handleDeleteAutomation(deleteAutomationBtn.dataset.deleteAutomationId!);
         return;
     }
 

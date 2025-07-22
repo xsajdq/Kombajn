@@ -332,6 +332,12 @@ export function DashboardPage() {
                                 ${[3, 4, 5, 6].map(c => `<option value="${c}" ${(activeWorkspace.dashboardGridColumns || 3) === c ? 'selected' : ''}>${c}</option>`).join('')}
                             </select>
                         </div>
+                         ${activeTab === 'overview' ? `
+                            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addWidget">
+                               <span class="material-icons-sharp text-base">add</span>
+                               ${t('dashboard.add_widget')}
+                            </button>
+                        ` : ''}
                     ` : ''}
                     <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
                        <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
@@ -350,12 +356,6 @@ export function DashboardPage() {
             </div>
             
             ${tabContent}
-
-            ${isEditing && activeTab === 'overview' ? `
-                <button class="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary-hover transition-transform transform hover:scale-105" id="add-widget-btn" aria-label="${t('dashboard.add_widget')}" title="${t('dashboard.add_widget')}">
-                    <span class="material-icons-sharp">add</span>
-                </button>
-            ` : ''}
         </div>
     `;
 }

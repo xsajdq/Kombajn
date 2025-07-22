@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -187,7 +188,29 @@ export function handleChange(e: Event) {
     // Task Filter Change
     const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
     if (taskFilterInput) {
-        filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
+        if (taskFilterInput.matches('input[type="checkbox"][data-filter-key="tagIds"]')) {
+            const tagId = (taskFilterInput as HTMLInputElement).value;
+            const isChecked = (taskFilterInput as HTMLInputElement).checked;
+            const currentTags = new Set(state.ui.tasks.filters.tagIds);
+            if (isChecked) {
+                currentTags.add(tagId);
+            } else {
+                currentTags.delete(tagId);
+            }
+            state.ui.tasks.filters.tagIds = Array.from(currentTags);
+            state.ui.tasks.activeFilterViewId = null;
+            renderApp();
+        } else {
+            filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
+        }
+        return;
+    }
+
+    // Automations Modal Project Selector
+    if (target.id === 'automation-project-selector') {
+        const projectId = (target as HTMLSelectElement).value;
+        state.ui.modal.data = { ...state.ui.modal.data, selectedProjectId: projectId };
+        renderApp();
         return;
     }
 }
