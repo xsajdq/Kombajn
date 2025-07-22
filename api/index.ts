@@ -246,24 +246,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!token) return res.status(401).json({ error: 'Authentication token required.' });
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
-                
+            
                 const { workspaceId } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
-
+            
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
                 if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
-
-                const [projectsRes, clientsRes, tasksRes, projectMembersRes] = await Promise.all([
-                    supabase.from('projects').select('*').eq('workspace_id', workspaceId),
+            
+                const { data: projectsData, error: projectsError } = await supabase
+                    .from('projects')
+                    .select('*')
+                    .eq('workspace_id', workspaceId);
+            
+                if (projectsError) throw new Error(`Projects page data fetch failed: ${projectsError.message}`);
+            
+                const projectIds = projectsData ? projectsData.map(p => p.id) : [];
+            
+                const [clientsRes, tasksRes, projectMembersRes] = await Promise.all([
                     supabase.from('clients').select('*').eq('workspace_id', workspaceId),
                     supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_members').select('*').eq('workspace_id', workspaceId)
+                    projectIds.length > 0
+                        ? supabase.from('project_members').select('*').in('project_id', projectIds)
+                        : Promise.resolve({ data: [], error: null })
                 ]);
-
-                for (const r of [projectsRes, clientsRes, tasksRes, projectMembersRes]) if (r.error) throw new Error(`Projects page data fetch failed: ${r.error.message}`);
-                
+            
+                for (const r of [clientsRes, tasksRes, projectMembersRes]) {
+                    if (r.error) throw new Error(`Projects page data fetch failed: ${r.error.message}`);
+                }
+            
                 return res.status(200).json(keysToCamel({
-                    projects: projectsRes.data || [], clients: clientsRes.data || [], tasks: tasksRes.data || [], projectMembers: projectMembersRes.data || [],
+                    projects: projectsData || [],
+                    clients: clientsRes.data || [],
+                    tasks: tasksRes.data || [],
+                    projectMembers: projectMembersRes.data || [],
                 }));
             }
             case 'tasks-page-data': {
@@ -291,7 +306,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_members').select('*').in('project_id', projectIds)
+                    projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null })
                 ]);
 
                 for (const r of [tasksRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
