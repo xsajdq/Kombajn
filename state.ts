@@ -1,7 +1,4 @@
 
-
-
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -93,6 +90,8 @@ export function getInitialState(): AppState {
                 isFilterOpen: false,
                 filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false },
                 activeFilterViewId: null,
+                isLoading: false,
+                loadedWorkspaceId: null,
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
@@ -114,6 +113,7 @@ export function getInitialState(): AppState {
             sales: { isLoading: false, loadedWorkspaceId: null },
             clients: { isLoading: false, loadedWorkspaceId: null },
             invoices: { isLoading: false, loadedWorkspaceId: null },
+            projects: { isLoading: false, loadedWorkspaceId: null },
         },
     };
 }

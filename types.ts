@@ -3,6 +3,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -546,6 +547,8 @@ export interface AppState {
             isFilterOpen: boolean;
             filters: TaskFilters;
             activeFilterViewId: string | null;
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
         };
         invoiceFilters: {
             clientId: string;
@@ -606,6 +609,10 @@ export interface AppState {
             loadedWorkspaceId: string | null;
         };
         invoices: {
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
+        };
+        projects: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
         };
