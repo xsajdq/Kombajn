@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 
 // ============================================================================
-// LIB HELPERS (from _lib/supabaseAdmin.ts)
+// LIB HELPERS
 // ============================================================================
 let supabaseAdmin: any;
 
@@ -57,10 +57,6 @@ function convertKeys(obj: any, converter: (key: string) => string): any {
 const keysToSnake = (obj: any) => convertKeys(obj, camelToSnake);
 const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
 
-
-// ============================================================================
-// AUTH CALLBACK HELPER
-// ============================================================================
 function renderClosingPage(success: boolean, error?: string, provider?: string) {
     return `
     <!DOCTYPE html>
