@@ -123,7 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // --- Start: Fetch ALL operational data for user's workspaces ---
                 const [
                     allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
-                    joinRequestsRes, integrationsRes, filterViewsRes, projectsRes, tasksRes,
+                    joinRequestsRes, integrationsRes, projectsRes, tasksRes,
                     clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
                     taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
                     expensesRes, projectMembersRes, dependenciesRes
@@ -134,7 +134,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
                     supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),
                     supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
-                    supabase.from('filter_views').select('*').eq('user_id', user.id),
                     supabase.from('projects').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('tasks').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('clients').select('*, client_contacts(*)').in('workspace_id', userWorkspaceIds),
@@ -155,7 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const allResults = [
                     allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
-                    joinRequestsRes, integrationsRes, filterViewsRes, projectsRes, tasksRes,
+                    joinRequestsRes, integrationsRes, projectsRes, tasksRes,
                     clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
                     taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
                     expensesRes, projectMembersRes, dependenciesRes
@@ -173,7 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     notifications: notificationsRes.data || [],
                     workspace_join_requests: joinRequestsRes.data || [],
                     integrations: integrationsRes.data || [],
-                    filter_views: filterViewsRes.data || [],
+                    filter_views: [], // Removed non-existent table
                     projects: projectsRes.data || [],
                     tasks: tasksRes.data || [],
                     clients: clientsRes.data || [],
