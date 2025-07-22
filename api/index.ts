@@ -120,28 +120,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const allMemberUserIds = [...new Set(allMembersInUserWorkspaces.map((m: { user_id: string }) => m.user_id))];
                 
-                const [ allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes, ] = await Promise.all([
+                // --- Start: Fetch ALL operational data for user's workspaces ---
+                const [
+                    allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
+                    joinRequestsRes, integrationsRes, filterViewsRes, projectsRes, tasksRes,
+                    clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
+                    taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
+                    expensesRes, projectMembersRes, dependenciesRes
+                ] = await Promise.all([
                     supabase.from('profiles').select('*').in('id', allMemberUserIds),
                     supabase.from('workspaces').select('*, "planHistory"').in('id', userWorkspaceIds),
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id),
                     supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
                     supabase.from('workspace_join_requests').select('*').eq('user_id', user.id),
                     supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('filter_views').select('*').eq('user_id', user.id),
+                    supabase.from('projects').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('tasks').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('clients').select('*, client_contacts(*)').in('workspace_id', userWorkspaceIds),
+                    supabase.from('deals').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('time_logs').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('comments').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('task_assignees').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('tags').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('task_tags').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('objectives').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('key_results').select('*'), // Note: Key results are linked via objectives, might need a join
+                    supabase.from('deal_notes').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('invoices').select('*, invoice_line_items(*)').in('workspace_id', userWorkspaceIds),
+                    supabase.from('expenses').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('project_members').select('*'), // Linked via projects
+                    supabase.from('task_dependencies').select('*').in('workspace_id', userWorkspaceIds)
                 ]);
-                
-                const { data: filterViewsData } = await supabase.from('filter_views').select('*').eq('user_id', user.id);
 
-                const allResults = [allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes, joinRequestsRes, integrationsRes];
+                const allResults = [
+                    allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
+                    joinRequestsRes, integrationsRes, filterViewsRes, projectsRes, tasksRes,
+                    clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
+                    taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
+                    expensesRes, projectMembersRes, dependenciesRes
+                ];
+                // --- End: Fetch ALL operational data ---
+
                 for (const r of allResults) if (r.error) throw new Error(`A database query failed during bootstrap: ${r.error.message}`);
 
                 const responseData = {
-                    current_user: allProfilesRes.data?.find((p: any) => p.id === user.id) || null, profiles: allProfilesRes.data || [], workspaces: allWorkspacesRes.data || [],
-                    workspace_members: allMembersInUserWorkspaces || [], dashboard_widgets: dashboardWidgetsRes.data || [], notifications: notificationsRes.data || [],
-                    workspace_join_requests: joinRequestsRes.data || [], integrations: integrationsRes.data || [], filter_views: filterViewsData || [],
-                    projects: [], tasks: [], clients: [], deals: [], time_logs: [], comments: [], task_assignees: [], tags: [], task_tags: [],
-                    objectives: [], key_results: [], deal_notes: [], invoices: [], invoice_line_items: [], client_contacts: [], expenses: [],
-                    project_members: [], dependencies: []
+                    current_user: allProfilesRes.data?.find((p: any) => p.id === user.id) || null,
+                    profiles: allProfilesRes.data || [],
+                    workspaces: allWorkspacesRes.data || [],
+                    workspace_members: allMembersInUserWorkspaces || [],
+                    dashboard_widgets: dashboardWidgetsRes.data || [],
+                    notifications: notificationsRes.data || [],
+                    workspace_join_requests: joinRequestsRes.data || [],
+                    integrations: integrationsRes.data || [],
+                    filter_views: filterViewsRes.data || [],
+                    projects: projectsRes.data || [],
+                    tasks: tasksRes.data || [],
+                    clients: clientsRes.data || [],
+                    deals: dealsRes.data || [],
+                    time_logs: timeLogsRes.data || [],
+                    comments: commentsRes.data || [],
+                    task_assignees: taskAssigneesRes.data || [],
+                    tags: tagsRes.data || [],
+                    task_tags: taskTagsRes.data || [],
+                    objectives: objectivesRes.data || [],
+                    key_results: keyResultsRes.data || [],
+                    deal_notes: dealNotesRes.data || [],
+                    invoices: invoicesRes.data || [],
+                    expenses: expensesRes.data || [],
+                    project_members: projectMembersRes.data || [],
+                    dependencies: dependenciesRes.data || []
                 };
+
                 return res.status(200).json(keysToCamel(responseData));
             }
             
