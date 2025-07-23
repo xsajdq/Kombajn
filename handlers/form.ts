@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -15,6 +16,7 @@ import * as okrHandler from './okr.ts';
 import * as dealHandler from './deals.ts';
 import * as projectHandlers from './projects.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
+import * as taskListsHandler from './taskLists.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -433,17 +435,19 @@ export async function handleFormSubmit() {
         }
 
         if (type === 'addObjective') {
-            const projectId = data.projectId;
+            const form = document.getElementById('addObjectiveForm') as HTMLFormElement;
+            const projectId = form.dataset.projectId!;
             const title = (document.getElementById('objectiveTitle') as HTMLInputElement).value;
             const description = (document.getElementById('objectiveDescription') as HTMLTextAreaElement).value;
             if (projectId && title) {
                 await okrHandler.handleCreateObjective(projectId, title, description);
             }
-            return; // Handler closes modal
+            return; // Handler manages its own state
         }
 
         if (type === 'addKeyResult') {
-            const objectiveId = data.objectiveId;
+            const form = document.getElementById('addKeyResultForm') as HTMLFormElement;
+            const objectiveId = form.dataset.objectiveId!;
             const title = (document.getElementById('krTitle') as HTMLInputElement).value;
             const krType = (document.getElementById('krType') as HTMLSelectElement).value as 'number' | 'percentage';
             const startValue = parseFloat((document.getElementById('krStartValue') as HTMLInputElement).value);
@@ -451,7 +455,18 @@ export async function handleFormSubmit() {
             if (objectiveId && title && !isNaN(startValue) && !isNaN(targetValue)) {
                 await okrHandler.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
             }
-            return; // Handler closes modal
+            return; // Handler manages its own state
+        }
+
+        if (type === 'addTaskList') {
+            const form = document.getElementById('addTaskListForm') as HTMLFormElement;
+            const projectId = form.dataset.projectId!;
+            const name = (document.getElementById('taskListName') as HTMLInputElement).value;
+            if (projectId && name) {
+                // For project-specific task lists, the icon is not needed.
+                await taskListsHandler.handleCreateTaskList(projectId, name, 'checklist');
+            }
+            return; // Handler manages its own state
         }
 
         if (type === 'configureWidget') {

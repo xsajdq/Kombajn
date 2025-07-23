@@ -129,6 +129,7 @@ export interface Project {
     // New fields
     budgetCost?: number;
     category?: string;
+    isArchived?: boolean;
 }
 
 export interface TaskList {

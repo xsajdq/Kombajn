@@ -43,6 +43,8 @@ const translations = {
             unarchive: 'Unarchive',
             archive_all_done: 'Archive All',
             show_archived: 'Show Archived',
+            default_board: 'Default Board',
+            new_task_list: 'New Task List',
         },
         sales: {
             title: 'Sales Pipeline',
@@ -140,7 +142,11 @@ const translations = {
             health_status: 'Health Status', health_status_good: 'Good', health_status_at_risk: 'At Risk', health_status_neutral: 'Neutral', category: 'Category', estimated_hours: 'Estimated Hours (e.g., 2.5h)', task_type: 'Task Type', task_type_feature: 'Feature', task_type_bug: 'Bug', task_type_chore: 'Chore', budget_cost: 'Budget (Cost)', contacts: 'Contacts', contact_role: 'Role', add_contact: 'Add Contact', project_category: 'Project Category',
             people: 'People',
             dates: 'Dates',
-            task_list: 'Task List'
+            task_list: 'Task List',
+            add_task_list_title: 'Add Task List',
+            rename: 'Rename',
+            delete: 'Delete',
+            add_checklist_item: 'Add checklist item',
         },
         misc: { not_applicable: 'N/A', no_project: 'No Project', no_client: 'No Client', edit: 'Edit', no_events_for_day: 'No events or tasks for this day.', copy_link: 'Copy link', copied: 'Copied!' },
         notifications: { title: 'Notifications', mark_all_read: 'Mark all as read', no_notifications: 'You have no notifications.', tab_new: 'New', tab_read: 'Read', no_new_notifications: 'You have no new notifications.', comment_added: '{user} commented on {taskName}', task_assigned: 'You have been assigned to task {taskName}', status_changed: 'Status for {taskName} was changed to {status}', user_mentioned: '{user} mentioned you in {taskName}', join_request: '{user} wants to join workspace {workspaceName}' },
@@ -203,6 +209,8 @@ const translations = {
             unarchive: 'Przywróć z archiwum',
             archive_all_done: 'Archiwizuj ukończone',
             show_archived: 'Pokaż zarchiwizowane',
+            default_board: 'Domyślna tablica',
+            new_task_list: 'Nowa lista zadań',
         },
         sales: {
             title: 'Lejek Sprzedażowy',
@@ -300,7 +308,11 @@ const translations = {
             health_status: 'Kondycja klienta', health_status_good: 'Dobra', health_status_at_risk: 'Zagrożona', health_status_neutral: 'Neutralna', category: 'Kategoria', estimated_hours: 'Szacowane godziny (np. 2.5h)', task_type: 'Typ zadania', task_type_feature: 'Funkcjonalność', task_type_bug: 'Błąd', task_type_chore: 'Obowiązek', budget_cost: 'Budżet (Koszt)', contacts: 'Kontakty', contact_role: 'Rola', add_contact: 'Dodaj kontakt', project_category: 'Kategoria projektu',
             people: 'Osoby',
             dates: 'Daty',
-            task_list: 'Lista Zadań'
+            task_list: 'Lista Zadań',
+            add_task_list_title: 'Dodaj listę zadań',
+            rename: 'Zmień nazwę',
+            delete: 'Usuń',
+            add_checklist_item: 'Dodaj element checklisty',
         },
         misc: { not_applicable: 'B/D', no_project: 'Brak projektu', no_client: 'Brak klienta', edit: 'Edytuj', no_events_for_day: 'Brak wydarzeń lub zadań na ten dzień.', copy_link: 'Kopiuj link', copied: 'Skopiowano!' },
         notifications: { title: 'Powiadomienia', mark_all_read: 'Oznacz wszystkie jako przeczytane', no_notifications: 'Nie masz żadnych powiadomień.', tab_new: 'Nowe', tab_read: 'Przeczytane', no_new_notifications: 'Nie masz nowych powiadomień.', comment_added: '{user} skomentował(a) {taskName}', task_assigned: 'Zostałeś/aś przypisany(a) do zadania {taskName}', status_changed: 'Status zadania {taskName} został zmieniony na {status}', user_mentioned: '{user} wspomniał(a) o Tobie w {taskName}', join_request: '{user} chce dołączyć do obszaru roboczego {workspaceName}' },

@@ -521,3 +521,56 @@ export async function handleDeleteTask(taskId: string) {
         // Reverting is very complex here because of all the related data.
     }
 }
+
+export async function handleAddChecklistItem(taskId: string, text: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newItem = {
+        id: generateId(),
+        text,
+        completed: false,
+    };
+
+    if (!task.checklist) {
+        task.checklist = [];
+    }
+
+    // Optimistic update
+    task.checklist.push(newItem);
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+    } catch (error) {
+        console.error("Failed to add checklist item:", error);
+        alert("Could not add checklist item.");
+        // Revert
+        task.checklist.pop();
+        renderApp();
+    }
+}
+
+export async function handleToggleChecklistItem(taskId: string, itemId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.checklist) return;
+
+    const item = task.checklist.find(i => i.id === itemId);
+    if (!item) return;
+
+    const originalStatus = item.completed;
+
+    // Optimistic update
+    item.completed = !item.completed;
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+    } catch (error) {
+        console.error("Failed to toggle checklist item:", error);
+        alert("Could not update checklist item.");
+        // Revert
+        item.completed = originalStatus;
+        renderApp();
+    }
+}

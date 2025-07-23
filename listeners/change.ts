@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -270,5 +271,15 @@ export function handleChange(e: Event) {
                 taskListGroup.classList.add('hidden');
             }
         }
+    }
+
+    const checklistItemCheckbox = target.closest<HTMLInputElement>('.checklist-item-checkbox');
+    if (checklistItemCheckbox) {
+        const taskId = state.ui.modal.data?.taskId;
+        const itemId = checklistItemCheckbox.dataset.itemId;
+        if (taskId && itemId) {
+            taskHandlers.handleToggleChecklistItem(taskId, itemId);
+        }
+        return;
     }
 }

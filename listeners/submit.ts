@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole } from '../types.ts';
@@ -188,10 +189,8 @@ export async function handleSubmit(e: SubmitEvent) {
         const taskId = target.dataset.taskId!;
         const input = target.querySelector('input')!;
         const text = input.value.trim();
-        // Handler for this needs to be created in taskHandlers.ts
         if (taskId && text) {
-            // taskHandlers.addChecklistItem(taskId, text);
-            console.log("Add checklist item handler to be implemented.");
+            await taskHandlers.handleAddChecklistItem(taskId, text);
             input.value = '';
         }
         return;

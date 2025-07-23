@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
@@ -168,7 +169,7 @@ export function Modal() {
                     </div>
                 </div>
 
-                <div id="project-members-section" class="form-group ${project?.privacy === 'private' ? '' : 'hidden'} transition-all duration-300">
+                <div id="project-members-section" class="form-group ${project?.privacy === 'private' || !isEdit ? '' : 'hidden'} transition-all duration-300">
                     <label class="${labelClasses}">${t('modals.invite_members')}</label>
                     <div class="max-h-40 overflow-y-auto border border-border-color rounded-lg p-2 space-y-2">
                         ${workspaceMembers.map(user => {
@@ -566,6 +567,62 @@ export function Modal() {
         `;
     }
 
+    if (state.ui.modal.type === 'addObjective') {
+        title = t('modals.add_objective_title');
+        body = `
+            <form id="addObjectiveForm" class="space-y-4" data-project-id="${modalData.projectId}">
+                <div class="${formGroupClasses}">
+                    <label for="objectiveTitle" class="${labelClasses}">${t('modals.objective_title')}</label>
+                    <input type="text" id="objectiveTitle" class="${formControlClasses}" required>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="objectiveDescription" class="${labelClasses}">${t('modals.description')}</label>
+                    <textarea id="objectiveDescription" class="${formControlClasses}" rows="3"></textarea>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addKeyResult') {
+        title = t('modals.add_key_result_title');
+        body = `
+            <form id="addKeyResultForm" class="space-y-4" data-objective-id="${modalData.objectiveId}">
+                <div class="${formGroupClasses}">
+                    <label for="krTitle" class="${labelClasses}">${t('modals.kr_title')}</label>
+                    <input type="text" id="krTitle" class="${formControlClasses}" required>
+                </div>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="krType" class="${labelClasses}">${t('modals.kr_type')}</label>
+                        <select id="krType" class="${formControlClasses}">
+                            <option value="number">${t('modals.kr_type_number')}</option>
+                            <option value="percentage">${t('modals.kr_type_percentage')}</option>
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="krStartValue" class="${labelClasses}">${t('modals.kr_start')}</label>
+                        <input type="number" id="krStartValue" class="${formControlClasses}" value="0" required>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="krTargetValue" class="${labelClasses}">${t('modals.kr_target')}</label>
+                        <input type="number" id="krTargetValue" class="${formControlClasses}" required>
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addTaskList') {
+        title = t('modals.add_task_list_title');
+        body = `
+            <form id="addTaskListForm" data-project-id="${modalData.projectId}">
+                <div class="${formGroupClasses}">
+                    <label for="taskListName" class="${labelClasses}">${t('settings.list_name')}</label>
+                    <input type="text" id="taskListName" class="${formControlClasses}" required>
+                </div>
+            </form>
+        `;
+    }
 
     return `
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
