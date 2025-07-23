@@ -1,5 +1,3 @@
-
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -23,7 +21,13 @@ export function getInitialState(): AppState {
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
     // Load settings from localStorage
-    const savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
+    let savedSettings: any = {};
+    try {
+        savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
+    } catch (error) {
+        console.error("Failed to parse settings from localStorage:", error);
+        // Settings will remain as an empty object, allowing the app to start with defaults.
+    }
 
     const theme: 'light' | 'dark' | 'minimal' = savedSettings.theme || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     
