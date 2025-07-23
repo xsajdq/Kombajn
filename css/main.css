@@ -624,6 +624,23 @@
   .item-list { @apply space-y-1; }
   .item-card { @apply flex items-center gap-3 p-2 rounded-md hover:bg-background; }
   .associated-projects-list .material-icons-sharp { @apply text-text-subtle; }
+
+  /* == Sales Page (Redesigned) == */
+  .deal-priority-tag {
+    @apply px-2 py-0.5 text-xs font-semibold rounded-full;
+  }
+  .deal-info-item {
+    @apply flex items-center gap-2 text-xs text-text-subtle;
+  }
+  .deal-info-item .material-icons-sharp {
+    @apply text-base;
+  }
+  .deal-probability-bar {
+      @apply w-full bg-border-color rounded-full h-1.5;
+  }
+  .deal-probability-bar-inner {
+      @apply h-1.5 rounded-full bg-success;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

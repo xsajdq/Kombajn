@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -97,10 +98,15 @@ export async function handleFormSubmit() {
         }
 
         if (type === 'addProject') {
-            if (usage.projects >= planLimits.projects) {
+            const form = document.getElementById('projectForm') as HTMLFormElement;
+            const projectId = (form.querySelector('#projectId') as HTMLInputElement).value;
+            const isEdit = !!projectId;
+
+            if (!isEdit && usage.projects >= planLimits.projects) {
                 alert(t('billing.limit_reached_projects').replace('{planName}', workspace.subscription.planId));
                 return;
             }
+
             const name = (document.getElementById('projectName') as HTMLInputElement).value;
             const clientId = (document.getElementById('projectClient') as HTMLSelectElement).value;
             if (!name || !clientId) return;
@@ -109,43 +115,50 @@ export async function handleFormSubmit() {
                 workspaceId: activeWorkspaceId,
                 name: name,
                 clientId: clientId,
-                wikiContent: '',
+                wikiContent: isEdit ? state.projects.find(p => p.id === projectId)!.wikiContent : '',
                 hourlyRate: parseFloat((document.getElementById('projectHourlyRate') as HTMLInputElement).value) || undefined,
                 privacy: (document.querySelector('input[name="privacy"]:checked') as HTMLInputElement).value as Project['privacy'],
                 budgetHours: parseFloat((document.getElementById('projectBudgetHours') as HTMLInputElement).value) || undefined,
                 budgetCost: parseFloat((document.getElementById('projectBudgetCost') as HTMLInputElement).value) || undefined,
                 category: (document.getElementById('projectCategory') as HTMLInputElement).value || undefined,
             };
-            
-            const [newProject] = await apiPost('projects', projectData);
-            state.projects.push(newProject);
 
-            // ALWAYS add the creator as admin
-            const creatorMember: Omit<ProjectMember, 'id'> = {
-                projectId: newProject.id,
-                userId: state.currentUser.id,
-                role: 'admin'
-            };
-            const [savedCreatorMember] = await apiPost('project_members', creatorMember);
-            state.projectMembers.push(savedCreatorMember);
-
-
-            // If project is private, add selected members
-            if (newProject.privacy === 'private') {
-                const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
-                const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
-
-                const membersToAdd: Omit<ProjectMember, 'id'>[] = memberIds
-                    .filter(id => id !== state.currentUser!.id) // Don't re-add creator
-                    .map(userId => ({
-                        projectId: newProject.id,
-                        userId: userId,
-                        role: 'editor' // Default role for invited members
-                    }));
-
-                if (membersToAdd.length > 0) {
-                    const savedMembers = await apiPost('project_members', membersToAdd);
-                    state.projectMembers.push(...savedMembers);
+            if (isEdit) {
+                const [updatedProject] = await apiPut('projects', { ...projectData, id: projectId });
+                const index = state.projects.findIndex(p => p.id === projectId);
+                if (index !== -1) {
+                    state.projects[index] = { ...state.projects[index], ...updatedProject };
+                }
+            } else {
+                const [newProject] = await apiPost('projects', projectData);
+                state.projects.push(newProject);
+    
+                // ALWAYS add the creator as admin
+                const creatorMember: Omit<ProjectMember, 'id'> = {
+                    projectId: newProject.id,
+                    userId: state.currentUser.id,
+                    role: 'admin'
+                };
+                const [savedCreatorMember] = await apiPost('project_members', creatorMember);
+                state.projectMembers.push(savedCreatorMember);
+    
+                // If project is private, add selected members
+                if (newProject.privacy === 'private') {
+                    const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
+                    const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
+    
+                    const membersToAdd: Omit<ProjectMember, 'id'>[] = memberIds
+                        .filter(id => id !== state.currentUser!.id) // Don't re-add creator
+                        .map(userId => ({
+                            projectId: newProject.id,
+                            userId: userId,
+                            role: 'editor' // Default role for invited members
+                        }));
+    
+                    if (membersToAdd.length > 0) {
+                        const savedMembers = await apiPost('project_members', membersToAdd);
+                        state.projectMembers.push(...savedMembers);
+                    }
                 }
             }
         }

@@ -49,8 +49,23 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                         <span class="material-icons-sharp">link</span>
                     </button>
                     ${canManage ? `
-                        <button class="btn btn-secondary btn-sm" data-modal-target="addClient" data-client-id="${client.id}">${t('misc.edit')}</button>
-                        <button class="btn-icon" data-delete-client-id="${client.id}" title="Delete Client"><span class="material-icons-sharp text-danger">delete</span></button>
+                        <div class="relative">
+                            <button class="btn-icon" data-menu-toggle="client-actions-${client.id}" aria-haspopup="true" aria-expanded="false" title="Client Actions">
+                                <span class="material-icons-sharp">more_vert</span>
+                            </button>
+                            <div id="client-actions-${client.id}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                <div class="py-1">
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-modal-target="addClient" data-client-id="${client.id}">
+                                        <span class="material-icons-sharp text-base">edit</span>
+                                        ${t('misc.edit')}
+                                    </button>
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-client-id="${client.id}">
+                                        <span class="material-icons-sharp text-base">delete</span>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     ` : ''}
                     <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">
                         <span class="material-icons-sharp">close</span>

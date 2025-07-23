@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -18,9 +19,8 @@ function getFilteredTasks(): Task[] {
     const { text, assigneeId, priority, projectId, status, dateRange, tagIds, isArchived } = state.ui.tasks.filters;
     let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
     
-    if (!isArchived) {
-        allTasks = allTasks.filter(task => !task.isArchived);
-    }
+    // Filter by archived status first
+    allTasks = allTasks.filter(task => !!task.isArchived === isArchived);
 
     const member = state.workspaceMembers.find(m => m.userId === state.currentUser?.id && m.workspaceId === state.activeWorkspaceId);
     if (member && member.role === 'client' && state.currentUser) {
@@ -99,24 +99,16 @@ function renderBoardView(filteredTasks: Task[]) {
         
     const renderColumn = (status: Task['status']) => {
         const columnTasks = tasksByStatus[status];
-        const activeTasks = columnTasks.filter(t => !t.isArchived);
-        const archivedTasks = columnTasks.filter(t => t.isArchived);
-
-        const activeTotalSeconds = activeTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+        const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
         return `
             <div class="tasks-board-column" data-status="${status}">
                 <div class="tasks-board-column-header">
-                    <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${activeTasks.length}</span></span>
-                    ${activeTotalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(activeTotalSeconds)}</span>` : ''}
+                    <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${columnTasks.length}</span></span>
+                    ${totalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(totalSeconds)}</span>` : ''}
                 </div>
                 <div class="tasks-board-column-body">
-                    ${activeTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
-                    ${state.ui.tasks.filters.isArchived && archivedTasks.length > 0 ? `
-                        <div class="space-y-2 mt-2 pt-2 border-t border-dashed border-border-color">
-                            ${archivedTasks.map(renderTaskCard).join('')}
-                        </div>
-                    ` : ''}
+                    ${columnTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
                 </div>
             </div>
             `;
@@ -134,13 +126,7 @@ function renderBoardView(filteredTasks: Task[]) {
 }
 
 function renderListView(filteredTasks: Task[]) {
-    const activeTasks = filteredTasks.filter(t => !t.isArchived);
-    const archivedTasks = filteredTasks.filter(t => t.isArchived);
-    const { isArchived } = state.ui.tasks.filters;
-
-    const tasksToRender = isArchived ? [...activeTasks, ...archivedTasks] : activeTasks;
-
-    if (tasksToRender.length === 0) {
+    if (filteredTasks.length === 0) {
         return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
             <span class="material-icons-sharp text-5xl text-text-subtle">search_off</span>
             <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
@@ -191,7 +177,7 @@ function renderListView(filteredTasks: Task[]) {
                 <div class="text-right">${t('tasks.col_time')}</div>
             </div>
             <div>
-                ${tasksToRender.map(renderRow).join('')}
+                ${filteredTasks.map(renderRow).join('')}
             </div>
         </div>
     `;
@@ -339,6 +325,7 @@ export function TasksPage() {
     }
     
     const { text } = state.ui.tasks.filters;
+    const kanbanViewMode = state.currentUser?.kanbanViewMode || 'detailed';
 
     return `
         <div class="h-full flex flex-col">
@@ -350,6 +337,11 @@ export function TasksPage() {
                     <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">analytics</span></button>
                 </div>
                 <div class="flex items-center gap-2">
+                    ${state.ui.tasks.viewMode === 'board' ? `
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-kanban-view title="Toggle card details">
+                            <span class="material-icons-sharp text-base">${kanbanViewMode === 'simple' ? 'view_agenda' : 'view_day'}</span>
+                        </button>
+                    ` : ''}
                      <button id="toggle-filters-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
                         <span class="material-icons-sharp text-base">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>

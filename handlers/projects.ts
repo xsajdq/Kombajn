@@ -2,8 +2,9 @@
 
 import { state } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
-import { closeModal, openProjectPanel } from './ui.ts';
+import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
 import type { Project, Task, ProjectMember, AiSuggestedTask } from '../types.ts';
+import { renderApp } from '../app-renderer.ts';
 
 export async function handlePlanProjectWithAi(name: string, clientId: string, goal: string) {
     const saveButton = document.getElementById('modal-save-btn');
@@ -58,5 +59,36 @@ export async function handlePlanProjectWithAi(name: string, clientId: string, go
             saveButton.textContent = 'Create Project';
             saveButton.removeAttribute('disabled');
         }
+    }
+}
+
+export async function handleDeleteProject(projectId: string) {
+    const projectIndex = state.projects.findIndex(p => p.id === projectId);
+    if (projectIndex === -1) return;
+
+    // --- Create snapshots for potential revert ---
+    const [removedProject] = state.projects.splice(projectIndex, 1);
+    const originalTasks = [...state.tasks];
+    const originalProjectMembers = [...state.projectMembers];
+    
+    // --- Optimistic update ---
+    state.tasks = state.tasks.filter(t => t.projectId !== projectId);
+    state.projectMembers = state.projectMembers.filter(pm => pm.projectId !== projectId);
+    closeSidePanels(); // This will trigger a re-render
+
+    try {
+        await apiFetch(`/api?action=data&resource=projects`, {
+            method: 'DELETE',
+            body: JSON.stringify({ id: projectId }),
+        });
+        // Backend's cascading delete will handle related items in the DB.
+    } catch (error) {
+        console.error("Failed to delete project:", error);
+        alert("Could not delete the project from the server. Reverting changes.");
+        // --- Revert state on failure ---
+        state.projects.splice(projectIndex, 0, removedProject);
+        state.tasks = originalTasks;
+        state.projectMembers = originalProjectMembers;
+        renderApp();
     }
 }

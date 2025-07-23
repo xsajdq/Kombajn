@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency } from '../utils.ts';
@@ -22,6 +23,7 @@ export function ProjectsPage() {
     const planLimits = PLANS[activeWorkspace.subscription.planId];
     const canCreateProject = usage.projects < planLimits.projects;
     const isAllowedToCreate = can('create_projects');
+    const canManage = can('manage_projects');
     
     const projects = state.projects.filter(p => {
         if (p.workspaceId !== state.activeWorkspaceId) return false;
@@ -41,7 +43,7 @@ export function ProjectsPage() {
                 const members = state.projectMembers.filter(pm => pm.projectId === project.id);
                 const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
                 const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
-                const description = (project.wikiContent?.split('\n')[0] || '').substring(0, 150);
+                const description = (project.wikiContent?.split('\n')[0] || '').substring(0, 100);
 
                 let projectStatus = 'not_started';
                 let projectStatusText = 'Not Started';
@@ -59,32 +61,48 @@ export function ProjectsPage() {
                 const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => d.getTime()))) : null;
                 
                 return `
-                    <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
+                    <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
                         <div class="flex justify-between items-start">
-                            <h3 class="font-semibold text-lg flex items-center gap-2">
+                            <h3 class="font-semibold text-base flex items-center gap-2">
                                 ${project.name}
                                 ${overdueTasks > 0 ? `<span class="material-icons-sharp text-danger text-base" title="${overdueTasks} overdue tasks">warning_amber</span>` : ''}
                             </h3>
-                            <button class="p-1 text-text-subtle rounded-full hover:bg-background project-menu-btn" aria-label="Project actions menu">
-                                <span class="material-icons-sharp text-lg">more_horiz</span>
-                            </button>
+                             ${canManage ? `
+                                <div class="relative">
+                                    <button class="p-1 text-text-subtle rounded-full hover:bg-background" data-menu-toggle="project-menu-${project.id}" aria-haspopup="true" aria-expanded="false" aria-label="Project actions menu">
+                                        <span class="material-icons-sharp text-lg">more_horiz</span>
+                                    </button>
+                                    <div id="project-menu-${project.id}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                        <div class="py-1">
+                                            <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-modal-target="addProject" data-project-id="${project.id}">
+                                                <span class="material-icons-sharp text-base">edit</span>
+                                                ${t('misc.edit')}
+                                            </button>
+                                            <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-project-id="${project.id}">
+                                                <span class="material-icons-sharp text-base">delete</span>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
 
-                        ${description ? `<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 150 ? '...' : ''}</p>` : ''}
+                        ${description ? `<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 100 ? '...' : ''}</p>` : ''}
                         
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${projectStatus === 'completed' ? 'bg-green-100 text-green-700' : projectStatus === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">${projectStatusText}</span>
                         </div>
 
                         <div>
-                            <div class="flex justify-between items-center text-sm mb-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
                                 <span class="font-medium text-text-subtle">${t('panels.progress')}</span>
                                 <span>${Math.round(progress)}%</span>
                             </div>
-                            <div class="w-full bg-background rounded-full h-2"><div class="bg-primary h-2 rounded-full" style="width: ${progress}%;"></div></div>
+                            <div class="w-full bg-background rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: ${progress}%;"></div></div>
                         </div>
                         
-                        <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-4">
+                        <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-3">
                             ${latestDueDate ? `
                             <div class="flex items-center gap-2">
                                 <span class="material-icons-sharp text-base">calendar_today</span>
@@ -102,7 +120,7 @@ export function ProjectsPage() {
                             </div>` : ''}
                         </div>
 
-                        <div class="flex justify-between items-center mt-auto pt-4 border-t border-border-color">
+                        <div class="flex justify-between items-center mt-auto pt-3 border-t border-border-color">
                              <div class="flex -space-x-2">
                                  ${memberUsers.slice(0, 4).map(u => u ? `
                                     <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${u.name || u.initials}">

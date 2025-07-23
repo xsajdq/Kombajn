@@ -1,3 +1,4 @@
+
 // handlers/user.ts
 
 import { state } from '../state.ts';
@@ -116,5 +117,26 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
         setTimeout(() => {
             if (statusEl) statusEl.textContent = '';
         }, 3000);
+    }
+}
+
+export async function handleToggleKanbanViewMode() {
+    if (!state.currentUser) return;
+
+    const currentMode = state.currentUser.kanbanViewMode || 'detailed';
+    const newMode = currentMode === 'detailed' ? 'simple' : 'detailed';
+
+    // Optimistic update
+    state.currentUser.kanbanViewMode = newMode;
+    renderApp();
+
+    try {
+        await apiPut('profiles', { id: state.currentUser.id, kanbanViewMode: newMode });
+    } catch (error) {
+        console.error("Failed to save Kanban view preference:", error);
+        // Revert on failure
+        state.currentUser.kanbanViewMode = currentMode;
+        renderApp();
+        alert("Could not save your view preference. Please try again.");
     }
 }

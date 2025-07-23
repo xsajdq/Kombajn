@@ -1,8 +1,4 @@
 
-
-
-
-
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task } from '../types.ts';
@@ -20,6 +16,7 @@ export async function handleAddAiTask(taskIndex: number, projectId: string) {
         description: taskToAdd.description,
         projectId: projectId,
         status: workflow === 'advanced' ? 'backlog' : 'todo',
+        isArchived: false,
     };
     
     try {

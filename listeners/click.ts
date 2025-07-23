@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -26,6 +27,8 @@ import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
 import * as filterHandlers from '../handlers/filters.ts';
 import * as clientHandlers from '../handlers/clients.ts';
+import * as projectHandlers from '../handlers/projects.ts';
+import * as userHandlers from '../handlers/user.ts';
 import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
 import { apiFetch } from '../services/api.ts';
 
@@ -95,6 +98,35 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
+    
+    // --- Generic Menu Toggling ---
+    const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
+    // Close menus if clicking outside
+    if (!menuToggle && !target.closest('[aria-haspopup="true"] + div')) {
+        document.querySelectorAll('[aria-haspopup="true"] + div').forEach(menu => menu.classList.add('hidden'));
+        document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+    }
+
+    if (menuToggle) {
+        const menuId = menuToggle.dataset.menuToggle!;
+        const menu = document.getElementById(menuId);
+        if (menu) {
+            const isHidden = menu.classList.contains('hidden');
+            // Close all other menus before opening a new one
+            document.querySelectorAll('[aria-haspopup="true"] + div').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+            
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                menuToggle.setAttribute('aria-expanded', 'true');
+            } else {
+                menu.classList.add('hidden');
+                menuToggle.setAttribute('aria-expanded', 'false');
+            }
+        }
+        return;
+    }
+
 
     // --- Global Timer ---
     if (target.closest('#global-timer-toggle')) {
@@ -235,6 +267,14 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
+    const deleteProjectBtn = target.closest<HTMLElement>('[data-delete-project-id]');
+    if (deleteProjectBtn) {
+        if (confirm("Are you sure you want to delete this project? This will also delete all associated tasks and cannot be undone.")) {
+            await projectHandlers.handleDeleteProject(deleteProjectBtn.dataset.deleteProjectId!);
+        }
+        return;
+    }
+
 
     // Handle multiselect dropdowns
     const multiselectDisplay = target.closest<HTMLElement>('.multiselect-display');
@@ -287,7 +327,6 @@ export async function handleClick(e: MouseEvent) {
     // Close popovers if click is outside
     if (!target.closest('#notification-bell') && state.ui.isNotificationsOpen) { notificationHandlers.toggleNotificationsPopover(false); }
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) { uiHandlers.toggleCommandPalette(false); }
-    if (!target.closest('#project-menu-toggle') && !target.closest('.project-header-menu')) { mainHandlers.closeProjectMenu(); }
 
 
     const navLink = target.closest('a');
@@ -331,6 +370,12 @@ export async function handleClick(e: MouseEvent) {
         state.ui.tasks.viewMode = viewSwitcher.dataset.viewMode as any; 
         renderApp(); 
         return; 
+    }
+
+    const toggleKanbanViewBtn = target.closest<HTMLElement>('[data-toggle-kanban-view]');
+    if (toggleKanbanViewBtn) {
+        userHandlers.handleToggleKanbanViewMode();
+        return;
     }
 
     const statusToggleBtn = target.closest<HTMLElement>('.task-status-toggle');
@@ -392,7 +437,7 @@ export async function handleClick(e: MouseEvent) {
 
     const projectListItem = target.closest<HTMLElement>('[data-project-id]');
     if (projectListItem) {
-        if (target.closest('a, button, .project-menu-btn, #project-menu-toggle')) return;
+        if (target.closest('a, button, [data-menu-toggle]')) return;
         uiHandlers.updateUrlAndShowDetail('project', projectListItem.dataset.projectId!);
         return;
     }
@@ -637,7 +682,6 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('[data-project-id]')?.dataset.projectId }); return; }
     const restoreWikiBtn = target.closest<HTMLElement>('[data-restore-history-id]');
     if(restoreWikiBtn) { wikiHandlers.handleRestoreWikiVersion(restoreWikiBtn.dataset.restoreHistoryId!); return; }
-    if (target.closest('#project-menu-toggle')) { mainHandlers.toggleProjectMenu(); return; }
     if (target.closest('#save-as-template-btn')) { mainHandlers.handleSaveProjectAsTemplate(target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId!); return; }
 
 

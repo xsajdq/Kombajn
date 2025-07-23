@@ -1,6 +1,7 @@
 
+
 import { state } from '../state.ts';
-import { apiFetch, apiPost } from '../services/api.ts';
+import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Deal, Client, User, DealNote } from '../types.ts';
 
@@ -55,6 +56,15 @@ export async function handleAddDealNote(dealId: string, content: string) {
     try {
         const [newNote] = await apiPost('deal_notes', payload);
         state.dealNotes.push(newNote);
+
+        // Also update the deal's last activity timestamp
+        const deal = state.deals.find(d => d.id === dealId);
+        if (deal) {
+            const newActivityDate = new Date().toISOString();
+            deal.lastActivityAt = newActivityDate;
+            await apiPut('deals', { id: dealId, lastActivityAt: newActivityDate });
+        }
+
         renderApp();
     } catch (error) {
         console.error("Failed to add deal note:", error);

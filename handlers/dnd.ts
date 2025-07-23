@@ -107,15 +107,19 @@ export async function handleDrop(e: DragEvent) {
 
             if (deal && newStage && deal.stage !== newStage) {
                 const oldStage = deal.stage;
+                const newActivityDate = new Date().toISOString();
+                
                 deal.stage = newStage; // Optimistic update
+                deal.lastActivityAt = newActivityDate;
                 renderApp(); // Re-render immediately
 
                 try {
-                    await apiPut('deals', { id: deal.id, stage: newStage });
+                    await apiPut('deals', { id: deal.id, stage: newStage, lastActivityAt: newActivityDate });
                 } catch (error) {
                     console.error("Failed to update deal stage:", error);
                     alert("Failed to update deal stage. Reverting change.");
                     deal.stage = oldStage;
+                    // Note: we don't revert lastActivityAt as a new activity did occur
                     renderApp();
                 }
             }

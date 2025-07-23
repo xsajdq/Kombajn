@@ -1,3 +1,4 @@
+
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
@@ -156,6 +157,7 @@ export async function handleAddSubtask(parentTaskId: string, subtaskName: string
         name: subtaskName,
         status: 'todo',
         parentId: parentTaskId,
+        isArchived: false,
     };
 
     try {

@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -27,9 +28,10 @@ export function renderTaskCard(task: Task) {
         .filter(Boolean);
 
     const priorityClass = getPriorityClass(task.priority);
+    const kanbanViewMode = state.currentUser?.kanbanViewMode || 'detailed';
 
     return `
-        <div class="task-card" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
+        <div class="task-card ${task.isArchived ? 'opacity-60' : ''}" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
             <div class="task-card-header">
                 <p class="task-card-name">${task.name}</p>
                 <button class="btn-icon task-card-menu-btn" aria-label="Task actions menu">
@@ -51,7 +53,7 @@ export function renderTaskCard(task: Task) {
                 ` : ''}
             </div>
             
-            ${subtasks.length > 0 ? `
+            ${kanbanViewMode === 'detailed' && subtasks.length > 0 ? `
                 <div class="task-card-subtasks">
                     ${subtasks.map(st => `
                         <div class="subtask-item">
@@ -82,7 +84,7 @@ export function renderTaskCard(task: Task) {
                             <span>${commentsCount}</span>
                         </div>
                     ` : ''}
-                    ${subtasks.length > 0 ? `
+                    ${kanbanViewMode === 'detailed' && subtasks.length > 0 ? `
                         <div class="stat-item" title="${t('tasks.subtask_progress', { completed: completedSubtasks.toString(), total: subtasks.length.toString() })}">
                             <span class="material-icons-sharp">check_box</span>
                             <span>${completedSubtasks}/${subtasks.length}</span>

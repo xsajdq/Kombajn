@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     name?: string;
@@ -9,6 +10,7 @@ export interface User {
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
     vacationAllowanceHours?: number; // Total vacation hours for the year
+    kanbanViewMode?: 'simple' | 'detailed';
 }
 
 export type Role = 'owner' | 'admin' | 'manager' | 'member' | 'finance' | 'client';
@@ -144,7 +146,7 @@ export interface Task {
     // New fields
     estimatedHours?: number; // in hours
     type?: 'feature' | 'bug' | 'chore' | null;
-    isArchived?: boolean;
+    isArchived: boolean;
 }
 
 export interface TaskDependency {
@@ -429,6 +431,11 @@ export interface Deal {
     ownerId: string;
     expectedCloseDate?: string; // YYYY-MM-DD
     createdAt: string; // ISO
+    // New CRM fields
+    probability: number; // Percentage 0-100
+    priority?: 'low' | 'medium' | 'high' | null;
+    lastActivityAt: string; // ISO string
+    nextStep?: string;
 }
 
 export interface DealNote {

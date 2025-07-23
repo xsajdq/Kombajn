@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
@@ -101,57 +102,64 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addProject') {
-        title = t('modals.add_project_title');
+        const isEdit = !!modalData.projectId;
+        const project = isEdit ? workspaceProjects.find(p => p.id === modalData.projectId) : null;
+        title = isEdit ? `Edit Project` : t('modals.add_project_title');
         const templates = state.projectTemplates.filter(pt => pt.workspaceId === state.activeWorkspaceId);
+        
+        const existingMemberIds = isEdit ? new Set(state.projectMembers.filter(pm => pm.projectId === project!.id).map(pm => pm.userId)) : new Set();
+
+
         body = `
             <form id="projectForm" class="space-y-4">
+                 <input type="hidden" id="projectId" value="${project?.id || ''}">
                  <div class="${formGroupClasses}">
                     <label for="projectName" class="${labelClasses}">${t('modals.project_name')}</label>
-                    <input type="text" id="projectName" class="${formControlClasses}" required>
+                    <input type="text" id="projectName" class="${formControlClasses}" required value="${project?.name || ''}">
                 </div>
                 <div class="${modalFormGridClasses}">
                     <div class="${formGroupClasses}">
                         <label for="projectClient" class="${labelClasses}">${t('modals.assign_to_client')}</label>
                         <select id="projectClient" class="${formControlClasses}" required>
                             <option value="">${t('modals.select_a_client')}</option>
-                            ${workspaceClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                            ${workspaceClients.map(c => `<option value="${c.id}" ${project?.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="projectTemplate" class="${labelClasses}">${t('modals.create_from_template')}</label>
-                        <select id="projectTemplate" class="${formControlClasses}">
+                        <select id="projectTemplate" class="${formControlClasses}" ${isEdit ? 'disabled' : ''}>
                             <option value="">${t('modals.select_template')}</option>
                             ${templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="projectHourlyRate" class="${labelClasses}">${t('modals.hourly_rate')}</label>
-                        <input type="number" id="projectHourlyRate" class="${formControlClasses}" placeholder="e.g. 100" min="0" step="0.01">
+                        <input type="number" id="projectHourlyRate" class="${formControlClasses}" placeholder="e.g. 100" min="0" step="0.01" value="${project?.hourlyRate || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="projectBudgetHours" class="${labelClasses}">Budget (hours)</label>
-                        <input type="number" id="projectBudgetHours" class="${formControlClasses}" placeholder="e.g. 100" min="0">
+                        <input type="number" id="projectBudgetHours" class="${formControlClasses}" placeholder="e.g. 100" min="0" value="${project?.budgetHours || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="projectBudgetCost" class="${labelClasses}">${t('modals.budget_cost')}</label>
-                        <input type="number" id="projectBudgetCost" class="${formControlClasses}" placeholder="e.g. 10000" min="0">
+                        <input type="number" id="projectBudgetCost" class="${formControlClasses}" placeholder="e.g. 10000" min="0" value="${project?.budgetCost || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="projectCategory" class="${labelClasses}">${t('modals.project_category')}</label>
-                        <input type="text" id="projectCategory" class="${formControlClasses}" placeholder="e.g. Marketing">
+                        <input type="text" id="projectCategory" class="${formControlClasses}" placeholder="e.g. Marketing" value="${project?.category || ''}">
                     </div>
                 </div>
                 
                 <div class="${formGroupClasses}">
                     <label class="${labelClasses}">${t('modals.privacy')}</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only" checked>
+                        <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
                         <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border border-border-color rounded-lg cursor-pointer transition-all has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
                             <span class="material-icons-sharp text-3xl mb-2">public</span>
                             <strong>${t('modals.privacy_public')}</strong>
                             <p class="text-xs text-text-subtle text-center">${t('modals.privacy_public_desc')}</p>
                         </label>
-                        <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only">
+                        <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only" ${project?.privacy === 'private' ? 'checked' : ''}>
                         <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border border-border-color rounded-lg cursor-pointer transition-all has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
                             <span class="material-icons-sharp text-3xl mb-2">lock</span>
                             <strong>${t('modals.privacy_private')}</strong>
@@ -160,18 +168,19 @@ export function Modal() {
                     </div>
                 </div>
 
-                <div id="project-members-section" class="form-group hidden transition-all duration-300">
+                <div id="project-members-section" class="form-group ${project?.privacy === 'private' || !isEdit ? '' : 'hidden'} transition-all duration-300">
                     <label class="${labelClasses}">${t('modals.invite_members')}</label>
                     <div class="max-h-40 overflow-y-auto border border-border-color rounded-lg p-2 space-y-2">
                         ${workspaceMembers.map(user => {
                             if (!user) return '';
                             const isCreator = user.id === state.currentUser?.id;
+                            const isExistingMember = isEdit && existingMemberIds.has(user.id);
                             const initials = (user.initials || user.name?.substring(0, 2) || user.email?.substring(0, 2) || '??').toUpperCase();
                             const displayName = user.name || user.email || 'Unnamed User';
 
                             return `
                             <label class="flex items-center gap-2 p-1.5 rounded-md hover:bg-background">
-                                <input type="checkbox" name="project_members" value="${user.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ${isCreator ? 'checked disabled' : ''}>
+                                <input type="checkbox" name="project_members" value="${user.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ${isCreator ? 'checked disabled' : (isExistingMember ? 'checked' : '')}>
                                 <div class="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold">${initials}</div>
                                 <span class="text-sm">${displayName} ${isCreator ? `(${t('hr.you')})` : ''}</span>
                             </label>
