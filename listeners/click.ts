@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -31,6 +32,7 @@ import * as projectHandlers from '../handlers/projects.ts';
 import * as userHandlers from '../handlers/user.ts';
 import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
 import { apiFetch } from '../services/api.ts';
+import * as taskLists from '../handlers/taskLists.ts';
 
 function renderClientContactFormRow(contact?: any) {
     const id = contact?.id || `new-${Date.now()}`;
@@ -184,6 +186,35 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     // --- END TASK MENU LOGIC ---
+
+    // --- Task List (Section) management ---
+    const addSectionBtn = target.closest('#add-task-section-btn');
+    if (addSectionBtn) {
+        const projectId = (addSectionBtn as HTMLElement).dataset.projectId;
+        const sectionName = prompt("Enter new section name:");
+        if (projectId && sectionName) {
+            await taskLists.handleCreateTaskList(projectId, sectionName);
+        }
+        return;
+    }
+    const renameTaskListBtn = target.closest<HTMLElement>('[data-rename-task-list-id]');
+    if (renameTaskListBtn) {
+        const listId = renameTaskListBtn.dataset.renameTaskListId!;
+        const list = state.taskLists.find(tl => tl.id === listId);
+        if (list) {
+            const newName = prompt("Enter new name for the section:", list.name);
+            if (newName) {
+                await taskLists.handleRenameTaskList(listId, newName);
+            }
+        }
+        return;
+    }
+    const deleteTaskListBtn = target.closest<HTMLElement>('[data-delete-task-list-id]');
+    if (deleteTaskListBtn) {
+        await taskLists.handleDeleteTaskList(deleteTaskListBtn.dataset.deleteTaskListId!);
+        return;
+    }
+
 
     // --- Task Detail Modal Edit Mode ---
     const startEditBtn = target.closest('[data-task-edit-start]');
@@ -417,7 +448,7 @@ export async function handleClick(e: MouseEvent) {
     }
     
     // Detail Panel Openers (Modified Logic)
-    const taskElement = target.closest<HTMLElement>('.task-card, .grid[data-task-id], .task-list-row[data-task-id], .project-task-row[data-task-id]');
+    const taskElement = target.closest<HTMLElement>('.task-card, .task-list-row, .project-task-row');
     if (taskElement) {
         // Exclude clicks on interactive elements within the task card/row
         if (target.closest('.task-card-menu-btn, .timer-controls, a, button, .task-status-toggle')) return;

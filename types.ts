@@ -137,7 +137,6 @@ export interface TaskList {
     workspaceId: string;
     projectId: string;
     name: string;
-    icon?: string;
     sortOrder?: number;
 }
 export interface Task {
@@ -543,7 +542,6 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
-        activeCustomTaskListId: string | null;
         openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;

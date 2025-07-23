@@ -81,7 +81,6 @@ export function getInitialState(): AppState {
             openedClientId: null,
             openedProjectId: null,
             openedDealId: null,
-            activeCustomTaskListId: null,
             openedProjectTab: 'overview',
             isNotificationsOpen: false,
             notifications: { activeTab: 'new' },

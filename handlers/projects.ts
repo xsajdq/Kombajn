@@ -92,3 +92,62 @@ export async function handleDeleteProject(projectId: string) {
         renderApp();
     }
 }
+
+export async function handleSyncProjectMembers(projectId: string, newMemberIds: Set<string>) {
+    const existingMembers = state.projectMembers.filter(pm => pm.projectId === projectId);
+    const existingMemberIds = new Set(existingMembers.map(pm => pm.userId));
+
+    const membersToAdd = Array.from(newMemberIds).filter(id => !existingMemberIds.has(id));
+    const membersToRemove = existingMembers.filter(pm => !newMemberIds.has(pm.userId));
+
+    // Nothing to do
+    if (membersToAdd.length === 0 && membersToRemove.length === 0) {
+        return;
+    }
+
+    const addPromises: Promise<any>[] = [];
+    if (membersToAdd.length > 0) {
+        const addPayloads = membersToAdd.map(userId => ({
+            projectId,
+            userId,
+            role: 'editor' as const // Default role for new members
+        }));
+        addPromises.push(apiPost('project_members', addPayloads));
+    }
+
+    const removePromises: Promise<any>[] = [];
+    for (const member of membersToRemove) {
+        removePromises.push(apiFetch('/api?action=data&resource=project_members', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: member.id })
+        }));
+    }
+
+    // Perform optimistic updates
+    const removedMembersForRevert = state.projectMembers.filter(pm => membersToRemove.some(m => m.id === pm.id));
+    state.projectMembers = state.projectMembers.filter(pm => !membersToRemove.some(m => m.id === pm.id));
+    
+    // Render after optimistic removal
+    renderApp();
+
+    try {
+        const [addResults] = await Promise.all([
+            Promise.all(addPromises),
+            Promise.all(removePromises),
+        ]);
+        
+        if (addResults && addResults.length > 0) {
+            const newMembers = addResults.flat().filter(Boolean);
+            state.projectMembers.push(...newMembers);
+        }
+        
+    } catch (error) {
+        console.error("Failed to sync project members:", error);
+        alert("Could not update project members. Please refresh the page.");
+        // Revert removals on error
+        state.projectMembers.push(...removedMembersForRevert);
+    } finally {
+        // Final render to show added members or reverted state
+        renderApp();
+    }
+}

@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -35,17 +36,7 @@ export async function router() {
     const [page, id] = pathSegments;
     
     const previousPage = state.currentPage;
-    let newPage: AppState['currentPage'];
-
-    // Handle special routes first
-    if (page === 'task-list' && id) {
-        newPage = 'tasks';
-        state.ui.activeCustomTaskListId = id;
-    } else {
-        newPage = (page || 'dashboard') as AppState['currentPage'];
-        // Reset custom list if we are navigating away or to the main tasks page
-        state.ui.activeCustomTaskListId = null;
-    }
+    const newPage = (page || 'dashboard') as AppState['currentPage'];
 
     if (previousPage !== newPage) {
         state.ui.openedProjectId = null;
@@ -55,7 +46,7 @@ export async function router() {
     state.currentPage = newPage;
 
     // This part handles opening a detail view from a direct URL load (deep linking).
-    if (id && page !== 'task-list') {
+    if (id) {
         switch (state.currentPage) {
             case 'projects':
                 if (state.ui.openedProjectId !== id) openProjectPanel(id);
@@ -72,8 +63,8 @@ export async function router() {
                 if (state.ui.openedDealId !== id) openDealPanel(id);
                 break;
         }
-    } else if (page !== 'task-list') {
-        // If there's no ID in the URL, ensure all panels are closed (unless it's a special route)
+    } else {
+        // If there's no ID in the URL, ensure all panels are closed
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;
         state.ui.openedDealId = null;
@@ -85,7 +76,7 @@ export async function router() {
     switch (state.currentPage) {
         case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
         case 'clients':         return can('view_clients') ? ClientsPage() : DashboardPage();
-        case 'tasks':           return can('view_tasks') ? TasksPage() : DashboardPage(); // This now handles both /tasks and /task-list/:id
+        case 'tasks':           return can('view_tasks') ? TasksPage() : DashboardPage();
         case 'team-calendar':   return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales':           return can('view_sales') ? SalesPage() : DashboardPage();

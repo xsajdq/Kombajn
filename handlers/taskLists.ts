@@ -1,17 +1,17 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { TaskList } from '../types.ts';
 
-export async function handleCreateTaskList(projectId: string, name: string, icon: string) {
+export async function handleCreateTaskList(projectId: string, name: string) {
     if (!state.activeWorkspaceId || !name.trim() || !projectId) return;
 
     const payload: Omit<TaskList, 'id'> = {
         workspaceId: state.activeWorkspaceId,
         projectId: projectId,
         name: name.trim(),
-        icon: icon,
     };
 
     try {
@@ -24,32 +24,26 @@ export async function handleCreateTaskList(projectId: string, name: string, icon
     }
 }
 
-export async function handleUpdateTaskList(id: string, name: string, icon: string) {
+export async function handleRenameTaskList(id: string, newName: string) {
     const list = state.taskLists.find(tl => tl.id === id);
-    if (!list) return;
+    if (!list || !newName.trim()) return;
 
     const originalName = list.name;
-    const originalIcon = list.icon;
-
-    // Optimistic update
-    list.name = name;
-    list.icon = icon;
+    list.name = newName.trim(); // Optimistic update
     renderApp();
 
     try {
-        await apiPut('task_lists', { id, name, icon });
+        await apiPut('task_lists', { id, name: newName.trim() });
     } catch (error) {
         console.error("Failed to update task list:", error);
         alert("Could not update the task list.");
-        // Revert
-        list.name = originalName;
-        list.icon = originalIcon;
+        list.name = originalName; // Revert
         renderApp();
     }
 }
 
 export async function handleDeleteTaskList(id: string) {
-    if (!confirm("Are you sure you want to delete this task list? Tasks in this list will not be deleted but will become unassigned from any list.")) {
+    if (!confirm("Are you sure you want to delete this section? Tasks in this section will not be deleted.")) {
         return;
     }
 
@@ -75,10 +69,7 @@ export async function handleDeleteTaskList(id: string) {
         alert("Could not delete the task list.");
         // Revert
         state.taskLists.splice(listIndex, 0, removedList);
-        state.tasks.forEach(task => {
-             // This is imperfect, as we don't know which tasks were originally in the list.
-             // A full state refresh would be better in a real-world scenario.
-        });
+        // This is complex to revert, so a refresh might be better
         renderApp();
     }
 }

@@ -5,7 +5,7 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
-import type { Task, User } from '../types.ts';
+import type { Task, User, TaskList } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow, fetchTasksData } from '../handlers/main.ts';
@@ -133,55 +133,127 @@ function renderListView(filteredTasks: Task[]) {
         </div>`;
     }
 
-    const renderRow = (task: Task) => {
-        const project = state.projects.find(p => p.id === task.projectId);
-        const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-        const isRunning = !!state.activeTimers[task.id];
+    const { projectId } = state.ui.tasks.filters;
+    
+    // If a project is selected, group by Task Lists (Sections)
+    if (projectId) {
+        const projectTaskLists = state.taskLists.filter(tl => tl.projectId === projectId);
+        const tasksByList: Record<string, Task[]> = { 'no-list': [] };
+        projectTaskLists.forEach(tl => tasksByList[tl.id] = []);
+
+        filteredTasks.forEach(task => {
+            if (task.taskListId && tasksByList[task.taskListId]) {
+                tasksByList[task.taskListId].push(task);
+            } else {
+                tasksByList['no-list'].push(task);
+            }
+        });
+
+        const renderSection = (list: TaskList | null, tasks: Task[]) => {
+            const listName = list ? list.name : t('tasks.default_board');
+            const listId = list ? list.id : 'no-list';
+            if (tasks.length === 0 && !list) return ''; // Don't render "Default" if it's empty
+
+            return `
+                <details class="task-section" open>
+                    <summary class="task-section-header">
+                        <div class="flex items-center gap-2">
+                            <span class="material-icons-sharp">keyboard_arrow_down</span>
+                            <h4 class="font-semibold">${listName}</h4>
+                            <span class="text-sm text-text-subtle">${tasks.length}</span>
+                        </div>
+                         ${list ? `
+                            <div class="relative">
+                                <button class="btn-icon task-section-menu-btn" data-menu-toggle="task-list-menu-${listId}">
+                                    <span class="material-icons-sharp">more_horiz</span>
+                                </button>
+                                <div id="task-list-menu-${listId}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                    <div class="py-1">
+                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-rename-task-list-id="${listId}">${t('modals.rename')}</button>
+                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-task-list-id="${listId}">${t('modals.delete')}</button>
+                                    </div>
+                                </div>
+                            </div>
+                         ` : ''}
+                    </summary>
+                    <div class="task-section-body">
+                        ${tasks.map(renderRow).join('')}
+                    </div>
+                </details>
+            `;
+        };
 
         return `
-            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background ${task.isArchived ? 'opacity-60' : ''}" data-task-id="${task.id}" role="button" tabindex="0">
-                 <div class="font-medium flex items-center gap-2">
-                    ${task.isArchived ? `<span class="material-icons-sharp text-base text-text-subtle" title="${t('tasks.archive')}d">archive</span>` : ''}
-                    ${task.name}
+            <div class="bg-content rounded-lg shadow-sm">
+                ${renderListHeader()}
+                <div>
+                    ${projectTaskLists.map(list => renderSection(list, tasksByList[list.id])).join('')}
+                    ${renderSection(null, tasksByList['no-list'])}
                 </div>
-                 <div>${project?.name || t('misc.not_applicable')}</div>
-                 <div>
-                    <div class="flex -space-x-2">
-                        ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
-                            <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
-                        `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
-                    </div>
-                 </div>
-                 <div>${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-                 <div>${task.priority ? `<span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
-                 <div><span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.' + task.status)}</span></div>
-                 <div class="flex items-center justify-end gap-2 text-text-subtle">
-                     <span class="text-sm font-mono task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                     <button class="p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                        <span class="material-icons-sharp text-xl">${isRunning ? 'pause_circle' : 'play_circle_outline'}</span>
-                    </button>
-                 </div>
+                <button class="w-full text-left p-2 text-sm text-text-subtle hover:bg-background" id="add-task-section-btn" data-project-id="${projectId}">
+                    + Add Section
+                </button>
             </div>
         `;
-    };
 
+    }
+
+    // Default view (all projects)
     return `
         <div class="bg-content rounded-lg shadow-sm">
-            <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase">
-                <div>${t('tasks.col_task')}</div>
-                <div>${t('tasks.col_project')}</div>
-                <div>${t('modals.assignees')}</div>
-                <div>${t('tasks.col_due_date')}</div>
-                <div>${t('tasks.col_priority')}</div>
-                <div>${t('tasks.col_status')}</div>
-                <div class="text-right">${t('tasks.col_time')}</div>
-            </div>
+            ${renderListHeader()}
             <div>
                 ${filteredTasks.map(renderRow).join('')}
             </div>
         </div>
     `;
 }
+
+function renderListHeader() {
+    return `
+        <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase">
+            <div>${t('tasks.col_task')}</div>
+            <div>${t('tasks.col_project')}</div>
+            <div>${t('modals.assignees')}</div>
+            <div>${t('tasks.col_due_date')}</div>
+            <div>${t('tasks.col_priority')}</div>
+            <div>${t('tasks.col_status')}</div>
+            <div class="text-right">${t('tasks.col_time')}</div>
+        </div>
+    `;
+}
+
+function renderRow(task: Task) {
+    const project = state.projects.find(p => p.id === task.projectId);
+    const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+    const isRunning = !!state.activeTimers[task.id];
+
+    return `
+        <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background ${task.isArchived ? 'opacity-60' : ''} task-list-row" data-task-id="${task.id}" role="button" tabindex="0">
+             <div class="font-medium flex items-center gap-2">
+                ${task.isArchived ? `<span class="material-icons-sharp text-base text-text-subtle" title="${t('tasks.archive')}d">archive</span>` : ''}
+                ${task.name}
+            </div>
+             <div>${project?.name || t('misc.not_applicable')}</div>
+             <div>
+                <div class="flex -space-x-2">
+                    ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
+                        <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
+                    `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
+                </div>
+             </div>
+             <div>${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
+             <div>${task.priority ? `<span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
+             <div><span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.' + task.status)}</span></div>
+             <div class="flex items-center justify-end gap-2 text-text-subtle">
+                 <span class="text-sm font-mono task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
+                 <button class="p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                    <span class="material-icons-sharp text-xl">${isRunning ? 'pause_circle' : 'play_circle_outline'}</span>
+                </button>
+             </div>
+        </div>
+    `;
+};
 
 function renderCalendarView(filteredTasks: Task[]) {
     const [year, month] = state.ui.calendarDate.split('-').map(Number);

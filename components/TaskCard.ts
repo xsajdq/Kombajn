@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -21,6 +22,7 @@ export function renderTaskCard(task: Task) {
     const commentsCount = state.comments.filter(c => c.taskId === task.id).length;
     const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
     const unknownAssignee = taskAssignees.length === 0;
+    const taskList = task.taskListId ? state.taskLists.find(tl => tl.id === task.taskListId) : null;
 
     const taskTags = state.taskTags
         .filter(tt => tt.taskId === task.id)
@@ -40,6 +42,7 @@ export function renderTaskCard(task: Task) {
             </div>
 
             <div class="flex flex-col items-start gap-2">
+                ${taskList ? `<div class="task-card-section-label">${taskList.name}</div>` : ''}
                 ${task.priority ? `<div class="task-card-priority ${priorityClass}">${t('tasks.priority_' + task.priority)}</div>` : ''}
 
                 ${taskTags.length > 0 ? `

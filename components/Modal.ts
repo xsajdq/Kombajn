@@ -3,7 +3,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client } from '../types.ts';
+import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, TaskList } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
 import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration } from '../utils.ts';
@@ -224,8 +224,9 @@ export function Modal() {
     if (state.ui.modal.type === 'addTask') {
         const projectIdFromPanel = modalData.projectId;
         const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
-        const taskLists = projectIdFromPanel ? state.taskLists.filter(tl => tl.projectId === projectIdFromPanel) : [];
-
+        const taskListsForSelectedProject: TaskList[] = projectIdFromPanel 
+            ? state.taskLists.filter(tl => tl.projectId === projectIdFromPanel) 
+            : [];
 
         title = t('modals.add_task_title');
         body = `
@@ -246,11 +247,11 @@ export function Modal() {
                             ${workspaceProjects.map(p => `<option value="${p.id}" ${projectIdFromPanel === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
                         </select>
                     </div>
-                     <div class="${formGroupClasses} ${taskLists.length > 0 ? '' : 'hidden'}" id="task-list-group">
+                     <div class="${formGroupClasses} ${taskListsForSelectedProject.length > 0 ? '' : 'hidden'}" id="task-list-group">
                         <label for="taskList" class="${labelClasses}">${t('modals.task_list')}</label>
                         <select id="taskList" class="${formControlClasses}">
-                            <option value="">Default Board</option>
-                             ${taskLists.map((tl: any) => `<option value="${tl.id}">${tl.name}</option>`).join('')}
+                            <option value="">${t('tasks.default_board')}</option>
+                            ${taskListsForSelectedProject.map((tl: TaskList) => `<option value="${tl.id}">${tl.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">

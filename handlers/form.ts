@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -125,43 +126,47 @@ export async function handleFormSubmit() {
                 category: (document.getElementById('projectCategory') as HTMLInputElement).value || undefined,
             };
 
+            let savedProject;
+
             if (isEdit) {
-                const [updatedProject] = await apiPut('projects', { ...projectData, id: projectId });
+                [savedProject] = await apiPut('projects', { ...projectData, id: projectId });
                 const index = state.projects.findIndex(p => p.id === projectId);
                 if (index !== -1) {
-                    state.projects[index] = { ...state.projects[index], ...updatedProject };
+                    state.projects[index] = { ...state.projects[index], ...savedProject };
                 }
             } else {
-                const [newProject] = await apiPost('projects', projectData);
-                state.projects.push(newProject);
+                [savedProject] = await apiPost('projects', projectData);
+                state.projects.push(savedProject);
     
                 // ALWAYS add the creator as admin
                 const creatorMember: Omit<ProjectMember, 'id'> = {
-                    projectId: newProject.id,
+                    projectId: savedProject.id,
                     userId: state.currentUser.id,
                     role: 'admin'
                 };
                 const [savedCreatorMember] = await apiPost('project_members', creatorMember);
                 state.projectMembers.push(savedCreatorMember);
-    
-                // If project is private, add selected members
-                if (newProject.privacy === 'private') {
-                    const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
-                    const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
-    
-                    const membersToAdd: Omit<ProjectMember, 'id'>[] = memberIds
+            }
+
+            // Handle members for both edit and create
+            if (projectData.privacy === 'private') {
+                const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
+                const newMemberIds = new Set(Array.from(memberCheckboxes).map(cb => cb.value));
+                
+                if (isEdit) {
+                    await projectHandlers.handleSyncProjectMembers(savedProject.id, newMemberIds);
+                } else if (newMemberIds.size > 0) {
+                     const membersToAdd: Omit<ProjectMember, 'id'>[] = Array.from(newMemberIds)
                         .filter(id => id !== state.currentUser!.id) // Don't re-add creator
-                        .map(userId => ({
-                            projectId: newProject.id,
-                            userId: userId,
-                            role: 'editor' // Default role for invited members
-                        }));
-    
-                    if (membersToAdd.length > 0) {
+                        .map(userId => ({ projectId: savedProject.id, userId, role: 'editor' }));
+                    if(membersToAdd.length > 0) {
                         const savedMembers = await apiPost('project_members', membersToAdd);
                         state.projectMembers.push(...savedMembers);
                     }
                 }
+            } else if (isEdit && projectData.privacy === 'public') {
+                // If switching from private to public, remove all non-creator members
+                await projectHandlers.handleSyncProjectMembers(savedProject.id, new Set([state.currentUser.id]));
             }
         }
 
@@ -188,6 +193,7 @@ export async function handleFormSubmit() {
             }
             
             const estimatedHoursString = (form.querySelector('#taskEstimatedHours') as HTMLInputElement).value;
+            const taskListId = (form.querySelector('#taskList') as HTMLSelectElement).value;
 
             const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
             const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
@@ -200,6 +206,7 @@ export async function handleFormSubmit() {
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
+                taskListId: taskListId || null,
                 name: name,
                 description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value,
                 status: workflow === 'advanced' ? 'backlog' : 'todo',
@@ -464,7 +471,7 @@ export async function handleFormSubmit() {
             const name = (document.getElementById('taskListName') as HTMLInputElement).value;
             if (projectId && name) {
                 // For project-specific task lists, the icon is not needed.
-                await taskListsHandler.handleCreateTaskList(projectId, name, 'checklist');
+                await taskListsHandler.handleCreateTaskList(projectId, name);
             }
             return; // Handler manages its own state
         }
