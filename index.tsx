@@ -65,6 +65,24 @@ async function fetchWorkspaceData(workspaceId: string) {
         state.invoices = invoicesRes || [];
         state.timeLogs = timeLogsRes || [];
         state.comments = commentsRes || [];
+
+        // Fix: Fetch invoice line items separately and attach them to invoices
+        if (state.invoices.length > 0) {
+            const invoiceIds = state.invoices.map(i => i.id);
+            const lineItems: InvoiceLineItem[] = await apiFetch(`/api?action=data&resource=invoice_line_items&invoiceId=in.(${invoiceIds.join(',')})`);
+            
+            const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
+            for (const item of lineItems) {
+                if (!lineItemsByInvoiceId.has(item.invoiceId)) {
+                    lineItemsByInvoiceId.set(item.invoiceId, []);
+                }
+                lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
+            }
+
+            for (const invoice of state.invoices) {
+                invoice.items = lineItemsByInvoiceId.get(invoice.id) || [];
+            }
+        }
         
         // This is a simplified fetch for dashboard dependencies, more granular fetches will happen on page loads
         const [taskAssigneesRes, projectSectionsRes, taskViewsRes] = await Promise.all([
