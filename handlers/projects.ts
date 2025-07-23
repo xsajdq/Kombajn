@@ -1,10 +1,8 @@
-
-
 import { state } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Project, Task, ProjectMember, AiSuggestedTask } from '../types.ts';
-import { renderApp } from '../app-renderer.ts';
 
 export async function handlePlanProjectWithAi(name: string, clientId: string, goal: string) {
     const saveButton = document.getElementById('modal-save-btn');
@@ -66,30 +64,26 @@ export async function handleDeleteProject(projectId: string) {
     const projectIndex = state.projects.findIndex(p => p.id === projectId);
     if (projectIndex === -1) return;
 
-    // --- Create snapshots for potential revert ---
     const [removedProject] = state.projects.splice(projectIndex, 1);
     const originalTasks = [...state.tasks];
     const originalProjectMembers = [...state.projectMembers];
     
-    // --- Optimistic update ---
     state.tasks = state.tasks.filter(t => t.projectId !== projectId);
     state.projectMembers = state.projectMembers.filter(pm => pm.projectId !== projectId);
-    closeSidePanels(); // This will trigger a re-render
+    closeSidePanels();
 
     try {
         await apiFetch(`/api?action=data&resource=projects`, {
             method: 'DELETE',
             body: JSON.stringify({ id: projectId }),
         });
-        // Backend's cascading delete will handle related items in the DB.
     } catch (error) {
         console.error("Failed to delete project:", error);
         alert("Could not delete the project from the server. Reverting changes.");
-        // --- Revert state on failure ---
         state.projects.splice(projectIndex, 0, removedProject);
         state.tasks = originalTasks;
         state.projectMembers = originalProjectMembers;
-        renderApp();
+        updateUI(['page']);
     }
 }
 
@@ -100,7 +94,6 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
     const membersToAdd = Array.from(newMemberIds).filter(id => !existingMemberIds.has(id));
     const membersToRemove = existingMembers.filter(pm => !newMemberIds.has(pm.userId));
 
-    // Nothing to do
     if (membersToAdd.length === 0 && membersToRemove.length === 0) {
         return;
     }
@@ -110,7 +103,7 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
         const addPayloads = membersToAdd.map(userId => ({
             projectId,
             userId,
-            role: 'editor' as const // Default role for new members
+            role: 'editor' as const
         }));
         addPromises.push(apiPost('project_members', addPayloads));
     }
@@ -123,12 +116,10 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
         }));
     }
 
-    // Perform optimistic updates
     const removedMembersForRevert = state.projectMembers.filter(pm => membersToRemove.some(m => m.id === pm.id));
     state.projectMembers = state.projectMembers.filter(pm => !membersToRemove.some(m => m.id === pm.id));
     
-    // Render after optimistic removal
-    renderApp();
+    updateUI(['side-panel']);
 
     try {
         const [addResults] = await Promise.all([
@@ -144,10 +135,8 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
     } catch (error) {
         console.error("Failed to sync project members:", error);
         alert("Could not update project members. Please refresh the page.");
-        // Revert removals on error
         state.projectMembers.push(...removedMembersForRevert);
     } finally {
-        // Final render to show added members or reverted state
-        renderApp();
+        updateUI(['side-panel']);
     }
 }

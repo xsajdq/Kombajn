@@ -1,12 +1,12 @@
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { DashboardWidget, DashboardWidgetType } from '../types.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 
 export function toggleEditMode() {
     state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
-    renderApp();
+    updateUI(['page']);
 }
 
 export async function createDefaultWidgets() {
@@ -26,7 +26,7 @@ export async function createDefaultWidgets() {
         const savedWidgets = await apiPost('dashboard_widgets', defaultWidgets);
         state.dashboardWidgets.push(...savedWidgets);
         state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        renderApp();
+        updateUI(['page']);
     } catch (error) {
         console.error("Failed to create default widgets:", error);
     }
@@ -58,7 +58,8 @@ export async function addWidget(type: DashboardWidgetType, metricType?: Dashboar
         const [savedWidget] = await apiPost('dashboard_widgets', newWidgetPayload);
         state.dashboardWidgets.push(savedWidget);
         state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        closeModal();
+        closeModal(false);
+        updateUI(['page']);
     } catch (error) {
         console.error("Failed to add widget:", error);
         alert("Could not add widget.");
@@ -70,7 +71,7 @@ export async function removeWidget(widgetId: string) {
     if (widgetIndex === -1) return;
 
     const [removedWidget] = state.dashboardWidgets.splice(widgetIndex, 1);
-    renderApp();
+    updateUI(['page']);
     try {
         await apiFetch(`/api?action=data&resource=dashboard_widgets`, {
             method: 'DELETE',
@@ -78,7 +79,7 @@ export async function removeWidget(widgetId: string) {
         });
     } catch (error) {
         state.dashboardWidgets.splice(widgetIndex, 0, removedWidget);
-        renderApp();
+        updateUI(['page']);
         alert("Could not remove widget.");
     }
 }
@@ -107,11 +108,12 @@ export async function handleWidgetConfigSave(widgetId: string) {
 
     try {
         await apiPut('dashboard_widgets', { id: widgetId, config: newConfig });
-        closeModal();
+        closeModal(false);
+        updateUI(['page']);
     } catch(error) {
-        widget.config = originalConfig; // Revert
+        widget.config = originalConfig;
         alert("Failed to save widget configuration.");
-        renderApp();
+        updateUI(['page']);
     }
 }
 
@@ -124,14 +126,14 @@ export async function handleGridColumnsChange(newCount: number) {
 
     const originalCount = workspace.dashboardGridColumns;
     workspace.dashboardGridColumns = newCount;
-    renderApp(); // Optimistic update
+    updateUI(['page']);
 
     try {
         await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: newCount });
     } catch (error) {
         console.error("Failed to update grid columns:", error);
-        workspace.dashboardGridColumns = originalCount; // Revert
-        renderApp();
+        workspace.dashboardGridColumns = originalCount;
+        updateUI(['page']);
         alert("Could not save your grid preference.");
     }
 }

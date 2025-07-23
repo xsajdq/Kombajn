@@ -1,5 +1,5 @@
 import { state, saveState } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
 
 let lastFocusedElement: HTMLElement | null = null;
@@ -21,13 +21,12 @@ export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'de
         case 'task':
             history.pushState({ id }, '', `/tasks/${id}`);
             showModal('taskDetail', { taskId: id });
-            return; // showModal calls renderApp
+            return; 
     }
-    renderApp();
+    updateUI(['side-panel']);
 }
 
 function updateUrlOnPanelClose() {
-    // When a panel closes, revert the URL to the main page URL for that section
     const newPath = `/${state.currentPage}`;
     if (window.location.pathname !== newPath) {
         history.pushState({}, '', newPath);
@@ -39,7 +38,7 @@ export function toggleCommandPalette(force?: boolean) {
     if (state.ui.isCommandPaletteOpen) {
         state.ui.commandPaletteQuery = '';
     }
-    renderApp();
+    updateUI(['command-palette']);
     if (state.ui.isCommandPaletteOpen) {
         document.getElementById('command-palette-input')?.focus();
     }
@@ -47,7 +46,7 @@ export function toggleCommandPalette(force?: boolean) {
 
 export function toggleTaskFilters(force?: boolean) {
     state.ui.tasks.isFilterOpen = force ?? !state.ui.tasks.isFilterOpen;
-    renderApp();
+    updateUI(['page']);
 }
 
 export function openProjectPanel(projectId: string) {
@@ -57,8 +56,9 @@ export function openProjectPanel(projectId: string) {
     state.ui.openedProjectId = projectId;
     state.ui.openedClientId = null;
     state.ui.openedDealId = null;
-    state.ui.openedProjectTab = 'overview'; // Reset to default tab
-    state.ui.isWikiEditing = false; // Ensure wiki edit mode is off
+    state.ui.openedProjectTab = 'overview';
+    state.ui.isWikiEditing = false;
+    updateUI(['side-panel']);
 }
 
 export function openClientPanel(clientId: string) {
@@ -68,6 +68,7 @@ export function openClientPanel(clientId: string) {
     state.ui.openedClientId = clientId;
     state.ui.openedProjectId = null;
     state.ui.openedDealId = null;
+    updateUI(['side-panel']);
 }
 
 export function openDealPanel(dealId: string) {
@@ -77,6 +78,7 @@ export function openDealPanel(dealId: string) {
     state.ui.openedDealId = dealId;
     state.ui.openedProjectId = null;
     state.ui.openedClientId = null;
+    updateUI(['side-panel']);
 }
 
 export function closeSidePanels(shouldRender = true) {
@@ -95,10 +97,10 @@ export function closeSidePanels(shouldRender = true) {
     }
 
     if (changed) {
-        state.ui.isWikiEditing = false; // Reset wiki edit state when any panel closes
-        updateUrlOnPanelClose(); // Update URL when panel is closed
+        state.ui.isWikiEditing = false;
+        updateUrlOnPanelClose();
         if (shouldRender) {
-            renderApp();
+            updateUI(['side-panel']);
         }
         if (lastFocusedElement) {
             lastFocusedElement.focus();
@@ -113,39 +115,35 @@ export function showModal(type: AppState['ui']['modal']['type'], data?: any) {
     }
     const modalData = data || {};
     if (type === 'addInvoice') {
-        // Ensure that items array exists for new invoices.
         if (!modalData.items) {
             modalData.items = [{ id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 }];
         }
-        // Initialize dates if they don't exist in the data
         if (!modalData.issueDate) {
             modalData.issueDate = new Date().toISOString().slice(0, 10);
         }
         if (!modalData.dueDate) {
             const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 14); // Default due date 14 days from now
+            dueDate.setDate(dueDate.getDate() + 14);
             modalData.dueDate = dueDate.toISOString().slice(0, 10);
         }
     }
     state.ui.modal = { isOpen: true, type, data: modalData, justOpened: true };
-    renderApp();
+    updateUI(['modal']);
 }
 
 export function closeModal(shouldRender = true) {
     if(state.ui.modal.isOpen){
         const modalType = state.ui.modal.type;
         state.ui.modal = { isOpen: false, type: null, data: undefined, justOpened: false };
-        // Reset mention state when any modal closes
         state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
         saveState();
 
-        // Update URL if a detail modal was closed
         if (modalType === 'taskDetail') {
             updateUrlOnPanelClose();
         }
 
         if (shouldRender) {
-            renderApp();
+            updateUI(['modal']);
         }
         if (lastFocusedElement) {
             lastFocusedElement.focus();

@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { PlanId, PlanChange } from '../types.ts';
 import { apiPut } from '../services/api.ts';
 
@@ -34,7 +32,7 @@ export async function handlePlanChange(newPlanId: PlanId) {
                     planHistory: updatedWorkspace.planHistory || []
                 };
             }
-            renderApp();
+            updateUI(['page']);
         } catch (error) {
             console.error("Failed to change plan:", error);
             alert("Failed to change plan. Please try again.");
@@ -52,7 +50,7 @@ export async function handleCancelSubscription() {
         
         workspace.subscription.status = 'canceled';
         workspace.subscription.planId = 'free';
-        renderApp();
+        updateUI(['page']);
 
         try {
             await apiPut('workspaces', { 
@@ -63,10 +61,9 @@ export async function handleCancelSubscription() {
         } catch (error) {
             console.error("Failed to cancel subscription:", error);
             alert("Failed to cancel subscription. Please try again.");
-            // Revert optimistic update
             workspace.subscription.status = originalStatus;
             workspace.subscription.planId = originalPlan;
-            renderApp();
+            updateUI(['page']);
         }
     }
 }

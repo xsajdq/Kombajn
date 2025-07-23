@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
 import { t } from '../i18n.ts';
 import { apiPut } from '../services/api.ts';
@@ -23,7 +21,6 @@ export function handleGenerateInvoiceItems() {
     const billableProjectIds = new Set(billableProjects.map(p => p.id));
     const newItems: InvoiceLineItem[] = [];
 
-    // --- Generate items from Time Logs ---
     const unbilledTimeLogs = state.timeLogs.filter(tl => {
         const task = taskMap.get(tl.taskId);
         return tl.workspaceId === state.activeWorkspaceId &&
@@ -50,7 +47,7 @@ export function handleGenerateInvoiceItems() {
             if (totalHours > 0) {
                 newItems.push({
                     id: (Date.now() + Math.random()).toString(),
-                    invoiceId: '', // Dummy ID to satisfy type, will be replaced on save
+                    invoiceId: '',
                     description: t('invoices.generated_item_desc')
                         .replace('{projectName}', project.name)
                         .replace('{hours}', totalHours.toFixed(2)),
@@ -61,7 +58,6 @@ export function handleGenerateInvoiceItems() {
         }
     }
 
-    // --- Generate items from Expenses ---
     const unbilledExpenses = state.expenses.filter(ex => 
         ex.workspaceId === state.activeWorkspaceId &&
         ex.isBillable &&
@@ -72,7 +68,7 @@ export function handleGenerateInvoiceItems() {
     unbilledExpenses.forEach(ex => {
         newItems.push({
             id: (Date.now() + Math.random()).toString(),
-            invoiceId: '', // Dummy ID
+            invoiceId: '',
             description: t('invoices.generated_expense_desc').replace('{expenseDesc}', ex.description),
             quantity: 1,
             unitPrice: ex.amount,
@@ -82,7 +78,7 @@ export function handleGenerateInvoiceItems() {
     state.ui.modal.data.items = newItems;
     state.ui.modal.data.sourceLogIds = unbilledTimeLogs.map(l => l.id);
     state.ui.modal.data.sourceExpenseIds = unbilledExpenses.map(e => e.id);
-    renderApp();
+    updateUI(['modal']);
 }
 
 export async function handleToggleInvoiceStatus(invoiceId: string) {
@@ -91,17 +87,15 @@ export async function handleToggleInvoiceStatus(invoiceId: string) {
         const originalStatus = invoice.status;
         const newStatus = originalStatus === 'paid' ? 'pending' : 'paid';
         
-        // Optimistic update
         invoice.status = newStatus;
-        renderApp();
+        updateUI(['page']);
 
         try {
             await apiPut('invoices', { id: invoiceId, status: newStatus });
         } catch (error) {
             console.error("Failed to toggle invoice status:", error);
-            // Revert on failure
             invoice.status = originalStatus;
-            renderApp();
+            updateUI(['page']);
             alert("Could not update invoice status. Please try again.");
         }
     }
@@ -136,19 +130,17 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
         mailtoLink += `&bcc=${encodeURIComponent(workspace.companyEmail)}`;
     }
 
-    // Use window.open for better compatibility
     window.open(mailtoLink, '_self');
 
-    // Optimistic update of email status, with server persistence
     const originalEmailStatus = invoice.emailStatus;
     invoice.emailStatus = 'sent';
-    renderApp();
+    updateUI(['page']);
 
     try {
         await apiPut('invoices', { id: invoiceId, emailStatus: 'sent' });
     } catch (error) {
         console.error("Failed to update invoice email status:", error);
-        invoice.emailStatus = originalEmailStatus; // Revert
-        renderApp();
+        invoice.emailStatus = originalEmailStatus;
+        updateUI(['page']);
     }
 }

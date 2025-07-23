@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderMentionPopover } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 
 export function parseMentionContent(element: HTMLElement): string {
@@ -29,7 +27,7 @@ export function handleMentionInput(inputDiv: HTMLElement) {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
         state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
-        renderMentionPopover();
+        updateUI(['mention-popover']);
         return;
     }
 
@@ -39,7 +37,7 @@ export function handleMentionInput(inputDiv: HTMLElement) {
     // Check if we are inside a text node, which is necessary for range manipulation.
     if (textNode.nodeType !== Node.TEXT_NODE) {
         state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
-        renderMentionPopover();
+        updateUI(['mention-popover']);
         return;
     }
 
@@ -68,7 +66,7 @@ export function handleMentionInput(inputDiv: HTMLElement) {
         state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
     }
     
-    renderMentionPopover();
+    updateUI(['mention-popover']);
 }
 
 export function handleInsertMention(user: User, inputDiv: HTMLElement) {
@@ -110,6 +108,6 @@ export function handleInsertMention(user: User, inputDiv: HTMLElement) {
 
     // Reset mention state completely
     state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
-    renderMentionPopover();
+    updateUI(['mention-popover']);
     inputDiv.focus();
 }

@@ -1,6 +1,5 @@
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { ProjectSection } from '../types.ts';
 
@@ -16,7 +15,7 @@ export async function handleCreateProjectSection(projectId: string, name: string
     try {
         const [newSection] = await apiPost('project_sections', payload);
         state.projectSections.push(newSection);
-        renderApp();
+        updateUI(['page']);
     } catch (error) {
         console.error("Failed to create project section:", error);
         alert("Could not create the project section.");
@@ -28,16 +27,16 @@ export async function handleRenameProjectSection(id: string, newName: string) {
     if (!section || !newName.trim()) return;
 
     const originalName = section.name;
-    section.name = newName.trim(); // Optimistic update
-    renderApp();
+    section.name = newName.trim();
+    updateUI(['page']);
 
     try {
         await apiPut('project_sections', { id, name: newName.trim() });
     } catch (error) {
         console.error("Failed to update project section:", error);
         alert("Could not update the project section.");
-        section.name = originalName; // Revert
-        renderApp();
+        section.name = originalName;
+        updateUI(['page']);
     }
 }
 
@@ -50,13 +49,12 @@ export async function handleDeleteProjectSection(id: string) {
     if (sectionIndex === -1) return;
 
     const [removedSection] = state.projectSections.splice(sectionIndex, 1);
-    // Optimistically update tasks that were in this section
     state.tasks.forEach(task => {
         if (task.projectSectionId === id) {
             task.projectSectionId = null;
         }
     });
-    renderApp();
+    updateUI(['page']);
 
     try {
         await apiFetch('/api?action=data&resource=project_sections', {
@@ -66,9 +64,7 @@ export async function handleDeleteProjectSection(id: string) {
     } catch (error) {
         console.error("Failed to delete project section:", error);
         alert("Could not delete the project section.");
-        // Revert
         state.projectSections.splice(sectionIndex, 0, removedSection);
-        // This is complex to revert, so a refresh might be better
-        renderApp();
+        updateUI(['page']);
     }
 }

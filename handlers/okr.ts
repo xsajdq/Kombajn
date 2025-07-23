@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import { closeModal } from './ui.ts';
 import type { Objective, KeyResult } from '../types.ts';
@@ -19,7 +17,8 @@ export async function handleCreateObjective(projectId: string, title: string, de
     try {
         const [newObjective] = await apiPost('objectives', payload);
         state.objectives.push(newObjective);
-        closeModal();
+        closeModal(false);
+        updateUI(['side-panel']);
     } catch (error) {
         console.error("Failed to create objective:", error);
         alert("Could not create objective.");
@@ -33,13 +32,14 @@ export async function handleAddKeyResult(objectiveId: string, title: string, typ
         type,
         startValue,
         targetValue,
-        currentValue: startValue, // Initial value is the start value
+        currentValue: startValue,
     };
 
     try {
         const [newKeyResult] = await apiPost('key_results', payload);
         state.keyResults.push(newKeyResult);
-        closeModal();
+        closeModal(false);
+        updateUI(['side-panel']);
     } catch (error) {
         console.error("Failed to add key result:", error);
         alert("Could not add key result.");
@@ -50,22 +50,21 @@ export async function handleUpdateKeyResultValue(keyResultId: string, newValue: 
     const kr = state.keyResults.find(k => k.id === keyResultId);
     if (!kr) return;
 
-    // This is the key part to fix the infinite editing bug
     const krItemEl = document.querySelector(`.key-result-item[data-kr-id="${keyResultId}"]`);
     if (krItemEl) {
         delete (krItemEl as HTMLElement).dataset.editing;
     }
 
     const originalValue = kr.currentValue;
-    kr.currentValue = newValue; // Optimistic update
-    renderApp();
+    kr.currentValue = newValue;
+    updateUI(['side-panel']);
 
     try {
         await apiPut('key_results', { id: keyResultId, currentValue: newValue });
     } catch (error) {
         console.error("Failed to update key result:", error);
-        kr.currentValue = originalValue; // Revert
-        renderApp();
+        kr.currentValue = originalValue;
+        updateUI(['side-panel']);
         alert("Could not update key result value.");
     }
 }

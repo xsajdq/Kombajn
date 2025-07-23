@@ -1,12 +1,12 @@
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice } from '../types.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 
 type PageName = 'clients' | 'invoices' | 'projects' | 'tasks' | 'sales';
 
-async function fetchPageData(pageName: PageName, action: string) {
+async function fetchPageData(pageName: PageName, apiAction: string, relatedPage?: PageName) {
     const uiState = state.ui[pageName as keyof typeof state.ui] as any;
     if (!state.activeWorkspaceId || uiState.isLoading) return;
 
@@ -15,35 +15,42 @@ async function fetchPageData(pageName: PageName, action: string) {
     }
 
     uiState.isLoading = true;
-    renderApp();
+    updateUI(['page']);
 
     try {
-        const data = await apiFetch(`/api?action=${action}&workspaceId=${state.activeWorkspaceId}`);
+        const data = await apiFetch(`/api?action=${apiAction}&workspaceId=${state.activeWorkspaceId}`);
         
         if (data) {
             Object.keys(data).forEach(key => {
                 if (key in state && Array.isArray(state[key as keyof typeof state])) {
-                    const existingIds = new Set((state[key as keyof typeof state] as any[]).map(item => item.id));
-                    const newData = (data[key] || []).filter((item: any) => !existingIds.has(item.id));
-                    (state[key as keyof typeof state] as any[]).push(...newData);
+                    const existingDataMap = new Map((state[key as keyof typeof state] as any[]).map(item => [item.id, item]));
+                    const newDataFromFetch = data[key] || [];
+
+                    // Merge logic: update existing items, add new ones
+                    newDataFromFetch.forEach((item: any) => {
+                         if (!existingDataMap.has(item.id)) {
+                            (state[key as keyof typeof state] as any[]).push(item);
+                         }
+                    });
                 }
             });
         }
         
         uiState.loadedWorkspaceId = state.activeWorkspaceId;
+        if (relatedPage) {
+            (state.ui[relatedPage as keyof typeof state.ui] as any).loadedWorkspaceId = state.activeWorkspaceId;
+        }
     } catch (error) {
         console.error(`Failed to fetch ${pageName} data:`, error);
         uiState.loadedWorkspaceId = null; // Allow retry
     } finally {
         uiState.isLoading = false;
-        renderApp();
+        updateUI(['page']);
     }
 }
 
 export async function fetchClientsAndInvoicesData() {
-    await fetchPageData('clients', 'clients-page-data');
-    // Since the same endpoint fetches data for both, we can sync their loaded status.
-    state.ui.invoices.loadedWorkspaceId = state.ui.clients.loadedWorkspaceId;
+    await fetchPageData('clients', 'clients-page-data', 'invoices');
 }
 
 export async function fetchProjectsData() {
@@ -73,16 +80,14 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
     const workspaceMember = state.workspaceMembers.find(wm => wm.workspaceId === project.workspaceId && wm.userId === userId);
     if (!workspaceMember) return null;
     
-    // Simplistic mapping from workspace role to project role for public projects
-    // Owner and Admin get admin rights on all public projects.
     if (workspaceMember.role === 'owner' || workspaceMember.role === 'admin') {
         return 'admin';
     }
     if (workspaceMember.role === 'manager') {
-        return 'editor'; // Managers can edit public projects
+        return 'editor';
     }
     if (workspaceMember.role === 'member') {
-        return 'editor'; // Members can also edit public projects
+        return 'editor';
     }
     if (workspaceMember.role === 'client') {
         return 'viewer';
@@ -135,8 +140,6 @@ export async function handleFileUpload(projectId: string, file: File, taskId?: s
     const project = state.projects.find(p => p.id === projectId);
     if (!project || !state.activeWorkspaceId) return;
 
-    // This is a simplified version. A real implementation would upload to Supabase Storage
-    // and then save the file URL/path in the database.
     const newAttachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
         workspaceId: state.activeWorkspaceId,
         projectId: projectId,
@@ -150,7 +153,7 @@ export async function handleFileUpload(projectId: string, file: File, taskId?: s
     try {
         const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
         state.attachments.push(savedAttachment);
-        renderApp();
+        updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel']);
     } catch(error) {
         console.error("File upload failed:", error);
         alert("File upload failed. Please try again.");
@@ -169,7 +172,7 @@ export function closeProjectMenu() {
 
 export function handleSwitchChannel(channelId: string) {
     state.ui.activeChannelId = channelId;
-    renderApp();
+    updateUI(['page']);
 }
 
 export async function handleSendMessage(channelId: string, content: string) {
@@ -185,10 +188,9 @@ export async function handleSendMessage(channelId: string, content: string) {
         const [savedMessage] = await apiPost('chat_messages', newMessagePayload);
         state.chatMessages.push(savedMessage);
         
+        updateUI(['page']);
         const messageList = document.querySelector('.message-list');
-        renderApp(); // Re-render to show the new message
         if (messageList) {
-            // Scroll to bottom after render
             setTimeout(() => messageList.scrollTop = messageList.scrollHeight, 0);
         }
     } catch (error) {

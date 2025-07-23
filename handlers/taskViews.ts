@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { TaskView } from '../types.ts';
 import { closeModal } from './ui.ts';
@@ -18,7 +16,7 @@ export async function handleCreateTaskView(name: string, icon: string) {
     try {
         const [newView] = await apiPost('task_views', payload);
         state.taskViews.push(newView);
-        renderApp();
+        updateUI(['page', 'sidebar']);
     } catch (error) {
         console.error("Failed to create task view:", error);
         alert("Could not create the task view.");
@@ -34,19 +32,18 @@ export async function handleUpdateTaskView(id: string, name: string, icon: strin
     view.name = name.trim();
     view.icon = icon;
     
-    // Optimistic update
     const editRow = document.querySelector(`.task-view-item[data-view-id="${id}"]`);
     if(editRow) editRow.classList.remove('editing');
-    renderApp();
+    updateUI(['page', 'sidebar']);
 
     try {
         await apiPut('task_views', { id, name: name.trim(), icon });
     } catch (error) {
         console.error("Failed to update task view:", error);
         alert("Could not update the task view.");
-        view.name = originalName; // Revert
+        view.name = originalName;
         view.icon = originalIcon;
-        renderApp();
+        updateUI(['page', 'sidebar']);
     }
 }
 
@@ -59,21 +56,19 @@ export async function handleDeleteTaskView(id: string) {
     if (viewIndex === -1) return;
 
     const [removedView] = state.taskViews.splice(viewIndex, 1);
-    // Optimistically update tasks that were in this view
     state.tasks.forEach(task => {
         if (task.taskViewId === id) {
             task.taskViewId = null;
         }
     });
     
-    // If the active view is the one being deleted, navigate away
     if (state.ui.activeTaskViewId === id) {
         state.ui.activeTaskViewId = null;
         state.currentPage = 'tasks';
         history.pushState({}, '', '/tasks');
     }
     
-    renderApp();
+    updateUI(['page', 'sidebar']);
 
     try {
         await apiFetch('/api?action=data&resource=task_views', {
@@ -83,8 +78,7 @@ export async function handleDeleteTaskView(id: string) {
     } catch (error) {
         console.error("Failed to delete task view:", error);
         alert("Could not delete the task view.");
-        // Revert
         state.taskViews.splice(viewIndex, 0, removedView);
-        renderApp();
+        updateUI(['page', 'sidebar']);
     }
 }

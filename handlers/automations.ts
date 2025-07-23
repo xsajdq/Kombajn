@@ -1,5 +1,5 @@
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Task, Automation } from '../types.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
@@ -26,33 +26,27 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
 
     if (changed && newAssigneeId) {
         const oldAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
-        // Optimistic update
         state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
         if (newAssigneeId) {
             state.taskAssignees.push({ taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
         }
-        renderApp();
+        updateUI(['page']);
         
         try {
-            // Persist the change triggered by the automation
-            // Delete old assignees
             for (const old of oldAssignees) {
                 await apiFetch('/api?action=data&resource=task_assignees', { method: 'DELETE', body: JSON.stringify({ taskId: old.taskId, userId: old.userId }) });
             }
-            // Add new assignee
             if (newAssigneeId) {
                 await apiPost('task_assignees', { taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
-                // Create a notification for the new assignee
                 if (newAssigneeId !== actorId) {
                     await createNotification('new_assignment', { taskId: task.id, userIdToNotify: newAssigneeId, actorId });
                 }
             }
         } catch (error) {
             console.error("Failed to persist automation-triggered change:", error);
-            // Optionally revert the state change here
             state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
             state.taskAssignees.push(...oldAssignees);
-            renderApp();
+            updateUI(['page']);
         }
     }
 }
@@ -76,7 +70,7 @@ export async function handleAddAutomation(projectId: string, triggerStatus: Task
     try {
         const [savedAutomation] = await apiPost('automations', newAutomationPayload);
         state.automations.push(savedAutomation);
-        renderApp();
+        updateUI(['modal']);
     } catch(error) {
         console.error("Failed to add automation:", error);
         alert("Could not add automation.");
@@ -88,7 +82,7 @@ export async function handleDeleteAutomation(automationId: string) {
     if (automationIndex === -1) return;
 
     const [removedAutomation] = state.automations.splice(automationIndex, 1);
-    renderApp();
+    updateUI(['modal']);
 
     try {
         await apiFetch('/api?action=data&resource=automations', {
@@ -97,7 +91,7 @@ export async function handleDeleteAutomation(automationId: string) {
         });
     } catch (error) {
         state.automations.splice(automationIndex, 0, removedAutomation);
-        renderApp();
+        updateUI(['modal']);
         alert("Could not delete automation.");
     }
 }

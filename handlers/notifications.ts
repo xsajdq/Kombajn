@@ -1,7 +1,5 @@
-
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Notification, Task, NotificationType } from '../types.ts';
 import { t } from '../i18n.ts';
 import { openTaskDetail } from './tasks.ts';
@@ -63,15 +61,11 @@ export async function createNotification(
             action: action,
         };
         try {
-            // The API call will trigger a realtime event for the recipient.
-            // The creator of the notification does not need to see it in their UI.
             await apiPost('notifications', newNotificationPayload);
 
-            // Send Slack notification if integration is active
             const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.isActive && i.workspaceId === targetWorkspaceId);
             if (slackIntegration) {
                 const userToNotify = state.users.find(u => u.id === data.userIdToNotify);
-                // Only send if the user has their Slack account linked
                 if (userToNotify?.slackUserId) {
                     sendSlackNotification(data.userIdToNotify, text, targetWorkspaceId);
                 }
@@ -84,7 +78,7 @@ export async function createNotification(
 
 export function toggleNotificationsPopover(force?: boolean) {
     state.ui.isNotificationsOpen = force ?? !state.ui.isNotificationsOpen;
-    renderApp();
+    updateUI(['header']);
 }
 
 export async function handleNotificationClick(notificationId: string) {
@@ -92,13 +86,12 @@ export async function handleNotificationClick(notificationId: string) {
     if (!notification) return;
 
     if (!notification.isRead) {
-        notification.isRead = true; // Optimistic update
+        notification.isRead = true;
         try {
             await apiPut('notifications', { id: notificationId, isRead: true });
         } catch (error) {
-            notification.isRead = false; // Revert on failure
+            notification.isRead = false;
             console.error("Failed to mark notification as read:", error);
-            // Optionally show an error to the user
         }
     }
 
@@ -109,10 +102,10 @@ export async function handleNotificationClick(notificationId: string) {
     } else if (notification.action?.type === 'viewJoinRequests') {
         state.ui.hr.activeTab = 'requests';
         history.pushState({}, '', '/hr');
-        renderApp();
+        updateUI(['page']);
     }
     else {
-        renderApp();
+        updateUI(['header']);
     }
 }
 
@@ -127,23 +120,20 @@ export async function markAllNotificationsAsRead() {
     
     if (unreadNotifications.length === 0) return;
 
-    // Optimistic update
     unreadNotifications.forEach(n => n.isRead = true);
-    renderApp();
+    updateUI(['header']);
 
     try {
-        // Send all updates to the backend
         await Promise.all(
             unreadNotifications.map(n => apiPut('notifications', { id: n.id, isRead: true }))
         );
     } catch (error) {
-        // Revert on failure
         console.error("Failed to mark all notifications as read:", error);
         alert("Could not mark all notifications as read. Please try again.");
         unreadNotifications.forEach(n => {
             const originalNotification = state.notifications.find(on => on.id === n.id);
             if(originalNotification) originalNotification.isRead = false;
         });
-        renderApp();
+        updateUI(['header']);
     }
 }

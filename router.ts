@@ -1,5 +1,3 @@
-
-
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -18,6 +16,7 @@ import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
+import { updateUI } from './app-renderer.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -42,6 +41,7 @@ export async function router() {
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;
         state.ui.openedDealId = null;
+        updateUI(['side-panel']);
     }
     
     state.currentPage = newPage;

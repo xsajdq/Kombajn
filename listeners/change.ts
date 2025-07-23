@@ -1,7 +1,5 @@
-
-
 import { state, saveState } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
 import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
@@ -31,12 +29,10 @@ export function handleChange(e: Event) {
         return;
     }
 
-    // This handles updates from the task detail sidebar AND the subtask detail properties
     if (target.matches('.task-detail-sidebar *[data-field], .subtask-detail-container *[data-field]')) {
         const modalType = state.ui.modal.type;
         if (modalType === 'taskDetail' || modalType === 'subtaskDetail') {
             let taskId = state.ui.modal.data?.taskId;
-            // The element itself can specify a taskId, which is useful for subtasks
             if (target.dataset.taskId) {
                 taskId = target.dataset.taskId;
             }
@@ -50,14 +46,13 @@ export function handleChange(e: Event) {
         }
     }
     
-    // Multi-select checkbox handling for assignees in Add Task modal
     const assigneeCheckbox = target.closest<HTMLInputElement>('#taskAssigneesSelector input[type="checkbox"]');
     if (assigneeCheckbox) {
         const container = document.getElementById('taskAssigneesSelector');
         const display = container?.querySelector('.multiselect-display');
         if (container && display) {
             const checkedBoxes = container.querySelectorAll<HTMLInputElement>('input:checked');
-            display.innerHTML = ''; // Clear current display
+            display.innerHTML = ''; 
             if (checkedBoxes.length > 0) {
                 checkedBoxes.forEach(cb => {
                     const user = state.users.find(u => u.id === cb.value);
@@ -72,14 +67,13 @@ export function handleChange(e: Event) {
         return;
     }
 
-    // Multi-select checkbox handling for tags in Add Task modal
     const tagCheckbox = target.closest<HTMLInputElement>('#taskTagsSelector input[type="checkbox"]');
     if (tagCheckbox) {
         const container = document.getElementById('taskTagsSelector');
         const display = container?.querySelector('.multiselect-display');
         if (container && display) {
             const checkedBoxes = container.querySelectorAll<HTMLInputElement>('input:checked');
-            display.innerHTML = ''; // Clear
+            display.innerHTML = '';
             if (checkedBoxes.length > 0) {
                 checkedBoxes.forEach(cb => {
                     const tag = state.tags.find(t => t.id === cb.value);
@@ -94,7 +88,6 @@ export function handleChange(e: Event) {
         return;
     }
     
-    // --- Custom Fields in task detail modal ---
     if (target.closest('[data-custom-field-id]') && state.ui.modal.type === 'taskDetail') {
         const wrapper = target.closest<HTMLElement>('[data-custom-field-id]')!;
         const taskId = state.ui.modal.data.taskId;
@@ -104,7 +97,6 @@ export function handleChange(e: Event) {
         return;
     }
 
-    // Workspace Switcher
     if (target.id === 'workspace-switcher') { teamHandlers.handleWorkspaceSwitch((target as HTMLSelectElement).value); return; }
     
     if (target.id === 'avatar-upload' && (target as HTMLInputElement).files?.length) {
@@ -120,18 +112,15 @@ export function handleChange(e: Event) {
         return;
     }
     
-    // Theme & Language Switchers
-    if (target.id === 'theme-switcher') { state.settings.theme = (target as HTMLSelectElement).value as 'light' | 'dark' | 'minimal'; saveState(); renderApp(); return; }
-    if (target.id === 'language-switcher') { state.settings.language = (target as HTMLSelectElement).value as 'en' | 'pl'; saveState(); renderApp(); return; }
+    if (target.id === 'theme-switcher') { state.settings.theme = (target as HTMLSelectElement).value as 'light' | 'dark' | 'minimal'; saveState(); updateUI(['all']); return; }
+    if (target.id === 'language-switcher') { state.settings.language = (target as HTMLSelectElement).value as 'en' | 'pl'; saveState(); updateUI(['all']); return; }
 
-    // Dashboard Grid Columns
     if (target.id === 'dashboard-grid-columns') {
         const newCount = parseInt((target as HTMLSelectElement).value, 10);
         if (!isNaN(newCount)) { dashboardHandlers.handleGridColumnsChange(newCount); }
         return;
     }
     
-    // File uploads
     if (target.id === 'attachment-file-input' && (target as HTMLInputElement).files?.length) {
         const file = (target as HTMLInputElement).files![0];
         const taskId = target.dataset.taskId!;
@@ -152,7 +141,6 @@ export function handleChange(e: Event) {
         reader.readAsDataURL(file);
     }
 
-    // Add Project Modal - Privacy toggle
     if (target.matches('input[name="privacy"]') && (target as HTMLInputElement).form?.id === 'projectForm') {
         const membersSection = document.getElementById('project-members-section');
         if (membersSection) {
@@ -165,18 +153,16 @@ export function handleChange(e: Event) {
         return;
     }
     
-    // Invoice Page Filters
     const invoiceFilter = target.closest<HTMLInputElement>('#invoice-filter-date-start, #invoice-filter-date-end, #invoice-filter-client, #invoice-filter-status');
     if (invoiceFilter) {
-        const key = invoiceFilter.id.split('-').pop() as keyof AppState['ui']['invoiceFilters'];
+        const key = invoiceFilter.dataset.filterKey as keyof AppState['ui']['invoiceFilters'];
         if (['dateStart', 'dateEnd', 'clientId', 'status'].includes(key)) {
             (state.ui.invoiceFilters as any)[key] = invoiceFilter.value;
-            renderApp();
+            updateUI(['page']);
         }
         return;
     }
     
-    // Workspace Kanban Workflow setting
     if (target.id === 'workspace-kanban-workflow') {
         const newWorkflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
         const workspaceId = state.activeWorkspaceId;
@@ -191,11 +177,12 @@ export function handleChange(e: Event) {
                     id: `temp-${Date.now()}`,
                     workspaceId,
                     provider: 'internal_settings' as const,
-                    isActive: false,
+                    isActive: true,
                     settings: { defaultKanbanWorkflow: newWorkflow }
                 };
                 state.integrations.push(integration);
             }
+            updateUI(['page']);
 
             apiFetch('/api?action=save-workspace-prefs', {
                 method: 'POST',
@@ -206,13 +193,12 @@ export function handleChange(e: Event) {
                 if (integration) {
                     integration.settings.defaultKanbanWorkflow = originalWorkflow;
                 }
-                renderApp();
+                updateUI(['page']);
             });
         }
         return;
     }
 
-    // Task Filter Change
     const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
     if (taskFilterInput) {
         if (taskFilterInput.matches('input[type="checkbox"][data-filter-key="tagIds"]')) {
@@ -226,30 +212,27 @@ export function handleChange(e: Event) {
             }
             state.ui.tasks.filters.tagIds = Array.from(currentTags);
             state.ui.tasks.activeFilterViewId = null;
-            renderApp();
+            updateUI(['page']);
         } else {
             filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
         }
         return;
     }
 
-    // Automations Modal Project Selector
     if (target.id === 'automation-project-selector') {
         const projectId = (target as HTMLSelectElement).value;
         state.ui.modal.data = { ...state.ui.modal.data, selectedProjectId: projectId };
-        renderApp();
+        updateUI(['modal']);
         return;
     }
 
-    // Assign Global Time Modal Project Selector
     if (target.id === 'assign-time-project-select') {
         const projectId = (target as HTMLSelectElement).value;
         state.ui.modal.data.selectedProjectId = projectId;
-        renderApp();
+        updateUI(['modal']);
         return;
     }
 
-    // Add Task Modal Project Selector
     if (target.id === 'taskProject') {
         const projectId = (target as HTMLSelectElement).value;
         const projectSections = state.projectSections.filter(ps => ps.projectId === projectId);
@@ -265,7 +248,7 @@ export function handleChange(e: Event) {
                 `;
             } else {
                 projectSectionGroup.classList.add('hidden');
-                projectSectionSelect.innerHTML = ''; // Clear options
+                projectSectionSelect.innerHTML = '';
             }
         }
     }

@@ -1,10 +1,7 @@
-
-// handlers/user.ts
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 
 export async function handleUpdateProfile(form: HTMLFormElement) {
     if (!state.currentUser) return;
@@ -38,7 +35,6 @@ export async function handleUpdateProfile(form: HTMLFormElement) {
 
         const [updatedProfile] = await apiPut('profiles', payload);
 
-        // Update state
         state.currentUser.name = updatedProfile.name;
         state.currentUser.avatarUrl = updatedProfile.avatarUrl;
         const userInList = state.users.find(u => u.id === state.currentUser!.id);
@@ -52,7 +48,7 @@ export async function handleUpdateProfile(form: HTMLFormElement) {
             statusEl.style.color = 'var(--success-color)';
         }
         
-        renderApp();
+        updateUI(['page', 'header']);
 
     } catch (error) {
         console.error("Profile update failed:", error);
@@ -126,17 +122,15 @@ export async function handleToggleKanbanViewMode() {
     const currentMode = state.currentUser.kanbanViewMode || 'detailed';
     const newMode = currentMode === 'detailed' ? 'simple' : 'detailed';
 
-    // Optimistic update
     state.currentUser.kanbanViewMode = newMode;
-    renderApp();
+    updateUI(['page']);
 
     try {
         await apiPut('profiles', { id: state.currentUser.id, kanbanViewMode: newMode });
     } catch (error) {
         console.error("Failed to save Kanban view preference:", error);
-        // Revert on failure
         state.currentUser.kanbanViewMode = currentMode;
-        renderApp();
+        updateUI(['page']);
         alert("Could not save your view preference. Please try again.");
     }
 }

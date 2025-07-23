@@ -1,5 +1,5 @@
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { TaskFilters, FilterView } from '../types.ts';
 import { t } from '../i18n.ts';
@@ -7,16 +7,16 @@ import { t } from '../i18n.ts';
 export function applyFilterView(viewId: string) {
     const view = state.filterViews.find(v => v.id === viewId);
     if (view) {
-        state.ui.tasks.filters = { ...view.filters }; // Create a copy
+        state.ui.tasks.filters = { ...view.filters };
         state.ui.tasks.activeFilterViewId = viewId;
-        renderApp();
+        updateUI(['page']);
     }
 }
 
 export function resetFilters() {
     state.ui.tasks.filters = { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false };
     state.ui.tasks.activeFilterViewId = null;
-    renderApp();
+    updateUI(['page']);
 }
 
 export async function saveCurrentFilterView() {
@@ -34,7 +34,7 @@ export async function saveCurrentFilterView() {
         const [savedView] = await apiPost('filter_views', newView);
         state.filterViews.push(savedView);
         state.ui.tasks.activeFilterViewId = savedView.id;
-        renderApp();
+        updateUI(['page']);
     } catch (error) {
         console.error("Failed to save filter view:", error);
         alert("Could not save the filter view.");
@@ -48,18 +48,17 @@ export async function updateActiveFilterView() {
     const viewInState = state.filterViews.find(v => v.id === viewId);
     if (!viewInState) return;
     
-    // Optimistic update
     const originalFilters = { ...viewInState.filters };
     viewInState.filters = { ...state.ui.tasks.filters };
-    renderApp();
+    updateUI(['page']);
 
     try {
         await apiPut('filter_views', { id: viewId, filters: viewInState.filters });
     } catch (error) {
         console.error("Failed to update filter view:", error);
         alert("Could not update the filter view.");
-        viewInState.filters = originalFilters; // Revert
-        renderApp();
+        viewInState.filters = originalFilters;
+        updateUI(['page']);
     }
 }
 
@@ -72,7 +71,6 @@ export async function deleteActiveFilterView() {
     const viewIndex = state.filterViews.findIndex(v => v.id === viewId);
     if (viewIndex === -1) return;
 
-    // Optimistic update
     const [removedView] = state.filterViews.splice(viewIndex, 1);
     resetFilters();
 
@@ -84,8 +82,8 @@ export async function deleteActiveFilterView() {
     } catch (error) {
         console.error("Failed to delete filter view:", error);
         alert("Could not delete the filter view.");
-        state.filterViews.splice(viewIndex, 0, removedView); // Revert
-        applyFilterView(viewId); // Re-apply the view
+        state.filterViews.splice(viewIndex, 0, removedView);
+        applyFilterView(viewId);
     }
 }
 
@@ -102,7 +100,7 @@ export function handleFilterChange(element: HTMLInputElement | HTMLSelectElement
 
     if (key) {
         (state.ui.tasks.filters as any)[key] = value;
-        state.ui.tasks.activeFilterViewId = null; // Unset active view on change
-        renderApp();
+        state.ui.tasks.activeFilterViewId = null;
+        updateUI(['page']);
     }
 }

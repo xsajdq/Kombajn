@@ -1,39 +1,40 @@
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
-import { closeSidePanels, closeModal } from './ui.ts';
+import { closeSidePanels, closeModal, showModal } from './ui.ts';
 import { getUsage, PLANS } from '../utils.ts';
 import { t } from '../i18n.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
-import { switchWorkspaceChannel } from '../services/supabase.ts';
+import { switchWorkspaceChannel, supabase } from '../services/supabase.ts';
 import { startOnboarding } from './onboarding.ts';
+import { bootstrapApp } from '../index.tsx';
 
 export async function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
         state.activeWorkspaceId = workspaceId;
         localStorage.setItem('activeWorkspaceId', workspaceId);
 
-        // Clear page-specific data to force a reload on the new workspace's pages
-        state.projects = [];
-        state.tasks = [];
-        state.clients = [];
-        state.deals = [];
-        state.timeLogs = [];
-        state.comments = [];
-        state.projectMembers = [];
-        state.taskAssignees = [];
-        state.ui.dashboard.loadedWorkspaceId = null;
-        // etc...
+        // Reset loaded status for all pages to force refetch
+        Object.keys(state.ui).forEach(key => {
+            const pageState = (state.ui as any)[key];
+            if (pageState && typeof pageState === 'object' && 'loadedWorkspaceId' in pageState) {
+                pageState.loadedWorkspaceId = null;
+            }
+        });
 
         closeSidePanels(false);
         state.currentPage = 'dashboard';
         history.pushState({}, '', '/dashboard');
 
-        // Switch the realtime channel BEFORE rendering
         await switchWorkspaceChannel(workspaceId);
 
-        await renderApp();
+        // Re-bootstrap the workspace data only
+        const session = await supabase?.auth.getSession();
+        if (session?.data.session) {
+             // A "soft" bootstrap, only for the new workspace data
+             await bootstrapApp(session.data.session);
+        }
     }
 }
 
@@ -46,9 +47,10 @@ export async function handleCreateWorkspace(name: string) {
         alert("Workspace name cannot be empty.");
         return;
     }
-
-    const existingWorkspace = state.workspaces.find(w => w.name.toLowerCase() === trimmedName.toLowerCase());
-    if (existingWorkspace) {
+    
+    // Check against all workspaces, not just loaded ones
+    const { data: existingWorkspaces } = await apiFetch(`/api?action=data&resource=workspaces&name=${trimmedName}`);
+    if (existingWorkspaces && existingWorkspaces.length > 0) {
         alert(t('hr.workspace_name_exists'));
         return;
     }
@@ -86,18 +88,10 @@ export async function handleCreateWorkspace(name: string) {
             planHistory: newWorkspaceRaw.planHistory || []
         };
         state.workspaces.push(newWorkspace);
-
         state.workspaceMembers.push(newMember);
 
-        state.activeWorkspaceId = newWorkspace.id;
-        state.currentPage = 'dashboard';
-        localStorage.setItem('activeWorkspaceId', newWorkspace.id);
-        history.pushState({}, '', '/dashboard');
-        
-        // Switch to the new channel
-        await switchWorkspaceChannel(newWorkspace.id);
-        
-        renderApp();
+        // Automatically switch to the new workspace
+        await handleWorkspaceSwitch(newWorkspace.id);
 
         // Start onboarding for the first workspace
         startOnboarding();
@@ -111,12 +105,13 @@ export async function handleCreateWorkspace(name: string) {
 export async function handleRequestToJoinWorkspace(workspaceName: string) {
     if (!state.currentUser) return;
     
-    const targetWorkspace = state.workspaces.find(w => w.name.toLowerCase() === workspaceName.toLowerCase());
-    
-    if (!targetWorkspace) {
+    // Fetch from API to check all workspaces, not just the ones the user is in
+    const { data: targetWorkspaces } = await apiFetch(`/api?action=data&resource=workspaces&name=${workspaceName}`);
+    if (!targetWorkspaces || targetWorkspaces.length === 0) {
         alert(`Workspace "${workspaceName}" not found.`);
         return;
     }
+    const targetWorkspace = targetWorkspaces[0];
     
     const isMember = state.workspaceMembers.some(m => m.workspaceId === targetWorkspace.id && m.userId === state.currentUser!.id);
     if (isMember) {
@@ -143,7 +138,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
         });
     });
 
-    renderApp();
+    updateUI(['page']);
 }
 
 export async function handleApproveJoinRequest(requestId: string) {
@@ -164,7 +159,7 @@ export async function handleApproveJoinRequest(requestId: string) {
         if (reqIndex > -1) {
             state.workspaceJoinRequests[reqIndex] = updatedRequest;
         }
-        renderApp();
+        updateUI(['page']);
     } catch(error) {
         alert("Failed to approve join request.");
     }
@@ -177,7 +172,7 @@ export async function handleRejectJoinRequest(requestId: string) {
         if (reqIndex > -1) {
             state.workspaceJoinRequests[reqIndex] = updatedRequest;
         }
-        renderApp();
+        updateUI(['page']);
     } catch(error) {
         alert("Failed to reject join request.");
     }
@@ -205,7 +200,7 @@ export async function handleInviteUser(email: string, role: Role) {
             role: role,
         });
         state.workspaceMembers.push(newMember);
-        renderApp();
+        updateUI(['page']);
     } catch (error) {
         alert("Failed to invite user.");
     }
@@ -218,15 +213,15 @@ export async function handleChangeUserRole(memberId: string, newRole: Role) {
     const originalRole = member.role;
     if (originalRole === newRole) return;
     
-    member.role = newRole; // Optimistic update
-    renderApp();
+    member.role = newRole; 
+    updateUI(['page']);
 
     try {
         await apiPut('workspace_members', { id: memberId, role: newRole });
     } catch (error) {
         console.error("Failed to update user role:", error);
-        member.role = originalRole; // Revert
-        renderApp();
+        member.role = originalRole; 
+        updateUI(['page']);
         alert("Failed to update user role.");
     }
 }
@@ -245,7 +240,7 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
     }
     
     const [removedMember] = state.workspaceMembers.splice(memberIndex, 1);
-    renderApp();
+    updateUI(['page']);
     
     try {
         await apiFetch('/api?action=data&resource=workspace_members', {
@@ -254,7 +249,7 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
         });
     } catch(error) {
         state.workspaceMembers.splice(memberIndex, 0, removedMember);
-        renderApp();
+        updateUI(['page']);
         alert("Failed to remove user.");
     }
 }
@@ -294,7 +289,7 @@ export async function handleSaveWorkspaceSettings() {
             };
         }
 
-        renderApp();
+        updateUI(['page']);
 
         const statusEl = document.getElementById('workspace-save-status');
         if (statusEl) {
@@ -312,7 +307,7 @@ export async function handleSaveWorkspaceSettings() {
 
 export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews') {
     state.ui.hr.activeTab = tab;
-    renderApp();
+    updateUI(['page']);
 }
 
 export async function handleUpdateEmployeeNotes(userId: string, contractNotes: string, employmentNotes: string) {
@@ -330,6 +325,7 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
                 state.users[index] = { ...state.users[index], ...updatedProfile };
             }
             closeModal();
+            updateUI(['page']);
         } catch (error) {
             console.error("Failed to update employee notes:", error);
             alert((error as Error).message);
@@ -363,12 +359,12 @@ export async function handleApproveTimeOffRequest(requestId: string) {
     if (request) {
         const originalStatus = request.status;
         request.status = 'approved';
-        renderApp();
+        updateUI(['page']);
         try {
             await apiPut('time_off_requests', { id: requestId, status: 'approved' });
         } catch(error) {
             request.status = originalStatus;
-            renderApp();
+            updateUI(['page']);
             alert("Failed to approve request.");
         }
     }
@@ -383,13 +379,13 @@ export async function handleRejectTimeOffRequest(requestId: string, reason: stri
         
         try {
             await apiPut('time_off_requests', { id: requestId, status: 'rejected', rejectionReason: reason });
-            closeModal(); // Success, close modal
+            closeModal();
         } catch(error) {
             request.status = originalStatus;
             delete request.rejectionReason;
             alert("Failed to reject request.");
         } finally {
-            renderApp();
+            updateUI(['page']);
         }
     }
 }
@@ -399,19 +395,17 @@ export async function handleSetVacationAllowance(userId: string, hours: number) 
     if (!user) return;
     
     const originalAllowance = user.vacationAllowanceHours;
-    
-    // Optimistic update
     user.vacationAllowanceHours = hours;
     closeModal();
+    updateUI(['page']);
     
     try {
         await apiPut('profiles', { id: userId, vacationAllowanceHours: hours });
     } catch (error) {
         console.error("Failed to update vacation allowance:", error);
         alert("Could not save vacation allowance. Please try again.");
-        // Revert on failure
         user.vacationAllowanceHours = originalAllowance;
-        renderApp();
+        updateUI(['page']);
     }
 }
 
@@ -420,7 +414,7 @@ export async function handleRemoveUserFromProject(projectMemberId: string) {
     if (memberIndex === -1) return;
     
     const [removedMember] = state.projectMembers.splice(memberIndex, 1);
-    renderApp();
+    updateUI(['side-panel']);
     
     try {
         await apiFetch('/api?action=data&resource=project_members', {
@@ -429,7 +423,7 @@ export async function handleRemoveUserFromProject(projectMemberId: string) {
         });
     } catch(error) {
         state.projectMembers.splice(memberIndex, 0, removedMember);
-        renderApp();
+        updateUI(['side-panel']);
         alert("Failed to remove user from project.");
     }
 }
@@ -439,15 +433,15 @@ export async function handleChangeProjectMemberRole(projectMemberId: string, new
     if (!member) return;
 
     const originalRole = member.role;
-    member.role = newRole; // Optimistic update
-    renderApp();
+    member.role = newRole;
+    updateUI(['side-panel']);
 
     try {
         await apiPut('project_members', { id: projectMemberId, role: newRole });
     } catch (error) {
         console.error("Failed to change project member role:", error);
-        member.role = originalRole; // Revert
-        renderApp();
+        member.role = originalRole;
+        updateUI(['side-panel']);
         alert("Could not update member role.");
     }
 }
@@ -474,7 +468,7 @@ export async function handleAddMemberToProject(projectId: string, userId: string
     try {
         const [savedMember] = await apiPost('project_members', newMemberPayload);
         state.projectMembers.push(savedMember);
-        renderApp(); // This will re-render the access tab with the new member
+        updateUI(['side-panel']);
     } catch (error) {
         console.error("Failed to add member to project:", error);
         alert("Could not add member to project.");

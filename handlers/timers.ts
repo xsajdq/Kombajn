@@ -1,6 +1,5 @@
-
 import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { TimeLog } from '../types.ts';
 import { parseDurationStringToSeconds } from '../utils.ts';
@@ -9,7 +8,7 @@ import { apiPost } from '../services/api.ts';
 export function startTimer(taskId: string) {
     if (!state.activeTimers[taskId]) {
         state.activeTimers[taskId] = Date.now();
-        renderApp();
+        updateUI(['page']);
     }
 }
 
@@ -38,7 +37,8 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
     try {
         const [savedLog] = await apiPost('time_logs', timeLogPayload);
         state.timeLogs.push(savedLog);
-        closeModal();
+        closeModal(false);
+        updateUI(['modal', 'page']);
     } catch(error) {
         console.error("Failed to save time log:", error);
         alert("Could not save time log. Please try again.");
@@ -73,7 +73,7 @@ export function startGlobalTimer() {
     if (!state.ui.globalTimer.isRunning) {
         state.ui.globalTimer.isRunning = true;
         state.ui.globalTimer.startTime = Date.now();
-        renderApp(); // To update the play/pause icon
+        updateUI(['header']);
     }
 }
 

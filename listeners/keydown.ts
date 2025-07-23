@@ -1,6 +1,5 @@
-
 import { state } from '../state.ts';
-import { renderApp, renderMentionPopover } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import * as uiHandlers from '../handlers/ui.ts';
 import * as commandHandlers from '../handlers/commands.ts';
 import * as onboardingHandlers from '../handlers/onboarding.ts';
@@ -26,7 +25,7 @@ export function handleKeydown(e: KeyboardEvent) {
             uiHandlers.closeSidePanels();
         } else if (document.querySelector('[data-editing="true"]')) {
             // If an inline edit is active, cancel it.
-            renderApp(); 
+            updateUI(['page']); 
         }
         return;
     }
@@ -52,10 +51,10 @@ export function handleKeydown(e: KeyboardEvent) {
             activeIndex = (activeIndex + 1) % items.length;
             if (state.ui.mention.target) {
                 state.ui.mention.activeIndex = activeIndex;
-                renderMentionPopover();
+                updateUI(['mention-popover']);
             } else {
                 state.ui.commandPaletteActiveIndex = activeIndex;
-                renderApp();
+                updateUI(['command-palette']);
             }
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -63,10 +62,10 @@ export function handleKeydown(e: KeyboardEvent) {
             activeIndex = (activeIndex - 1 + items.length) % items.length;
              if (state.ui.mention.target) {
                 state.ui.mention.activeIndex = activeIndex;
-                renderMentionPopover();
+                updateUI(['mention-popover']);
             } else {
                 state.ui.commandPaletteActiveIndex = activeIndex;
-                renderApp();
+                updateUI(['command-palette']);
             }
         } else if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
