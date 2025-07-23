@@ -118,12 +118,21 @@ export async function handleClick(e: MouseEvent) {
     // --- Navigation ---
     const navLink = target.closest('a');
     if (navLink && navLink.hostname === window.location.hostname && !navLink.href.startsWith('mailto:')) {
-        e.preventDefault();
-        if (window.location.pathname !== navLink.pathname) {
+        e.preventDefault(); // Prevent default for all internal links to avoid page jumps/reloads
+        
+        const isPlaceholder = navLink.getAttribute('href') === '#';
+        const isDifferentPage = window.location.pathname !== navLink.pathname || window.location.search !== navLink.search;
+
+        if (isDifferentPage) {
             history.pushState({}, '', navLink.href);
             renderApp();
         }
-        return;
+        
+        // If it's a real navigation link (even to the same page), we are done.
+        // If it's a placeholder (like for tabs), we DO NOT return, allowing other handlers to run.
+        if (!isPlaceholder) {
+            return;
+        }
     }
 
     // --- Modals ---
@@ -270,7 +279,11 @@ export async function handleClick(e: MouseEvent) {
 
     // Settings
     const settingsTab = target.closest<HTMLElement>('[data-tab]');
-    if (settingsTab && target.closest('.flex.gap-8.h-full')) { state.ui.settings.activeTab = settingsTab.dataset.tab as any; renderApp(); return; }
+    if (settingsTab && state.currentPage === 'settings') {
+        state.ui.settings.activeTab = settingsTab.dataset.tab as any;
+        renderApp();
+        return;
+    }
     if (target.closest('#save-workspace-settings-btn')) { teamHandlers.handleSaveWorkspaceSettings(); return; }
     if (target.closest('#remove-logo-btn')) { const ws = state.workspaces.find(w => w.id === state.activeWorkspaceId); if (ws) ws.companyLogo = undefined; teamHandlers.handleSaveWorkspaceSettings(); return; }
     if (target.closest('[data-connect-provider]')) { integrationHandlers.connectIntegration(target.closest<HTMLElement>('[data-connect-provider]')!.dataset.connectProvider as any); return; }
@@ -283,7 +296,10 @@ export async function handleClick(e: MouseEvent) {
 
     // HR
     const hrTab = target.closest<HTMLElement>('[data-hr-tab]');
-    if (hrTab) { teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any); return; }
+    if (hrTab) {
+        teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
+        return;
+    }
     if (target.closest('#hr-invite-member-btn')) { document.getElementById('hr-invite-flyout')?.classList.add('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.add('is-open'); return; }
     if (target.closest('#hr-invite-cancel-btn, #hr-invite-flyout-backdrop')) { document.getElementById('hr-invite-flyout')?.classList.remove('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.remove('is-open'); return; }
     if (target.closest('[data-remove-member-id]')) { teamHandlers.handleRemoveUserFromWorkspace(target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!); return; }
