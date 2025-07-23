@@ -1,12 +1,8 @@
 
 
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { CustomFieldType } from '../types.ts';
+import type { CustomFieldType, TaskView } from '../types.ts';
 import { can } from '../permissions.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
@@ -261,6 +257,61 @@ export function SettingsPage() {
         `;
     };
 
+    const renderTaskViewsSettings = () => {
+        const taskViews = state.taskViews.filter(tv => tv.workspaceId === state.activeWorkspaceId);
+        return `
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_task_views')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Create custom task boards that will appear in your sidebar for quick access.</p>
+            </div>
+            <div class="bg-content p-5 rounded-lg shadow-sm">
+                <div class="divide-y divide-border-color">
+                    ${taskViews.map(view => `
+                        <div class="py-3 task-view-item" data-view-id="${view.id}">
+                            <div class="view-mode flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-icons-sharp">${view.icon}</span>
+                                    <span class="font-medium">${view.name}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button class="btn-icon edit-task-view-btn"><span class="material-icons-sharp text-base">edit</span></button>
+                                    <button class="btn-icon delete-task-view-btn" data-view-id="${view.id}"><span class="material-icons-sharp text-base text-danger">delete</span></button>
+                                </div>
+                            </div>
+                            <div class="edit-mode hidden mt-2">
+                                <div class="flex gap-2 items-end">
+                                    <div class="flex-1">
+                                        <label class="text-xs font-medium text-text-subtle">${t('settings.view_name')}</label>
+                                        <input type="text" name="view-name" class="form-control" value="${view.name}">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="text-xs font-medium text-text-subtle">${t('settings.icon')}</label>
+                                        <input type="text" name="view-icon" class="form-control" value="${view.icon}">
+                                    </div>
+                                    <button class="btn btn-secondary cancel-task-view-edit-btn">${t('modals.cancel')}</button>
+                                    <button class="btn btn-primary save-task-view-btn">${t('modals.save')}</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                <div class="flex gap-4 items-end">
+                    <div class="flex-grow">
+                        <label for="new-task-view-name" class="text-sm font-medium text-text-subtle">${t('settings.view_name')}</label>
+                        <input type="text" id="new-task-view-name" class="form-control" required>
+                    </div>
+                    <div>
+                        <label for="new-task-view-icon" class="text-sm font-medium text-text-subtle">${t('settings.icon')}</label>
+                        <input type="text" id="new-task-view-icon" class="form-control" value="checklist">
+                    </div>
+                    <button id="add-task-view-btn" class="btn btn-secondary">${t('settings.add_view')}</button>
+                </div>
+            </div>
+        `;
+    };
+
     let tabContent = '';
     switch (activeTab) {
         case 'general': tabContent = renderGeneralSettings(); break;
@@ -268,12 +319,14 @@ export function SettingsPage() {
         case 'customFields': if (canManage) tabContent = renderCustomFieldsSettings(); break;
         case 'workspace': if (canManage) tabContent = renderWorkspaceSettings(); break;
         case 'integrations': if (canManage) tabContent = renderIntegrationsSettings(); break;
+        case 'taskViews': if (canManage) tabContent = renderTaskViewsSettings(); break;
     }
 
     const navItems = [
         { id: 'general', icon: 'tune', text: t('settings.tab_general') },
         { id: 'profile', icon: 'account_circle', text: t('settings.tab_profile') },
         { id: 'workspace', icon: 'business_center', text: t('settings.tab_workspace'), needsPermission: true },
+        { id: 'taskViews', icon: 'view_list', text: t('settings.tab_task_views'), needsPermission: true },
         { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), needsPermission: true },
         { id: 'customFields', icon: 'post_add', text: t('settings.tab_custom_fields'), needsPermission: true },
     ].filter(item => !item.needsPermission || canManage);

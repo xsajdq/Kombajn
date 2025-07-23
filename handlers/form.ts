@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -191,6 +192,7 @@ export async function handleFormSubmit() {
             
             const estimatedHoursString = (form.querySelector('#taskEstimatedHours') as HTMLInputElement).value;
             const projectSectionId = (form.querySelector('#projectSection') as HTMLSelectElement).value;
+            const taskViewId = (form.querySelector('#taskView') as HTMLSelectElement).value;
 
             const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
             const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
@@ -204,6 +206,7 @@ export async function handleFormSubmit() {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
                 projectSectionId: projectSectionId || null,
+                taskViewId: taskViewId || null,
                 name: name,
                 description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value,
                 status: workflow === 'advanced' ? 'backlog' : 'todo',

@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection } from '../types.ts';
@@ -225,6 +226,7 @@ export function Modal() {
         const projectSectionsForSelectedProject: ProjectSection[] = projectIdFromPanel 
             ? state.projectSections.filter(ps => ps.projectId === projectIdFromPanel) 
             : [];
+        const taskViews = state.taskViews.filter(tv => tv.workspaceId === state.activeWorkspaceId);
 
         title = t('modals.add_task_title');
         body = `
@@ -250,6 +252,13 @@ export function Modal() {
                         <select id="projectSection" class="${formControlClasses}">
                             <option value="">${t('tasks.default_board')}</option>
                             ${projectSectionsForSelectedProject.map((ps: ProjectSection) => `<option value="${ps.id}">${ps.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="taskView" class="${labelClasses}">${t('modals.task_view')}</label>
+                        <select id="taskView" class="${formControlClasses}">
+                            <option value="">-- No View --</option>
+                            ${taskViews.map(tv => `<option value="${tv.id}">${tv.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">

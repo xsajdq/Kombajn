@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -388,7 +389,7 @@ export async function handleClick(e: MouseEvent) {
     if (notificationTab && notificationTab.closest('.flex.border-b')) { state.ui.notifications.activeTab = notificationTab.dataset.tab as 'new'|'read'; renderApp(); return; }
     
     if (target.closest<HTMLElement>('[data-remove-member-id]')) {
-        if(confirm(t('Are you sure you want to remove this member?'))) teamHandlers.handleRemoveUserFromWorkspace(target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!);
+        if(confirm('Are you sure you want to remove this member?')) teamHandlers.handleRemoveUserFromWorkspace(target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!);
         return;
     }
     const removeProjectMemberBtn = target.closest<HTMLElement>('[data-remove-project-member-id]');

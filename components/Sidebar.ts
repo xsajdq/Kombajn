@@ -1,14 +1,36 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Permission } from '../types.ts';
 
+type NavItem = {
+    id: string;
+    icon: string;
+    text: string;
+    permission?: Permission;
+};
+
 export function Sidebar() {
-    const allNavItems: {id: string, icon: string, text: string, permission?: Permission}[] = [
+    const allNavItems: NavItem[] = [
         { id: 'dashboard', icon: 'dashboard', text: t('sidebar.dashboard'), permission: 'view_dashboard' },
         { id: 'projects', icon: 'folder', text: t('sidebar.projects'), permission: 'view_projects' },
         { id: 'tasks', icon: 'checklist', text: t('sidebar.tasks'), permission: 'view_tasks' },
+    ];
+    
+    const customTaskViews: NavItem[] = (state.taskViews || [])
+        .filter(tv => tv.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map(tv => ({
+            id: `task-view/${tv.id}`,
+            icon: tv.icon,
+            text: tv.name
+        }));
+
+    const allMainItems: NavItem[] = [
+        ...allNavItems,
+        ...customTaskViews,
         { id: 'team-calendar', icon: 'calendar_month', text: t('sidebar.team_calendar'), permission: 'view_team_calendar' },
         { id: 'chat', icon: 'chat', text: t('sidebar.chat'), permission: 'view_chat' },
         { id: 'clients', icon: 'people', text: t('sidebar.clients'), permission: 'view_clients' },
@@ -19,15 +41,14 @@ export function Sidebar() {
         { id: 'reports', icon: 'assessment', text: t('sidebar.reports'), permission: 'view_reports' },
     ];
     
-    const navItems = allNavItems.filter(item => !item.permission || can(item.permission));
+    const navItems = allMainItems.filter(item => !item.permission || can(item.permission));
     
-    const allFooterNavItems: { id: string; icon: string; text: string; permission?: Permission; }[] = [
+    const allFooterNavItems: NavItem[] = [
         { id: 'settings', icon: 'settings', text: t('sidebar.settings'), permission: 'view_settings' },
         { id: 'billing', icon: 'credit_card', text: t('sidebar.billing'), permission: 'manage_billing' }
     ];
 
     const footerNavItems = allFooterNavItems.filter(item => !item.permission || can(item.permission));
-
 
     return `
     <aside class="flex flex-col h-screen w-64 bg-content border-r border-border-color text-sidebar-text">
@@ -38,7 +59,11 @@ export function Sidebar() {
       <nav class="flex-grow p-2" aria-label="Main navigation">
         <ul class="space-y-1">
           ${navItems.map(item => {
-            const isActive = state.currentPage === item.id;
+            const isTaskView = item.id.startsWith('task-view/');
+            const isActive = isTaskView
+              ? state.ui.activeTaskViewId === item.id.split('/')[1]
+              : state.currentPage === item.id && !state.ui.activeTaskViewId;
+
             return `
             <li>
               <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
