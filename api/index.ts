@@ -671,7 +671,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `Project Goal: "${goal}"`, config: {
-                    systemInstruction: `You are a world-class project manager. A user will provide a project goal. Your job is to break it down into a list of actionable tasks. Return a JSON array of objects. Each object must have two properties: "name" (a short, imperative task title) and "description" (a one-sentence explanation of the task). Do not add any commentary. Only return the JSON array.`,
+                    systemInstruction: `You are a world-class project manager. A user will provide a project goal. Your job is to break it down into a list of actionable tasks. Return a JSON array of objects. Each object must have two properties: "name" (a short, imperative task title) and a "description" (a one-sentence explanation of the task). Do not add any commentary. Only return the JSON array.`,
                     responseMimeType: "application/json",
                     responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["name", "description"] } },
                 }});
