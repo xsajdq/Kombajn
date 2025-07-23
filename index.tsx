@@ -1,3 +1,4 @@
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -46,62 +47,27 @@ async function fetchWorkspaceData(workspaceId: string) {
     updateUI(['page']);
 
     try {
-        const [
-            dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-        ] = await Promise.all([
-            apiFetch(`/api?action=data&resource=dashboard_widgets&userId=${state.currentUser?.id}`),
-            apiFetch(`/api?action=data&resource=projects&workspaceId=${workspaceId}`),
-            apiFetch(`/api?action=data&resource=tasks&workspaceId=${workspaceId}`),
-            apiFetch(`/api?action=data&resource=clients&workspaceId=${workspaceId}`),
-            apiFetch(`/api?action=data&resource=invoices&workspaceId=${workspaceId}`),
-            apiFetch(`/api?action=data&resource=time_logs&workspaceId=${workspaceId}`),
-            apiFetch(`/api?action=data&resource=comments&workspaceId=${workspaceId}`),
-        ]);
-        
-        state.dashboardWidgets = (dashboardWidgetsRes || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        state.projects = projectsRes || [];
-        state.tasks = tasksRes || [];
-        state.clients = clientsRes || [];
-        state.invoices = invoicesRes || [];
-        state.timeLogs = timeLogsRes || [];
-        state.comments = commentsRes || [];
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}`);
+        if (!data) throw new Error("Dashboard data fetch returned null.");
 
-        // Fix: Fetch invoice line items separately and attach them to invoices
-        if (state.invoices.length > 0) {
-            const invoiceIds = state.invoices.map(i => i.id);
-            const lineItems: InvoiceLineItem[] = await apiFetch(`/api?action=data&resource=invoice_line_items&invoiceId=in.(${invoiceIds.join(',')})`);
-            
-            const lineItemsByInvoiceId = new Map<string, InvoiceLineItem[]>();
-            for (const item of lineItems) {
-                if (!lineItemsByInvoiceId.has(item.invoiceId)) {
-                    lineItemsByInvoiceId.set(item.invoiceId, []);
-                }
-                lineItemsByInvoiceId.get(item.invoiceId)!.push(item);
-            }
-
-            for (const invoice of state.invoices) {
-                invoice.items = lineItemsByInvoiceId.get(invoice.id) || [];
-            }
-        }
+        state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        state.projects = data.projects || [];
+        state.tasks = data.tasks || [];
+        state.clients = data.clients || [];
+        state.invoices = data.invoices || [];
+        state.timeLogs = data.timeLogs || [];
+        state.comments = data.comments || [];
+        state.taskAssignees = data.taskAssignees || [];
+        state.projectSections = data.projectSections || [];
+        state.taskViews = data.taskViews || [];
         
-        // This is a simplified fetch for dashboard dependencies, more granular fetches will happen on page loads
-        const [taskAssigneesRes, projectSectionsRes, taskViewsRes] = await Promise.all([
-             apiFetch(`/api?action=data&resource=task_assignees&workspaceId=${workspaceId}`),
-             apiFetch(`/api?action=data&resource=project_sections&workspaceId=${workspaceId}`),
-             apiFetch(`/api?action=data&resource=task_views&workspaceId=${workspaceId}`),
-        ]);
-        
-        state.taskAssignees = taskAssigneesRes || [];
-        state.projectSections = projectSectionsRes || [];
-        state.taskViews = taskViewsRes || [];
-
         state.ui.dashboard.loadedWorkspaceId = workspaceId;
         console.log(`Successfully fetched data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch workspace data:", error);
     } finally {
         state.ui.dashboard.isLoading = false;
-        // Don't call render here, the caller will handle it.
+        // The caller (bootstrapApp) will handle rendering.
     }
 }
 
