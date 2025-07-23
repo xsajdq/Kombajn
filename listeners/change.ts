@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -8,6 +9,7 @@ import * as dashboardHandlers from '../handlers/dashboard.ts';
 import * as mainHandlers from '../handlers/main.ts';
 import * as filterHandlers from '../handlers/filters.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
+import { t } from '../i18n.ts';
 
 
 export function handleChange(e: Event) {
@@ -155,9 +157,9 @@ export function handleChange(e: Event) {
         const membersSection = document.getElementById('project-members-section');
         if (membersSection) {
             if ((target as HTMLInputElement).value === 'private') {
-                membersSection.classList.remove('collapsed');
+                membersSection.classList.remove('hidden');
             } else {
-                membersSection.classList.add('collapsed');
+                membersSection.classList.add('hidden');
             }
         }
         return;
@@ -247,5 +249,26 @@ export function handleChange(e: Event) {
         state.ui.modal.data.selectedProjectId = projectId;
         renderApp();
         return;
+    }
+
+    // Add Task Modal Project Selector
+    if (target.id === 'taskProject') {
+        const projectId = (target as HTMLSelectElement).value;
+        const project = state.projects.find(p => p.id === projectId);
+        const taskLists = state.taskLists.filter(tl => tl.projectId === projectId);
+        const taskListGroup = document.getElementById('task-list-group');
+        const taskListSelect = document.getElementById('taskList') as HTMLSelectElement;
+
+        if (taskListGroup && taskListSelect) {
+            if (taskLists.length > 0) {
+                taskListGroup.classList.remove('hidden');
+                taskListSelect.innerHTML = `
+                    <option value="">${t('tasks.default_board')}</option>
+                    ${taskLists.map(tl => `<option value="${tl.id}">${tl.name}</option>`).join('')}
+                `;
+            } else {
+                taskListGroup.classList.add('hidden');
+            }
+        }
     }
 }

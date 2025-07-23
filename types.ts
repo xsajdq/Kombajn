@@ -136,6 +136,7 @@ export interface TaskList {
     workspaceId: string;
     projectId: string;
     name: string;
+    icon?: string;
     sortOrder?: number;
 }
 export interface Task {
@@ -143,7 +144,7 @@ export interface Task {
     workspaceId: string;
     name: string;
     projectId: string;
-    taskListId?: string; // For grouping tasks into lists/boards within a project
+    taskListId?: string | null;
     dealId?: string; // Link task to a sales deal
     status: 'backlog' | 'todo' | 'inprogress' | 'inreview' | 'done';
     description?: string;
@@ -541,6 +542,7 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
+        activeCustomTaskListId: string | null;
         openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
@@ -560,7 +562,6 @@ export interface AppState {
             isFilterOpen: boolean;
             filters: TaskFilters;
             activeFilterViewId: string | null;
-            activeTaskListId: string | null;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
         };
@@ -599,7 +600,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskLists';
         };
         dashboard: {
             isEditing: boolean;

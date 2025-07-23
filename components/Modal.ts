@@ -168,7 +168,7 @@ export function Modal() {
                     </div>
                 </div>
 
-                <div id="project-members-section" class="form-group ${project?.privacy === 'private' || !isEdit ? '' : 'hidden'} transition-all duration-300">
+                <div id="project-members-section" class="form-group ${project?.privacy === 'private' ? '' : 'hidden'} transition-all duration-300">
                     <label class="${labelClasses}">${t('modals.invite_members')}</label>
                     <div class="max-h-40 overflow-y-auto border border-border-color rounded-lg p-2 space-y-2">
                         ${workspaceMembers.map(user => {
@@ -223,6 +223,8 @@ export function Modal() {
     if (state.ui.modal.type === 'addTask') {
         const projectIdFromPanel = modalData.projectId;
         const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
+        const taskLists = projectIdFromPanel ? state.taskLists.filter(tl => tl.projectId === projectIdFromPanel) : [];
+
 
         title = t('modals.add_task_title');
         body = `
@@ -241,6 +243,13 @@ export function Modal() {
                         <select id="taskProject" class="${formControlClasses}" required>
                             <option value="">${t('modals.select_a_project')}</option>
                             ${workspaceProjects.map(p => `<option value="${p.id}" ${projectIdFromPanel === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                     <div class="${formGroupClasses} ${taskLists.length > 0 ? '' : 'hidden'}" id="task-list-group">
+                        <label for="taskList" class="${labelClasses}">${t('modals.task_list')}</label>
+                        <select id="taskList" class="${formControlClasses}">
+                            <option value="">Default Board</option>
+                             ${taskLists.map((tl: any) => `<option value="${tl.id}">${tl.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">

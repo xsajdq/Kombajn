@@ -1,5 +1,6 @@
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -80,6 +81,7 @@ export function getInitialState(): AppState {
             openedClientId: null,
             openedProjectId: null,
             openedDealId: null,
+            activeCustomTaskListId: null,
             openedProjectTab: 'overview',
             isNotificationsOpen: false,
             notifications: { activeTab: 'new' },
@@ -92,7 +94,6 @@ export function getInitialState(): AppState {
                 isFilterOpen: false,
                 filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false },
                 activeFilterViewId: null,
-                activeTaskListId: null,
                 isLoading: false,
                 loadedWorkspaceId: null,
             },

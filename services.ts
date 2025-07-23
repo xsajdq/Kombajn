@@ -9,33 +9,6 @@ import { apiFetch } from "./services/api.ts";
 
 declare const jspdf: any;
 
-export async function handleAiTaskGeneration(promptText: string) {
-    state.ai = { loading: true, error: null, suggestedTasks: null };
-    renderApp();
-
-    try {
-        const response = await apiFetch('/api?action=generate-tasks', {
-            method: 'POST',
-            body: JSON.stringify({ promptText }),
-        });
-
-        const parsedData = response as AiSuggestedTask[];
-
-        if (Array.isArray(parsedData) && parsedData.every(item => typeof item.name === 'string' && typeof item.description === 'string')) {
-            state.ai.suggestedTasks = parsedData;
-        } else {
-            throw new Error("Received invalid data structure from AI.");
-        }
-    } catch (error: any) {
-        console.error("AI Task Generation Error:", error);
-        state.ai.error = error.message || "Sorry, something went wrong while generating tasks. Please try again or rephrase your idea.";
-    } finally {
-        state.ai.loading = false;
-        renderApp();
-    }
-}
-
-
 export function generateInvoicePDF(invoiceId: string) {
     const activeWorkspaceId = state.activeWorkspaceId;
     const invoice = state.invoices.find(inv => inv.id === invoiceId && inv.workspaceId === activeWorkspaceId);
@@ -159,5 +132,28 @@ export async function sendSlackNotification(userId: string, message: string, wor
         // Silently fail for now, but log the error.
         // We don't want to block the UI for a failed notification.
         console.error("Failed to send Slack notification:", error);
+    }
+}
+
+export async function handleAiTaskGeneration(promptText: string) {
+    state.ai = { loading: true, error: null, suggestedTasks: null };
+    renderApp();
+
+    try {
+        const suggestedTasks: AiSuggestedTask[] = await apiFetch('/api?action=generate-tasks', {
+            method: 'POST',
+            body: JSON.stringify({ promptText }),
+        });
+        
+        if (Array.isArray(suggestedTasks)) {
+            state.ai = { loading: false, error: null, suggestedTasks: suggestedTasks };
+        } else {
+            throw new Error("AI response was not in the expected format.");
+        }
+    } catch (error) {
+        console.error("AI task generation failed:", error);
+        state.ai = { loading: false, error: (error as Error).message, suggestedTasks: null };
+    } finally {
+        renderApp();
     }
 }
