@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -253,6 +254,77 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // ============================================================================
             // PAGE DATA HANDLERS
             // ============================================================================
+            case 'dashboard-data': {
+                if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
+            
+                const { workspaceId } = req.query;
+                if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
+            
+                const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
+                if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
+            
+                const [
+                    dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes
+                ] = await Promise.all([
+                    supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
+                    supabase.from('projects').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId),
+                    supabase.from('invoices').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('time_logs').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('comments').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
+                ]);
+            
+                const allResults = [
+                    dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes
+                ];
+                for (const r of allResults) {
+                    if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
+                }
+            
+                // Fetch and attach invoice line items
+                const invoices = invoicesRes.data || [];
+                if (invoices.length > 0) {
+                    const invoiceIds = invoices.map(i => i.id);
+                    const { data: lineItems, error: lineItemsError } = await supabase.from('invoice_line_items').select('*').in('invoice_id', invoiceIds);
+                    if (lineItemsError) throw lineItemsError;
+                    
+                    const lineItemsByInvoiceId = new Map();
+                    for (const item of lineItems) {
+                        if (!lineItemsByInvoiceId.has(item.invoice_id)) {
+                            lineItemsByInvoiceId.set(item.invoice_id, []);
+                        }
+                        lineItemsByInvoiceId.get(item.invoice_id)!.push(item);
+                    }
+            
+                    for (const invoice of invoices) {
+                        (invoice as any).items = lineItemsByInvoiceId.get(invoice.id) || [];
+                    }
+                }
+            
+                return res.status(200).json(keysToCamel({
+                    dashboardWidgets: dashboardWidgetsRes.data,
+                    projects: projectsRes.data,
+                    tasks: tasksRes.data,
+                    clients: clientsRes.data,
+                    invoices: invoices,
+                    timeLogs: timeLogsRes.data,
+                    comments: commentsRes.data,
+                    taskAssignees: taskAssigneesRes.data,
+                    projectSections: projectSectionsRes.data,
+                    taskViews: taskViewsRes.data,
+                }));
+            }
             case 'clients-page-data':
             case 'get-clients-page-data': {
                  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
