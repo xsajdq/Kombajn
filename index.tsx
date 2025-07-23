@@ -1,5 +1,4 @@
 
-
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -122,27 +121,19 @@ export async function bootstrapApp(session: Session) {
 
 
 async function init() {
-    console.log("--- Kombajn App Script Starting ---");
     try {
-        console.log("Setting up event listeners...");
         setupEventListeners();
         window.addEventListener('popstate', () => updateUI(['page', 'sidebar']));
         window.addEventListener('ui-update', (e: CustomEvent) => updateUI(e.detail));
-        console.log("Event listeners set up.");
 
-        console.log("Initializing Supabase...");
         await initSupabase();
         if (!supabase) throw new Error("Supabase client failed to initialize.");
-        console.log("Supabase initialized.");
 
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
 
             if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
-                if (appInitialized || isBootstrapping) {
-                    console.log("App already initialized or bootstrapping, skipping bootstrap.");
-                    return;
-                }
+                if (appInitialized || isBootstrapping) return;
                 await bootstrapApp(session);
             } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
                 await unsubscribeAll();

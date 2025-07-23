@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -276,8 +277,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
                     supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId),
                     supabase.from('invoices').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('time_logs').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50),
-                    supabase.from('comments').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50),
+                    supabase.from('time_logs').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('comments').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
                     supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
