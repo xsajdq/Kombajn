@@ -1,6 +1,4 @@
 
-
-
 import { state, saveState } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -114,7 +112,7 @@ export function handleChange(e: Event) {
         reader.onload = (event) => {
             const avatarPreview = document.getElementById('avatar-preview');
             if (avatarPreview && event.target?.result) {
-                avatarPreview.innerHTML = `<img src="${event.target.result}" alt="Avatar preview">`;
+                avatarPreview.innerHTML = `<img src="${event.target.result}" alt="Avatar preview" class="w-full h-full rounded-full object-cover">`;
             }
         };
         reader.readAsDataURL(file);
@@ -185,7 +183,6 @@ export function handleChange(e: Event) {
             let integration = state.integrations.find(i => i.provider === 'internal_settings' && i.workspaceId === workspaceId);
             const originalWorkflow = integration?.settings?.defaultKanbanWorkflow || 'simple';
 
-            // Optimistic update
             if (integration) {
                 integration.settings.defaultKanbanWorkflow = newWorkflow;
             } else {
@@ -205,7 +202,6 @@ export function handleChange(e: Event) {
             }).catch(err => {
                 console.error("Failed to save kanban workflow preference:", err);
                 alert("Failed to save your view preference. Please try again.");
-                // Revert on failure
                 if (integration) {
                     integration.settings.defaultKanbanWorkflow = originalWorkflow;
                 }
@@ -255,20 +251,20 @@ export function handleChange(e: Event) {
     // Add Task Modal Project Selector
     if (target.id === 'taskProject') {
         const projectId = (target as HTMLSelectElement).value;
-        const project = state.projects.find(p => p.id === projectId);
-        const taskLists = state.taskLists.filter(tl => tl.projectId === projectId);
-        const taskListGroup = document.getElementById('task-list-group');
-        const taskListSelect = document.getElementById('taskList') as HTMLSelectElement;
+        const projectSections = state.projectSections.filter(ps => ps.projectId === projectId);
+        const projectSectionGroup = document.getElementById('project-section-group');
+        const projectSectionSelect = document.getElementById('projectSection') as HTMLSelectElement;
 
-        if (taskListGroup && taskListSelect) {
-            if (taskLists.length > 0) {
-                taskListGroup.classList.remove('hidden');
-                taskListSelect.innerHTML = `
+        if (projectSectionGroup && projectSectionSelect) {
+            if (projectSections.length > 0) {
+                projectSectionGroup.classList.remove('hidden');
+                projectSectionSelect.innerHTML = `
                     <option value="">${t('tasks.default_board')}</option>
-                    ${taskLists.map(tl => `<option value="${tl.id}">${tl.name}</option>`).join('')}
+                    ${projectSections.map(ps => `<option value="${ps.id}">${ps.name}</option>`).join('')}
                 `;
             } else {
-                taskListGroup.classList.add('hidden');
+                projectSectionGroup.classList.add('hidden');
+                projectSectionSelect.innerHTML = ''; // Clear options
             }
         }
     }
