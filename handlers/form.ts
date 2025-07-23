@@ -1,7 +1,4 @@
 
-
-
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -17,7 +14,7 @@ import * as okrHandler from './okr.ts';
 import * as dealHandler from './deals.ts';
 import * as projectHandlers from './projects.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
-import * as taskListsHandler from './taskLists.ts';
+import * as projectSectionHandlers from './projectSections.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -193,7 +190,7 @@ export async function handleFormSubmit() {
             }
             
             const estimatedHoursString = (form.querySelector('#taskEstimatedHours') as HTMLInputElement).value;
-            const taskListId = (form.querySelector('#taskList') as HTMLSelectElement).value;
+            const projectSectionId = (form.querySelector('#projectSection') as HTMLSelectElement).value;
 
             const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
             const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
@@ -206,7 +203,7 @@ export async function handleFormSubmit() {
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
                 projectId: projectId,
-                taskListId: taskListId || null,
+                projectSectionId: projectSectionId || null,
                 name: name,
                 description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value,
                 status: workflow === 'advanced' ? 'backlog' : 'todo',
@@ -465,13 +462,12 @@ export async function handleFormSubmit() {
             return; // Handler manages its own state
         }
 
-        if (type === 'addTaskList') {
-            const form = document.getElementById('addTaskListForm') as HTMLFormElement;
+        if (type === 'addProjectSection') {
+            const form = document.getElementById('addProjectSectionForm') as HTMLFormElement;
             const projectId = form.dataset.projectId!;
-            const name = (document.getElementById('taskListName') as HTMLInputElement).value;
+            const name = (document.getElementById('projectSectionName') as HTMLInputElement).value;
             if (projectId && name) {
-                // For project-specific task lists, the icon is not needed.
-                await taskListsHandler.handleCreateTaskList(projectId, name);
+                await projectSectionHandlers.handleCreateProjectSection(projectId, name);
             }
             return; // Handler manages its own state
         }

@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -108,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(200).json(keysToCamel({
                         current_user: userProfile, profiles: userProfile ? [userProfile] : [], workspaces: [], workspace_members: [],
                         notifications: [], dashboard_widgets: [], workspace_join_requests: joinRequests || [], integrations: [], filter_views: [],
-                        projects: [], tasks: [], task_lists: [], clients: [], deals: [], time_logs: [], dependencies: [], comments: [], task_assignees: [],
+                        projects: [], tasks: [], project_sections: [], task_views: [], clients: [], deals: [], time_logs: [], dependencies: [], comments: [], task_assignees: [],
                         tags: [], task_tags: [], objectives: [], key_results: [], deal_notes: [], invoices: [], invoice_line_items: [],
                         client_contacts: [], expenses: [], project_members: []
                     }));
@@ -123,8 +124,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // --- Start: Fetch ALL operational data for user's workspaces ---
                 const [
                     allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
-                    joinRequestsRes, integrationsRes, projectsRes, tasksRes, taskListsRes,
-                    clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
+                    joinRequestsRes, integrationsRes, projectsRes, tasksRes, projectSectionsRes,
+                    taskViewsRes, clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
                     taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
                     expensesRes, projectMembersRes, dependenciesRes
                 ] = await Promise.all([
@@ -136,7 +137,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('integrations').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('projects').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('tasks').select('*').in('workspace_id', userWorkspaceIds),
-                    supabase.from('task_lists').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('project_sections').select('*').in('workspace_id', userWorkspaceIds),
+                    supabase.from('task_views').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('clients').select('*, client_contacts(*)').in('workspace_id', userWorkspaceIds),
                     supabase.from('deals').select('*').in('workspace_id', userWorkspaceIds),
                     supabase.from('time_logs').select('*').in('workspace_id', userWorkspaceIds),
@@ -155,8 +157,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const allResults = [
                     allProfilesRes, allWorkspacesRes, dashboardWidgetsRes, notificationsRes,
-                    joinRequestsRes, integrationsRes, projectsRes, tasksRes, taskListsRes,
-                    clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
+                    joinRequestsRes, integrationsRes, projectsRes, tasksRes, projectSectionsRes,
+                    taskViewsRes, clientsRes, dealsRes, timeLogsRes, commentsRes, taskAssigneesRes, tagsRes,
                     taskTagsRes, objectivesRes, keyResultsRes, dealNotesRes, invoicesRes,
                     expensesRes, projectMembersRes, dependenciesRes
                 ];
@@ -183,7 +185,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     filter_views: [], // Removed non-existent table
                     projects: projectsRes.data || [],
                     tasks: tasksRes.data || [],
-                    task_lists: taskListsRes.data || [],
+                    project_sections: projectSectionsRes.data || [],
+                    task_views: taskViewsRes.data || [],
                     clients: clientsRes.data || [],
                     deals: dealsRes.data || [],
                     time_logs: timeLogsRes.data || [],
@@ -207,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'task_lists', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -364,9 +367,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if(projectsError) throw new Error(`Tasks page data fetch failed: ${projectsError.message}`);
                 const projectIds = workspaceProjects ? workspaceProjects.map(p => p.id) : [];
 
-                const [tasksRes, taskListsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes] = await Promise.all([
+                const [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes] = await Promise.all([
                     supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_lists').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
                     supabase.from('projects').select('id, name').eq('workspace_id', workspaceId),
                     supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
                     supabase.from('tags').select('*').eq('workspace_id', workspaceId),
@@ -375,11 +378,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null })
                 ]);
 
-                for (const r of [tasksRes, taskListsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
+                for (const r of [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
                 
                 return res.status(200).json(keysToCamel({
                     tasks: tasksRes.data || [],
-                    task_lists: taskListsRes.data || [],
+                    project_sections: projectSectionsRes.data || [],
                     projects: projectsRes.data || [],
                     taskAssignees: taskAssigneesRes.data || [],
                     tags: tagsRes.data || [],

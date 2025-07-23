@@ -1,6 +1,4 @@
 
-
-
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -36,17 +34,20 @@ export async function router() {
     const [page, id] = pathSegments;
     
     const previousPage = state.currentPage;
-    const newPage = (page || 'dashboard') as AppState['currentPage'];
+    const isCustomTaskView = page === 'task-view';
+    const newPage = isCustomTaskView ? 'tasks' : (page || 'dashboard') as AppState['currentPage'];
 
     if (previousPage !== newPage) {
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;
         state.ui.openedDealId = null;
     }
+    
     state.currentPage = newPage;
+    state.ui.activeTaskViewId = isCustomTaskView ? id : null;
 
     // This part handles opening a detail view from a direct URL load (deep linking).
-    if (id) {
+    if (id && !isCustomTaskView) {
         switch (state.currentPage) {
             case 'projects':
                 if (state.ui.openedProjectId !== id) openProjectPanel(id);
@@ -63,7 +64,7 @@ export async function router() {
                 if (state.ui.openedDealId !== id) openDealPanel(id);
                 break;
         }
-    } else {
+    } else if (!id && !isCustomTaskView) {
         // If there's no ID in the URL, ensure all panels are closed
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;

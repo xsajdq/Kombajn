@@ -1,11 +1,9 @@
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
-import type { Task, User, TaskList } from '../types.ts';
+import type { Task, User, ProjectSection } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow, fetchTasksData } from '../handlers/main.ts';
@@ -135,42 +133,42 @@ function renderListView(filteredTasks: Task[]) {
 
     const { projectId } = state.ui.tasks.filters;
     
-    // If a project is selected, group by Task Lists (Sections)
+    // If a project is selected, group by Project Sections
     if (projectId) {
-        const projectTaskLists = state.taskLists.filter(tl => tl.projectId === projectId);
-        const tasksByList: Record<string, Task[]> = { 'no-list': [] };
-        projectTaskLists.forEach(tl => tasksByList[tl.id] = []);
+        const projectSections = state.projectSections.filter(ps => ps.projectId === projectId);
+        const tasksBySection: Record<string, Task[]> = { 'no-section': [] };
+        projectSections.forEach(ps => tasksBySection[ps.id] = []);
 
         filteredTasks.forEach(task => {
-            if (task.taskListId && tasksByList[task.taskListId]) {
-                tasksByList[task.taskListId].push(task);
+            if (task.projectSectionId && tasksBySection[task.projectSectionId]) {
+                tasksBySection[task.projectSectionId].push(task);
             } else {
-                tasksByList['no-list'].push(task);
+                tasksBySection['no-section'].push(task);
             }
         });
 
-        const renderSection = (list: TaskList | null, tasks: Task[]) => {
-            const listName = list ? list.name : t('tasks.default_board');
-            const listId = list ? list.id : 'no-list';
-            if (tasks.length === 0 && !list) return ''; // Don't render "Default" if it's empty
+        const renderSection = (section: ProjectSection | null, tasks: Task[]) => {
+            const sectionName = section ? section.name : t('tasks.default_board');
+            const sectionId = section ? section.id : 'no-section';
+            if (tasks.length === 0 && !section) return ''; // Don't render "Default" if it's empty
 
             return `
                 <details class="task-section" open>
                     <summary class="task-section-header">
                         <div class="flex items-center gap-2">
                             <span class="material-icons-sharp">keyboard_arrow_down</span>
-                            <h4 class="font-semibold">${listName}</h4>
+                            <h4 class="font-semibold">${sectionName}</h4>
                             <span class="text-sm text-text-subtle">${tasks.length}</span>
                         </div>
-                         ${list ? `
+                         ${section ? `
                             <div class="relative">
-                                <button class="btn-icon task-section-menu-btn" data-menu-toggle="task-list-menu-${listId}">
+                                <button class="btn-icon task-section-menu-btn" data-menu-toggle="project-section-menu-${sectionId}">
                                     <span class="material-icons-sharp">more_horiz</span>
                                 </button>
-                                <div id="task-list-menu-${listId}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                <div id="project-section-menu-${sectionId}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
                                     <div class="py-1">
-                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-rename-task-list-id="${listId}">${t('modals.rename')}</button>
-                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-task-list-id="${listId}">${t('modals.delete')}</button>
+                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-rename-project-section-id="${sectionId}">${t('modals.rename')}</button>
+                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-project-section-id="${sectionId}">${t('modals.delete')}</button>
                                     </div>
                                 </div>
                             </div>
@@ -187,10 +185,10 @@ function renderListView(filteredTasks: Task[]) {
             <div class="bg-content rounded-lg shadow-sm">
                 ${renderListHeader()}
                 <div>
-                    ${projectTaskLists.map(list => renderSection(list, tasksByList[list.id])).join('')}
-                    ${renderSection(null, tasksByList['no-list'])}
+                    ${projectSections.map(section => renderSection(section, tasksBySection[section.id])).join('')}
+                    ${renderSection(null, tasksBySection['no-section'])}
                 </div>
-                <button class="w-full text-left p-2 text-sm text-text-subtle hover:bg-background" id="add-task-section-btn" data-project-id="${projectId}">
+                <button class="w-full text-left p-2 text-sm text-text-subtle hover:bg-background" id="add-project-section-btn" data-project-id="${projectId}">
                     + Add Section
                 </button>
             </div>

@@ -1,6 +1,4 @@
 
-
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -42,7 +40,8 @@ export function getInitialState(): AppState {
         clientContacts: [],
         projects: [],
         tasks: [],
-        taskLists: [],
+        projectSections: [],
+        taskViews: [],
         taskAssignees: [],
         tags: [],
         taskTags: [],
@@ -101,6 +100,7 @@ export function getInitialState(): AppState {
             teamCalendarView: 'month',
             teamCalendarDate: now.toISOString().slice(0, 10),
             activeChannelId: null,
+            activeTaskViewId: null,
             isWikiEditing: false,
             taskDetail: { activeTab: 'activity', isEditing: false },
             dealDetail: { activeTab: 'activity' },

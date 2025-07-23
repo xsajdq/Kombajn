@@ -1,6 +1,4 @@
 
-
-
 export interface User {
     id: string;
     name?: string;
@@ -132,7 +130,7 @@ export interface Project {
     isArchived?: boolean;
 }
 
-export interface TaskList {
+export interface ProjectSection {
     id: string;
     workspaceId: string;
     projectId: string;
@@ -144,7 +142,8 @@ export interface Task {
     workspaceId: string;
     name: string;
     projectId: string;
-    taskListId?: string | null;
+    projectSectionId?: string | null;
+    taskViewId?: string | null;
     dealId?: string; // Link task to a sales deal
     status: 'backlog' | 'todo' | 'inprogress' | 'inreview' | 'done';
     description?: string;
@@ -491,6 +490,14 @@ export interface Integration {
     };
 }
 
+export interface TaskView {
+    id: string;
+    workspaceId: string;
+    name: string;
+    icon: string;
+    sortOrder?: number;
+}
+
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
     currentUser: User | null;
@@ -503,7 +510,8 @@ export interface AppState {
     clientContacts: ClientContact[];
     projects: Project[];
     tasks: Task[];
-    taskLists: TaskList[];
+    projectSections: ProjectSection[];
+    taskViews: TaskView[];
     taskAssignees: TaskAssignee[];
     tags: Tag[];
     taskTags: TaskTag[];
@@ -574,6 +582,7 @@ export interface AppState {
         teamCalendarView: 'month' | 'week' | 'day';
         teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
         activeChannelId: string | null;
+        activeTaskViewId: string | null;
         isWikiEditing: boolean;
         taskDetail: {
             activeTab: 'activity' | 'checklist' | 'subtasks' | 'dependencies' | 'attachments';
@@ -584,7 +593,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addTaskList' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | null;
             data?: any;
             justOpened?: boolean;
         };
@@ -599,7 +608,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskLists';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews';
         };
         dashboard: {
             isEditing: boolean;

@@ -1,5 +1,4 @@
 
-
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -63,7 +62,8 @@ export async function fetchInitialData(session: Session) {
     // Populate all operational data
     state.projects = data.projects || [];
     state.tasks = data.tasks || [];
-    state.taskLists = data.taskLists || [];
+    state.projectSections = data.projectSections || [];
+    state.taskViews = data.taskViews || [];
     state.clients = data.clients || [];
     state.deals = data.deals || [];
     state.timeLogs = data.timeLogs || [];
@@ -135,7 +135,7 @@ export async function bootstrapApp(session: Session) {
 
     // Show loading indicator immediately.
     document.getElementById('app')!.innerHTML = `
-        <div class="fixed inset-0 bg-background flex flex-col items-center justify-center text-text-subtle font-sans">
+        <div class="fixed inset-0 bg-background flex flex-col items-center justify-center text-text-main font-sans">
             <div class="w-full max-w-xs text-center p-4">
                 <div class="w-full bg-border-color rounded-full h-1.5 mb-4 overflow-hidden">
                     <div class="bg-primary h-1.5 rounded-full animate-pulse" style="width: 75%"></div>
