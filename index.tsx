@@ -1,4 +1,5 @@
 
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp } from './app-renderer.ts';
@@ -62,6 +63,7 @@ export async function fetchInitialData(session: Session) {
     // Populate all operational data
     state.projects = data.projects || [];
     state.tasks = data.tasks || [];
+    state.taskLists = data.taskLists || [];
     state.clients = data.clients || [];
     state.deals = data.deals || [];
     state.timeLogs = data.timeLogs || [];

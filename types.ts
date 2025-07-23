@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -129,11 +130,20 @@ export interface Project {
     budgetCost?: number;
     category?: string;
 }
+
+export interface TaskList {
+    id: string;
+    workspaceId: string;
+    projectId: string;
+    name: string;
+    sortOrder?: number;
+}
 export interface Task {
     id: string;
     workspaceId: string;
     name: string;
     projectId: string;
+    taskListId?: string; // For grouping tasks into lists/boards within a project
     dealId?: string; // Link task to a sales deal
     status: 'backlog' | 'todo' | 'inprogress' | 'inreview' | 'done';
     description?: string;
@@ -492,6 +502,7 @@ export interface AppState {
     clientContacts: ClientContact[];
     projects: Project[];
     tasks: Task[];
+    taskLists: TaskList[];
     taskAssignees: TaskAssignee[];
     tags: Tag[];
     taskTags: TaskTag[];
@@ -549,6 +560,7 @@ export interface AppState {
             isFilterOpen: boolean;
             filters: TaskFilters;
             activeFilterViewId: string | null;
+            activeTaskListId: string | null;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
         };
@@ -572,7 +584,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addTaskList' | null;
             data?: any;
             justOpened?: boolean;
         };
