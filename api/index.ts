@@ -1,4 +1,3 @@
-
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -224,7 +223,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 switch (req.method) {
                     case 'GET': {
-                        const { data, error } = await (supabase.from(resource) as any).select('*');
+                        let query = (supabase.from(resource) as any).select('*');
+                        
+                        // Simple filtering based on query params
+                        for (const key in req.query) {
+                            if (key !== 'action' && key !== 'resource') {
+                                query = query.eq(camelToSnake(key), req.query[key]);
+                            }
+                        }
+                    
+                        const { data, error } = await query;
                         if (error) throw error;
                         return res.status(200).json(keysToCamel(data));
                     }
@@ -240,6 +248,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         if (!id) return res.status(400).json({ error: 'ID is required for update' });
                         const query = (supabase.from(resource) as any).update(recordToUpdate).eq('id', id);
                         if (resource === 'dashboard_widgets') query.eq('user_id', user.id);
+                        
+                        // FIX: Return 204 No Content for tasks to avoid RLS issues after update.
+                        if (resource === 'tasks') {
+                             const { error } = await query;
+                             if (error) throw error;
+                             return res.status(204).send(undefined);
+                        }
+
                         const { data, error } = await query.select();
                         if (error) throw error;
                         return res.status(200).json(keysToCamel(data));

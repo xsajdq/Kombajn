@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -59,21 +60,25 @@ export async function handleFormSubmit() {
             // Handle contacts
             const contactRows = form.querySelectorAll<HTMLElement>('.contact-form-row');
             const contactPromises: Promise<any>[] = [];
-            const updatedContacts: ClientContact[] = [];
 
             contactRows.forEach(row => {
+                const nameInput = row.querySelector<HTMLInputElement>('[data-field="name"]');
+                if (!nameInput || !nameInput.value.trim()) {
+                    return; // Skip empty/newly added but unfilled rows
+                }
+
                 const contactId = row.dataset.contactId!;
                 const isNew = contactId.startsWith('new-');
+                
                 const contactPayload = {
                     id: isNew ? undefined : contactId,
                     clientId: savedClient.id,
                     workspaceId: activeWorkspaceId,
-                    name: (row.querySelector<HTMLInputElement>('[data-field="name"]'))!.value,
-                    email: (row.querySelector<HTMLInputElement>('[data-field="email"]'))!.value,
-                    phone: (row.querySelector<HTMLInputElement>('[data-field="phone"]'))!.value,
-                    role: (row.querySelector<HTMLInputElement>('[data-field="role"]'))!.value,
+                    name: nameInput.value.trim(),
+                    email: (row.querySelector<HTMLInputElement>('[data-field="email"]'))!.value.trim() || undefined,
+                    phone: (row.querySelector<HTMLInputElement>('[data-field="phone"]'))!.value.trim() || undefined,
+                    role: (row.querySelector<HTMLInputElement>('[data-field="role"]'))!.value.trim() || undefined,
                 };
-                if (!contactPayload.name) return;
 
                 if (isNew) {
                     contactPromises.push(apiPost('client_contacts', contactPayload));
@@ -87,14 +92,13 @@ export async function handleFormSubmit() {
                 contactPromises.push(apiFetch('/api?action=data&resource=client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) }));
             });
 
-            const settledContacts = await Promise.all(contactPromises.map(p => p.catch(e => e)));
-            const successfulContacts = settledContacts.flat().filter(c => c && !(c instanceof Error));
+            await Promise.all(contactPromises.map(p => p.catch(e => console.error("Contact save error:", e))));
             
-            // Update client in state with all contacts
+            // Update client in state with all fresh contacts from DB
             const clientInState = state.clients.find(c => c.id === savedClient.id);
             if (clientInState) {
-                const allContacts = await apiFetch(`/api/data/client_contacts?clientId=${savedClient.id}`);
-                clientInState.contacts = allContacts || [];
+                const allContactsForClient = await apiFetch(`/api?action=data&resource=client_contacts&clientId=${savedClient.id}`);
+                clientInState.contacts = allContactsForClient || [];
             }
         }
 

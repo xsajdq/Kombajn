@@ -67,6 +67,21 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
 }
 // --- END HELPERS ---
 
+
+function renderNewClientContactFormRow() {
+    const id = `new-${Date.now()}`;
+    const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
+    return `
+        <div class="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 items-center contact-form-row" data-contact-id="${id}">
+            <input type="text" class="${formControlClasses}" data-field="name" placeholder="Contact Person" value="" required>
+            <input type="email" class="${formControlClasses}" data-field="email" placeholder="Email" value="">
+            <input type="text" class="${formControlClasses}" data-field="phone" placeholder="Phone" value="">
+            <input type="text" class="${formControlClasses}" data-field="role" placeholder="Role" value="">
+            <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-contact-row-btn" title="Remove Item"><span class="material-icons-sharp">delete</span></button>
+        </div>
+    `;
+}
+
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
@@ -94,7 +109,9 @@ export async function handleClick(e: MouseEvent) {
 
     // --- Close any open popovers/menus on outside click ---
     if (!target.closest('.task-card-menu')) closeAllTaskMenus();
-    if (!target.closest('#notification-bell') && state.ui.isNotificationsOpen) notificationHandlers.toggleNotificationsPopover(false);
+    if (!target.closest('#notification-bell') && !target.closest('.absolute.top-full.right-0.mt-2.w-80')) {
+        if(state.ui.isNotificationsOpen) notificationHandlers.toggleNotificationsPopover(false);
+    }
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) uiHandlers.toggleCommandPalette(false);
     if (state.ui.onboarding.isActive && !target.closest('.absolute.bg-content')) onboardingHandlers.finishOnboarding();
 
@@ -178,6 +195,31 @@ export async function handleClick(e: MouseEvent) {
     const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
     if (clientFilterStatusBtn) { state.ui.clients.filters.status = clientFilterStatusBtn.dataset.clientFilterStatus as any; renderApp(); return; }
     if (target.closest<HTMLElement>('[data-delete-client-id]')) { await clientHandlers.handleDeleteClient(target.closest<HTMLElement>('[data-delete-client-id]')!.dataset.deleteClientId!); return; }
+    const addContactRowBtn = target.closest('#add-contact-row-btn');
+    if (addContactRowBtn) {
+        const container = document.getElementById('client-contacts-container');
+        if (container) {
+            container.insertAdjacentHTML('beforeend', renderNewClientContactFormRow());
+        }
+        return;
+    }
+    const removeContactRowBtn = target.closest('.remove-contact-row-btn');
+    if (removeContactRowBtn) {
+        const row = removeContactRowBtn.closest<HTMLElement>('.contact-form-row');
+        if (row) {
+            const contactId = row.dataset.contactId;
+            if (contactId && !contactId.startsWith('new-')) {
+                const deletedIdsInput = document.getElementById('deleted-contact-ids') as HTMLInputElement;
+                if (deletedIdsInput) {
+                    const currentIds = deletedIdsInput.value.split(',').filter(Boolean);
+                    currentIds.push(contactId);
+                    deletedIdsInput.value = currentIds.join(',');
+                }
+            }
+            row.remove();
+        }
+        return;
+    }
     
     // Invoices
     const downloadInvoiceBtn = target.closest<HTMLElement>('[data-download-invoice-id]');
@@ -260,6 +302,19 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#notification-bell')) { notificationHandlers.toggleNotificationsPopover(); return; }
     if (target.closest('.notification-item')) { notificationHandlers.handleNotificationClick(target.closest<HTMLElement>('.notification-item')!.dataset.notificationId!); return; }
     if (target.closest('#mark-all-read-btn')) { notificationHandlers.markAllNotificationsAsRead(); return; }
+    
+    // START FIX: Notification Tab Switching
+    const notificationPopoverTab = target.closest<HTMLElement>('.absolute.top-full.right-0 [data-tab]');
+    if (notificationPopoverTab) {
+        const tab = notificationPopoverTab.dataset.tab as 'new' | 'read';
+        if (state.ui.notifications.activeTab !== tab) {
+            state.ui.notifications.activeTab = tab;
+            renderApp();
+        }
+        return;
+    }
+    // END FIX
+
     const commandItem = target.closest<HTMLElement>('.command-item');
     if (commandItem) { commandHandlers.executeCommand(commandItem.dataset.commandId!); return; }
     if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
