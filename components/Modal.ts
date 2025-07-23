@@ -5,7 +5,7 @@ import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
-import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration } from '../utils.ts';
+import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration, parseDurationStringToSeconds } from '../utils.ts';
 import { can } from '../permissions.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
@@ -36,7 +36,13 @@ export function Modal() {
     let footer = '';
     let maxWidth = 'max-w-2xl'; // Default width
     const modalData = state.ui.modal.data || {};
-    const workspaceProjects = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId);
+
+    const workspaceProjects = state.projects.filter(p => {
+        if (p.workspaceId !== state.activeWorkspaceId || p.isArchived) return false;
+        if (p.privacy === 'public') return true;
+        return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
+    });
+
     const workspaceClients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
@@ -333,6 +339,25 @@ export function Modal() {
         maxWidth = 'max-w-3xl';
     }
 
+    if (state.ui.modal.type === 'addCommentToTimeLog') {
+        title = t('modals.add_timelog_comment_title');
+        body = AddCommentToTimeLogModal({ trackedSeconds: modalData.trackedSeconds });
+        footer = `
+            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">${t('modals.cancel')}</button>
+            <button class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-hover" id="modal-save-btn">${t('modals.save_log')}</button>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addInvoice') {
+        const clients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
+        title = t('modals.create_invoice_title');
+        body = `
+            <div id="invoice-creator"></div>
+        `;
+        maxWidth = 'max-w-4xl';
+        footer = '';
+    }
+
     if (state.ui.modal.type === 'addWidget') {
         title = t('modals.add_widget');
         footer = `<button class="btn-close-modal">${t('modals.cancel')}</button>`;
@@ -495,7 +520,10 @@ export function Modal() {
 
         body = `
             <form id="assignGlobalTimeForm" class="space-y-4">
-                <p class="text-sm text-text-subtle">${t('modals.time_tracked')}: <strong class="text-base text-text-main font-semibold">${formatDuration(trackedSeconds)}</strong></p>
+                <div class="${formGroupClasses}">
+                    <label for="global-timelog-amount" class="${labelClasses}">${t('modals.time_to_log')}</label>
+                    <input type="text" id="global-timelog-amount" class="${formControlClasses}" value="${formatDuration(trackedSeconds)}" placeholder="${t('modals.time_placeholder')}" required>
+                </div>
                 <div class="${modalFormGridClasses}">
                     <div class="${formGroupClasses}">
                         <label for="assign-time-project-select" class="${labelClasses}">${t('modals.project')}</label>

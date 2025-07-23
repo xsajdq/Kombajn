@@ -83,6 +83,18 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
 
+    // --- Global Click Handlers ---
+    const fabContainer = document.getElementById('fab-container');
+    const mainFabButton = target.closest('#fab-main-btn');
+
+    if (mainFabButton) {
+        fabContainer?.classList.toggle('is-open');
+        return; // Stop further processing
+    }
+    if (fabContainer?.classList.contains('is-open') && !target.closest('#fab-container')) {
+        fabContainer.classList.remove('is-open');
+    }
+
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     if (!menuToggle && !target.closest('[aria-haspopup="true"] + div')) {
         document.querySelectorAll('[aria-haspopup="true"] + div').forEach(menu => menu.classList.add('hidden'));
@@ -110,6 +122,7 @@ export async function handleClick(e: MouseEvent) {
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) uiHandlers.toggleCommandPalette(false);
     if (state.ui.onboarding.isActive && !target.closest('.absolute.bg-content')) onboardingHandlers.finishOnboarding();
 
+    // --- Element-specific Click Handlers ---
     const navLink = target.closest('a');
     if (navLink && navLink.hostname === window.location.hostname && !navLink.href.startsWith('mailto:')) {
         const isPlaceholder = navLink.getAttribute('href') === '#';
@@ -126,7 +139,15 @@ export async function handleClick(e: MouseEvent) {
 
     const modalTarget = target.closest<HTMLElement>('[data-modal-target]');
     if (modalTarget) {
+        if (target.closest('.fab-option')) {
+            fabContainer?.classList.remove('is-open');
+        }
         uiHandlers.showModal(modalTarget.dataset.modalTarget as any, { ...modalTarget.dataset });
+        return;
+    }
+    const saveModalBtn = target.closest('#modal-save-btn');
+    if (saveModalBtn) {
+        formHandlers.handleFormSubmit();
         return;
     }
     if (target.closest('.btn-close-modal') || target.matches('.fixed.inset-0.bg-black\\/50')) {
