@@ -202,19 +202,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         const id = recordToUpdate.id;
                         if (id) delete recordToUpdate.id;
                         if (!id) return res.status(400).json({ error: 'ID is required for update' });
-                        const query = (supabase.from(resource) as any).update(recordToUpdate).eq('id', id);
-                        if (resource === 'dashboard_widgets') query.eq('user_id', user.id);
-                        
-                        // FIX: Return 204 No Content for tasks to avoid RLS issues after update.
-                        if (resource === 'tasks') {
-                             const { error } = await query;
-                             if (error) throw error;
-                             return res.status(204).send(undefined);
+                    
+                        let queryBuilder = (supabase.from(resource) as any).update(recordToUpdate).eq('id', id);
+                    
+                        if (resource === 'dashboard_widgets') {
+                            queryBuilder = queryBuilder.eq('user_id', user.id);
                         }
-
-                        const { data, error } = await query.select();
-                        if (error) throw error;
-                        return res.status(200).json(keysToCamel(data));
+                    
+                        if (resource === 'tasks') {
+                            // For tasks, just run the update and return nothing on success to avoid RLS/schema cache issues.
+                            const { error } = await queryBuilder;
+                            if (error) {
+                                console.error('Supabase update error for tasks:', error.message);
+                                throw error;
+                            }
+                            return res.status(204).send(undefined);
+                        } else {
+                            // For other resources, run the update AND return the updated record.
+                            const { data, error } = await queryBuilder.select();
+                            if (error) throw error;
+                            return res.status(200).json(keysToCamel(data));
+                        }
                     }
                     case 'DELETE': {
                         if (!req.body) return res.status(400).json({ error: 'Request body is required for DELETE operation.' });
