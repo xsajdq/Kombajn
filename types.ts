@@ -108,6 +108,7 @@ export interface Client {
     address?: string;
     vatId?: string; // NIP for Polish context
     notes?: string;
+    status?: 'active' | 'archived';
     // New fields
     healthStatus?: 'good' | 'at_risk' | 'neutral' | null;
     category?: string;

@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -22,7 +21,7 @@ export function ClientsPage() {
     const canManage = can('manage_clients');
 
     const totalClients = clients.length;
-    const activeClients = totalClients; // Simplified for now
+    const activeClients = clients.filter(c => (c.status ?? 'active') === 'active').length;
     const totalProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId).length;
     
     const totalRevenue = state.invoices
@@ -87,6 +86,12 @@ export function ClientsPage() {
                     const projectCount = state.projects.filter(p => p.clientId === client.id).length;
                     const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : { name: client.contactPerson, email: client.email };
                     const initials = (client.name || '').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+                    const status = client.status || 'active';
+                    const statusClass = status === 'active' 
+                        ? 'bg-green-100 dark:bg-green-900/50 text-green-700' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+                    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
 
                     return `
                     <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-client-id="${client.id}" role="button" tabindex="0">
@@ -98,7 +103,7 @@ export function ClientsPage() {
                                     <p class="text-sm text-text-subtle">${primaryContact?.name || ''}</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/50 text-green-700">Active</span>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">${statusText}</span>
                         </div>
                         <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4">
                             <div class="flex items-center gap-2">

@@ -1,5 +1,3 @@
-
-
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
@@ -121,7 +119,7 @@ export async function handleToggleAssignee(taskId: string, userId: string) {
         const [removed] = state.taskAssignees.splice(existingIndex, 1);
         renderApp(); // Optimistic update
         try {
-            await apiFetch('/api/data/task_assignees', {
+            await apiFetch('/api?action=data&resource=task_assignees', {
                 method: 'DELETE',
                 body: JSON.stringify({ taskId, userId }),
             });
@@ -218,7 +216,7 @@ export async function handleDeleteSubtask(subtaskId: string) {
     renderApp();
 
     try {
-        await apiFetch(`/api/data/tasks`, {
+        await apiFetch(`/api?action=data&resource=tasks`, {
             method: 'DELETE',
             body: JSON.stringify({ id: subtaskId }),
         });
@@ -257,7 +255,7 @@ export async function handleRemoveDependency(dependencyId: string) {
     renderApp();
 
     try {
-        await apiFetch('/api/data/task_dependencies', {
+        await apiFetch('/api?action=data&resource=task_dependencies', {
             method: 'DELETE',
             body: JSON.stringify({ id: dependencyId }),
         });
@@ -352,7 +350,7 @@ export async function handleRemoveAttachment(attachmentId: string) {
     renderApp();
 
     try {
-        await apiFetch('/api/data/attachments', {
+        await apiFetch('/api?action=data&resource=attachments', {
             method: 'DELETE',
             body: JSON.stringify({ id: attachmentId }),
         });
@@ -387,7 +385,7 @@ export async function handleDeleteCustomFieldDefinition(fieldId: string) {
     renderApp();
 
     try {
-        await apiFetch('/api/data/custom_field_definitions', {
+        await apiFetch('/api?action=data&resource=custom_field_definitions', {
             method: 'DELETE',
             body: JSON.stringify({ id: fieldId }),
         });
@@ -451,7 +449,7 @@ export async function handleToggleTag(taskId: string, tagId: string, newTagName?
         if (existingLinkIndex > -1) {
             const [removedLink] = state.taskTags.splice(existingLinkIndex, 1);
             renderApp();
-            await apiFetch('/api/data/task_tags', {
+            await apiFetch('/api?action=data&resource=task_tags', {
                 method: 'DELETE',
                 body: JSON.stringify({ taskId: taskId, tagId: finalTagId }),
             });
@@ -511,7 +509,7 @@ export async function handleDeleteTask(taskId: string) {
 
     try {
         // The backend should have cascading deletes set up for this to work properly.
-        await apiFetch(`/api/data/tasks`, {
+        await apiFetch(`/api?action=data&resource=tasks`, {
             method: 'DELETE',
             body: JSON.stringify({ id: taskId }),
         });

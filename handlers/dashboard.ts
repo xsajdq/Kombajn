@@ -72,7 +72,7 @@ export async function removeWidget(widgetId: string) {
     const [removedWidget] = state.dashboardWidgets.splice(widgetIndex, 1);
     renderApp();
     try {
-        await apiFetch(`/api/data/dashboard_widgets`, {
+        await apiFetch(`/api?action=data&resource=dashboard_widgets`, {
             method: 'DELETE',
             body: JSON.stringify({ id: widgetId }),
         });

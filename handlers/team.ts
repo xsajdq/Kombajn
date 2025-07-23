@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
@@ -250,7 +248,7 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
     renderApp();
     
     try {
-        await apiFetch('/api/data/workspace_members', {
+        await apiFetch('/api?action=data&resource=workspace_members', {
             method: 'DELETE',
             body: JSON.stringify({ id: memberId }),
         });
@@ -425,7 +423,7 @@ export async function handleRemoveUserFromProject(projectMemberId: string) {
     renderApp();
     
     try {
-        await apiFetch('/api/data/project_members', {
+        await apiFetch('/api?action=data&resource=project_members', {
             method: 'DELETE',
             body: JSON.stringify({ id: projectMemberId }),
         });

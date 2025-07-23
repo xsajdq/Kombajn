@@ -30,7 +30,7 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
         workspaceId: task.workspaceId,
         taskId,
         userId: state.currentUser.id,
-        trackedSeconds,
+        trackedSeconds: Math.floor(trackedSeconds),
         createdAt: new Date().toISOString(),
         ...(comment && { comment }),
     };
@@ -60,7 +60,7 @@ export async function handleSaveManualTimeLog(taskId: string, timeString: string
         workspaceId: task.workspaceId,
         taskId,
         userId: state.currentUser.id,
-        trackedSeconds,
+        trackedSeconds: Math.floor(trackedSeconds),
         createdAt: new Date(dateString).toISOString(),
         ...(comment && { comment }),
     };

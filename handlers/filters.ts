@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
@@ -79,7 +77,7 @@ export async function deleteActiveFilterView() {
     resetFilters();
 
     try {
-        await apiFetch('/api/data/filter_views', {
+        await apiFetch('/api?action=data&resource=filter_views', {
             method: 'DELETE',
             body: JSON.stringify({ id: viewId }),
         });

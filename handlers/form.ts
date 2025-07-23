@@ -38,6 +38,7 @@ export async function handleFormSubmit() {
                 vatId: (form.querySelector('#clientVatId') as HTMLInputElement).value,
                 category: (form.querySelector('#clientCategory') as HTMLInputElement).value || null,
                 healthStatus: (form.querySelector('#clientHealthStatus') as HTMLSelectElement).value as Client['healthStatus'] || null,
+                status: (form.querySelector('#clientStatus') as HTMLSelectElement).value as Client['status'] || 'active',
             };
 
             let savedClient: Client;
@@ -81,7 +82,7 @@ export async function handleFormSubmit() {
 
             const deletedContactIds = (document.getElementById('deleted-contact-ids') as HTMLInputElement).value.split(',').filter(Boolean);
             deletedContactIds.forEach(id => {
-                contactPromises.push(apiFetch('/api/data/client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) }));
+                contactPromises.push(apiFetch('/api?action=data&resource=client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) }));
             });
 
             const settledContacts = await Promise.all(contactPromises.map(p => p.catch(e => e)));
@@ -241,11 +242,23 @@ export async function handleFormSubmit() {
                 alert("Please fill all required invoice fields.");
                 return;
             }
+
+            const date = new Date(issueDate);
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+
+            const invoicesInMonth = state.invoices.filter(i => {
+                if (i.workspaceId !== activeWorkspaceId) return false;
+                const invDate = new Date(i.issueDate);
+                return invDate.getFullYear() === year && (invDate.getMonth() + 1) === month;
+            });
+
+            const newInvoiceNumberStr = `${invoicesInMonth.length + 1}/${String(month).padStart(2, '0')}/${year}`;
             
             const invoicePayload = {
                 workspaceId: activeWorkspaceId,
                 clientId: clientId,
-                invoiceNumber: `INV-${Date.now()}`, // Simple invoice number generation
+                invoiceNumber: newInvoiceNumberStr,
                 issueDate: issueDate,
                 dueDate: dueDate,
                 status: 'pending',

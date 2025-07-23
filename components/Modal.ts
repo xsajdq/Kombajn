@@ -79,6 +79,13 @@ export function Modal() {
                             <option value="neutral" ${client?.healthStatus === 'neutral' ? 'selected' : ''}>${t('modals.health_status_neutral')}</option>
                         </select>
                     </div>
+                     <div class="${formGroupClasses}">
+                        <label for="clientStatus" class="${labelClasses}">${t('modals.status')}</label>
+                        <select id="clientStatus" class="${formControlClasses}">
+                            <option value="active" ${(!client?.status || client?.status === 'active') ? 'selected' : ''}>Active</option>
+                            <option value="archived" ${client?.status === 'archived' ? 'selected' : ''}>Archived</option>
+                        </select>
+                    </div>
                 </div>
 
                 <h4 class="text-md font-semibold pt-4 mt-4 border-t border-border-color">${t('modals.contacts')}</h4>

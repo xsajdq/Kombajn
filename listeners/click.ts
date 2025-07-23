@@ -25,6 +25,7 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
 import * as filterHandlers from '../handlers/filters.ts';
+import * as clientHandlers from '../handlers/clients.ts';
 import { TaskDetailModal } from '../components/modals/TaskDetailModal.ts';
 import { apiFetch } from '../services/api.ts';
 
@@ -90,39 +91,6 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
     menu.style.left = `${left}px`;
 }
 // --- END NEW HELPERS ---
-
-async function handleDeleteClient(clientId: string) {
-    if (!confirm('Are you sure you want to delete this client and all associated data (projects, tasks, invoices)? This is irreversible.')) {
-        return;
-    }
-
-    try {
-        // The API backend should have cascading deletes.
-        await apiFetch(`/api/data/clients`, {
-            method: 'DELETE',
-            body: JSON.stringify({ id: clientId }),
-        });
-
-        // After successful deletion, update the state.
-        const originalClientCount = state.clients.length;
-        state.clients = state.clients.filter(c => c.id !== clientId);
-
-        // If a client was actually removed, proceed to clean up related data from state.
-        if (state.clients.length < originalClientCount) {
-            const projectsToDelete = state.projects.filter(p => p.clientId === clientId).map(p => p.id);
-            state.projects = state.projects.filter(p => p.clientId !== clientId);
-            state.tasks = state.tasks.filter(t => !projectsToDelete.includes(t.projectId));
-            state.invoices = state.invoices.filter(i => i.clientId !== clientId);
-            state.clientContacts = state.clientContacts.filter(cc => cc.clientId !== clientId);
-        }
-        
-        renderApp();
-    } catch (error) {
-        console.error("Failed to delete client:", error);
-        alert("Could not delete client from the server.");
-    }
-}
-
 
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
@@ -263,7 +231,7 @@ export async function handleClick(e: MouseEvent) {
     const deleteClientBtn = target.closest<HTMLElement>('[data-delete-client-id]');
     if (deleteClientBtn) {
         const clientId = deleteClientBtn.dataset.deleteClientId!;
-        await handleDeleteClient(clientId);
+        await clientHandlers.handleDeleteClient(clientId);
         return;
     }
 

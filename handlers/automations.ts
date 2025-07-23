@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Automation } from '../types.ts';
@@ -88,7 +86,7 @@ export async function handleDeleteAutomation(automationId: string) {
     renderApp();
 
     try {
-        await apiFetch('/api/data/automations', {
+        await apiFetch('/api?action=data&resource=automations', {
             method: 'DELETE',
             body: JSON.stringify({ id: automationId }),
         });

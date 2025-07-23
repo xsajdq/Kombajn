@@ -1,9 +1,10 @@
 
 
-import { state, saveState } from '../state.ts';
+import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
 import { t } from '../i18n.ts';
+import { apiPut } from '../services/api.ts';
 
 export function handleGenerateInvoiceItems() {
     const { clientId } = state.ui.modal.data;
@@ -84,16 +85,29 @@ export function handleGenerateInvoiceItems() {
     renderApp();
 }
 
-export function handleToggleInvoiceStatus(invoiceId: string) {
+export async function handleToggleInvoiceStatus(invoiceId: string) {
     const invoice = state.invoices.find(inv => inv.id === invoiceId);
     if (invoice) {
-        invoice.status = invoice.status === 'paid' ? 'pending' : 'paid';
-        saveState();
+        const originalStatus = invoice.status;
+        const newStatus = originalStatus === 'paid' ? 'pending' : 'paid';
+        
+        // Optimistic update
+        invoice.status = newStatus;
         renderApp();
+
+        try {
+            await apiPut('invoices', { id: invoiceId, status: newStatus });
+        } catch (error) {
+            console.error("Failed to toggle invoice status:", error);
+            // Revert on failure
+            invoice.status = originalStatus;
+            renderApp();
+            alert("Could not update invoice status. Please try again.");
+        }
     }
 }
 
-export function handleSendInvoiceByEmail(invoiceId: string) {
+export async function handleSendInvoiceByEmail(invoiceId: string) {
     const invoice = state.invoices.find(inv => inv.id === invoiceId);
     if (!invoice) return;
 
@@ -125,8 +139,16 @@ export function handleSendInvoiceByEmail(invoiceId: string) {
     // Use window.open for better compatibility
     window.open(mailtoLink, '_self');
 
-    // Optimistically update status
+    // Optimistic update of email status, with server persistence
+    const originalEmailStatus = invoice.emailStatus;
     invoice.emailStatus = 'sent';
-    saveState();
     renderApp();
+
+    try {
+        await apiPut('invoices', { id: invoiceId, emailStatus: 'sent' });
+    } catch (error) {
+        console.error("Failed to update invoice email status:", error);
+        invoice.emailStatus = originalEmailStatus; // Revert
+        renderApp();
+    }
 }
