@@ -337,12 +337,13 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
 export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
-    const newRequestPayload: Omit<TimeOffRequest, 'id'|'createdAt'|'status'> = {
+    const newRequestPayload: Omit<TimeOffRequest, 'id'|'createdAt'> = {
         workspaceId: state.activeWorkspaceId,
         userId: state.currentUser.id,
         type,
         startDate,
         endDate,
+        status: 'pending',
     };
 
     try {
