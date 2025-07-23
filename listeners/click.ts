@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -239,10 +238,17 @@ export async function handleClick(e: MouseEvent) {
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) { uiHandlers.toggleCommandPalette(false); }
 
     const navLink = target.closest('a');
-    if (navLink && !navLink.href.startsWith('mailto:') && navLink.pathname !== window.location.pathname) {
+    if (navLink && navLink.hostname === window.location.hostname && !navLink.href.startsWith('mailto:')) {
+        // This is an internal navigation link.
+        // Always prevent the default browser action to stop full page reloads.
         e.preventDefault();
-        history.pushState({}, '', navLink.href);
-        renderApp();
+
+        // Only perform the navigation and re-render if the path is different from the current one.
+        if (window.location.pathname !== navLink.pathname) {
+            history.pushState({}, '', navLink.href);
+            renderApp();
+        }
+        // If the path is the same, we do nothing, preventing the reload and unnecessary re-render.
         return;
     }
     
@@ -413,6 +419,20 @@ export async function handleClick(e: MouseEvent) {
         renderApp();
         return;
     }
+    
+    // START: ADDED FIX
+    const toggleFiltersBtn = target.closest<HTMLElement>('#toggle-filters-btn');
+    if (toggleFiltersBtn) {
+        uiHandlers.toggleTaskFilters();
+        return;
+    }
+    
+    const resetFiltersBtn = target.closest<HTMLElement>('#reset-task-filters');
+    if (resetFiltersBtn) {
+        filterHandlers.resetFilters();
+        return;
+    }
+    // END: ADDED FIX
 
     if (target.closest('#save-workspace-settings-btn')) { teamHandlers.handleSaveWorkspaceSettings(); return; }
     if (target.closest('#remove-logo-btn')) {
