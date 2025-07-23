@@ -1,5 +1,3 @@
-
-
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
@@ -99,7 +97,7 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
                     await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: finalValue, actorId: state.currentUser!.id });
                 }
             }
-            runAutomations('statusChange', { task });
+            runAutomations('statusChange', { task, actorId: state.currentUser.id });
         }
     } catch (error) {
         console.error(`Failed to update task field ${field}:`, error);

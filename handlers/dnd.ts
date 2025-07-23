@@ -116,7 +116,7 @@ export async function handleDrop(e: DragEvent) {
         try {
             await apiPut('tasks', { id: task.id, status: newStatus, sortOrder: newSortOrder });
             if (originalTaskState.status !== newStatus) {
-                runAutomations('statusChange', { task });
+                runAutomations('statusChange', { task, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error("Failed to update task:", error);

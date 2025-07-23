@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency } from '../utils.ts';
@@ -34,7 +32,7 @@ export function ProjectsPage() {
     const today = new Date().toISOString().slice(0, 10);
 
     const content = projects.length > 0 ? `
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 projects-grid">
             ${projects.map(project => {
                 const client = state.clients.find(c => c.id === project.clientId);
                 const tasks = state.tasks.filter(t => t.projectId === project.id);

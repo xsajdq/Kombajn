@@ -119,15 +119,36 @@ export async function handleClick(e: MouseEvent) {
     if (closeModalBtn) { uiHandlers.closeModal(); return; }
     if (target.matches('.fixed.inset-0.bg-black\\/50')) { uiHandlers.closeModal(); return; }
 
-    // --- Side Panels ---
+    // --- Side Panels & Task Detail Modals ---
     const closePanelBtn = target.closest('.btn-close-panel, #side-panel-overlay');
     if (closePanelBtn) { uiHandlers.closeSidePanels(); return; }
-    const projectCard = target.closest<HTMLElement>('.projects-page-new-project-btn ~ .grid [data-project-id], .associated-projects-list [data-project-id]');
-    if (projectCard) { uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!); return; }
+    
+    const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id]');
+    if (projectCard && !target.closest('button, a')) {
+        uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!);
+        return;
+    }
+
     const clientCard = target.closest<HTMLElement>('[data-client-id]:not([data-modal-target])');
-    if (clientCard) { uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!); return; }
+    if (clientCard && !target.closest('button, a')) {
+        uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!);
+        return;
+    }
+    
     const dealCard = target.closest<HTMLElement>('.deal-card');
-    if (dealCard) { uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!); return; }
+    if (dealCard && !target.closest('button, a')) {
+        uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
+        return;
+    }
+    
+    const taskCardOrRow = target.closest<HTMLElement>('.task-list-row, .task-card');
+    if (taskCardOrRow && !target.closest('button, a')) {
+        const taskId = taskCardOrRow.dataset.taskId;
+        if (taskId) {
+            uiHandlers.updateUrlAndShowDetail('task', taskId);
+            return;
+        }
+    }
     
     // --- Specific Actions (ordered by page/component) ---
 
@@ -167,8 +188,6 @@ export async function handleClick(e: MouseEvent) {
     if (toggleInvoiceStatusBtn) { invoiceHandlers.handleToggleInvoiceStatus(toggleInvoiceStatusBtn.dataset.toggleInvoiceStatusId!); return; }
     
     // Tasks
-    const taskListRow = target.closest<HTMLElement>('.task-list-row');
-    if (taskListRow) { taskHandlers.openTaskDetail(taskListRow.dataset.taskId!); return; }
     if (target.closest('#toggle-filters-btn')) { uiHandlers.toggleTaskFilters(); return; }
     if (target.closest('#reset-task-filters')) { filterHandlers.resetFilters(); return; }
     const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');

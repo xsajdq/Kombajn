@@ -2,11 +2,12 @@ import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Automation } from '../types.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
+import { createNotification } from './notifications.ts';
 
-export async function runAutomations(triggerType: 'statusChange', data: { task: Task }) {
+export async function runAutomations(triggerType: 'statusChange', data: { task: Task, actorId: string }) {
     if (triggerType !== 'statusChange') return;
 
-    const { task } = data;
+    const { task, actorId } = data;
     const automationsForProject = state.automations.filter(a => a.projectId === task.projectId);
 
     let changed = false;
@@ -23,7 +24,7 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
         }
     });
 
-    if (changed) {
+    if (changed && newAssigneeId) {
         const oldAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
         // Optimistic update
         state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
@@ -36,11 +37,15 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
             // Persist the change triggered by the automation
             // Delete old assignees
             for (const old of oldAssignees) {
-                await apiPost('task_assignees/delete', { taskId: old.taskId, userId: old.userId });
+                await apiFetch('/api?action=data&resource=task_assignees', { method: 'DELETE', body: JSON.stringify({ taskId: old.taskId, userId: old.userId }) });
             }
             // Add new assignee
             if (newAssigneeId) {
                 await apiPost('task_assignees', { taskId: task.id, userId: newAssigneeId, workspaceId: task.workspaceId });
+                // Create a notification for the new assignee
+                if (newAssigneeId !== actorId) {
+                    await createNotification('new_assignment', { taskId: task.id, userIdToNotify: newAssigneeId, actorId });
+                }
             }
         } catch (error) {
             console.error("Failed to persist automation-triggered change:", error);
