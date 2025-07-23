@@ -73,7 +73,7 @@ async function fetchWorkspaceData(workspaceId: string) {
 
 
 export async function bootstrapApp(session: Session) {
-    if (isBootstrapping) return;
+    if (isBootstrapping || appInitialized) return;
     isBootstrapping = true;
 
     document.getElementById('app')!.innerHTML = `<div class="fixed inset-0 bg-background flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>`;
@@ -120,7 +120,7 @@ export async function bootstrapApp(session: Session) {
 }
 
 
-async function init() {
+async function main() {
     try {
         setupEventListeners();
         window.addEventListener('popstate', () => updateUI(['page', 'sidebar']));
@@ -129,13 +129,25 @@ async function init() {
         await initSupabase();
         if (!supabase) throw new Error("Supabase client failed to initialize.");
 
+        // Handle the initial session on page load
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) console.error("Error getting initial session:", sessionError);
+
+        if (session) {
+            await bootstrapApp(session);
+        } else {
+            state.currentPage = 'auth';
+            await renderApp();
+        }
+        
+        // Listen for subsequent auth changes
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
 
-            if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
-                if (appInitialized || isBootstrapping) return;
+            if (event === 'SIGNED_IN' && session) {
+                // If user just signed in, bootstrap the app. The guard inside bootstrapApp will prevent re-runs.
                 await bootstrapApp(session);
-            } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+            } else if (event === 'SIGNED_OUT') {
                 await unsubscribeAll();
                 isBootstrapping = false;
                 appInitialized = false;
@@ -186,4 +198,4 @@ async function init() {
     }
 }
 
-init();
+main();
