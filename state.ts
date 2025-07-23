@@ -97,6 +97,7 @@ export function getInitialState(): AppState {
                 loadedWorkspaceId: null,
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
+            clientFilters: { text: '', status: 'all' },
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',
             teamCalendarDate: now.toISOString().slice(0, 10),
@@ -115,7 +116,11 @@ export function getInitialState(): AppState {
             hr: { activeTab: 'employees' },
             onboarding: { isActive: false, step: 0 },
             sales: { isLoading: false, loadedWorkspaceId: null },
-            clients: { isLoading: false, loadedWorkspaceId: null },
+            clients: { 
+                isLoading: false, 
+                loadedWorkspaceId: null,
+                filters: { text: '', status: 'all' },
+            },
             invoices: { isLoading: false, loadedWorkspaceId: null },
             projects: { isLoading: false, loadedWorkspaceId: null },
             globalTimer: {

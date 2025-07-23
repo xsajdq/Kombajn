@@ -107,7 +107,7 @@ export function Modal() {
         title = isEdit ? `Edit Project` : t('modals.add_project_title');
         const templates = state.projectTemplates.filter(pt => pt.workspaceId === state.activeWorkspaceId);
         
-        const existingMemberIds = isEdit ? new Set(state.projectMembers.filter(pm => pm.projectId === project!.id).map(pm => pm.userId)) : new Set();
+        const existingMemberIds = isEdit ? new Set(state.projectMembers.filter(pm => pm.projectId === project!.id).map(pm => pm.userId)) : new Set([state.currentUser?.id]);
 
 
         body = `
@@ -168,7 +168,7 @@ export function Modal() {
                     </div>
                 </div>
 
-                <div id="project-members-section" class="form-group ${project?.privacy === 'private' || !isEdit ? '' : 'hidden'} transition-all duration-300">
+                <div id="project-members-section" class="form-group ${project?.privacy !== 'private' && isEdit ? 'hidden' : ''} transition-all duration-300">
                     <label class="${labelClasses}">${t('modals.invite_members')}</label>
                     <div class="max-h-40 overflow-y-auto border border-border-color rounded-lg p-2 space-y-2">
                         ${workspaceMembers.map(user => {
@@ -627,6 +627,73 @@ export function Modal() {
                 <div class="${formGroupClasses}">
                     <label for="projectSectionName" class="${labelClasses}">${t('modals.project_section')}</label>
                     <input type="text" id="projectSectionName" class="${formControlClasses}" required>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addDeal') {
+        const isEdit = !!modalData.dealId;
+        const deal = isEdit ? state.deals.find(d => d.id === modalData.dealId) : null;
+        title = isEdit ? t('modals.edit_deal_title') : t('modals.add_deal_title');
+        const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
+        body = `
+            <form id="dealForm" class="space-y-4">
+                <input type="hidden" id="dealId" value="${deal?.id || ''}">
+                <div class="${formGroupClasses}">
+                    <label for="dealName" class="${labelClasses}">${t('modals.deal_name')}</label>
+                    <input type="text" id="dealName" class="${formControlClasses}" required value="${deal?.name || ''}">
+                </div>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="dealClient" class="${labelClasses}">${t('modals.deal_client')}</label>
+                        <select id="dealClient" class="${formControlClasses}" required>
+                            <option value="">${t('modals.select_a_client')}</option>
+                            ${workspaceClients.map(c => `<option value="${c.id}" ${deal?.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="dealValue" class="${labelClasses}">${t('modals.deal_value')}</label>
+                        <input type="number" id="dealValue" class="${formControlClasses}" required value="${deal?.value || ''}" min="0">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="dealOwner" class="${labelClasses}">${t('modals.deal_owner')}</label>
+                        <select id="dealOwner" class="${formControlClasses}" required>
+                            ${workspaceMembers.map(u => u ? `<option value="${u.id}" ${deal?.ownerId === u.id ? 'selected' : ''}>${u.name || u.initials}</option>` : '').join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="dealStage" class="${labelClasses}">${t('modals.deal_stage')}</label>
+                        <select id="dealStage" class="${formControlClasses}" required>
+                            ${stages.map(s => `<option value="${s}" ${deal?.stage === s ? 'selected' : ''}>${t(`sales.stage_${s}`)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses} sm:col-span-2">
+                        <label for="dealExpectedCloseDate" class="${labelClasses}">${t('modals.deal_close_date')}</label>
+                        <input type="date" id="dealExpectedCloseDate" class="${formControlClasses}" value="${deal?.expectedCloseDate || ''}">
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addExpense') {
+        title = t('modals.add_expense_title');
+        body = `
+            <form id="addExpenseForm" class="space-y-4" data-project-id="${modalData.projectId}">
+                <div class="${formGroupClasses}">
+                    <label for="expenseDescription" class="${labelClasses}">${t('modals.expense_description')}</label>
+                    <input type="text" id="expenseDescription" class="${formControlClasses}" required>
+                </div>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="expenseAmount" class="${labelClasses}">${t('modals.expense_amount')}</label>
+                        <input type="number" id="expenseAmount" class="${formControlClasses}" required min="0" step="0.01">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="expenseDate" class="${labelClasses}">${t('modals.expense_date')}</label>
+                        <input type="date" id="expenseDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
                 </div>
             </form>
         `;

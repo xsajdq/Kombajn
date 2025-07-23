@@ -201,6 +201,10 @@ export async function handleFormSubmit() {
             const tagIds = Array.from(tagCheckboxes).map(cb => cb.value);
 
             const workflow = getWorkspaceKanbanWorkflow(activeWorkspaceId);
+            const status = workflow === 'advanced' ? 'backlog' : 'todo';
+            const tasksInStatus = state.tasks.filter(t => t.status === status);
+            const maxSortOrder = Math.max(0, ...tasksInStatus.map(t => t.sortOrder || 0));
+
 
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
@@ -209,12 +213,13 @@ export async function handleFormSubmit() {
                 taskViewId: taskViewId || null,
                 name: name,
                 description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value,
-                status: workflow === 'advanced' ? 'backlog' : 'todo',
+                status: status,
                 startDate: (form.querySelector('#taskStartDate') as HTMLInputElement).value || undefined,
                 dueDate: (form.querySelector('#taskDueDate') as HTMLInputElement).value || undefined,
                 priority: ((form.querySelector('#taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
                 estimatedHours: parseDurationStringToHours(estimatedHoursString),
                 type: ((form.querySelector('#taskType') as HTMLSelectElement).value as Task['type']) || null,
+                sortOrder: maxSortOrder + 1,
             };
 
             if (data?.dealId) {
@@ -378,23 +383,60 @@ export async function handleFormSubmit() {
 
 
         if (type === 'addDeal') {
+            const form = document.getElementById('dealForm') as HTMLFormElement;
+            const dealId = (form.querySelector('#dealId') as HTMLInputElement).value;
+            const isEdit = !!dealId;
+
             const name = (document.getElementById('dealName') as HTMLInputElement).value;
             const clientId = (document.getElementById('dealClient') as HTMLSelectElement).value;
             const value = parseFloat((document.getElementById('dealValue') as HTMLInputElement).value);
             if (!name || !clientId || isNaN(value)) return;
             
-            const dealData = {
+            const dealData: Partial<Deal> = {
                 workspaceId: activeWorkspaceId,
                 name,
                 clientId,
                 value,
                 ownerId: (document.getElementById('dealOwner') as HTMLSelectElement).value,
                 stage: (document.getElementById('dealStage') as HTMLSelectElement).value as Deal['stage'],
-                expectedCloseDate: (document.getElementById('dealExpectedCloseDate') as HTMLInputElement).value || null,
+                expectedCloseDate: (document.getElementById('dealExpectedCloseDate') as HTMLInputElement).value || undefined,
             };
 
-            const [newDeal] = await apiPost('deals', dealData);
-            state.deals.push(newDeal);
+            if (isEdit) {
+                const [updatedDeal] = await apiPut('deals', { ...dealData, id: dealId });
+                const index = state.deals.findIndex(d => d.id === dealId);
+                if (index !== -1) {
+                    state.deals[index] = { ...state.deals[index], ...updatedDeal };
+                }
+            } else {
+                const [newDeal] = await apiPost('deals', dealData);
+                state.deals.push(newDeal);
+            }
+        }
+        
+        if (type === 'addExpense') {
+            const form = document.getElementById('addExpenseForm') as HTMLFormElement;
+            const projectId = form.dataset.projectId!;
+            const description = (document.getElementById('expenseDescription') as HTMLInputElement).value;
+            const amount = parseFloat((document.getElementById('expenseAmount') as HTMLInputElement).value);
+            const date = (document.getElementById('expenseDate') as HTMLInputElement).value;
+
+            if (!description || isNaN(amount) || !date || !projectId) {
+                alert("Please fill all fields for the expense.");
+                return;
+            }
+
+            const payload: Omit<Expense, 'id'> = {
+                workspaceId: activeWorkspaceId,
+                projectId,
+                description,
+                amount,
+                date,
+                isBillable: true, // Default to billable for now
+            };
+
+            const [newExpense] = await apiPost('expenses', payload);
+            state.expenses.push(newExpense);
         }
 
         if (type === 'employeeDetail') {

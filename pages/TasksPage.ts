@@ -96,6 +96,9 @@ function renderBoardView(filteredTasks: Task[]) {
             tasksByStatus[task.status].push(task);
         }
     });
+    
+    // Sort tasks in each column by sortOrder
+    Object.values(tasksByStatus).forEach(tasks => tasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
 
     const columnsToRender: Task['status'][] = isWorkflowAdvanced
         ? ['backlog', 'todo', 'inprogress', 'inreview', 'done']
@@ -231,6 +234,7 @@ function renderRow(task: Task) {
     const project = state.projects.find(p => p.id === task.projectId);
     const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const isRunning = !!state.activeTimers[task.id];
+    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
 
     return `
         <div class="grid grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background ${task.isArchived ? 'opacity-60' : ''} task-list-row" data-task-id="${task.id}" role="button" tabindex="0">
@@ -246,7 +250,7 @@ function renderRow(task: Task) {
                     `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
                 </div>
              </div>
-             <div>${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
+             <div class="${isOverdue ? 'text-danger' : ''}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
              <div>${task.priority ? `<span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
              <div><span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.' + task.status)}</span></div>
              <div class="flex items-center justify-end gap-2 text-text-subtle">

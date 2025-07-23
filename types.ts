@@ -154,6 +154,7 @@ export interface Task {
     parentId?: string; // For subtasks
     recurrence?: 'none' | 'daily' | 'weekly' | 'monthly'; // For recurring tasks
     checklist?: { id: string; text: string; completed: boolean; }[];
+    sortOrder?: number;
     // New fields
     estimatedHours?: number; // in hours
     type?: 'feature' | 'bug' | 'chore' | null;
@@ -551,7 +552,7 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
-        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs';
+        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs' | 'expenses';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;
@@ -578,6 +579,10 @@ export interface AppState {
             status: string;
             dateStart: string;
             dateEnd: string;
+        };
+        clientFilters: {
+            text: string;
+            status: 'all' | 'active' | 'archived';
         };
         calendarDate: string; // YYYY-MM for the calendar view
         teamCalendarView: 'month' | 'week' | 'day';
@@ -631,6 +636,10 @@ export interface AppState {
         clients: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            filters: {
+                text: string;
+                status: 'all' | 'active' | 'archived';
+            };
         };
         invoices: {
             isLoading: boolean;

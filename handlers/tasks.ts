@@ -1,4 +1,5 @@
 
+
 import { state, generateId } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
@@ -571,6 +572,27 @@ export async function handleToggleChecklistItem(taskId: string, itemId: string) 
         alert("Could not update checklist item.");
         // Revert
         item.completed = originalStatus;
+        renderApp();
+    }
+}
+
+export async function handleDeleteChecklistItem(taskId: string, itemId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.checklist) return;
+
+    const itemIndex = task.checklist.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+
+    const [removedItem] = task.checklist.splice(itemIndex, 1);
+    renderApp();
+
+    try {
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+    } catch (error) {
+        console.error("Failed to delete checklist item:", error);
+        alert("Could not delete checklist item.");
+        // Revert
+        task.checklist.splice(itemIndex, 0, removedItem);
         renderApp();
     }
 }

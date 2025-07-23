@@ -1,7 +1,8 @@
 
 
-
+import { state } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
+import { renderApp } from '../app-renderer.ts';
 
 declare const marked: any;
 declare const DOMPurify: any;
@@ -35,6 +36,14 @@ export function handleInput(e: Event) {
             const isVisible = name.includes(query) || email.includes(query);
             row.classList.toggle('hidden', !isVisible);
         });
+        return;
+    }
+    
+    // Client page search
+    const clientSearchInput = target.closest<HTMLInputElement>('#client-search-input');
+    if (clientSearchInput) {
+        state.ui.clients.filters.text = clientSearchInput.value;
+        renderApp();
         return;
     }
 }

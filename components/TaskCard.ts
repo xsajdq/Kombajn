@@ -22,6 +22,7 @@ export function renderTaskCard(task: Task) {
     const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
     const unknownAssignee = taskAssignees.length === 0;
     const projectSection = task.projectSectionId ? state.projectSections.find(ps => ps.id === task.projectSectionId) : null;
+    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
 
     const taskTags = state.taskTags
         .filter(tt => tt.taskId === task.id)
@@ -69,7 +70,7 @@ export function renderTaskCard(task: Task) {
             <div class="task-card-footer">
                 <div class="task-card-stats">
                     ${task.dueDate ? `
-                        <div class="stat-item" title="${t('tasks.col_due_date')}">
+                        <div class="stat-item ${isOverdue ? 'text-danger' : ''}" title="${t('tasks.col_due_date')}">
                             <span class="material-icons-sharp">event</span>
                             <span>${formatDate(task.dueDate, { day: 'numeric', month: 'short' })}</span>
                         </div>

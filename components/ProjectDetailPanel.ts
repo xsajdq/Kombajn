@@ -1,7 +1,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
-import type { Task, ProjectRole, Attachment, Objective, KeyResult } from '../types.ts';
+import type { Task, ProjectRole, Attachment, Objective, KeyResult, Expense } from '../types.ts';
 import { getUserProjectRole } from '../handlers/main.ts';
 import { can } from '../permissions.ts';
 
@@ -398,6 +398,34 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         </div>`;
     };
 
+    const renderExpensesTab = () => {
+        const expenses = state.expenses.filter(e => e.projectId === projectId);
+        return `
+            <div class="side-panel-content">
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4>${t('modals.expenses')} (${expenses.length})</h4>
+                        <button class="btn btn-secondary btn-sm" data-modal-target="addExpense" data-project-id="${projectId}">
+                            <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span>
+                            ${t('modals.add_expense_title')}
+                        </button>
+                    </div>
+                    <div class="divide-y divide-border-color">
+                        ${expenses.length > 0 ? expenses.map(exp => `
+                            <div class="flex justify-between items-center py-2">
+                                <div>
+                                    <p class="font-medium">${exp.description}</p>
+                                    <p class="text-xs text-text-subtle">${formatDate(exp.date)}</p>
+                                </div>
+                                <p class="font-semibold">${formatCurrency(exp.amount)}</p>
+                            </div>
+                        `).join('') : `<p class="subtle-text">No expenses logged for this project.</p>`}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
 
     const client = state.clients.find(c => c.id === project.clientId);
     const tabs = [
@@ -405,6 +433,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         { id: 'tasks', text: t('panels.tasks'), content: renderTasksTab() },
         { id: 'wiki', text: t('panels.tab_wiki'), content: renderWikiTab() },
         { id: 'files', text: t('panels.tab_files'), content: renderFilesTab() },
+        { id: 'expenses', text: t('panels.tab_expenses'), content: renderExpensesTab() },
         { id: 'okrs', text: t('panels.tab_okrs'), content: renderOkrsTab() },
         { id: 'access', text: t('panels.tab_access'), content: renderAccessTab() },
     ];

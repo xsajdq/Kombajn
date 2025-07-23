@@ -16,12 +16,20 @@ export function ClientsPage() {
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
+    
+    const { text: filterText, status: filterStatus } = state.ui.clients.filters;
+    const allClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
+    
+    const filteredClients = allClients.filter(client => {
+        const textMatch = !filterText || client.name.toLowerCase().includes(filterText.toLowerCase());
+        const statusMatch = filterStatus === 'all' || (client.status ?? 'active') === filterStatus;
+        return textMatch && statusMatch;
+    });
 
-    const clients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
     const canManage = can('manage_clients');
 
-    const totalClients = clients.length;
-    const activeClients = clients.filter(c => (c.status ?? 'active') === 'active').length;
+    const totalClients = allClients.length;
+    const activeClients = allClients.filter(c => (c.status ?? 'active') === 'active').length;
     const totalProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId).length;
     
     const totalRevenue = state.invoices
@@ -80,9 +88,23 @@ export function ClientsPage() {
             </div>
         </div>
 
-        ${clients.length > 0 ? `
+        <div class="bg-content p-4 rounded-lg">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="relative flex-grow">
+                    <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
+                    <input type="text" id="client-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" value="${filterText}" placeholder="Search clients...">
+                </div>
+                <div class="flex items-center p-1 bg-background rounded-lg">
+                    <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'all' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="all">All</button>
+                    <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'active' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="active">Active</button>
+                    <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'archived' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="archived">Archived</button>
+                </div>
+            </div>
+        </div>
+
+        ${filteredClients.length > 0 ? `
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${clients.map(client => {
+                ${filteredClients.map(client => {
                     const projectCount = state.projects.filter(p => p.clientId === client.id).length;
                     const primaryContact = client.contacts && client.contacts.length > 0 ? client.contacts[0] : { name: client.contactPerson, email: client.email };
                     const initials = (client.name || '').split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
