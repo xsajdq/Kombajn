@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -19,7 +20,7 @@ import { getWorkspaceKanbanWorkflow } from './main.ts';
 import * as projectSectionHandlers from './projectSections.ts';
 
 export async function handleFormSubmit() {
-    const { type, data } from state.ui.modal;
+    const { type, data } = state.ui.modal;
     const activeWorkspaceId = state.activeWorkspaceId;
     if (!activeWorkspaceId || !state.currentUser) return;
 
