@@ -23,7 +23,10 @@ export function getInitialState(): AppState {
     // Load settings from localStorage
     let savedSettings: any = {};
     try {
-        savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
+        const settingsString = localStorage.getItem('kombajn-settings');
+        if (settingsString) {
+            savedSettings = JSON.parse(settingsString);
+        }
     } catch (error) {
         console.error("Failed to parse settings from localStorage:", error);
         // Settings will remain as an empty object, allowing the app to start with defaults.
