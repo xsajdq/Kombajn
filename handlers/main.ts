@@ -98,15 +98,14 @@ async function fetchPageData(pageName: PageName, apiAction: string, relatedPage?
         if (data) {
             Object.keys(data).forEach(key => {
                 if (key in state && Array.isArray(state[key as keyof typeof state])) {
-                    const existingDataMap = new Map((state[key as keyof typeof state] as any[]).map(item => [item.id, item]));
+                    const existingDataArray = state[key as keyof typeof state] as any[];
                     const newDataFromFetch = data[key] || [];
 
-                    // Merge logic: update existing items, add new ones
-                    newDataFromFetch.forEach((item: any) => {
-                         if (!existingDataMap.has(item.id)) {
-                            (state[key as keyof typeof state] as any[]).push(item);
-                         }
-                    });
+                    // Remove all items from the current workspace before adding the new ones
+                    const otherWorkspaceItems = existingDataArray.filter(item => item.workspaceId !== state.activeWorkspaceId);
+                    
+                    // Add the newly fetched items for the current workspace
+                    (state as any)[key] = [...otherWorkspaceItems, ...newDataFromFetch];
                 }
             });
         }

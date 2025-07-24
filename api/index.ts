@@ -459,7 +459,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if(projectsError) throw new Error(`Tasks page data fetch failed: ${projectsError.message}`);
                 const projectIds = workspaceProjects ? workspaceProjects.map(p => p.id) : [];
 
-                const [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes] = await Promise.all([
+                const [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes, taskViewsRes, userTaskSortOrdersRes] = await Promise.all([
                     supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
                     supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
                     supabase.from('projects').select('id, name').eq('workspace_id', workspaceId),
@@ -467,10 +467,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId),
-                    projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null })
+                    projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null }),
+                    supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id)
                 ]);
 
-                for (const r of [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
+                for (const r of [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes, taskViewsRes, userTaskSortOrdersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
                 
                 return res.status(200).json(keysToCamel({
                     tasks: tasksRes.data || [],
@@ -480,7 +482,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     tags: tagsRes.data || [],
                     taskTags: taskTagsRes.data || [],
                     dependencies: dependenciesRes.data || [],
-                    projectMembers: projectMembersRes.data || []
+                    projectMembers: projectMembersRes.data || [],
+                    taskViews: taskViewsRes.data || [],
+                    userTaskSortOrders: userTaskSortOrdersRes.data || []
                 }));
             }
             case 'sales-data': {

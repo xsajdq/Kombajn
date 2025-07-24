@@ -117,6 +117,25 @@ export async function handleClick(e: MouseEvent) {
         }
         return;
     }
+    
+    const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display');
+    if (multiSelectDisplay) {
+        const container = multiSelectDisplay.closest<HTMLElement>('.multiselect-container');
+        const dropdown = container?.querySelector<HTMLElement>('.multiselect-dropdown');
+        if (dropdown) {
+            const isHidden = dropdown.classList.contains('hidden');
+            // Close all other multiselects to avoid overlap
+            document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+            }
+        }
+        return; // Prevent other click handlers from firing
+    }
+    
+    if (!target.closest('.multiselect-container')) {
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
+    }
 
     if (!target.closest('.task-card-menu')) closeAllTaskMenus();
     if (!target.closest('#notification-bell') && !target.closest('.absolute.top-full.right-0')) {
