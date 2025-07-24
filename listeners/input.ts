@@ -2,7 +2,7 @@
 
 import { state } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
 
 declare const marked: any;
@@ -10,6 +10,14 @@ declare const DOMPurify: any;
 
 export function handleInput(e: Event) {
     const target = e.target as HTMLElement;
+
+    // Command Palette live search
+    if (target.id === 'command-palette-input') {
+        state.ui.commandPaletteQuery = (target as HTMLInputElement).value;
+        state.ui.commandPaletteActiveIndex = 0; // Reset selection on new input
+        updateUI(['command-palette']);
+        return;
+    }
 
     // Handle mention input on designated rich text fields
     if (target.matches('#chat-message-input, #task-comment-input')) {
@@ -44,7 +52,7 @@ export function handleInput(e: Event) {
     const clientSearchInput = target.closest<HTMLInputElement>('#client-search-input');
     if (clientSearchInput) {
         state.ui.clients.filters.text = clientSearchInput.value;
-        renderApp();
+        updateUI(['page']);
         return;
     }
 
@@ -63,7 +71,7 @@ export function handleInput(e: Event) {
             const item = state.ui.modal.data.items.find((i: any) => i.id.toString() === itemId);
             if (item) {
                 (item as any)[field] = value;
-                renderApp();
+                updateUI(['modal']);
             }
         }
         return;
