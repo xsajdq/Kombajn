@@ -94,8 +94,6 @@ async function main() {
         }
         
         supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`Auth event: ${event}`);
-
             if (event === 'SIGNED_IN' && session && !hasBootstrapped) {
                 showLoader();
                 try {
