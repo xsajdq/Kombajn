@@ -1,12 +1,14 @@
 
 
 import { state, saveState } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { updateUI, renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { showModal, toggleCommandPalette, updateUrlAndShowDetail } from './ui.ts';
 import { toggleNotificationsPopover } from './notifications.ts';
+import { apiFetch } from '../services/api.ts';
+import { CommandPalette } from '../components/CommandPalette.ts';
 
 function navigate(path: string) {
     history.pushState({}, '', path);
@@ -18,6 +20,45 @@ export function executeCommand(commandId: string) {
         command.action();
     }
 }
+
+let searchTimeout: number;
+export function handleCommandSearch(query: string) {
+    state.ui.commandPaletteQuery = query;
+    state.ui.commandPaletteActiveIndex = 0; // Reset selection
+
+    clearTimeout(searchTimeout);
+
+    const commandPaletteList = document.querySelector('.command-palette-list');
+    if (!commandPaletteList) return;
+
+    // Update with command results immediately
+    const filteredCommands = getCommands().filter(cmd => cmd.name.toLowerCase().includes(query.toLowerCase()));
+    commandPaletteList.innerHTML = CommandPalette({ commands: filteredCommands, projects: [], tasks: [], clients: [] });
+    
+    if (query.length < 2) {
+        updateUI(['command-palette']);
+        return;
+    }
+    
+    searchTimeout = window.setTimeout(async () => {
+        try {
+            const results = await apiFetch(`/api?action=global-search&workspaceId=${state.activeWorkspaceId}&query=${encodeURIComponent(query)}`);
+            const groupedResults = {
+                projects: results.filter((r: any) => r.type === 'project'),
+                tasks: results.filter((r: any) => r.type === 'task'),
+                clients: results.filter((r: any) => r.type === 'client'),
+            };
+            const commandPaletteContainer = document.getElementById('command-palette-container');
+            if (commandPaletteContainer && state.ui.isCommandPaletteOpen) {
+                 commandPaletteContainer.innerHTML = CommandPalette(groupedResults);
+                 (document.getElementById('command-palette-input') as HTMLInputElement).focus();
+            }
+        } catch (error) {
+            console.error("Command palette search failed:", error);
+        }
+    }, 250); // Debounce for 250ms
+}
+
 
 export function handleCommandPaletteSelection(selectedItem: HTMLElement) {
     const type = selectedItem.dataset.resultType;
@@ -50,16 +91,17 @@ export function getCommands(): Command[] {
         { id: 'toggle-theme', name: t('command_palette.cmd_toggle_theme'), icon: 'brightness_6', action: () => {
             state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
             saveState();
+            updateUI(['all']);
         }},
-        { id: 'go-dashboard', name: t('command_palette.cmd_go_dashboard'), icon: 'dashboard', action: () => navigate('/dashboard') },
-        { id: 'go-projects', name: t('command_palette.cmd_go_projects'), icon: 'folder', action: () => navigate('/projects') },
-        { id: 'go-tasks', name: t('command_palette.cmd_go_tasks'), icon: 'checklist', action: () => navigate('/tasks') },
-        { id: 'go-settings', name: t('command_palette.cmd_go_settings'), icon: 'settings', action: () => navigate('/settings') },
+        { id: 'go-dashboard', name: t('command_palette.cmd_go_dashboard'), icon: 'dashboard', action: () => { navigate('/dashboard'); updateUI(['page', 'sidebar']); } },
+        { id: 'go-projects', name: t('command_palette.cmd_go_projects'), icon: 'folder', action: () => { navigate('/projects'); updateUI(['page', 'sidebar']); } },
+        { id: 'go-tasks', name: t('command_palette.cmd_go_tasks'), icon: 'checklist', action: () => { navigate('/tasks'); updateUI(['page', 'sidebar']); } },
+        { id: 'go-settings', name: t('command_palette.cmd_go_settings'), icon: 'settings', action: () => { navigate('/settings'); updateUI(['page', 'sidebar']); } },
         { id: 'toggle-notifications', name: t('command_palette.cmd_toggle_notifications'), icon: 'notifications', action: () => toggleNotificationsPopover() },
         { id: 'new-project', name: t('command_palette.cmd_new_project'), icon: 'create_new_folder', action: () => showModal('addProject'), permission: 'create_projects' },
         { id: 'new-client', name: t('command_palette.cmd_new_client'), icon: 'person_add', action: () => showModal('addClient'), permission: 'manage_clients' },
         { id: 'new-invoice', name: t('command_palette.cmd_new_invoice'), icon: 'receipt_long', action: () => showModal('addInvoice'), permission: 'manage_invoices' },
-        { id: 'go-hr', name: t('command_palette.cmd_go_hr'), icon: 'groups', action: () => navigate('/hr'), permission: 'view_hr' }
+        { id: 'go-hr', name: t('command_palette.cmd_go_hr'), icon: 'groups', action: () => { navigate('/hr'); updateUI(['page', 'sidebar']); }, permission: 'view_hr' }
     ];
 
     const availableCommands = allCommands.filter(cmd => !cmd.permission || can(cmd.permission));

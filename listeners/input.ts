@@ -4,6 +4,7 @@ import { state } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
+import { handleCommandSearch } from '../handlers/commands.ts';
 
 declare const marked: any;
 declare const DOMPurify: any;
@@ -13,9 +14,8 @@ export function handleInput(e: Event) {
 
     // Command Palette live search
     if (target.id === 'command-palette-input') {
-        state.ui.commandPaletteQuery = (target as HTMLInputElement).value;
-        state.ui.commandPaletteActiveIndex = 0; // Reset selection on new input
-        updateUI(['command-palette']);
+        const query = (target as HTMLInputElement).value;
+        handleCommandSearch(query);
         return;
     }
 

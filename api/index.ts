@@ -283,7 +283,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes, channelsRes, chatMessagesRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -302,12 +302,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
                     supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
                     supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('channels').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('chat_messages').select('*').in('channel_id', (await supabase.from('channels').select('id').eq('workspace_id', workspaceId)).data?.map(c => c.id) || []),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes, channelsRes, chatMessagesRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -361,6 +363,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     inventoryItems: inventoryItemsRes.data,
                     inventoryAssignments: inventoryAssignmentsRes.data,
                     budgets: budgetsRes.data,
+                    channels: channelsRes.data,
+                    chatMessages: chatMessagesRes.data,
                 }));
             }
             case 'clients-page-data':
@@ -573,7 +577,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 
                 return res.status(200).json({ token: accessToken, developerKey: process.env.GOOGLE_API_KEY, clientId: process.env.GOOGLE_CLIENT_ID });
             }
+            // ============================================================================
+            // GLOBAL SEARCH HANDLER
+            // ============================================================================
+            case 'global-search': {
+                if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
 
+                const { workspaceId, query: searchTerm } = req.query;
+                if (!workspaceId || !searchTerm || typeof workspaceId !== 'string' || typeof searchTerm !== 'string') {
+                    return res.status(400).json({ error: 'workspaceId and query are required.' });
+                }
+
+                const { data, error } = await supabase.rpc('global_search', {
+                    p_workspace_id: workspaceId,
+                    p_search_term: searchTerm
+                });
+
+                if (error) {
+                    console.error("Global search RPC error:", error);
+                    throw error;
+                }
+
+                return res.status(200).json(keysToCamel(data));
+            }
             // ============================================================================
             // AUTH HANDLERS
             // ============================================================================
