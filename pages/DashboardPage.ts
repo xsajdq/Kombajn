@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -222,7 +223,7 @@ function renderOverviewTab() {
         .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     
     // One-time setup for users who have no widgets configured
-    if (userWidgets.length === 0) {
+    if (userWidgets.length === 0 && !isEditing) {
         dashboardHandlers.createDefaultWidgets();
         return `<div class="flex items-center justify-center h-full"><p>Setting up your dashboard...</p></div>`;
     }
@@ -251,7 +252,6 @@ export function initDashboardCharts() {
 }
 
 export function DashboardPage() {
-    // Data for dashboard widgets is now guaranteed to be loaded before this function is called.
     const { currentUser, activeWorkspaceId } = state;
     if (!currentUser || !activeWorkspaceId) return '';
     
