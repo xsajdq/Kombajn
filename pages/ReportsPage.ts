@@ -108,7 +108,7 @@ function renderProductivityReports(tasks: Task[], timeLogs: TimeLog[]) {
         <div class="bg-content p-4 rounded-lg shadow-sm">
              <h4 class="font-semibold mb-4">${t('reports.report_user_activity_title')}</h4>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm responsive-table">
                     <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
                             <th class="px-4 py-2 text-left">${t('reports.col_user')}</th>
@@ -119,9 +119,9 @@ function renderProductivityReports(tasks: Task[], timeLogs: TimeLog[]) {
                     <tbody class="divide-y divide-border-color">
                         ${userActivity.length > 0 ? userActivity.map(data => `
                             <tr>
-                                <td class="px-4 py-2">${data.user.name || data.user.initials}</td>
-                                <td class="px-4 py-2">${data.completedCount}</td>
-                                <td class="px-4 py-2">${formatDuration(data.trackedTimeSeconds)}</td>
+                                <td data-label="${t('reports.col_user')}" class="px-4 py-2">${data.user.name || data.user.initials}</td>
+                                <td data-label="${t('reports.col_tasks_completed')}" class="px-4 py-2">${data.completedCount}</td>
+                                <td data-label="${t('reports.col_time_tracked')}" class="px-4 py-2">${formatDuration(data.trackedTimeSeconds)}</td>
                             </tr>
                         `).join('') : `<tr><td colspan="3" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>
@@ -150,7 +150,7 @@ function renderTimeTrackingReports(timeLogs: TimeLog[]) {
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm responsive-table">
                     <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
                            <th class="px-4 py-2 text-left">${t('reports.col_date')}</th>
@@ -164,12 +164,12 @@ function renderTimeTrackingReports(timeLogs: TimeLog[]) {
                     <tbody class="divide-y divide-border-color">
                         ${logsWithDetails.length > 0 ? logsWithDetails.map(({ log, user, task, project }) => `
                             <tr>
-                                <td class="px-4 py-2 whitespace-nowrap">${formatDate(log.createdAt)}</td>
-                                <td class="px-4 py-2">${user?.name || user?.initials || ''}</td>
-                                <td class="px-4 py-2">${project?.name || ''}</td>
-                                <td class="px-4 py-2">${task?.name || ''}</td>
-                                <td class="px-4 py-2">${formatDuration(log.trackedSeconds)}</td>
-                                <td class="px-4 py-2">${log.comment || ''}</td>
+                                <td data-label="${t('reports.col_date')}" class="px-4 py-2 whitespace-nowrap">${formatDate(log.createdAt)}</td>
+                                <td data-label="${t('reports.col_user')}" class="px-4 py-2">${user?.name || user?.initials || ''}</td>
+                                <td data-label="${t('reports.col_project')}" class="px-4 py-2">${project?.name || ''}</td>
+                                <td data-label="${t('reports.col_task')}" class="px-4 py-2">${task?.name || ''}</td>
+                                <td data-label="${t('reports.col_time')}" class="px-4 py-2">${formatDuration(log.trackedSeconds)}</td>
+                                <td data-label="${t('reports.col_comment')}" class="px-4 py-2">${log.comment || ''}</td>
                             </tr>
                         `).join('') : `<tr><td colspan="6" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>
@@ -201,7 +201,7 @@ function renderFinancialReports(invoices: Invoice[]) {
         <div class="bg-content p-4 rounded-lg shadow-sm">
             <h4 class="font-semibold mb-4">${t('reports.report_overdue_invoices_title')}</h4>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm responsive-table">
                     <thead class="text-xs text-text-subtle uppercase bg-background">
                         <tr>
                             <th class="px-4 py-2 text-left">${t('reports.col_invoice_number')}</th>
@@ -214,11 +214,11 @@ function renderFinancialReports(invoices: Invoice[]) {
                     <tbody class="divide-y divide-border-color">
                          ${overdueInvoices.length > 0 ? overdueInvoices.map(({ invoice, client, total, daysOverdue }) => `
                             <tr>
-                                <td class="px-4 py-2">${invoice.invoiceNumber}</td>
-                                <td class="px-4 py-2">${client?.name || ''}</td>
-                                <td class="px-4 py-2">${formatDate(invoice.dueDate)}</td>
-                                <td class="px-4 py-2">${total.toFixed(2)}</td>
-                                <td class="px-4 py-2">${daysOverdue}</td>
+                                <td data-label="${t('reports.col_invoice_number')}" class="px-4 py-2">${invoice.invoiceNumber}</td>
+                                <td data-label="${t('reports.col_client')}" class="px-4 py-2">${client?.name || ''}</td>
+                                <td data-label="${t('reports.col_due_date')}" class="px-4 py-2">${formatDate(invoice.dueDate)}</td>
+                                <td data-label="${t('reports.col_amount')}" class="px-4 py-2">${total.toFixed(2)}</td>
+                                <td data-label="${t('reports.col_days_overdue')}" class="px-4 py-2">${daysOverdue}</td>
                             </tr>
                         `).join('') : `<tr><td colspan="5" class="text-center py-4 text-text-subtle">${t('reports.no_data')}</td></tr>`}
                     </tbody>

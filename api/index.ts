@@ -282,7 +282,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes, userTaskSortOrdersRes,
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
@@ -296,7 +296,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
                     supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
                     supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id),
                     supabase.from('objectives').select('*').eq('workspace_id', workspaceId),
                     supabase.from('key_results').select('*').in('objective_id', (await supabase.from('objectives').select('id').eq('workspace_id', workspaceId)).data?.map(o => o.id) || []),
@@ -307,7 +306,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes, userTaskSortOrdersRes,
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, budgetsRes
                 ];
                 for (const r of allResults) {
@@ -355,7 +354,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     projectSections: projectSectionsRes.data,
                     taskViews: taskViewsRes.data,
                     timeOffRequests: timeOffRequestsRes.data,
-                    reviews: reviewsRes.data,
                     userTaskSortOrders: userTaskSortOrdersRes.data,
                     projectMembers: projectMembersData,
                     objectives: objectivesRes.data,

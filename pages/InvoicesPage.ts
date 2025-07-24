@@ -94,7 +94,7 @@ export function InvoicesPage() {
 
             <div class="bg-content rounded-lg shadow-sm">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-sm responsive-table">
                          <thead class="text-xs text-text-subtle uppercase bg-background">
                             <tr>
                                 <th class="px-4 py-2 text-left">${t('invoices.col_number')}</th>
@@ -114,15 +114,15 @@ export function InvoicesPage() {
                                 
                                 return `
                                     <tr>
-                                        <td class="px-4 py-3 font-medium">${invoice.invoiceNumber}</td>
-                                        <td class="px-4 py-3">${client?.name || t('misc.no_client')}</td>
-                                        <td class="px-4 py-3">${formatDate(invoice.issueDate)}</td>
-                                        <td class="px-4 py-3">${formatDate(invoice.dueDate)}</td>
-                                        <td class="px-4 py-3">${formatCurrency(total, 'PLN')}</td>
-                                        <td class="px-4 py-3">
+                                        <td data-label="${t('invoices.col_number')}" class="px-4 py-3 font-medium">${invoice.invoiceNumber}</td>
+                                        <td data-label="${t('invoices.col_client')}" class="px-4 py-3">${client?.name || t('misc.no_client')}</td>
+                                        <td data-label="${t('invoices.col_issued')}" class="px-4 py-3">${formatDate(invoice.issueDate)}</td>
+                                        <td data-label="${t('invoices.col_due')}" class="px-4 py-3">${formatDate(invoice.dueDate)}</td>
+                                        <td data-label="${t('invoices.col_total')}" class="px-4 py-3">${formatCurrency(total, 'PLN')}</td>
+                                        <td data-label="${t('invoices.col_status')}" class="px-4 py-3">
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClass}">${t(`invoices.status_${invoice.effectiveStatus}`)}</span>
                                         </td>
-                                        <td class="px-4 py-3 text-right">
+                                        <td data-label="${t('invoices.col_actions')}" class="px-4 py-3">
                                             <div class="flex justify-end items-center gap-1">
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-download-invoice-id="${invoice.id}" title="${t('invoices.download_pdf')}"><span class="material-icons-sharp text-lg">picture_as_pdf</span></button>
                                                 ${invoice.status === 'pending' ? `<button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')} ${invoice.emailStatus === 'sent' ? `(${t('invoices.status_sent')})` : ''}"><span class="material-icons-sharp text-lg">${invoice.emailStatus === 'sent' ? 'mark_email_read' : 'email'}</span></button>` : ''}

@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -98,7 +99,7 @@ export function BudgetPage() {
             <div class="bg-content p-4 rounded-lg">
                 <h4 class="font-semibold mb-3">${t('budget.recent_transactions')}</h4>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-sm responsive-table">
                         <thead class="text-xs text-text-subtle uppercase bg-background">
                             <tr>
                                 <th class="px-4 py-2 text-left">${t('budget.col_date')}</th>
@@ -110,10 +111,10 @@ export function BudgetPage() {
                         <tbody class="divide-y divide-border-color">
                              ${allTransactions.length > 0 ? allTransactions.map(tx => `
                                 <tr>
-                                    <td class="px-4 py-3">${formatDate(tx.date)}</td>
-                                    <td class="px-4 py-3">${tx.description}</td>
-                                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs font-medium rounded-full bg-background">${tx.category}</span></td>
-                                    <td class="px-4 py-3 text-right font-semibold ${tx.type === 'income' ? 'text-success' : 'text-danger'}">${formatCurrency(tx.amount, 'PLN')}</td>
+                                    <td data-label="${t('budget.col_date')}" class="px-4 py-3">${formatDate(tx.date)}</td>
+                                    <td data-label="${t('budget.col_description')}" class="px-4 py-3">${tx.description}</td>
+                                    <td data-label="${t('budget.col_category')}" class="px-4 py-3"><span class="px-2 py-1 text-xs font-medium rounded-full bg-background">${tx.category}</span></td>
+                                    <td data-label="${t('budget.col_amount')}" class="px-4 py-3 text-right font-semibold ${tx.type === 'income' ? 'text-success' : 'text-danger'}">${formatCurrency(tx.amount, 'PLN')}</td>
                                 </tr>
                              `).join('') : `<tr><td colspan="4" class="text-center py-8 text-text-subtle">${t('budget.no_transactions')}</td></tr>`}
                         </tbody>

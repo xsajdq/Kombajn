@@ -1,8 +1,5 @@
 
 
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
@@ -52,8 +49,8 @@ export function ChatPage() {
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     return `
-        <div class="flex h-full bg-content rounded-lg shadow-sm border border-border-color">
-            <aside class="w-72 bg-background/50 border-r border-border-color flex flex-col">
+        <div class="flex flex-col md:flex-row h-full bg-content rounded-lg shadow-sm border border-border-color">
+            <aside class="w-full md:w-72 bg-background/50 border-b md:border-b-0 md:border-r border-border-color flex flex-col">
                 <h3 class="text-lg font-semibold p-4 border-b border-border-color">${t('sidebar.chat')}</h3>
                 <ul class="flex-1 overflow-y-auto p-2 space-y-1">
                     ${channels.map(channel => `

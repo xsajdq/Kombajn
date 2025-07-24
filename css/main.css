@@ -207,8 +207,34 @@
   .tag-chip {
     @apply text-xs font-medium px-2 py-0.5 rounded-full border;
   }
+  
+  /* == Mention Popover (Redesigned) == */
   .mention-popover {
-    @apply fixed z-[60]; /* Higher than modal's z-index */
+    @apply fixed z-[60] bg-content border border-border-color rounded-lg shadow-xl w-64 p-1;
+  }
+  .mention-item {
+    @apply flex items-center gap-3 p-2 rounded-md cursor-pointer;
+  }
+  .mention-item.active {
+    @apply bg-primary/10;
+  }
+  .mention-item .avatar {
+    @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0;
+  }
+  .mention-user-info {
+    @apply flex-1;
+  }
+  .mention-user-name {
+    @apply font-semibold text-sm;
+  }
+  .mention-user-email {
+    @apply text-xs text-text-subtle;
+  }
+  .mention-item-empty {
+    @apply text-center text-sm text-text-subtle py-4;
+  }
+  .mention-chip {
+    @apply px-1 py-0.5 bg-primary/10 text-primary rounded-md font-medium;
   }
 
   .dependency-item {
@@ -637,3 +663,82 @@
 .col-span-4 { grid-column: span 4 / span 4; }
 .row-span-1 { grid-row: span 1 / span 1; }
 .row-span-2 { grid-row: span 2 / span 2; }
+
+
+/* == Responsive Styles == */
+@media (max-width: 768px) {
+  #app-sidebar.is-mobile-menu-open {
+    @apply translate-x-0;
+  }
+  #mobile-menu-overlay.is-open {
+    @apply block;
+  }
+  
+  /* Generic grid stacking */
+  .projects-grid, .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Kanban board horizontal scroll */
+  .tasks-board-container {
+    @apply flex overflow-x-auto pb-4 gap-4;
+    grid-template-columns: none; /* Override grid layout */
+  }
+  .tasks-board-column {
+    @apply w-72 flex-shrink-0;
+  }
+  
+  /* Table to Card Transformation */
+  .responsive-table thead {
+    @apply hidden;
+  }
+  .responsive-table tr {
+    @apply block border-b-2 border-border-color mb-4 pb-4;
+  }
+   .responsive-table tr:last-child {
+      @apply border-b-0 mb-0 pb-0;
+  }
+  .responsive-table td {
+    @apply block text-right p-2;
+  }
+  .responsive-table td:before {
+    content: attr(data-label);
+    @apply float-left font-semibold text-text-main;
+  }
+
+  /* HR Page Grid-Table to Card Transformation */
+  .hr-table-body {
+      @apply divide-y-0;
+  }
+  .hr-table-row {
+    @apply block border-b-2 border-border-color mb-4 pb-4;
+  }
+  .hr-table-row:last-child {
+      @apply border-b-0 mb-0 pb-0;
+  }
+  .hr-table-row > div {
+    @apply flex justify-between items-center py-1;
+  }
+  .hr-table-row > div:before {
+    content: attr(data-label);
+    @apply font-semibold text-text-main;
+  }
+
+  /* Task List View to Card Transformation */
+  .task-list-row {
+      @apply block p-4;
+  }
+  .task-list-row > div {
+      @apply flex justify-between items-center py-1;
+  }
+  .task-list-row > div:before {
+      content: attr(data-label);
+      @apply font-semibold;
+  }
+  .task-list-row > div:first-child { /* The task name */
+      @apply block pb-2 text-base;
+  }
+   .task-list-row > div:first-child:before {
+      @apply hidden; /* No label for the main title */
+  }
+}

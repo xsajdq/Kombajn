@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -82,6 +81,11 @@ function renderNewClientContactFormRow() {
     `;
 }
 
+function closeMobileMenu() {
+    document.getElementById('app-sidebar')?.classList.remove('is-mobile-menu-open');
+    document.getElementById('mobile-menu-overlay')?.classList.remove('is-open');
+}
+
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
@@ -96,6 +100,17 @@ export async function handleClick(e: MouseEvent) {
     }
     if (fabContainer?.classList.contains('is-open') && !target.closest('#fab-container')) {
         fabContainer.classList.remove('is-open');
+    }
+
+    if (target.closest('#mobile-menu-toggle')) {
+        document.getElementById('app-sidebar')?.classList.toggle('is-mobile-menu-open');
+        document.getElementById('mobile-menu-overlay')?.classList.toggle('is-open');
+        return;
+    }
+
+    if (target.closest('#mobile-menu-overlay')) {
+        closeMobileMenu();
+        return;
     }
 
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
@@ -154,6 +169,9 @@ export async function handleClick(e: MouseEvent) {
             if (isDifferentPage) {
                 history.pushState({}, '', navLink.href);
                 updateUI(['page', 'sidebar']);
+            }
+            if (navLink.closest('#app-sidebar')) {
+                closeMobileMenu();
             }
             return;
         }

@@ -332,8 +332,8 @@ export function SettingsPage() {
     ].filter(item => !item.needsPermission || canManage);
 
     return `
-        <div class="flex gap-8 h-full">
-            <nav class="flex flex-col w-56 shrink-0">
+        <div class="flex flex-col md:flex-row gap-8 h-full">
+            <nav class="flex flex-col w-full md:w-56 shrink-0">
                 <h3 class="text-xl font-bold p-4">${t('settings.title')}</h3>
                 <ul class="space-y-1 p-2">
                 ${navItems.map(item => `

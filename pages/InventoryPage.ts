@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -53,23 +54,23 @@ export function InventoryPage() {
         
         return `
             <tr>
-                <td class="px-4 py-3">
+                <td data-label="${t('inventory.col_item')}" class="px-4 py-3">
                     <div class="font-medium">${item.name}</div>
                     <div class="text-xs text-text-subtle">${item.category || ''} - ${item.location || ''}</div>
                 </td>
-                <td class="px-4 py-3 font-mono text-xs">${item.sku || 'N/A'}</td>
-                <td class="px-4 py-3">
+                <td data-label="${t('inventory.col_sku')}" class="px-4 py-3 font-mono text-xs">${item.sku || 'N/A'}</td>
+                <td data-label="${t('inventory.col_stock_level')}" class="px-4 py-3">
                     <div class="flex items-center gap-2 text-sm">
                         <span>${item.currentStock} / ${item.targetStock}</span>
                         <div class="w-24 h-2 bg-background rounded-full"><div class="h-2 rounded-full ${stockLevelPercent < 20 ? 'bg-danger' : 'bg-primary'}" style="width: ${stockLevelPercent}%;"></div></div>
                     </div>
                 </td>
-                <td class="px-4 py-3">${formatCurrency(item.unitPrice, 'PLN')}</td>
-                <td class="px-4 py-3 font-semibold">${formatCurrency(item.currentStock * item.unitPrice, 'PLN')}</td>
-                <td class="px-4 py-3">
+                <td data-label="${t('inventory.col_unit_price')}" class="px-4 py-3">${formatCurrency(item.unitPrice, 'PLN')}</td>
+                <td data-label="${t('inventory.col_total_value')}" class="px-4 py-3 font-semibold">${formatCurrency(item.currentStock * item.unitPrice, 'PLN')}</td>
+                <td data-label="${t('inventory.col_status')}" class="px-4 py-3">
                     <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClass}">${t(`inventory.status_${status}`)}</span>
                 </td>
-                <td class="px-4 py-3">
+                <td data-label="${t('inventory.col_actions')}" class="px-4 py-3">
                     <div class="flex items-center gap-2 text-sm">
                         <button class="text-primary hover:underline" data-modal-target="assignInventoryItem" data-item-id="${item.id}">Assign</button>
                         ${canManage ? `
@@ -123,7 +124,7 @@ export function InventoryPage() {
                     <input type="text" id="inventory-search-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" placeholder="${t('inventory.search_inventory')}">
                  </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-sm responsive-table">
                          <thead class="text-xs text-text-subtle uppercase bg-background">
                             <tr>
                                 <th class="px-4 py-2 text-left">${t('inventory.col_item')}</th>

@@ -29,7 +29,8 @@ async function AppLayout() {
     const pageContent = await router();
     
     return `
-    <div class="flex h-screen bg-background text-text-main font-sans">
+    <div class="relative min-h-screen md:flex">
+        <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
         ${Sidebar()}
         <div class="flex-1 flex flex-col overflow-hidden relative">
             ${AppHeader({ currentUser: state.currentUser, activeWorkspaceId: state.activeWorkspaceId! })}
@@ -68,20 +69,19 @@ function postRenderActions() {
       document.documentElement.classList.remove('dark');
     }
 
-    if (state.ui.modal.justOpened) {
+    // Only autofocus when modal is first opened to prevent focus stealing
+    if (state.ui.modal.isOpen && state.ui.modal.justOpened) {
+        const modal = document.querySelector<HTMLElement>('.modal-content, .bg-content.rounded-lg.shadow-xl'); // Added second selector for robustness
+        modal?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
         state.ui.modal.justOpened = false;
     }
 
     if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
         const panel = document.querySelector<HTMLElement>('.side-panel');
+        // Simple autofocus for side panels on open
         panel?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
     }
     
-    if (state.ui.modal.isOpen) {
-        const modal = document.querySelector<HTMLElement>('.modal-content');
-        modal?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
-    }
-
     if (state.currentPage === 'reports') initReportsPage();
     if (state.currentPage === 'tasks') initTasksPage();
     if (state.currentPage === 'dashboard') initDashboardCharts();

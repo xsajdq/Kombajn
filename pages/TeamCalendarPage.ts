@@ -108,9 +108,11 @@ function renderMonthView(year: number, month: number) {
 
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return `
-        <div class="grid grid-cols-7">
-            ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
-            ${daysHtml}
+        <div class="overflow-x-auto">
+            <div class="grid grid-cols-7 min-w-[800px]">
+                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+                ${daysHtml}
+            </div>
         </div>
     `;
 }
@@ -144,7 +146,7 @@ function renderWeekView(currentDate: Date) {
         `;
     }
     
-    return `<div class="grid grid-cols-7 h-full">${daysHtml}</div>`;
+    return `<div class="grid grid-cols-1 sm:grid-cols-7 h-full">${daysHtml}</div>`;
 }
 
 function renderDayView(currentDate: Date) {

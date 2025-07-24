@@ -1,6 +1,5 @@
 
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
@@ -44,19 +43,19 @@ async function renderEmployeesTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
+                <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
                     <div>${t('hr.employee')}</div>
                     <div>Role</div>
                     <div>Email</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color hr-table-body">
+                <div class="divide-y divide-border-color md:divide-y-0 hr-table-body">
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
                         return `
-                        <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
+                        <div class="grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
                             <div class="flex items-center gap-3" data-label="Employee">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
                                 <div class="font-semibold">
@@ -206,19 +205,19 @@ function renderVacationTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
+                <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
                     <div>${t('hr.employee')}</div>
                     <div>${t('hr.vacation_pool')}</div>
                     <div>${t('hr.vacation_used')}</div>
                     <div>${t('hr.vacation_remaining')}</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color">
+                <div class="divide-y divide-border-color md:divide-y-0">
                     ${workspaceUsers.map(user => {
                         const vacationInfo = getVacationInfo(user, state.timeOffRequests, state.publicHolidays);
                         const usagePercentage = vacationInfo.pool.hours > 0 ? (vacationInfo.used.hours / vacationInfo.pool.hours) * 100 : 0;
                         return `
-                            <div class="grid grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 items-center">
+                            <div class="grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 items-center hr-table-row">
                                 <div data-label="${t('hr.employee')}">${user.name || user.initials}</div>
                                 <div data-label="${t('hr.vacation_pool')}">
                                     <span>${vacationInfo.pool.days} ${t('hr.days')}</span>
@@ -274,23 +273,23 @@ function renderHistoryTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="grid grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
+                <div class="grid grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
                     <div>${t('hr.history_table.employee')}</div>
                     <div>${t('hr.history_table.type')}</div>
                     <div>${t('hr.history_table.start_date')}</div>
                     <div>${t('hr.history_table.end_date')}</div>
                     <div>${t('hr.history_table.status')}</div>
                 </div>
-                <div class="divide-y divide-border-color">
+                <div class="divide-y divide-border-color md:divide-y-0">
                     ${history.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
                         return `
-                        <div class="grid grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 items-center">
-                            <div>${user?.name || 'Unknown'}</div>
-                            <div>${t(`team_calendar.leave_type_${request.type}`)}</div>
-                            <div>${formatDate(request.startDate)}</div>
-                            <div>${formatDate(request.endDate)}</div>
-                            <div>
+                        <div class="grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 items-center hr-table-row">
+                            <div data-label="${t('hr.history_table.employee')}">${user?.name || 'Unknown'}</div>
+                            <div data-label="${t('hr.history_table.type')}">${t(`team_calendar.leave_type_${request.type}`)}</div>
+                            <div data-label="${t('hr.history_table.start_date')}">${formatDate(request.startDate)}</div>
+                            <div data-label="${t('hr.history_table.end_date')}">${formatDate(request.endDate)}</div>
+                            <div data-label="${t('hr.history_table.status')}">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClasses[request.status]}">
                                     ${t(`modals.status_${request.status}`)}
                                 </span>
@@ -397,13 +396,13 @@ export async function HRPage() {
     ];
 
     return `
-        <div class="flex gap-8 h-full">
-            <nav class="flex flex-col w-56 shrink-0">
+        <div class="flex flex-col md:flex-row gap-8 h-full">
+            <nav class="flex flex-col w-full md:w-56 shrink-0">
                 <h3 class="text-xl font-bold p-4">${t('hr.title')}</h3>
                 <ul class="space-y-1 p-2">
                 ${navItems.map(item => `
                     <li>
-                        <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-hr-tab="${item.id}">
+                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-hr-tab="${item.id}">
                             ${item.text}
                         </a>
                     </li>

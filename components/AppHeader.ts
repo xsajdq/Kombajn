@@ -19,7 +19,10 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
     return `
         <header class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 border-b border-border-color bg-content text-text-main">
              <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2">
+                <button id="mobile-menu-toggle" class="p-2 rounded-full hover:bg-background transition-colors md:hidden" aria-label="Toggle menu">
+                    <span class="material-icons-sharp">menu</span>
+                </button>
+                <div class="hidden md:flex items-center gap-2">
                     <span class="material-icons-sharp text-text-subtle">workspaces</span>
                     <select id="workspace-switcher" class="bg-transparent border border-border-color rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-primary outline-none">
                         ${userWorkspaces.map(w => `<option value="${w!.id}" ${w!.id === activeWorkspaceId ? 'selected' : ''} class="bg-content text-text-main">${w!.name}</option>`).join('')}
