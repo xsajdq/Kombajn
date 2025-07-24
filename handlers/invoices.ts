@@ -5,7 +5,9 @@ import { t } from '../i18n.ts';
 import { apiPut } from '../services/api.ts';
 
 export function handleGenerateInvoiceItems() {
-    const { clientId } = state.ui.modal.data;
+    const clientSelect = document.getElementById('invoiceClient') as HTMLSelectElement | null;
+    const clientId = clientSelect?.value;
+
     if (!clientId || !state.activeWorkspaceId) {
         alert("Please select a client first.");
         return;
@@ -62,6 +64,7 @@ export function handleGenerateInvoiceItems() {
         ex.workspaceId === state.activeWorkspaceId &&
         ex.isBillable &&
         !ex.invoiceId &&
+        ex.projectId && // Ensure expense is linked to a project
         billableProjectIds.has(ex.projectId)
     );
 

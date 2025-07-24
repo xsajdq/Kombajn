@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
@@ -67,6 +68,7 @@ export async function handleSaveManualTimeLog(taskId: string, timeString: string
 
     const [savedLog] = await apiPost('time_logs', timeLogPayload);
     state.timeLogs.push(savedLog);
+    closeModal();
 }
 
 export function startGlobalTimer() {

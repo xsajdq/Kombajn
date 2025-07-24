@@ -2,7 +2,7 @@ import { GenerateContentResponse } from "@google/genai";
 import { state } from './state.ts';
 import { t } from './i18n.ts';
 import { formatDate } from './utils.ts';
-import { renderApp } from "./app-renderer.ts";
+import { updateUI } from "./app-renderer.ts";
 import type { AiSuggestedTask } from './types.ts';
 import { apiFetch } from "./services/api.ts";
 
@@ -181,7 +181,7 @@ export async function sendSlackNotification(userId: string, message: string, wor
 
 export async function handleAiTaskGeneration(promptText: string) {
     state.ai = { loading: true, error: null, suggestedTasks: null };
-    renderApp();
+    updateUI(['page']);
 
     try {
         const suggestedTasks: AiSuggestedTask[] = await apiFetch('/api?action=generate-tasks', {
@@ -198,6 +198,6 @@ export async function handleAiTaskGeneration(promptText: string) {
         console.error("AI task generation failed:", error);
         state.ai = { loading: false, error: (error as Error).message, suggestedTasks: null };
     } finally {
-        renderApp();
+        updateUI(['page']);
     }
 }

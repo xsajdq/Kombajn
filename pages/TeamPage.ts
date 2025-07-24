@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
@@ -49,13 +50,13 @@ async function renderEmployeesTab() {
                     <div>Email</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color">
+                <div class="divide-y divide-border-color hr-table-body">
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
                         return `
-                        <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
+                        <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
                             <div class="flex items-center gap-3" data-label="Employee">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
                                 <div class="font-semibold">

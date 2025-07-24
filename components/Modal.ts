@@ -799,12 +799,26 @@ export function Modal() {
     if (state.ui.modal.type === 'addExpense') {
         title = t('modals.add_expense_title');
         body = `
-            <form id="addExpenseForm" class="space-y-4" data-project-id="${modalData.projectId}">
+            <form id="addExpenseForm" class="space-y-4">
                 <div class="${formGroupClasses}">
                     <label for="expenseDescription" class="${labelClasses}">${t('modals.expense_description')}</label>
                     <input type="text" id="expenseDescription" class="${formControlClasses}" required>
                 </div>
-                <div class="${modalFormGridClasses}">
+                 <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="expenseProject" class="${labelClasses}">${t('budget.modal_expense_project')}</label>
+                        <select id="expenseProject" class="${formControlClasses}">
+                            <option value="">-- ${t('misc.no_project')} --</option>
+                            ${workspaceProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="expenseCategory" class="${labelClasses}">${t('budget.modal_expense_category')}</label>
+                        <input type="text" id="expenseCategory" class="${formControlClasses}" required list="expense-categories">
+                        <datalist id="expense-categories">
+                            ${[...new Set(state.expenses.map(e => e.category).filter(Boolean))].map(c => `<option value="${c}"></option>`).join('')}
+                        </datalist>
+                    </div>
                     <div class="${formGroupClasses}">
                         <label for="expenseAmount" class="${labelClasses}">${t('modals.expense_amount')}</label>
                         <input type="number" id="expenseAmount" class="${formControlClasses}" required min="0" step="0.01">
@@ -817,6 +831,182 @@ export function Modal() {
             </form>
         `;
     }
+
+    if (state.ui.modal.type === 'setBudgets') {
+        const period = modalData.period as string;
+        const existingBudgets = state.budgets.filter(b => b.period === period);
+        const categories = [...new Set([...existingBudgets.map(b => b.category), ...state.expenses.map(e => e.category).filter(Boolean)])];
+
+        title = t('budget.modal_set_budgets_title');
+        maxWidth = 'max-w-xl';
+        body = `
+            <form id="setBudgetsForm" class="space-y-4" data-period="${period}">
+                <p class="text-sm text-text-subtle">Set your spending limits for ${formatDate(period, { year: 'numeric', month: 'long' })}.</p>
+                <div id="budget-items-container" class="space-y-2 max-h-96 overflow-y-auto">
+                    ${(categories.length > 0 ? categories : ['']).map(cat => {
+                        const budget = existingBudgets.find(b => b.category === cat);
+                        return `
+                            <div class="grid grid-cols-[2fr,1fr,auto] gap-2 items-center budget-item-row">
+                                <input type="text" class="${formControlClasses}" name="category" placeholder="${t('budget.modal_category')}" value="${cat}" required>
+                                <input type="number" class="${formControlClasses}" name="amount" placeholder="${t('budget.modal_amount')}" value="${budget?.amount || ''}" min="0" step="0.01" required>
+                                <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-budget-row-btn"><span class="material-icons-sharp">delete</span></button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <button type="button" id="add-budget-category-btn" class="btn btn-secondary btn-sm">
+                    <span class="material-icons-sharp text-base">add</span> ${t('budget.modal_add_category')}
+                </button>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addGoal') {
+        title = t('modals.add_goal_title');
+        maxWidth = 'max-w-3xl';
+        body = `
+            <form id="addGoalForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="${formGroupClasses} md:col-span-2">
+                        <label for="goalTitle" class="${labelClasses}">${t('modals.goal_title')}</label>
+                        <input type="text" id="goalTitle" class="${formControlClasses}" required>
+                    </div>
+                    <div class="${formGroupClasses} md:col-span-2">
+                        <label for="goalDescription" class="${labelClasses}">${t('modals.goal_description')}</label>
+                        <textarea id="goalDescription" rows="2" class="${formControlClasses}"></textarea>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalOwner" class="${labelClasses}">${t('modals.goal_owner')}</label>
+                        <select id="goalOwner" class="${formControlClasses}">
+                            <option value="">${t('modals.unassigned')}</option>
+                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalDueDate" class="${labelClasses}">${t('modals.goal_due_date')}</label>
+                        <input type="date" id="goalDueDate" class="${formControlClasses}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalCategory" class="${labelClasses}">${t('modals.goal_category')}</label>
+                        <input type="text" id="goalCategory" class="${formControlClasses}" list="goal-categories">
+                        <datalist id="goal-categories">
+                             ${[...new Set(state.objectives.map(o => o.category).filter(Boolean))].map(c => `<option value="${c}"></option>`).join('')}
+                        </datalist>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalPriority" class="${labelClasses}">${t('modals.goal_priority')}</label>
+                        <select id="goalPriority" class="${formControlClasses}">
+                             <option value="medium">${t('modals.priority_medium')}</option>
+                             <option value="high">${t('modals.priority_high')}</option>
+                             <option value="low">${t('modals.priority_low')}</option>
+                        </select>
+                    </div>
+                     <div class="${formGroupClasses}">
+                        <label for="goalStatus" class="${labelClasses}">${t('modals.goal_status')}</label>
+                        <select id="goalStatus" class="${formControlClasses}">
+                             <option value="in_progress">${t('goals.status_in_progress')}</option>
+                             <option value="completed">${t('goals.status_completed')}</option>
+                             <option value="on_hold">${t('goals.status_on_hold')}</option>
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalTargetValue" class="${labelClasses}">${t('modals.goal_target_value')}</label>
+                        <input type="number" id="goalTargetValue" class="${formControlClasses}" min="0">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalCurrentValue" class="${labelClasses}">${t('modals.goal_current_value')}</label>
+                        <input type="number" id="goalCurrentValue" class="${formControlClasses}" value="0" min="0">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="goalValueUnit" class="${labelClasses}">${t('modals.goal_value_unit')}</label>
+                        <input type="text" id="goalValueUnit" class="${formControlClasses}" placeholder="e.g., $, %, projects, milestones">
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-border-color">
+                    <h4 class="font-semibold text-md mb-2">${t('goals.milestones')}</h4>
+                    <div id="milestones-container" class="space-y-2"></div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="new-milestone-input" class="${formControlClasses}" placeholder="${t('modals.add_milestone')}">
+                        <button type="button" id="add-milestone-btn" class="btn btn-secondary">Add</button>
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addInventoryItem') {
+        const isEdit = !!modalData.itemId;
+        const item = isEdit ? state.inventoryItems.find(i => i.id === modalData.itemId) : null;
+        title = isEdit ? t('inventory.edit_item_title') : t('inventory.add_item_title');
+        body = `
+            <form id="inventoryItemForm" class="space-y-4" data-item-id="${item?.id || ''}">
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses} sm:col-span-2">
+                        <label for="itemName" class="${labelClasses}">${t('inventory.item_name')}</label>
+                        <input type="text" id="itemName" class="${formControlClasses}" value="${item?.name || ''}" required>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="itemCategory" class="${labelClasses}">${t('inventory.item_category')}</label>
+                        <input type="text" id="itemCategory" class="${formControlClasses}" value="${item?.category || ''}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="itemSku" class="${labelClasses}">${t('inventory.item_sku')}</label>
+                        <input type="text" id="itemSku" class="${formControlClasses}" value="${item?.sku || ''}">
+                    </div>
+                     <div class="${formGroupClasses} sm:col-span-2">
+                        <label for="itemLocation" class="${labelClasses}">${t('inventory.item_location')}</label>
+                        <input type="text" id="itemLocation" class="${formControlClasses}" value="${item?.location || ''}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="itemCurrentStock" class="${labelClasses}">${t('inventory.item_current_stock')}</label>
+                        <input type="number" id="itemCurrentStock" class="${formControlClasses}" value="${item?.currentStock ?? ''}" required>
+                    </div>
+                     <div class="${formGroupClasses}">
+                        <label for="itemTargetStock" class="${labelClasses}">${t('inventory.item_target_stock')}</label>
+                        <input type="number" id="itemTargetStock" class="${formControlClasses}" value="${item?.targetStock ?? ''}" required>
+                    </div>
+                     <div class="${formGroupClasses}">
+                        <label for="itemLowStockThreshold" class="${labelClasses}">${t('inventory.item_low_stock_threshold')}</label>
+                        <input type="number" id="itemLowStockThreshold" class="${formControlClasses}" value="${item?.lowStockThreshold ?? ''}" required>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="itemUnitPrice" class="${labelClasses}">${t('inventory.item_unit_price')}</label>
+                        <input type="number" id="itemUnitPrice" class="${formControlClasses}" value="${item?.unitPrice ?? ''}" required step="0.01">
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'assignInventoryItem') {
+        const item = state.inventoryItems.find(i => i.id === modalData.itemId);
+        title = t('inventory.assign_item_title');
+        body = item ? `
+            <form id="assignInventoryItemForm" class="space-y-4" data-item-id="${item.id}">
+                <p>${t('inventory.col_item')}: <strong>${item.name}</strong></p>
+                <div class="${formGroupClasses}">
+                    <label for="employeeId" class="${labelClasses}">${t('inventory.assign_to_employee')}</label>
+                    <select id="employeeId" class="${formControlClasses}" required>
+                        <option value="">${t('inventory.select_employee')}</option>
+                        ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="assignmentDate" class="${labelClasses}">${t('inventory.assignment_date')}</label>
+                    <input type="date" id="assignmentDate" class="${formControlClasses}" value="${new Date().toISOString().slice(0,10)}" required>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="serialNumber" class="${labelClasses}">${t('inventory.serial_number')}</label>
+                    <input type="text" id="serialNumber" class="${formControlClasses}">
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="notes" class="${labelClasses}">${t('inventory.notes')}</label>
+                    <textarea id="notes" class="${formControlClasses}" rows="3"></textarea>
+                </div>
+            </form>
+        ` : 'Item not found.';
+    }
+
 
     return `
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">

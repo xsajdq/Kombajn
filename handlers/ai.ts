@@ -1,6 +1,7 @@
 
+
 import { state, generateId } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Task } from '../types.ts';
 import { apiPost } from '../services/api.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
@@ -24,7 +25,7 @@ export async function handleAddAiTask(taskIndex: number, projectId: string) {
         const [savedTask] = await apiPost('tasks', newAppTask);
         state.tasks.push(savedTask);
         state.ai.suggestedTasks!.splice(taskIndex, 1); // Remove from suggestions
-        renderApp();
+        updateUI(['page']);
     } catch (error) {
         console.error("Failed to add AI-generated task:", error);
         alert("Could not save the suggested task. Please try again.");

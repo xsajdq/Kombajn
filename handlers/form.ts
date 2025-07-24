@@ -6,7 +6,7 @@ import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
 import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment, Budget } from '../types.ts';
 import { t } from '../i18n.ts';
-import { renderApp } from '../app-renderer.ts';
+import { renderApp, updateUI } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
 import * as hrHandlers from './team.ts';
 import * as dashboardHandlers from './dashboard.ts';
@@ -38,7 +38,7 @@ export async function handleFormSubmit() {
                 workspaceId: activeWorkspaceId,
                 name: name,
                 vatId: (form.querySelector('#clientVatId') as HTMLInputElement).value,
-                category: (form.querySelector('#clientCategory') as HTMLInputElement).value || null,
+                category: (form.querySelector('#clientCategory') as HTMLInputElement).value || undefined,
                 healthStatus: (form.querySelector('#clientHealthStatus') as HTMLSelectElement).value as Client['healthStatus'] || null,
                 status: (form.querySelector('#clientStatus') as HTMLSelectElement).value as Client['status'] || 'active',
             };
@@ -299,17 +299,23 @@ export async function handleFormSubmit() {
         if (type === 'addInvoice') {
             const form = document.getElementById('invoiceForm') as HTMLFormElement;
             if (!form) return;
-            
-            const clientId = data.clientId;
-            const issueDate = data.issueDate;
-            const dueDate = data.dueDate;
-            const items = data.items;
 
-            if (!clientId || !issueDate || !dueDate || items.length === 0) {
+            const clientId = (document.getElementById('invoiceClient') as HTMLSelectElement).value;
+            const issueDate = (document.getElementById('invoiceIssueDate') as HTMLInputElement).value;
+            const dueDate = (document.getElementById('invoiceDueDate') as HTMLInputElement).value;
+            const itemRows = document.querySelectorAll<HTMLElement>('#invoice-items-body .invoice-item-row');
+            
+            const items: Omit<InvoiceLineItem, 'id' | 'invoiceId'>[] = Array.from(itemRows).map(row => ({
+                description: (row.querySelector<HTMLInputElement>('[data-field="description"]'))!.value,
+                quantity: parseFloat((row.querySelector<HTMLInputElement>('[data-field="quantity"]'))!.value) || 0,
+                unitPrice: parseFloat((row.querySelector<HTMLInputElement>('[data-field="unitPrice"]'))!.value) || 0,
+            }));
+
+            if (!clientId || !issueDate || !dueDate || items.length === 0 || items.some(i => !i.description)) {
                 alert("Please fill all required invoice fields.");
                 return;
             }
-
+            
             const date = new Date(issueDate);
             const month = date.getMonth() + 1;
             const year = date.getFullYear();
@@ -334,28 +340,23 @@ export async function handleFormSubmit() {
             
             const [newInvoice] = await apiPost('invoices', invoicePayload);
             
-            // Link line items to the new invoice
-            const itemPayloads = items.map((item: any) => ({
-                invoiceId: newInvoice.id,
-                description: item.description,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-            }));
+            const itemPayloads = items.map(item => ({ ...item, invoiceId: newInvoice.id }));
             const lineItems = await apiPost('invoice_line_items', itemPayloads);
             
             newInvoice.items = lineItems;
             state.invoices.push(newInvoice);
             
-            // Mark time logs and expenses as billed
-            if (data.sourceLogIds?.length > 0) {
-                for (const logId of data.sourceLogIds) {
+            const sourceLogIds = data?.sourceLogIds || [];
+            const sourceExpenseIds = data?.sourceExpenseIds || [];
+            if (sourceLogIds.length > 0) {
+                for (const logId of sourceLogIds) {
                     await apiPut('time_logs', { id: logId, invoiceId: newInvoice.id });
                     const log = state.timeLogs.find(l => l.id === logId);
                     if (log) log.invoiceId = newInvoice.id;
                 }
             }
-            if (data.sourceExpenseIds?.length > 0) {
-                for (const expenseId of data.sourceExpenseIds) {
+            if (sourceExpenseIds.length > 0) {
+                for (const expenseId of sourceExpenseIds) {
                     await apiPut('expenses', { id: expenseId, invoiceId: newInvoice.id });
                     const expense = state.expenses.find(e => e.id === expenseId);
                     if (expense) expense.invoiceId = newInvoice.id;
@@ -484,7 +485,7 @@ export async function handleFormSubmit() {
             const description = (document.getElementById('expenseDescription') as HTMLInputElement).value;
             const amount = parseFloat((document.getElementById('expenseAmount') as HTMLInputElement).value);
             const date = (document.getElementById('expenseDate') as HTMLInputElement).value;
-            const category = (document.getElementById('expenseCategory') as HTMLSelectElement).value;
+            const category = (document.getElementById('expenseCategory') as HTMLInputElement).value;
             const projectId = (document.getElementById('expenseProject') as HTMLSelectElement).value;
         
             if (!description || isNaN(amount) || !date || !category) {
@@ -528,7 +529,7 @@ export async function handleFormSubmit() {
             if (budgetPayloads.length > 0) {
                 const updatedBudgets = await apiPost('budgets', budgetPayloads);
                 updatedBudgets.forEach((updated: Budget) => {
-                    const index = state.budgets.findIndex(b => b.id === updated.id);
+                    const index = state.budgets.findIndex(b => b.category === updated.category && b.period === updated.period);
                     if (index > -1) {
                         state.budgets[index] = updated;
                     } else {
@@ -704,7 +705,7 @@ export async function handleFormSubmit() {
         }
 
         closeModal();
-        renderApp();
+        updateUI(['page', 'side-panel', 'sidebar']);
 
     } catch (error) {
         console.error("Form submission failed:", error);
