@@ -283,7 +283,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, channelsRes, chatMessagesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -301,14 +301,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('key_results').select('*').in('objective_id', (await supabase.from('objectives').select('id').eq('workspace_id', workspaceId)).data?.map(o => o.id) || []),
                     supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
                     supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('channels').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('chat_messages').select('*').in('channel_id', (await supabase.from('channels').select('id').eq('workspace_id', workspaceId)).data?.map(c => c.id) || []),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, channelsRes, chatMessagesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -362,8 +360,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     inventoryItems: inventoryItemsRes.data,
                     inventoryAssignments: inventoryAssignmentsRes.data,
                     budgets: [], // Temporarily return empty array to prevent crash
-                    channels: channelsRes.data,
-                    chatMessages: chatMessagesRes.data,
+                    channels: [], // Temporarily return empty array to prevent crash
+                    chatMessages: [], // Temporarily return empty array to prevent crash
                 }));
             }
             case 'clients-page-data':
