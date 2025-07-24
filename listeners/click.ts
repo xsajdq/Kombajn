@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -391,7 +392,11 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    if (target.closest('.command-item')) { commandHandlers.executeCommand(target.closest<HTMLElement>('.command-item')!.dataset.commandId!); return; }
+    const commandItem = target.closest<HTMLElement>('.command-item');
+    if (commandItem) {
+        commandHandlers.handleCommandPaletteSelection(commandItem);
+        return;
+    }
     if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
     if (target.closest('#cancel-wiki-edit-btn')) { wikiHandlers.cancelWikiEdit(); return; }
     if (target.closest('#save-wiki-btn')) { wikiHandlers.saveWikiEdit(); return; }

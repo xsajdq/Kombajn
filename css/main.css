@@ -654,6 +654,58 @@
   .deal-probability-bar-inner {
       @apply h-1.5 rounded-full bg-success;
   }
+
+  /* == Command Palette (Redesigned) == */
+  .command-palette-overlay {
+    @apply fixed inset-0 bg-black/50 z-50 flex justify-center pt-20 transition-opacity duration-200;
+  }
+  .command-palette {
+    @apply w-full max-w-xl bg-content rounded-lg shadow-2xl h-fit max-h-[70vh] flex flex-col overflow-hidden transition-transform duration-200 transform scale-95;
+    animation: zoomIn 0.2s ease-out forwards;
+  }
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .command-palette-input-wrapper {
+    @apply flex items-center gap-3 p-4 border-b border-border-color;
+  }
+  .command-palette-input-wrapper .material-icons-sharp {
+    @apply text-text-subtle;
+  }
+  #command-palette-input {
+    @apply w-full bg-transparent text-lg placeholder:text-text-subtle border-none focus:ring-0 p-0;
+  }
+  .command-palette-list {
+    @apply flex-1 overflow-y-auto p-2;
+  }
+  .command-group-header {
+    @apply px-3 py-1.5 text-xs font-semibold text-text-subtle uppercase;
+  }
+  .command-item {
+    @apply flex items-center gap-3 p-3 rounded-md cursor-pointer;
+  }
+  .command-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+  .command-icon {
+    @apply text-text-subtle;
+  }
+  .command-item.active .command-icon {
+    @apply text-primary;
+  }
+  .command-text {
+    @apply flex-1;
+  }
+  .command-context {
+    @apply text-xs text-text-subtle;
+  }
+  .command-shortcut {
+    @apply px-1.5 py-0.5 text-xs font-semibold bg-background border border-border-color rounded-md;
+  }
+  .empty-command-list {
+    @apply text-center p-8 text-text-subtle;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

@@ -5,7 +5,7 @@ import { renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
-import { showModal, toggleCommandPalette } from './ui.ts';
+import { showModal, toggleCommandPalette, updateUrlAndShowDetail } from './ui.ts';
 import { toggleNotificationsPopover } from './notifications.ts';
 
 function navigate(path: string) {
@@ -16,11 +16,33 @@ export function executeCommand(commandId: string) {
     const command = getCommands().find(c => c.id === commandId);
     if (command) {
         command.action();
-        // The action should handle its own state changes and re-rendering.
-        // We close the palette after executing.
-        toggleCommandPalette(false);
     }
 }
+
+export function handleCommandPaletteSelection(selectedItem: HTMLElement) {
+    const type = selectedItem.dataset.resultType;
+    const commandId = selectedItem.dataset.commandId;
+    const resultId = selectedItem.dataset.resultId;
+    
+    toggleCommandPalette(false);
+
+    if (type === 'command' && commandId) {
+        executeCommand(commandId);
+    } else if (resultId) {
+        switch (type) {
+            case 'project':
+                updateUrlAndShowDetail('project', resultId);
+                break;
+            case 'client':
+                updateUrlAndShowDetail('client', resultId);
+                break;
+            case 'task':
+                updateUrlAndShowDetail('task', resultId);
+                break;
+        }
+    }
+}
+
 
 export function getCommands(): Command[] {
     const allCommands: Command[] = [

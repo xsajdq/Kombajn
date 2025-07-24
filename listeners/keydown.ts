@@ -70,18 +70,20 @@ export function handleKeydown(e: KeyboardEvent) {
         } else if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
             const isMention = !!state.ui.mention.target;
-            const activeItem = isMention
-                ? items[state.ui.mention.activeIndex] as HTMLElement
-                : items[state.ui.commandPaletteActiveIndex] as HTMLElement;
+            const isCommandPalette = state.ui.isCommandPaletteOpen;
 
-            if (activeItem) {
-                if (isMention) {
+            if (isMention) {
+                 const activeItem = items[state.ui.mention.activeIndex] as HTMLElement;
+                 if (activeItem) {
                     const userId = activeItem.dataset.mentionId!;
                     const user = state.users.find(u => u.id === userId);
                     if(user) handleInsertMention(user, state.ui.mention.target as HTMLElement);
-                } else {
-                    commandHandlers.executeCommand(activeItem.dataset.commandId!);
-                }
+                 }
+            } else if (isCommandPalette) {
+                 const activeItem = items[state.ui.commandPaletteActiveIndex] as HTMLElement;
+                 if (activeItem) {
+                    commandHandlers.handleCommandPaletteSelection(activeItem);
+                 }
             }
         }
         return;
