@@ -3,6 +3,7 @@
 import { state } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
 import { renderApp } from '../app-renderer.ts';
+import type { InvoiceLineItem } from '../types.ts';
 
 declare const marked: any;
 declare const DOMPurify: any;
@@ -44,6 +45,27 @@ export function handleInput(e: Event) {
     if (clientSearchInput) {
         state.ui.clients.filters.text = clientSearchInput.value;
         renderApp();
+        return;
+    }
+
+    // Invoice item row input
+    const invoiceItemRow = target.closest<HTMLElement>('.invoice-item-row');
+    if (invoiceItemRow) {
+        const itemId = invoiceItemRow.dataset.itemId!;
+        const field = (target as HTMLInputElement).dataset.field as keyof InvoiceLineItem;
+        let value: string | number = (target as HTMLInputElement).value;
+    
+        if ((target as HTMLInputElement).type === 'number') {
+            value = parseFloat(value) || 0;
+        }
+    
+        if (state.ui.modal.type === 'addInvoice') {
+            const item = state.ui.modal.data.items.find((i: any) => i.id.toString() === itemId);
+            if (item) {
+                (item as any)[field] = value;
+                renderApp();
+            }
+        }
         return;
     }
 }

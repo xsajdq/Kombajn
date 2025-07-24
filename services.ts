@@ -43,8 +43,8 @@ export function generateInvoicePDF(invoiceId: string) {
         doc.setTextColor(107, 114, 128); // Gray 500
         doc.text(`${invoice.invoiceNumber}`, pageMargin, 37);
         
-        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, 30, { align: 'right' });
-        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, 37, { align: 'right' });
+        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, 35, { align: 'right' });
+        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, 42, { align: 'right' });
 
 
         // --- SELLER & BUYER ---

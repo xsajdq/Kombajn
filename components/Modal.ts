@@ -349,13 +349,79 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addInvoice') {
-        const clients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
+        const { clientId = '', issueDate, dueDate, items = [] } = state.ui.modal.data;
+        const total = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0);
+    
         title = t('modals.create_invoice_title');
-        body = `
-            <div id="invoice-creator"></div>
-        `;
         maxWidth = 'max-w-4xl';
-        footer = '';
+        body = `
+            <form id="invoiceForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="${formGroupClasses}">
+                        <label for="invoiceClient" class="${labelClasses}">${t('modals.client')}</label>
+                        <select id="invoiceClient" class="${formControlClasses}" required>
+                            <option value="">${t('modals.select_a_client')}</option>
+                            ${workspaceClients.map(c => `<option value="${c.id}" ${clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="invoiceIssueDate" class="${labelClasses}">${t('modals.issue_date')}</label>
+                        <input type="date" id="invoiceIssueDate" class="${formControlClasses}" value="${issueDate}" required>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="invoiceDueDate" class="${labelClasses}">${t('modals.due_date')}</label>
+                        <input type="date" id="invoiceDueDate" class="${formControlClasses}" value="${dueDate}" required>
+                    </div>
+                </div>
+    
+                <div class="pt-4 border-t border-border-color">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold">${t('modals.invoice_items')}</h4>
+                        <button type="button" id="generate-invoice-items-btn" class="px-3 py-1.5 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background" ${!clientId ? 'disabled' : ''}>
+                            <span class="material-icons-sharp text-base">auto_awesome</span> ${t('modals.generate_from_time')}
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="text-xs text-text-subtle uppercase bg-background">
+                                <tr>
+                                    <th class="px-3 py-2 text-left w-full">${t('modals.item_description')}</th>
+                                    <th class="px-3 py-2 text-right">${t('modals.item_qty')}</th>
+                                    <th class="px-3 py-2 text-right">${t('modals.item_price')}</th>
+                                    <th class="px-3 py-2 text-right">${t('invoices.total_price')}</th>
+                                    <th class="px-3 py-2 text-right"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoice-items-body">
+                                ${items.map((item: any) => `
+                                    <tr class="invoice-item-row" data-item-id="${item.id}">
+                                        <td><input type="text" class="${formControlClasses}" data-field="description" value="${item.description}" required></td>
+                                        <td><input type="number" class="${formControlClasses} text-right" data-field="quantity" value="${item.quantity}" required min="0" step="0.01"></td>
+                                        <td><input type="number" class="${formControlClasses} text-right" data-field="unitPrice" value="${item.unitPrice}" required min="0" step="0.01"></td>
+                                        <td class="px-3 py-2 text-right font-medium whitespace-nowrap">${formatCurrency(item.quantity * item.unitPrice, 'PLN')}</td>
+                                        <td><button type="button" class="p-1 text-danger hover:bg-danger/10 rounded-full remove-invoice-item-btn"><span class="material-icons-sharp">delete</span></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" id="add-invoice-item-btn" class="mt-2 px-3 py-1.5 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background">
+                        <span class="material-icons-sharp text-base">add</span> ${t('modals.add_item')}
+                    </button>
+                </div>
+    
+                <div class="pt-4 border-t border-border-color flex justify-end">
+                    <div class="w-full max-w-xs space-y-2">
+                        <div class="flex justify-between items-center text-lg font-semibold">
+                            <span>${t('modals.total')}</span>
+                            <span id="invoice-total">${formatCurrency(total, 'PLN')}</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        `;
+        footer = defaultFooter;
     }
 
     if (state.ui.modal.type === 'addWidget') {

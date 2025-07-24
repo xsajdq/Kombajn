@@ -262,4 +262,13 @@ export function handleChange(e: Event) {
         }
         return;
     }
+
+    if (target.id === 'invoiceClient' || target.id === 'invoiceIssueDate' || target.id === 'invoiceDueDate') {
+        if (state.ui.modal.type === 'addInvoice') {
+            const key = (target.id).replace('invoice', '').charAt(0).toLowerCase() + (target.id).replace('invoice', '').slice(1);
+            state.ui.modal.data[key] = (target as HTMLInputElement).value;
+            updateUI(['modal']);
+        }
+        return;
+    }
 }

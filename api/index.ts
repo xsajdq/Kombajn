@@ -157,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views', 'reviews'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -267,7 +267,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -279,11 +279,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
                     supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -320,6 +322,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     taskAssignees: taskAssigneesRes.data,
                     projectSections: projectSectionsRes.data,
                     taskViews: taskViewsRes.data,
+                    timeOffRequests: timeOffRequestsRes.data,
+                    reviews: reviewsRes.data,
                 }));
             }
             case 'clients-page-data':

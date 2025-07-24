@@ -225,6 +225,18 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-download-invoice-id]')) { generateInvoicePDF(target.closest<HTMLElement>('[data-download-invoice-id]')!.dataset.downloadInvoiceId!); return; }
     if (target.closest<HTMLElement>('[data-send-invoice-id]')) { invoiceHandlers.handleSendInvoiceByEmail(target.closest<HTMLElement>('[data-send-invoice-id]')!.dataset.sendInvoiceId!); return; }
     if (target.closest<HTMLElement>('[data-toggle-invoice-status-id]')) { invoiceHandlers.handleToggleInvoiceStatus(target.closest<HTMLElement>('[data-toggle-invoice-status-id]')!.dataset.toggleInvoiceStatusId!); return; }
+    if (target.closest('#generate-invoice-items-btn')) { invoiceHandlers.handleGenerateInvoiceItems(); return; }
+    if (target.closest('#add-invoice-item-btn')) { if (state.ui.modal.type === 'addInvoice') { state.ui.modal.data.items.push({ id: `new-${Date.now()}`, description: '', quantity: 1, unitPrice: 0 }); updateUI(['modal']); } return; }
+    const removeInvoiceItemBtn = target.closest('.remove-invoice-item-btn');
+    if (removeInvoiceItemBtn) {
+        const row = removeInvoiceItemBtn.closest<HTMLElement>('.invoice-item-row');
+        if (row && state.ui.modal.type === 'addInvoice') {
+            const itemId = row.dataset.itemId!;
+            const itemIndex = state.ui.modal.data.items.findIndex((i: any) => i.id.toString() === itemId);
+            if (itemIndex > -1) { state.ui.modal.data.items.splice(itemIndex, 1); updateUI(['modal']); }
+        }
+        return;
+    }
     
     if (target.closest('#toggle-filters-btn')) { uiHandlers.toggleTaskFilters(); return; }
     if (target.closest('#reset-task-filters')) { filterHandlers.resetFilters(); return; }
