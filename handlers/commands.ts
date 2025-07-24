@@ -31,12 +31,9 @@ export function handleCommandSearch(query: string) {
     const commandPaletteList = document.querySelector('.command-palette-list');
     if (!commandPaletteList) return;
 
-    // Update with command results immediately
-    const filteredCommands = getCommands().filter(cmd => cmd.name.toLowerCase().includes(query.toLowerCase()));
-    commandPaletteList.innerHTML = CommandPalette({ commands: filteredCommands, projects: [], tasks: [], clients: [] });
-    
-    if (query.length < 2) {
-        updateUI(['command-palette']);
+    // Update with command results immediately if query is empty
+    if (!query) {
+        commandPaletteList.innerHTML = CommandPalette();
         return;
     }
     
@@ -51,7 +48,9 @@ export function handleCommandSearch(query: string) {
             const commandPaletteContainer = document.getElementById('command-palette-container');
             if (commandPaletteContainer && state.ui.isCommandPaletteOpen) {
                  commandPaletteContainer.innerHTML = CommandPalette(groupedResults);
-                 (document.getElementById('command-palette-input') as HTMLInputElement).focus();
+                 const input = document.getElementById('command-palette-input') as HTMLInputElement;
+                 input.focus();
+                 input.selectionStart = input.selectionEnd = input.value.length; // Move cursor to end
             }
         } catch (error) {
             console.error("Command palette search failed:", error);

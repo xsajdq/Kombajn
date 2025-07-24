@@ -8,7 +8,8 @@ export function CommandPalette(results?: any) {
     const activeIndex = state.ui.commandPaletteActiveIndex;
 
     const allCommands = getCommands();
-    const commandResults = query ? allCommands.filter(cmd => cmd.name.toLowerCase().includes(query.toLowerCase())) : allCommands;
+    // Only show commands if query is empty, otherwise search results take precedence
+    const commandResults = query ? [] : allCommands;
     
     let searchResults = results || { projects: [], tasks: [], clients: [] };
     
