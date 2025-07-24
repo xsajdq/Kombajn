@@ -209,18 +209,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             queryBuilder = queryBuilder.eq('user_id', user.id);
                         }
                     
-                        if (resource === 'tasks') {
-                            const { data, error } = await queryBuilder.select();
-                            if (error) {
-                                console.error('Supabase update error for tasks:', error.message);
-                                throw error;
-                            }
-                            return res.status(200).json(keysToCamel(data));
-                        } else {
-                            const { data, error } = await queryBuilder.select();
-                            if (error) throw error;
-                            return res.status(200).json(keysToCamel(data));
+                        // Chaining .select() is a workaround for a PostgREST schema cache issue.
+                        // It forces the schema to be re-read before the update, fixing "column not found" errors.
+                        const { data, error } = await queryBuilder.select();
+                        
+                        if (error) {
+                            console.error(`Supabase PUT error for resource '${resource}':`, error.message);
+                            throw error;
                         }
+                        
+                        return res.status(200).json(keysToCamel(data));
                     }
                     case 'DELETE': {
                         if (!req.body) return res.status(400).json({ error: 'Request body is required for DELETE operation.' });
