@@ -4,7 +4,7 @@ import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review } from '../types.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
@@ -502,6 +502,64 @@ export async function handleFormSubmit() {
 
             const [newExpense] = await apiPost('expenses', payload);
             state.expenses.push(newExpense);
+        }
+
+        if (type === 'addInventoryItem') {
+            const form = document.getElementById('inventoryItemForm') as HTMLFormElement;
+            const itemId = form.dataset.itemId;
+            const isEdit = !!itemId;
+
+            const payload: Partial<InventoryItem> = {
+                workspaceId: activeWorkspaceId,
+                name: (form.querySelector('#itemName') as HTMLInputElement).value,
+                category: (form.querySelector('#itemCategory') as HTMLInputElement).value,
+                sku: (form.querySelector('#itemSku') as HTMLInputElement).value,
+                location: (form.querySelector('#itemLocation') as HTMLInputElement).value,
+                currentStock: parseInt((form.querySelector('#itemCurrentStock') as HTMLInputElement).value, 10),
+                targetStock: parseInt((form.querySelector('#itemTargetStock') as HTMLInputElement).value, 10),
+                lowStockThreshold: parseInt((form.querySelector('#itemLowStockThreshold') as HTMLInputElement).value, 10),
+                unitPrice: parseFloat((form.querySelector('#itemUnitPrice') as HTMLInputElement).value),
+            };
+            
+            if (isEdit) {
+                const [updatedItem] = await apiPut('inventory_items', { ...payload, id: itemId });
+                const index = state.inventoryItems.findIndex(i => i.id === itemId);
+                if (index > -1) state.inventoryItems[index] = { ...state.inventoryItems[index], ...updatedItem };
+            } else {
+                const [newItem] = await apiPost('inventory_items', payload);
+                state.inventoryItems.push(newItem);
+            }
+        }
+
+        if (type === 'assignInventoryItem') {
+            const form = document.getElementById('assignInventoryItemForm') as HTMLFormElement;
+            const itemId = form.dataset.itemId!;
+            const employeeId = (form.querySelector('#employeeId') as HTMLSelectElement).value;
+            const assignmentDate = (form.querySelector('#assignmentDate') as HTMLInputElement).value;
+            
+            if (!itemId || !employeeId || !assignmentDate) {
+                alert("Please fill all required fields.");
+                return;
+            }
+            
+            const payload: Omit<InventoryAssignment, 'id' | 'createdAt'> = {
+                workspaceId: activeWorkspaceId,
+                itemId,
+                employeeId,
+                assignmentDate,
+                serialNumber: (form.querySelector('#serialNumber') as HTMLInputElement).value || undefined,
+                notes: (form.querySelector('#notes') as HTMLTextAreaElement).value || undefined,
+            };
+
+            const [newAssignment] = await apiPost('inventory_assignments', payload);
+            state.inventoryAssignments.push(newAssignment);
+
+            // Decrement stock
+            const item = state.inventoryItems.find(i => i.id === itemId);
+            if (item) {
+                item.currentStock -= 1;
+                await apiPut('inventory_items', { id: item.id, currentStock: item.currentStock });
+            }
         }
 
         if (type === 'employeeDetail') {
