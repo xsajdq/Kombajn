@@ -56,6 +56,8 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.projectMembers = data.projectMembers || [];
         state.objectives = data.objectives || [];
         state.keyResults = data.keyResults || [];
+        state.inventoryItems = data.inventoryItems || [];
+        state.inventoryAssignments = data.inventoryAssignments || [];
         
         // Set loaded flags to prevent re-fetching on navigation
         state.ui.dashboard.loadedWorkspaceId = workspaceId;

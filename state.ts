@@ -72,6 +72,8 @@ export function getInitialState(): AppState {
         integrations: [],
         filterViews: [],
         reviews: [],
+        inventoryItems: [],
+        inventoryAssignments: [],
         userTaskSortOrders: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {

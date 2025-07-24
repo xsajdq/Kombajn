@@ -18,6 +18,7 @@ import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 import { updateUI } from './app-renderer.ts';
 import { GoalsPage } from './pages/GoalsPage.ts';
+import { InventoryPage } from './pages/InventoryPage.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -90,6 +91,7 @@ export async function router() {
         case 'hr':              return can('view_hr') ? await HRPage() : DashboardPage();
         case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
         case 'goals':           return can('view_goals') ? GoalsPage() : DashboardPage();
+        case 'inventory':       return can('view_inventory') ? InventoryPage() : DashboardPage();
         case 'auth':            return AuthPage(); // Fallback case
         case 'dashboard':
         default:

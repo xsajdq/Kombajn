@@ -37,6 +37,7 @@ export function Sidebar() {
         { id: 'clients', icon: 'people', text: t('sidebar.clients'), permission: 'view_clients' },
         { id: 'sales', icon: 'monetization_on', text: t('sidebar.sales'), permission: 'view_sales' },
         { id: 'invoices', icon: 'receipt_long', text: t('sidebar.invoices'), permission: 'view_invoices' },
+        { id: 'inventory', icon: 'inventory_2', text: t('sidebar.inventory'), permission: 'view_inventory' },
         { id: 'ai-assistant', icon: 'smart_toy', text: t('sidebar.ai_assistant'), permission: 'view_ai_assistant' },
         { id: 'hr', icon: 'groups', text: t('sidebar.hr'), permission: 'view_hr' },
         { id: 'reports', icon: 'assessment', text: t('sidebar.reports'), permission: 'view_reports' },

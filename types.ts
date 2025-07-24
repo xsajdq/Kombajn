@@ -40,6 +40,7 @@ export type Permission =
     | 'view_ai_assistant'
     | 'view_settings'
     | 'view_goals'
+    | 'view_inventory'
     // Main Entity Management
     | 'manage_projects'
     | 'create_projects'
@@ -48,7 +49,8 @@ export type Permission =
     | 'manage_deals'
     | 'manage_tasks'
     | 'manage_automations'
-    | 'manage_goals';
+    | 'manage_goals'
+    | 'manage_inventory';
 
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
@@ -535,10 +537,37 @@ export interface UserTaskSortOrder {
     sortOrder: number;
 }
 
+export interface InventoryItem {
+    id: string;
+    workspaceId: string;
+    name: string;
+    category?: string;
+    sku?: string;
+    location?: string;
+    currentStock: number;
+    targetStock: number;
+    lowStockThreshold: number;
+    unitPrice: number;
+    createdAt: string;
+}
+
+export interface InventoryAssignment {
+    id: string;
+    workspaceId: string;
+    itemId: string;
+    employeeId: string;
+    assignmentDate: string; // YYYY-MM-DD
+    returnDate?: string; // YYYY-MM-DD
+    notes?: string;
+    serialNumber?: string;
+    createdAt: string;
+}
+
+
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 
 export interface AppState {
-    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals';
+    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory';
     currentUser: User | null;
     activeWorkspaceId: string | null;
     workspaces: Workspace[];
@@ -580,6 +609,8 @@ export interface AppState {
     integrations: Integration[];
     filterViews: FilterView[];
     reviews: Review[];
+    inventoryItems: InventoryItem[];
+    inventoryAssignments: InventoryAssignment[];
     userTaskSortOrders: UserTaskSortOrder[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
@@ -639,7 +670,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | null;
             data?: any;
             justOpened?: boolean;
         };
