@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget } from '../types.ts';
@@ -18,6 +19,10 @@ export function handleDragStart(e: DragEvent) {
     let id: string | undefined;
 
     if (taskCard) {
+        if (state.ui.tasks.sortBy !== 'manual') {
+            e.preventDefault();
+            return;
+        }
         itemCard = taskCard;
         draggedItemType = 'task';
         id = itemCard.dataset.taskId;
@@ -81,6 +86,8 @@ export async function handleDrop(e: DragEvent) {
     // Handle Task Drop
     const column = (e.target as HTMLElement).closest<HTMLElement>('[data-status]');
     if (column && draggedItemType === 'task') {
+        if (state.ui.tasks.sortBy !== 'manual') return;
+
         const newStatus = column.dataset.status as Task['status'];
         const task = state.tasks.find(t => t.id === draggedItemId);
         if (!task || !newStatus) return;

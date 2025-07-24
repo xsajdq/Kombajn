@@ -17,6 +17,7 @@ export async function handleAddAiTask(taskIndex: number, projectId: string) {
         projectId: projectId,
         status: workflow === 'advanced' ? 'backlog' : 'todo',
         isArchived: false,
+        createdAt: new Date().toISOString(),
     };
     
     try {

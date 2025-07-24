@@ -1,4 +1,5 @@
 
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -60,6 +61,7 @@ async function fetchWorkspaceData(workspaceId: string) {
         state.taskAssignees = data.taskAssignees || [];
         state.projectSections = data.projectSections || [];
         state.taskViews = data.taskViews || [];
+        state.reviews = data.reviews || [];
         
         state.ui.dashboard.loadedWorkspaceId = workspaceId;
         console.log(`Successfully fetched data for workspace ${workspaceId}.`);

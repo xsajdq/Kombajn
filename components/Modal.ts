@@ -2,7 +2,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection } from '../types.ts';
+import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
 import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration, parseDurationStringToSeconds } from '../utils.ts';
@@ -569,6 +569,31 @@ export function Modal() {
                         <label for="leaveEndDate" class="${labelClasses}">${t('modals.due_date')}</label>
                         <input type="date" id="leaveEndDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
                     </div>
+                </div>
+            </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'addReview') {
+        const employeeId = modalData.employeeId as string;
+        const employee = state.users.find(u => u.id === employeeId);
+        title = t('modals.add_review_title');
+        body = `
+            <form id="addReviewForm" class="space-y-4" data-employee-id="${employeeId}">
+                <p class="font-medium">${t('modals.review_for', {name: employee?.name || 'Employee'})}</p>
+                <div class="${modalFormGridClasses}">
+                    <div class="${formGroupClasses}">
+                        <label for="reviewDate" class="${labelClasses}">${t('reports.col_date')}</label>
+                        <input type="date" id="reviewDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="reviewRating" class="${labelClasses}">${t('modals.rating')}</label>
+                        <input type="number" id="reviewRating" class="${formControlClasses}" required min="1" max="5" value="3">
+                    </div>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="reviewNotes" class="${labelClasses}">${t('modals.review_notes')}</label>
+                    <textarea id="reviewNotes" class="${formControlClasses}" rows="5" required></textarea>
                 </div>
             </form>
         `;

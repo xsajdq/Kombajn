@@ -1,4 +1,3 @@
-
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -211,15 +210,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         }
                     
                         if (resource === 'tasks') {
-                            // For tasks, just run the update and return nothing on success to avoid RLS/schema cache issues.
-                            const { error } = await queryBuilder;
+                            const { error } = await queryBuilder.select();
                             if (error) {
                                 console.error('Supabase update error for tasks:', error.message);
                                 throw error;
                             }
                             return res.status(204).send(undefined);
                         } else {
-                            // For other resources, run the update AND return the updated record.
                             const { data, error } = await queryBuilder.select();
                             if (error) throw error;
                             return res.status(200).json(keysToCamel(data));

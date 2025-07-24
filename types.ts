@@ -1,5 +1,7 @@
 
 
+import { string } from "@google/genai/dist/protos/src";
+
 export interface User {
     id: string;
     name?: string;
@@ -159,6 +161,7 @@ export interface Task {
     estimatedHours?: number; // in hours
     type?: 'feature' | 'bug' | 'chore' | null;
     isArchived: boolean;
+    createdAt: string;
 }
 
 export interface TaskDependency {
@@ -500,6 +503,19 @@ export interface TaskView {
     sortOrder?: number;
 }
 
+export interface Review {
+    id: string;
+    workspaceId: string;
+    employeeId: string;
+    reviewerId: string;
+    reviewDate: string; // YYYY-MM-DD
+    notes: string;
+    rating: number; // 1-5
+    createdAt: string; // ISO
+}
+
+export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
+
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
     currentUser: User | null;
@@ -542,6 +558,7 @@ export interface AppState {
     publicHolidays: PublicHoliday[];
     integrations: Integration[];
     filterViews: FilterView[];
+    reviews: Review[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -573,6 +590,7 @@ export interface AppState {
             activeFilterViewId: string | null;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            sortBy: SortByOption;
         };
         invoiceFilters: {
             clientId: string;
@@ -599,7 +617,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | null;
             data?: any;
             justOpened?: boolean;
         };

@@ -3,7 +3,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
-import type { Role, User, WorkspaceMember, TimeOffRequest } from '../types.ts';
+import type { Role, User, WorkspaceMember, TimeOffRequest, Review } from '../types.ts';
 import { can } from '../permissions.ts';
 import { PLANS } from '../utils.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
@@ -249,6 +249,122 @@ function renderVacationTab() {
     `;
 }
 
+function renderHistoryTab() {
+    const history = state.timeOffRequests
+        .filter(r => r.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    if (history.length === 0) {
+        return `<div class="empty-state">
+            <span class="material-icons-sharp text-5xl text-text-subtle">history</span>
+            <h3 class="text-lg font-medium mt-2">${t('hr.no_leave_history')}</h3>
+        </div>`;
+    }
+
+    const statusClasses: Record<string, string> = {
+        approved: 'bg-success/10 text-success',
+        rejected: 'bg-danger/10 text-danger',
+        pending: 'bg-warning/10 text-warning',
+    };
+
+    return `
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">${t('hr.tabs.history')}</h3>
+        </div>
+        <div class="bg-content rounded-lg shadow-sm">
+            <div class="w-full text-sm">
+                <div class="grid grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase">
+                    <div>${t('hr.history_table.employee')}</div>
+                    <div>${t('hr.history_table.type')}</div>
+                    <div>${t('hr.history_table.start_date')}</div>
+                    <div>${t('hr.history_table.end_date')}</div>
+                    <div>${t('hr.history_table.status')}</div>
+                </div>
+                <div class="divide-y divide-border-color">
+                    ${history.map(request => {
+                        const user = state.users.find(u => u.id === request.userId);
+                        return `
+                        <div class="grid grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 items-center">
+                            <div>${user?.name || 'Unknown'}</div>
+                            <div>${t(`team_calendar.leave_type_${request.type}`)}</div>
+                            <div>${formatDate(request.startDate)}</div>
+                            <div>${formatDate(request.endDate)}</div>
+                            <div>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClasses[request.status]}">
+                                    ${t(`modals.status_${request.status}`)}
+                                </span>
+                            </div>
+                        </div>
+                        `
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderReviewsTab() {
+    const members = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId)!)
+        .filter(Boolean)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        
+    const canManage = can('manage_roles');
+
+    return `
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">${t('hr.tabs.reviews')}</h3>
+        </div>
+        <div class="space-y-4">
+            ${members.map(member => {
+                const reviews = state.reviews
+                    .filter(r => r.employeeId === member.id)
+                    .sort((a, b) => new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime());
+                
+                return `
+                <details class="bg-content rounded-lg shadow-sm" open>
+                    <summary class="flex justify-between items-center p-4 cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${member.initials}</div>
+                            <span class="font-semibold">${member.name}</span>
+                        </div>
+                        ${canManage ? `
+                        <button class="btn btn-secondary btn-sm" data-modal-target="addReview" data-employee-id="${member.id}">
+                            <span class="material-icons-sharp text-base">add</span>
+                            ${t('hr.add_review')}
+                        </button>
+                        ` : ''}
+                    </summary>
+                    <div class="p-4 border-t border-border-color">
+                        ${reviews.length > 0 ? `
+                            <div class="space-y-4">
+                                ${reviews.map(review => {
+                                    const reviewer = state.users.find(u => u.id === review.reviewerId);
+                                    return `
+                                    <div class="p-3 bg-background rounded-md">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <p class="text-xs text-text-subtle">${t('hr.reviewed_by', {name: reviewer?.name || 'User', date: formatDate(review.reviewDate)})}</p>
+                                            <div class="flex items-center gap-1 text-yellow-500">
+                                                ${Array.from({length: 5}).map((_, i) => `<span class="material-icons-sharp text-base">${i < review.rating ? 'star' : 'star_border'}</span>`).join('')}
+                                            </div>
+                                        </div>
+                                        <p class="text-sm">${review.notes.replace(/\n/g, '<br>')}</p>
+                                    </div>
+                                    `
+                                }).join('')}
+                            </div>
+                        ` : `
+                            <p class="text-sm text-text-subtle text-center py-4">${t('hr.no_reviews')}</p>
+                        `}
+                    </div>
+                </details>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
 
 export async function HRPage() {
     if (!can('view_hr')) {
@@ -267,8 +383,8 @@ export async function HRPage() {
         case 'employees': tabContent = await renderEmployeesTab(); break;
         case 'requests': tabContent = renderRequestsTab(); break;
         case 'vacation': tabContent = renderVacationTab(); break;
-        case 'history': tabContent = `<div class="empty-state"><p>Leave history coming soon.</p></div>`; break;
-        case 'reviews': tabContent = `<div class="empty-state"><p>Performance reviews coming soon.</p></div>`; break;
+        case 'history': tabContent = renderHistoryTab(); break;
+        case 'reviews': tabContent = renderReviewsTab(); break;
     }
 
     const navItems = [

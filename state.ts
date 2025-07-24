@@ -71,6 +71,7 @@ export function getInitialState(): AppState {
         publicHolidays: [],
         integrations: [],
         filterViews: [],
+        reviews: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,
@@ -95,6 +96,7 @@ export function getInitialState(): AppState {
                 activeFilterViewId: null,
                 isLoading: false,
                 loadedWorkspaceId: null,
+                sortBy: 'manual',
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             clientFilters: { text: '', status: 'all' },

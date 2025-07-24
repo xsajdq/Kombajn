@@ -22,42 +22,69 @@ export function generateInvoicePDF(invoiceId: string) {
     }
 
     const { jsPDF } = jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+    });
+    const pageHeight = doc.internal.pageSize.height;
+    const pageMargin = 15;
+    const pageWidth = doc.internal.pageSize.width;
 
-    let yPos = 22;
-    
     const generatePdfContent = () => {
-        doc.setFontSize(22);
+        // --- HEADER ---
+        doc.setFontSize(26);
         doc.setFont("helvetica", "bold");
-        doc.text(`${t('invoices.invoice_singular')} ${invoice.invoiceNumber}`, 14, yPos);
-        yPos += 8;
+        doc.setTextColor(31, 41, 55); // Gray 800
+        doc.text(`${t('invoices.invoice_singular').toUpperCase()}`, pageMargin, 30);
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(107, 114, 128); // Gray 500
+        doc.text(`${invoice.invoiceNumber}`, pageMargin, 37);
+        
+        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, 30, { align: 'right' });
+        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, 37, { align: 'right' });
+
+
+        // --- SELLER & BUYER ---
+        let yPos = 55;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(107, 114, 128);
+        doc.text(`${t('panels.seller').toUpperCase()}`, pageMargin, yPos);
+        doc.text(`${t('panels.buyer').toUpperCase()}`, pageWidth / 2, yPos);
+        yPos += 6;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(31, 41, 55);
+        doc.setFontSize(11);
+        doc.text(workspace.companyName || '', pageMargin, yPos);
+        doc.text(client.name, pageWidth / 2, yPos);
+        yPos += 6;
 
         doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, 14, yPos);
-        yPos += 5;
-        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, 14, yPos);
-        yPos += 15;
+        doc.setTextColor(55, 65, 81);
+        const sellerAddress = (workspace.companyAddress || '').split('\n');
+        let tempY = yPos;
+        sellerAddress.forEach(line => {
+            doc.text(line, pageMargin, tempY);
+            tempY += 5;
+        });
+        doc.text(`${t('modals.vat_id')}: ${workspace.companyVatId || ''}`, pageMargin, tempY);
+
+        const buyerAddress = (client.address || 'Address not specified').split('\n');
+        tempY = yPos;
+        buyerAddress.forEach(line => {
+            doc.text(line, pageWidth / 2, tempY);
+            tempY += 5;
+        });
+        doc.text(`${t('modals.vat_id')}: ${client.vatId || t('misc.not_applicable')}`, pageWidth / 2, tempY);
+        
+        yPos = tempY + 15;
 
 
-        // Seller & Buyer Info
-        const startY = yPos;
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text(`${t('panels.seller')}:`, 14, startY);
-        doc.setFont("helvetica", "normal");
-        doc.text(workspace.companyName || '', 14, startY + 6);
-        doc.text(workspace.companyAddress || '', 14, startY + 12);
-        doc.text(`NIP: ${workspace.companyVatId || ''}`, 14, startY + 18);
-
-        doc.setFont("helvetica", "bold");
-        doc.text(`${t('panels.buyer')}:`, 110, startY);
-        doc.setFont("helvetica", "normal");
-        doc.text(client.name, 110, startY + 6);
-        doc.text(client.address || 'Address not specified', 110, startY + 12);
-        doc.text(`NIP: ${client.vatId || t('misc.not_applicable')}`, 110, startY + 18);
-
-
+        // --- TABLE ---
         const tableColumn = ["#", t('modals.item_description'), t('modals.item_qty'), t('invoices.unit_price'), t('invoices.total_price')];
         const tableRows: any[] = [];
         let subtotal = 0;
@@ -68,8 +95,8 @@ export function generateInvoicePDF(invoiceId: string) {
                 index + 1,
                 item.description,
                 item.quantity.toFixed(2),
-                `${item.unitPrice.toFixed(2)}`,
-                `${total.toFixed(2)}`
+                item.unitPrice.toFixed(2),
+                total.toFixed(2)
             ];
             tableRows.push(row);
             subtotal += total;
@@ -78,39 +105,76 @@ export function generateInvoicePDF(invoiceId: string) {
         (doc as any).autoTable({
             head: [tableColumn],
             body: tableRows,
-            startY: startY + 30,
-            theme: 'grid',
-            headStyles: { fillColor: [22, 160, 133] }
+            startY: yPos,
+            theme: 'striped', // 'striped', 'grid', 'plain'
+            headStyles: {
+                fillColor: [59, 130, 246], // Blue 500
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: {
+                cellPadding: 3,
+                fontSize: 10
+            },
+            columnStyles: {
+                2: { halign: 'right' },
+                3: { halign: 'right' },
+                4: { halign: 'right' }
+            }
         });
+        
+        let finalY = (doc as any).lastAutoTable.finalY;
 
-        const finalY = (doc as any).lastAutoTable.finalY;
+        // --- TOTALS ---
+        finalY += 10;
         const total = subtotal; // Assuming no tax for now
-        doc.setFontSize(12);
+        
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(55, 65, 81);
+        doc.text(`${t('modals.total')}:`, pageWidth - pageMargin - 30, finalY, { align: 'right'});
+
         doc.setFont("helvetica", "bold");
-        doc.text(`${t('modals.total')}: ${total.toFixed(2)} PLN`, 14, finalY + 15);
+        doc.setTextColor(31, 41, 55);
+        doc.text(`${total.toFixed(2)} PLN`, pageWidth - pageMargin, finalY, { align: 'right' });
+
+
+        // --- FOOTER / PAYMENT INFO ---
+        finalY = pageHeight - 40;
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(229, 231, 235); // Gray 200
+        doc.line(pageMargin, finalY, pageWidth - pageMargin, finalY);
+        finalY += 10;
 
         doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(107, 114, 128);
+        doc.text("Payment Details", pageMargin, finalY);
+
         doc.setFont("helvetica", "normal");
-        doc.text("Payment to:", 14, finalY + 30);
-        doc.text(workspace.companyBankName || '', 14, finalY + 35);
-        doc.text(workspace.companyBankAccount || '', 14, finalY + 40);
+        doc.setTextColor(55, 65, 81);
+        doc.text(workspace.companyBankName || 'Bank Name Not Provided', pageMargin, finalY + 6);
+        doc.text(workspace.companyBankAccount || 'Bank Account Not Provided', pageMargin, finalY + 11);
+
 
         doc.save(`invoice-${invoice.invoiceNumber}.pdf`);
     };
     
+    // --- LOGO HANDLING ---
     if (workspace.companyLogo) {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.src = workspace.companyLogo;
         img.onload = () => {
             if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                const logoHeight = 20; 
+                const logoHeight = 15; 
                 const logoWidth = (img.naturalWidth * logoHeight) / img.naturalHeight;
-                const maxLogoWidth = 60;
+                const maxLogoWidth = 50;
                 const finalLogoWidth = logoWidth > maxLogoWidth ? maxLogoWidth : logoWidth;
                 const format = workspace.companyLogo!.includes('jpeg') ? 'JPEG' : 'PNG';
-                doc.addImage(img, format, 14, 15, finalLogoWidth, logoHeight);
-                yPos = 15 + logoHeight + 10;
+                
+                // Position logo on the top right
+                doc.addImage(img, format, pageWidth - pageMargin - finalLogoWidth, 15, finalLogoWidth, logoHeight);
             }
             generatePdfContent();
         };

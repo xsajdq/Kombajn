@@ -4,7 +4,7 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
-import type { Task, User, ProjectSection } from '../types.ts';
+import type { Task, User, ProjectSection, SortByOption } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow, fetchTasksData } from '../handlers/main.ts';
@@ -80,6 +80,32 @@ function getFilteredTasks(): Task[] {
         filtered = filtered.filter(task => tasksWithMatchingTags.has(task.id));
     }
     
+    // Sort the filtered tasks
+    const { sortBy } = state.ui.tasks;
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+
+    filtered.sort((a, b) => {
+        switch (sortBy) {
+            case 'dueDate':
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            case 'priority':
+                const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+                return priorityB - priorityA;
+            case 'name':
+                return a.name.localeCompare(b.name);
+            case 'createdAt':
+                if (!a.createdAt) return 1;
+                if (!b.createdAt) return -1;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            case 'manual':
+            default:
+                return (a.sortOrder || 0) - (b.sortOrder || 0);
+        }
+    });
+
     return filtered;
 }
 
@@ -96,9 +122,6 @@ function renderBoardView(filteredTasks: Task[]) {
             tasksByStatus[task.status].push(task);
         }
     });
-    
-    // Sort tasks in each column by sortOrder
-    Object.values(tasksByStatus).forEach(tasks => tasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
 
     const columnsToRender: Task['status'][] = isWorkflowAdvanced
         ? ['backlog', 'todo', 'inprogress', 'inreview', 'done']
@@ -426,6 +449,21 @@ export function TasksPage() {
                             <span class="material-icons-sharp text-base">${kanbanViewMode === 'simple' ? 'view_agenda' : 'view_day'}</span>
                         </button>
                     ` : ''}
+                     <div class="relative">
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="sort-menu" aria-haspopup="true" aria-expanded="false">
+                            <span class="material-icons-sharp text-base">sort</span>
+                            <span>${t('tasks.sort_by')}: ${t(`tasks.sort_${state.ui.tasks.sortBy}`)}</span>
+                        </button>
+                        <div id="sort-menu" class="absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                            <div class="py-1">
+                                ${state.ui.tasks.viewMode === 'board' ? `<button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="manual">${t('tasks.sort_manual')}</button>` : ''}
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="dueDate">${t('tasks.sort_due_date')}</button>
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="priority">${t('tasks.sort_priority')}</button>
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="name">${t('tasks.sort_name')}</button>
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="createdAt">${t('tasks.sort_created_at')}</button>
+                            </div>
+                        </div>
+                    </div>
                      <button id="toggle-filters-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
                         <span class="material-icons-sharp text-base">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>

@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -31,9 +32,11 @@ export function renderTaskCard(task: Task) {
 
     const priorityClass = getPriorityClass(task.priority);
     const kanbanViewMode = state.currentUser?.kanbanViewMode || 'detailed';
+    const isDraggable = state.ui.tasks.viewMode === 'board' && state.ui.tasks.sortBy === 'manual';
+
 
     return `
-        <div class="task-card ${task.isArchived ? 'opacity-60' : ''}" draggable="true" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
+        <div class="task-card ${task.isArchived ? 'opacity-60' : ''}" draggable="${isDraggable}" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
             <div class="task-card-header">
                 <p class="task-card-name">${task.name}</p>
                 <button class="btn-icon task-card-menu-btn" aria-label="Task actions menu">

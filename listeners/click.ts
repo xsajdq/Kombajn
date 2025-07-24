@@ -1,7 +1,8 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole } from '../types.ts';
+import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -89,7 +90,7 @@ export async function handleClick(e: MouseEvent) {
 
     if (mainFabButton) {
         fabContainer?.classList.toggle('is-open');
-        return; // Stop further processing
+        return;
     }
     if (fabContainer?.classList.contains('is-open') && !target.closest('#fab-container')) {
         fabContainer.classList.remove('is-open');
@@ -227,7 +228,21 @@ export async function handleClick(e: MouseEvent) {
     
     if (target.closest('#toggle-filters-btn')) { uiHandlers.toggleTaskFilters(); return; }
     if (target.closest('#reset-task-filters')) { filterHandlers.resetFilters(); return; }
-    if (target.closest<HTMLElement>('[data-view-mode]')) { state.ui.tasks.viewMode = target.closest<HTMLElement>('[data-view-mode]')!.dataset.viewMode as any; updateUI(['page']); }
+    if (target.closest<HTMLElement>('[data-view-mode]')) {
+        const newMode = target.closest<HTMLElement>('[data-view-mode]')!.dataset.viewMode as any;
+        if (state.ui.tasks.viewMode !== newMode) {
+            state.ui.tasks.viewMode = newMode;
+            state.ui.tasks.sortBy = newMode === 'board' ? 'manual' : 'createdAt';
+            updateUI(['page']);
+        }
+        return;
+    }
+    if (target.closest('[data-sort-by]')) {
+        const sortBy = target.closest<HTMLElement>('[data-sort-by]')!.dataset.sortBy as SortByOption;
+        state.ui.tasks.sortBy = sortBy;
+        updateUI(['page']);
+        return;
+    }
     if (target.closest('[data-toggle-kanban-view]')) { userHandlers.handleToggleKanbanViewMode(); return; }
     const taskCardMenuBtn = target.closest<HTMLElement>('.task-card-menu-btn');
     if (taskCardMenuBtn) { e.stopPropagation(); showTaskCardMenu(taskCardMenuBtn.closest<HTMLElement>('[data-task-id]')!.dataset.taskId!, taskCardMenuBtn); return; }

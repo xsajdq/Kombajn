@@ -6,7 +6,7 @@ import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag } from '../types.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
@@ -344,6 +344,31 @@ export async function handleFormSubmit() {
             // This handler already closes the modal on success.
             await hrHandlers.handleSubmitTimeOffRequest(leaveType, startDate, endDate);
             return; // Exit here since the handler manages its own flow.
+        }
+
+        if (type === 'addReview') {
+            const form = document.getElementById('addReviewForm') as HTMLFormElement;
+            const employeeId = form.dataset.employeeId!;
+            const reviewDate = (document.getElementById('reviewDate') as HTMLInputElement).value;
+            const rating = parseInt((document.getElementById('reviewRating') as HTMLInputElement).value, 10);
+            const notes = (document.getElementById('reviewNotes') as HTMLTextAreaElement).value;
+
+            if (!employeeId || !reviewDate || isNaN(rating) || !notes.trim()) {
+                alert("Please fill all fields.");
+                return;
+            }
+
+            const payload: Omit<Review, 'id' | 'createdAt'> = {
+                workspaceId: activeWorkspaceId,
+                employeeId,
+                reviewerId: state.currentUser.id,
+                reviewDate,
+                rating,
+                notes,
+            };
+
+            const [newReview] = await apiPost('reviews', payload);
+            state.reviews.push(newReview);
         }
 
         if (type === 'addCalendarEvent') {
