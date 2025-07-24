@@ -39,6 +39,7 @@ export type Permission =
     | 'view_chat'
     | 'view_ai_assistant'
     | 'view_settings'
+    | 'view_goals'
     // Main Entity Management
     | 'manage_projects'
     | 'create_projects'
@@ -46,7 +47,8 @@ export type Permission =
     | 'manage_invoices'
     | 'manage_deals'
     | 'manage_tasks'
-    | 'manage_automations';
+    | 'manage_automations'
+    | 'manage_goals';
 
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
@@ -386,19 +388,30 @@ export interface ChatMessage {
 export interface Objective {
     id: string;
     workspaceId: string;
-    projectId: string;
+    projectId?: string;
     title: string;
     description?: string;
+    category?: string;
+    status: 'in_progress' | 'completed' | 'on_hold' | 'archived';
+    priority?: 'high' | 'medium' | 'low';
+    dueDate?: string; // YYYY-MM-DD
+    ownerId?: string; // User ID
+    targetValue?: number;
+    currentValue: number;
+    valueUnit?: string; // e.g., '$', 'projects', '%'
 }
 
 export interface KeyResult {
     id: string;
     objectiveId: string;
     title: string;
+    // These fields are from the original schema but will be ignored for the simple milestone view
     type: 'number' | 'percentage';
     startValue: number;
     targetValue: number;
     currentValue: number;
+    // New field for simple checkable milestones
+    completed: boolean;
 }
 
 export interface TimeOffRequest {
@@ -525,7 +538,7 @@ export interface UserTaskSortOrder {
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 
 export interface AppState {
-    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup';
+    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals';
     currentUser: User | null;
     activeWorkspaceId: string | null;
     workspaces: Workspace[];
@@ -626,7 +639,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | null;
             data?: any;
             justOpened?: boolean;
         };

@@ -183,6 +183,47 @@ export async function handleFormSubmit() {
             return;
         }
 
+        if (type === 'addGoal') {
+            const form = document.getElementById('addGoalForm') as HTMLFormElement;
+            const title = (form.querySelector('#goalTitle') as HTMLInputElement).value;
+            if (!title) return;
+
+            const objectivePayload: Partial<Objective> = {
+                workspaceId: activeWorkspaceId,
+                title,
+                description: (form.querySelector('#goalDescription') as HTMLTextAreaElement).value || undefined,
+                ownerId: (form.querySelector('#goalOwner') as HTMLSelectElement).value || undefined,
+                dueDate: (form.querySelector('#goalDueDate') as HTMLInputElement).value || undefined,
+                category: (form.querySelector('#goalCategory') as HTMLInputElement).value || undefined,
+                priority: (form.querySelector('#goalPriority') as HTMLSelectElement).value as Objective['priority'] || undefined,
+                status: (form.querySelector('#goalStatus') as HTMLSelectElement).value as Objective['status'] || 'in_progress',
+                targetValue: parseFloat((form.querySelector('#goalTargetValue') as HTMLInputElement).value) || undefined,
+                currentValue: parseFloat((form.querySelector('#goalCurrentValue') as HTMLInputElement).value) || 0,
+                valueUnit: (form.querySelector('#goalValueUnit') as HTMLInputElement).value || undefined,
+            };
+
+            const [newObjective] = await apiPost('objectives', objectivePayload);
+            state.objectives.push(newObjective);
+            
+            const milestoneInputs = form.querySelectorAll<HTMLInputElement>('.milestone-input');
+            const milestonePayloads: Omit<KeyResult, 'id'>[] = Array.from(milestoneInputs)
+                .filter(input => input.value.trim() !== '')
+                .map(input => ({
+                    objectiveId: newObjective.id,
+                    title: input.value.trim(),
+                    completed: false,
+                    type: 'number', // Default values to satisfy schema, ignored by UI
+                    startValue: 0,
+                    targetValue: 1,
+                    currentValue: 0
+                }));
+
+            if (milestonePayloads.length > 0) {
+                const newMilestones = await apiPost('key_results', milestonePayloads);
+                state.keyResults.push(...newMilestones);
+            }
+        }
+
         if (type === 'addTask') {
             const form = document.getElementById('taskForm') as HTMLFormElement;
             const name = (form.querySelector('#taskName') as HTMLInputElement).value;

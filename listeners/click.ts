@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -31,6 +32,7 @@ import * as projectHandlers from '../handlers/projects.ts';
 import * as userHandlers from '../handlers/user.ts';
 import * as projectSectionHandlers from '../handlers/projectSections.ts';
 import * as taskViewHandlers from '../handlers/taskViews.ts';
+import * as goalHandlers from '../handlers/goals.ts';
 
 function closeAllTaskMenus() {
     document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
@@ -297,6 +299,12 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#add-project-section-btn')) { uiHandlers.showModal('addProjectSection', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId }); return; }
     if (target.closest<HTMLElement>('[data-rename-project-section-id]')) { const sectionId = target.closest<HTMLElement>('[data-rename-project-section-id]')!.dataset.renameProjectSectionId!; const section = state.projectSections.find(ps => ps.id === sectionId); if (section) { const newName = prompt(t('modals.rename'), section.name); if (newName) await projectSectionHandlers.handleRenameProjectSection(sectionId, newName); } return; }
     if (target.closest<HTMLElement>('[data-delete-project-section-id]')) { await projectSectionHandlers.handleDeleteProjectSection(target.closest<HTMLElement>('[data-delete-project-section-id]')!.dataset.deleteProjectSectionId!); return; }
+    
+    const milestoneCheckbox = target.closest<HTMLInputElement>('.milestone-checkbox');
+    if (milestoneCheckbox) {
+        goalHandlers.handleToggleMilestone(milestoneCheckbox.dataset.milestoneId!);
+        return;
+    }
 
     const settingsTab = target.closest<HTMLElement>('nav a[data-tab]');
     if (settingsTab && (target.closest('div')?.id !== 'app')) {

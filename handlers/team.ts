@@ -28,11 +28,16 @@ export async function handleWorkspaceSwitch(workspaceId: string) {
         state.currentPage = 'dashboard';
         history.pushState({}, '', '/dashboard');
 
-        await switchWorkspaceChannel(workspaceId);
+        // Set loading state and render the loader
+        state.ui.dashboard.isLoading = true;
+        updateUI(['page', 'sidebar', 'header']); // Update all to reflect new workspace selection and show loader
 
-        // Fetch new workspace data and re-render the entire app
+        await switchWorkspaceChannel(workspaceId);
         await fetchWorkspaceData(workspaceId);
-        await renderApp();
+        
+        state.ui.dashboard.isLoading = false;
+        // The previous fetch populated the data, now render the final page
+        await updateUI(['page']);
     }
 }
 

@@ -8,25 +8,28 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         'manage_billing', 'view_hr', 'manage_roles', 'invite_users', 'remove_users', 'manage_workspace_settings',
         'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks', 'manage_tasks', 'view_clients',
         'manage_clients', 'view_sales', 'manage_deals', 'view_invoices', 'manage_invoices', 'view_reports',
-        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations',
+        'view_goals', 'manage_goals'
     ],
     admin: [
         'view_hr', 'manage_roles', 'invite_users', 'remove_users', 'manage_workspace_settings',
         'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks', 'manage_tasks', 'view_clients',
         'manage_clients', 'view_sales', 'manage_deals', 'view_invoices', 'manage_invoices', 'view_reports',
-        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations',
+        'view_goals', 'manage_goals'
     ],
     manager: [
         'view_hr', 'invite_users',
         'view_dashboard', 'view_projects', 'manage_projects', 'create_projects', 'view_tasks',
         'manage_tasks', 'view_clients', 'manage_clients', 'view_sales', 'manage_deals', 'view_reports',
-        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations'
+        'view_team_calendar', 'view_chat', 'view_ai_assistant', 'view_settings', 'manage_automations',
+        'view_goals', 'manage_goals'
     ],
     finance: [
         'view_dashboard', 'view_invoices', 'manage_invoices', 'view_reports', 'view_settings'
     ],
     member: [
-        'view_dashboard', 'view_projects', 'view_tasks', 'manage_tasks', 'view_team_calendar', 'view_chat', 'view_settings', 'view_ai_assistant', 'view_clients'
+        'view_dashboard', 'view_projects', 'view_tasks', 'manage_tasks', 'view_team_calendar', 'view_chat', 'view_settings', 'view_ai_assistant', 'view_clients', 'view_goals'
     ],
     client: [
         'view_dashboard',

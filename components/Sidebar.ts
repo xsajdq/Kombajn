@@ -15,6 +15,7 @@ type NavItem = {
 export function Sidebar() {
     const allNavItems: NavItem[] = [
         { id: 'dashboard', icon: 'dashboard', text: t('sidebar.dashboard'), permission: 'view_dashboard' },
+        { id: 'goals', icon: 'track_changes', text: t('sidebar.goals'), permission: 'view_goals' },
         { id: 'projects', icon: 'folder', text: t('sidebar.projects'), permission: 'view_projects' },
         { id: 'tasks', icon: 'checklist', text: t('sidebar.tasks'), permission: 'view_tasks' },
     ];

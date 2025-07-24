@@ -36,10 +36,6 @@ export async function fetchInitialData(session: Session) {
 export async function fetchWorkspaceData(workspaceId: string) {
     console.log(`Fetching data for workspace ${workspaceId}...`);
     
-    // Mark dashboard as loading for this workspace
-    state.ui.dashboard.isLoading = true;
-    updateUI(['page']);
-
     try {
         const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}`);
         if (!data) throw new Error("Workspace data fetch returned null.");
@@ -58,6 +54,8 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.timeOffRequests = data.timeOffRequests || [];
         state.userTaskSortOrders = data.userTaskSortOrders || [];
         state.projectMembers = data.projectMembers || [];
+        state.objectives = data.objectives || [];
+        state.keyResults = data.keyResults || [];
         
         // Set loaded flags to prevent re-fetching on navigation
         state.ui.dashboard.loadedWorkspaceId = workspaceId;
@@ -70,10 +68,12 @@ export async function fetchWorkspaceData(workspaceId: string) {
         console.log(`Successfully fetched data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch workspace data:", error);
-        state.ui.dashboard.loadedWorkspaceId = null; // Allow retry
-    } finally {
-        state.ui.dashboard.isLoading = false;
-        // The caller will handle rendering.
+        state.ui.dashboard.loadedWorkspaceId = null;
+        state.ui.projects.loadedWorkspaceId = null;
+        state.ui.tasks.loadedWorkspaceId = null;
+        state.ui.clients.loadedWorkspaceId = null;
+        state.ui.invoices.loadedWorkspaceId = null;
+        state.ui.sales.loadedWorkspaceId = null;
     }
 }
 

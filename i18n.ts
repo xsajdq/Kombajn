@@ -1,10 +1,8 @@
-
-
 import { state } from './state';
 
 const translations = {
     en: {
-        sidebar: { dashboard: 'Dashboard', projects: 'Projects', tasks: 'Tasks', team_calendar: 'Team Calendar', clients: 'Clients', sales: 'Sales', reports: 'Reports', invoices: 'Invoices', ai_assistant: 'AI Assistant', hr: 'HR', settings: 'Settings', billing: 'Billing', chat: 'Chat' },
+        sidebar: { dashboard: 'Dashboard', projects: 'Projects', tasks: 'Tasks', team_calendar: 'Team Calendar', clients: 'Clients', sales: 'Sales', reports: 'Reports', invoices: 'Invoices', ai_assistant: 'AI Assistant', hr: 'HR', settings: 'Settings', billing: 'Billing', chat: 'Chat', goals: 'Goals' },
         dashboard: {
             title: 'Dashboard', welcome_message: 'Welcome back, {name}!', welcome_sub: "Here's your business overview.",
             kpi_total_revenue: 'Total Revenue', kpi_active_projects: 'Active Projects', kpi_total_clients: 'Total Clients', kpi_completion_rate: 'Completion Rate',
@@ -22,6 +20,33 @@ const translations = {
             grid_columns: 'Grid Columns',
             increase_width: 'Increase width',
             decrease_width: 'Decrease width',
+        },
+        projects: {
+            no_projects_yet: 'No projects yet.',
+            no_projects_desc: 'Add your first project to get started.'
+        },
+        goals: {
+            title: 'Goals & Objectives',
+            subtitle: 'Track and manage your business goals and KPIs',
+            analytics: 'Analytics',
+            new_goal: 'New Goal',
+            total_goals: 'Total Goals',
+            in_progress: 'In Progress',
+            completed: 'Completed',
+            avg_progress: 'Avg Progress',
+            goal_categories: 'Goal Categories',
+            active_goals: 'Active goals',
+            search_goals: 'Search goals...',
+            all_categories: 'All Categories',
+            filter: 'Filter',
+            of: 'of',
+            progress: 'Progress',
+            milestones: 'Milestones',
+            no_goals: 'No goals have been set for this workspace yet.',
+            no_goals_desc: 'Click "New Goal" to set your first objective.',
+            status_in_progress: 'In Progress',
+            status_completed: 'Completed',
+            status_on_hold: 'On Hold',
         },
         tasks: {
             title: 'Tasks', new_task: 'New Task', board_view: 'Board View', list_view: 'List View', calendar_view: 'Calendar View', gantt_view: 'Gantt View',
@@ -120,6 +145,18 @@ const translations = {
         panels: { close: 'Close', client_details: 'Client Details', edit_client: 'Edit', associated_projects: 'Associated Projects', projects_soon: 'Projects for this client will appear here.', project_overview: 'Overview', total_time_tracked: 'Total Time Tracked', tasks: 'Tasks', client_info: 'Client Info', client_not_found: 'Client not found.', no_tasks_in_stage: 'No tasks in this stage.', add_task: 'Add Task', tab_tasks: 'Tasks', tab_wiki: 'Wiki', tab_files: 'Files', tab_access: 'Access', tab_okrs: 'OKRs', tab_expenses: 'Expenses', saved: 'Saved!', history: 'History', no_files: 'No files uploaded yet.', upload_file: 'Upload File', seller: 'Seller', buyer: 'Buyer', project_access: 'Project Access', role_admin: 'Admin', role_editor: 'Editor', role_commenter: 'Commenter', role_viewer: 'Viewer', invite_to_project: 'Invite to Project', no_automations: 'No automations configured for this project.', automations_title: 'Automations', add_automation: 'Add Automation', when: 'When', trigger_status_change: 'Status changes to', then: 'Then', action_assign_user: 'assign user', save_as_template: 'Save as template', progress: 'Progress', tasks_todo: 'Tasks To Do', tasks_overdue: 'Overdue', team: 'Team', objective: 'Objective', add_key_result: 'Add Key Result', no_okrs_yet: 'No OKRs defined for this project yet. Add an objective to get started.', deal_details: 'Deal Details', activity: 'Activity', no_deal_activity: 'No activity for this deal yet.', add_note: 'Add Note', client_contacts: 'Contacts', budget_time: 'Budget (Time)', budget_cost: 'Budget (Cost)', actual_cost: 'Actual Cost', profitability: 'Profitability', wiki_placeholder: 'Start writing your project documentation here. Use Markdown for formatting.' },
         modals: {
             cancel: 'Cancel', save: 'Save', create_project: 'Create Project',
+            add_goal_title: 'Add New Goal',
+            goal_title: 'Goal Title',
+            goal_description: 'Description',
+            goal_owner: 'Owner',
+            goal_due_date: 'Due Date',
+            goal_category: 'Category',
+            goal_priority: 'Priority',
+            goal_status: 'Status',
+            goal_target_value: 'Target Value',
+            goal_current_value: 'Current Value',
+            goal_value_unit: 'Unit (e.g., $, %, projects)',
+            add_milestone: 'Add milestone...',
             add_client_title: 'Add New Client', edit_client_title: 'Edit Client',
             company_name: 'Company Name', vat_id: 'VAT ID', contact_person: 'Contact Person', email: 'Email', phone: 'Phone',
             add_project_title: 'Add New Project', project_name: 'Project Name', assign_to_client: 'Assign to client', select_a_client: 'Select a client', hourly_rate: 'Default Hourly Rate (PLN)', privacy: 'Privacy', privacy_public: 'Public', privacy_public_desc: 'Everyone in the workspace can see this project.', privacy_private: 'Private', privacy_private_desc: 'Only invited members can see this project.', invite_members: 'Invite members', create_from_template: 'Create from Template', select_template: 'None (start fresh)',
@@ -188,7 +225,7 @@ const translations = {
         }
     },
     pl: {
-        sidebar: { dashboard: 'Pulpit', projects: 'Projekty', tasks: 'Zadania', team_calendar: 'Kalendarz Zespołu', clients: 'Klienci', sales: 'Sprzedaż', reports: 'Raporty', invoices: 'Faktury', ai_assistant: 'Asystent AI', hr: 'Kadry', settings: 'Ustawienia', billing: 'Rozliczenia', chat: 'Czat' },
+        sidebar: { dashboard: 'Pulpit', projects: 'Projekty', tasks: 'Zadania', team_calendar: 'Kalendarz Zespołu', clients: 'Klienci', sales: 'Sprzedaż', reports: 'Raporty', invoices: 'Faktury', ai_assistant: 'Asystent AI', hr: 'Kadry', settings: 'Ustawienia', billing: 'Rozliczenia', chat: 'Czat', goals: 'Cele' },
         dashboard: {
             title: 'Pulpit', welcome_message: 'Witaj z powrotem, {name}!', welcome_sub: 'Oto przegląd Twojego biznesu.',
             kpi_total_revenue: 'Całkowity przychód', kpi_active_projects: 'Aktywne projekty', kpi_total_clients: 'Wszyscy klienci', kpi_completion_rate: 'Współczynnik ukończenia',
@@ -206,6 +243,33 @@ const translations = {
             grid_columns: 'Liczba kolumn',
             increase_width: 'Zwiększ szerokość',
             decrease_width: 'Zmniejsz szerokość',
+        },
+        projects: {
+            no_projects_yet: 'Brak projektów.',
+            no_projects_desc: 'Dodaj swój pierwszy projekt, aby rozpocząć pracę.'
+        },
+        goals: {
+            title: 'Cele i Zadania',
+            subtitle: 'Śledź i zarządzaj swoimi celami biznesowymi i wskaźnikami KPI',
+            analytics: 'Analityka',
+            new_goal: 'Nowy Cel',
+            total_goals: 'Wszystkie Cele',
+            in_progress: 'W Trakcie',
+            completed: 'Ukończone',
+            avg_progress: 'Średni Postęp',
+            goal_categories: 'Kategorie Celów',
+            active_goals: 'Aktywne cele',
+            search_goals: 'Szukaj celów...',
+            all_categories: 'Wszystkie Kategorie',
+            filter: 'Filtruj',
+            of: 'z',
+            progress: 'Postęp',
+            milestones: 'Kamienie milowe',
+            no_goals: 'Nie ustawiono jeszcze żadnych celów dla tego obszaru roboczego.',
+            no_goals_desc: 'Kliknij "Nowy Cel", aby ustawić swój pierwszy cel.',
+            status_in_progress: 'W Trakcie',
+            status_completed: 'Ukończony',
+            status_on_hold: 'Wstrzymany',
         },
         tasks: {
             title: 'Zadania', new_task: 'Nowe zadanie', board_view: 'Tablica', list_view: 'Lista', calendar_view: 'Kalendarz', gantt_view: 'Wykres Gantta',
@@ -304,6 +368,18 @@ const translations = {
         panels: { close: 'Zamknij', client_details: 'Szczegóły klienta', edit_client: 'Edytuj', associated_projects: 'Powiązane projekty', projects_soon: 'Projekty tego klienta pojawią się tutaj.', project_overview: 'Przegląd', total_time_tracked: 'Całkowity zarejestrowany czas', tasks: 'Zadania', client_info: 'Informacje o kliencie', client_not_found: 'Nie znaleziono klienta.', no_tasks_in_stage: 'Brak zadań na tym etapie.', add_task: 'Dodaj zadanie', tab_tasks: 'Zadania', tab_wiki: 'Wiki', tab_files: 'Pliki', tab_access: 'Dostęp', tab_okrs: 'OKR-y', tab_expenses: 'Wydatki', saved: 'Zapisano!', history: 'Historia', no_files: 'Brak wgranych plików.', upload_file: 'Wgraj plik', seller: 'Sprzedawca', buyer: 'Nabywca', project_access: 'Dostęp do projektu', role_admin: 'Admin', role_editor: 'Edytor', role_commenter: 'Komentujący', role_viewer: 'Przeglądający', invite_to_project: 'Zaproś do projektu', no_automations: 'Brak skonfigurowanych automatyzacji dla tego projektu.', automations_title: 'Automatyzacje', add_automation: 'Dodaj automatyzację', when: 'Gdy', trigger_status_change: 'Status zmieni się na', then: 'Wtedy', action_assign_user: 'przypisz użytkownika', save_as_template: 'Zapisz jako szablon', progress: 'Postęp', tasks_todo: 'Zadania do zrobienia', tasks_overdue: 'Zaległe', team: 'Zespół', objective: 'Cel', add_key_result: 'Dodaj kluczowy rezultat', no_okrs_yet: 'Brak zdefiniowanych OKR-ów dla tego projektu. Dodaj cel, aby zacząć.', deal_details: 'Szczegóły szansy', activity: 'Aktywność', no_deal_activity: 'Brak aktywności dla tej szansy.', add_note: 'Dodaj notatkę', client_contacts: 'Kontakty', budget_time: 'Budżet (Czas)', budget_cost: 'Budżet (Koszt)', actual_cost: 'Rzeczywisty koszt', profitability: 'Rentowność', wiki_placeholder: 'Zacznij pisać dokumentację projektu tutaj. Użyj Markdown do formatowania.' },
         modals: {
             cancel: 'Anuluj', save: 'Zapisz', create_project: 'Utwórz projekt',
+            add_goal_title: 'Dodaj Nowy Cel',
+            goal_title: 'Tytuł Celu',
+            goal_description: 'Opis',
+            goal_owner: 'Właściciel',
+            goal_due_date: 'Termin',
+            goal_category: 'Kategoria',
+            goal_priority: 'Priorytet',
+            goal_status: 'Status',
+            goal_target_value: 'Wartość Docelowa',
+            goal_current_value: 'Wartość Obecna',
+            goal_value_unit: 'Jednostka (np. zł, %, projekty)',
+            add_milestone: 'Dodaj kamień milowy...',
             add_client_title: 'Dodaj nowego klienta', edit_client_title: 'Edytuj klienta',
             company_name: 'Nazwa firmy', vat_id: 'NIP', contact_person: 'Osoba kontaktowa', email: 'E-mail', phone: 'Telefon',
             add_project_title: 'Dodaj nowy projekt', project_name: 'Nazwa projektu', assign_to_client: 'Przypisz do klienta', select_a_client: 'Wybierz klienta', hourly_rate: 'Domyślna stawka godzinowa (PLN)', privacy: 'Prywatność', privacy_public: 'Publiczny', privacy_public_desc: 'Wszyscy w obszarze roboczym mogą zobaczyć ten projekt.', privacy_private: 'Prywatny', privacy_private_desc: 'Tylko zaproszeni członkowie mogą zobaczyć ten projekt.', invite_members: 'Zaproś członków', create_from_template: 'Utwórz z szablonu', select_template: 'Brak (zacznij od zera)',

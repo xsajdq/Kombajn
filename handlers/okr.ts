@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut } from '../services/api.ts';
@@ -12,6 +13,8 @@ export async function handleCreateObjective(projectId: string, title: string, de
         projectId,
         title,
         description,
+        status: 'in_progress',
+        currentValue: 0,
     };
 
     try {
@@ -33,6 +36,7 @@ export async function handleAddKeyResult(objectiveId: string, title: string, typ
         startValue,
         targetValue,
         currentValue: startValue,
+        completed: false,
     };
 
     try {

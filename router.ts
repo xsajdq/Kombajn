@@ -17,6 +17,7 @@ import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 import { updateUI } from './app-renderer.ts';
+import { GoalsPage } from './pages/GoalsPage.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -88,6 +89,7 @@ export async function router() {
         case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();
         case 'hr':              return can('view_hr') ? await HRPage() : DashboardPage();
         case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
+        case 'goals':           return can('view_goals') ? GoalsPage() : DashboardPage();
         case 'auth':            return AuthPage(); // Fallback case
         case 'dashboard':
         default:
