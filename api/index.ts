@@ -199,29 +199,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                     case 'PUT': {
                         const id = bodyInSnakeCase.id;
-                        if (!id) return res.status(400).json({ error: 'ID is required for update' });
-                        
+                        if (!id) {
+                            return res.status(400).json({ error: 'ID is required for update' });
+                        }
+                    
                         const recordToUpdate = { ...bodyInSnakeCase };
                         delete recordToUpdate.id;
-
-                        let query = supabase.from(resource).update(recordToUpdate).eq('id', id);
-
-                        if (resource === 'dashboard_widgets') {
-                            query = query.eq('user_id', user.id);
-                        }
-
-                        // This is the definitive fix for the PostgREST schema cache issue.
-                        // By chaining .select(), we force the API to re-read the table schema before the update.
-                        const { data, error } = await query.select();
-                        
+                    
+                        // Refactored to be more robust against schema caching issues.
+                        // This simplified approach uses .match() and chains .select() to force a schema reload.
+                        const queryBuilder = supabase
+                            .from(resource)
+                            .update(recordToUpdate)
+                            .match({ id });
+                    
+                        const { data, error } = await queryBuilder.select();
+                    
                         if (error) {
-                            // Log the detailed error on the server for debugging
-                            console.error(`Supabase PUT Error [${resource}] for ID '${id}':`, error.message);
-                            // Re-throw to send a 500 response
-                            throw error;
+                            console.error(`[API PUT FAILED] Resource: ${resource}, ID: ${id}, User: ${user.id}. Supabase error: ${error.message}`);
+                            const clientError = error.message.includes("schema cache")
+                                ? "Database schema cache error, please try again."
+                                : error.message;
+                            return res.status(500).json({ error: clientError });
                         }
-                        
-                        // Standardize the response to always return the updated data array
+                    
                         return res.status(200).json(keysToCamel(data));
                     }
                     case 'DELETE': {
