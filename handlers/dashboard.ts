@@ -4,31 +4,38 @@ import { showModal, closeModal } from './ui.ts';
 import type { DashboardWidget, DashboardWidgetType } from '../types.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 
+let isCreatingDefaults = false;
+
 export function toggleEditMode() {
     state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
     updateUI(['page']);
 }
 
 export async function createDefaultWidgets() {
+    if (isCreatingDefaults) return;
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
-    const defaultWidgets: Omit<DashboardWidget, 'id'>[] = [
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalRevenue' }, sortOrder: 0, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'activeProjects' }, sortOrder: 1, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalClients' }, sortOrder: 2, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'overdueProjects' }, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: {}, sortOrder: 4, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'activityFeed', config: {}, sortOrder: 5, x: 0, y: 0, w: 1, h: 1 },
-        { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'recentProjects', config: {}, sortOrder: 6, x: 0, y: 0, w: 1, h: 1 },
-    ];
+    isCreatingDefaults = true;
 
     try {
+        const defaultWidgets: Omit<DashboardWidget, 'id'>[] = [
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalRevenue' }, sortOrder: 0, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'activeProjects' }, sortOrder: 1, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalClients' }, sortOrder: 2, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'overdueProjects' }, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: {}, sortOrder: 4, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'activityFeed', config: {}, sortOrder: 5, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'recentProjects', config: {}, sortOrder: 6, x: 0, y: 0, w: 1, h: 1 },
+        ];
+
         const savedWidgets = await apiPost('dashboard_widgets', defaultWidgets);
         state.dashboardWidgets.push(...savedWidgets);
         state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         updateUI(['page']);
     } catch (error) {
         console.error("Failed to create default widgets:", error);
+    } finally {
+        isCreatingDefaults = false;
     }
 }
 
