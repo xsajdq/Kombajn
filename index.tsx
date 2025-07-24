@@ -117,35 +117,40 @@ async function main() {
         });
         
         setInterval(() => {
-            const { isRunning, startTime } = state.ui.globalTimer;
-            if (isRunning && startTime) {
-                const elapsedSeconds = (Date.now() - startTime) / 1000;
-                const formattedTime = formatDuration(elapsedSeconds);
-                const display = document.getElementById('global-timer-display');
-                if (display && display.textContent !== formattedTime) display.textContent = formattedTime;
-            }
-            
-            if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
-
-            Object.keys(state.activeTimers).forEach(taskId => {
-                const task = state.tasks.find(t => t.id === taskId);
-                if (task) {
-                    const currentSeconds = getTaskCurrentTrackedSeconds(task);
-                    const formattedTime = formatDuration(currentSeconds);
-                     document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
-                        if (el.textContent !== formattedTime) el.textContent = formattedTime;
-                    });
+            try {
+                const { isRunning, startTime } = state.ui.globalTimer;
+                if (isRunning && startTime) {
+                    const elapsedSeconds = (Date.now() - startTime) / 1000;
+                    const formattedTime = formatDuration(elapsedSeconds);
+                    const display = document.getElementById('global-timer-display');
+                    if (display && display.textContent !== formattedTime) display.textContent = formattedTime;
                 }
-            });
+                
+                if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
 
-            if (state.ui.openedProjectId) {
-                const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
-                if (projectTotalTimeEl) {
-                    const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
-                    const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
-                    const formattedTotalTime = formatDuration(totalSeconds);
-                    if (projectTotalTimeEl.textContent !== formattedTotalTime) projectTotalTimeEl.textContent = formattedTotalTime;
+                Object.keys(state.activeTimers).forEach(taskId => {
+                    const task = state.tasks.find(t => t.id === taskId);
+                    if (task) {
+                        const currentSeconds = getTaskCurrentTrackedSeconds(task);
+                        const formattedTime = formatDuration(currentSeconds);
+                         document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
+                            if (el.textContent !== formattedTime) el.textContent = formattedTime;
+                        });
+                    }
+                });
+
+                if (state.ui.openedProjectId) {
+                    const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
+                    if (projectTotalTimeEl) {
+                        const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
+                        const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+                        const formattedTotalTime = formatDuration(totalSeconds);
+                        if (projectTotalTimeEl.textContent !== formattedTotalTime) projectTotalTimeEl.textContent = formattedTotalTime;
+                    }
                 }
+            } catch (error) {
+                console.error("Error inside setInterval timer update:", error);
+                // This catch block prevents the interval from crashing the app.
             }
         }, 1000);
     } catch (error) {
