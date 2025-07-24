@@ -706,6 +706,23 @@
   .empty-command-list {
     @apply text-center p-8 text-text-subtle;
   }
+
+  /* Team Calendar Month View Events */
+  .calendar-event-bar {
+    @apply absolute h-6 px-0.5 z-10;
+  }
+  .calendar-event-content {
+    @apply w-full h-full flex items-center text-xs font-medium truncate;
+  }
+  .calendar-event-content.is-start {
+    @apply rounded-l-md pl-2;
+  }
+  .calendar-event-content.is-end {
+    @apply rounded-r-md;
+  }
+  .calendar-event-content.is-continued {
+     @apply -ml-px; /* Overlap borders for seamless look */
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

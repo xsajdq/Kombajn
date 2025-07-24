@@ -20,8 +20,8 @@ function getUserColorClass(userId: string): string {
     return colors[colorIndex];
 }
 
-function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date: string, name: string }) {
-    let baseClasses = 'p-1.5 text-xs font-medium rounded-md truncate';
+function getEventBarDetails(item: any) {
+    let colorClasses = '';
     let text = '';
     let handler = '';
     let title = '';
@@ -32,28 +32,28 @@ function renderCalendarItem(item: Task | TimeOffRequest | CalendarEvent | { date
             medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         };
-        baseClasses += ` cursor-pointer ${priorityColors[item.priority || 'low']}`;
+        colorClasses = `cursor-pointer ${priorityColors[item.priority || 'low']}`;
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        baseClasses += ` ${getUserColorClass(item.userId)}`;
+        colorClasses = `${getUserColorClass(item.userId)}`;
         text = `${userName}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
     } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
         const event = item as CalendarEvent;
-        baseClasses += ' bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+        colorClasses = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
         text = event.title;
         title = `${t(`team_calendar.${event.type || 'event'}`)}: ${event.title}`;
     } else if ('name' in item && 'date' in item) { // PublicHoliday
-        baseClasses += ' bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        colorClasses = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
         text = item.name;
         title = `${t('team_calendar.public_holiday')}: ${item.name}`;
     }
 
-    return `<div class="${baseClasses}" title="${title}" ${handler}>${text}</div>`;
+    return { colorClasses, text, handler, title };
 }
 
 function getItemsForDay(dayDateString: string) {
@@ -79,39 +79,111 @@ function getItemsForDay(dayDateString: string) {
 }
 
 function renderMonthView(year: number, month: number) {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayOfMonth = new Date(year, month - 1, 1);
-    const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7; 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    let daysHtml = Array(firstDayIndex).fill('<div class="border-r border-b border-border-color bg-background/50"></div>').join('');
+    const monthStartDate = new Date(year, month - 1, 1);
+    const monthEndDate = new Date(year, month, 0);
 
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isToday = today.getFullYear() === year && today.getMonth() === month - 1 && today.getDate() === day;
-        const itemsForDay = getItemsForDay(dayDateString);
+    const allItems = [
+        ...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && (t.startDate || t.dueDate)),
+        ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
+        ...state.calendarEvents.filter(e => e.workspaceId === state.activeWorkspaceId),
+        ...state.publicHolidays
+    ].map(original => {
+        let startDateStr: string, endDateStr: string;
+        let id: string;
+        if ('projectId' in original) { // Task
+            const task = original as Task;
+            id = task.id;
+            startDateStr = task.startDate || task.dueDate!;
+            endDateStr = task.dueDate!;
+        } else if ('id' in original) { // TimeOffRequest or CalendarEvent
+            const eventOrRequest = original as TimeOffRequest | CalendarEvent;
+            id = eventOrRequest.id;
+            startDateStr = eventOrRequest.startDate;
+            endDateStr = eventOrRequest.endDate;
+        } else { // PublicHoliday
+            const holiday = original as {date: string, name: string};
+            id = holiday.date;
+            startDateStr = holiday.date;
+            endDateStr = holiday.date;
+        }
+        return { 
+            id,
+            item: original, 
+            startDate: new Date(startDateStr + 'T12:00:00Z'), 
+            endDate: new Date(endDateStr + 'T12:00:00Z')
+        };
+    }).filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate);
+    
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const calendarStartDate = new Date(firstDayOfMonth);
+    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
 
-        daysHtml += `
-            <div class="border-r border-b border-border-color p-2 min-h-[120px] ${isToday ? 'bg-primary/5' : ''}">
-                <div class="font-medium text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day}</div>
-                <div class="mt-1 space-y-1">
-                    ${itemsForDay.map(renderCalendarItem).join('')}
-                </div>
-            </div>
-        `;
+    let dayCellsHtml = '';
+    let eventBarsHtml = '';
+    const dateIterator = new Date(calendarStartDate);
+
+    for (let week = 0; week < 6; week++) {
+        const weekStartDate = new Date(calendarStartDate);
+        weekStartDate.setDate(weekStartDate.getDate() + week * 7);
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+        const itemsInWeek = allItems
+            .filter(item => item.startDate <= weekEndDate && item.endDate >= weekStartDate)
+            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime() || (b.endDate.getTime() - a.endDate.getTime()));
+
+        const weekLayout: (string | null)[][] = Array.from({ length: 7 }, () => []);
+
+        for (const { id, item, startDate, endDate } of itemsInWeek) {
+            const startDayOfWeek = startDate < weekStartDate ? 0 : (startDate.getDay() + 6) % 7;
+            const endDayOfWeek = endDate > weekEndDate ? 6 : (endDate.getDay() + 6) % 7;
+            
+            let laneIndex = 0;
+            while (true) {
+                let isFree = true;
+                for (let d = startDayOfWeek; d <= endDayOfWeek; d++) {
+                    if (weekLayout[d][laneIndex] !== undefined) { isFree = false; break; }
+                }
+                if (isFree) break;
+                laneIndex++;
+            }
+            
+            for (let d = startDayOfWeek; d <= endDayOfWeek; d++) { weekLayout[d][laneIndex] = id; }
+            
+            const span = endDayOfWeek - startDayOfWeek + 1;
+            const isStart = startDate >= weekStartDate;
+            const isEnd = endDate <= weekEndDate;
+
+            const { colorClasses, text, handler, title } = getEventBarDetails(item);
+            let finalClasses = `calendar-event-content ${colorClasses}`;
+            if (isStart) finalClasses += ' is-start';
+            if (isEnd) finalClasses += ' is-end';
+            if (!isStart) finalClasses += ' is-continued';
+            
+            eventBarsHtml += `
+                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeek + 1} / span ${span}; top: ${2 + laneIndex * 26}px;" ${handler} title="${title}">
+                    <div class="${finalClasses}">${text}</div>
+                </div>`;
+        }
     }
-
-    const totalCells = firstDayIndex + daysInMonth;
-    const remainingCells = (7 - (totalCells % 7)) % 7;
-    daysHtml += Array(remainingCells).fill('<div class="border-r border-b border-border-color bg-background/50"></div>').join('');
-
-
+    
+    for (let i = 0; i < 42; i++) {
+        const isCurrentMonth = dateIterator.getMonth() === month - 1;
+        const isToday = dateIterator.getTime() === today.getTime();
+        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[120px] ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}"><div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getDate()}</div></div>`;
+        dateIterator.setDate(dateIterator.getDate() + 1);
+    }
+    
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return `
         <div class="overflow-x-auto">
-            <div class="grid grid-cols-7 min-w-[800px]">
+            <div class="relative grid grid-cols-7 min-w-[900px]" style="grid-template-rows: auto repeat(6, minmax(120px, auto));">
                 ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
-                ${daysHtml}
+                ${dayCellsHtml}
+                ${eventBarsHtml}
             </div>
         </div>
     `;
@@ -140,7 +212,10 @@ function renderWeekView(currentDate: Date) {
                     <p class="text-2xl font-bold">${dayDate.getDate()}</p>
                 </div>
                 <div class="space-y-1">
-                    ${itemsForDay.map(renderCalendarItem).join('')}
+                    ${itemsForDay.map(item => {
+                        const { colorClasses, text, handler, title } = getEventBarDetails(item);
+                        return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses}" title="${title}" ${handler}>${text}</div>`
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -156,7 +231,10 @@ function renderDayView(currentDate: Date) {
     return `
         <div class="p-4 space-y-2">
             ${itemsForDay.length > 0
-                ? itemsForDay.map(renderCalendarItem).join('')
+                ? itemsForDay.map(item => {
+                    const { colorClasses, text, handler, title } = getEventBarDetails(item);
+                    return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses}" title="${title}" ${handler}>${text}</div>`
+                }).join('')
                 : `<div class="flex items-center justify-center py-8 text-text-subtle">${t('misc.no_events_for_day')}</div>`
             }
         </div>
