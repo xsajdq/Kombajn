@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut } from '../services/api.ts';
@@ -8,17 +7,15 @@ import type { Objective, KeyResult } from '../types.ts';
 export async function handleCreateObjective(projectId: string, title: string, description: string) {
     if (!state.activeWorkspaceId) return;
 
-    const payload: Omit<Objective, 'id'> = {
+    const payload: Omit<Objective, 'id' | 'currentValue' | 'status'> = {
         workspaceId: state.activeWorkspaceId,
         projectId,
         title,
         description,
-        status: 'in_progress',
-        currentValue: 0,
     };
 
     try {
-        const [newObjective] = await apiPost('objectives', payload);
+        const [newObjective] = await apiPost('objectives', {...payload, status: 'in_progress', currentValue: 0});
         state.objectives.push(newObjective);
         closeModal(false);
         updateUI(['side-panel']);
@@ -29,18 +26,16 @@ export async function handleCreateObjective(projectId: string, title: string, de
 }
 
 export async function handleAddKeyResult(objectiveId: string, title: string, type: 'number' | 'percentage', startValue: number, targetValue: number) {
-    const payload: Omit<KeyResult, 'id'> = {
+    const payload: Omit<KeyResult, 'id' | 'completed' | 'currentValue'> = {
         objectiveId,
         title,
         type,
         startValue,
         targetValue,
-        currentValue: startValue,
-        completed: false,
     };
 
     try {
-        const [newKeyResult] = await apiPost('key_results', payload);
+        const [newKeyResult] = await apiPost('key_results', {...payload, completed: false, currentValue: startValue});
         state.keyResults.push(newKeyResult);
         closeModal(false);
         updateUI(['side-panel']);
@@ -50,25 +45,26 @@ export async function handleAddKeyResult(objectiveId: string, title: string, typ
     }
 }
 
-export async function handleUpdateKeyResultValue(keyResultId: string, newValue: number) {
-    const kr = state.keyResults.find(k => k.id === keyResultId);
-    if (!kr) return;
+export async function handleUpdateKeyResultValue(krId: string, value: number) {
+    const keyResult = state.keyResults.find(kr => kr.id === krId);
+    if (!keyResult) return;
 
-    const krItemEl = document.querySelector(`.key-result-item[data-kr-id="${keyResultId}"]`);
-    if (krItemEl) {
-        delete (krItemEl as HTMLElement).dataset.editing;
+    const originalValue = keyResult.currentValue;
+    keyResult.currentValue = value;
+
+    // After updating, we need to remove the editing state from the UI
+    const krItem = document.querySelector(`.key-result-item[data-kr-id="${krId}"]`);
+    if (krItem) {
+        krItem.removeAttribute('data-editing');
     }
-
-    const originalValue = kr.currentValue;
-    kr.currentValue = newValue;
     updateUI(['side-panel']);
 
     try {
-        await apiPut('key_results', { id: keyResultId, currentValue: newValue });
+        await apiPut('key_results', { id: krId, currentValue: value });
     } catch (error) {
-        console.error("Failed to update key result:", error);
-        kr.currentValue = originalValue;
+        console.error("Failed to update key result value:", error);
+        alert("Could not update key result.");
+        keyResult.currentValue = originalValue; // Revert
         updateUI(['side-panel']);
-        alert("Could not update key result value.");
     }
 }
