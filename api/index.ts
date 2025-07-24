@@ -198,26 +198,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         return res.status(201).json(keysToCamel(data));
                     }
                     case 'PUT': {
-                        const recordToUpdate = { ...bodyInSnakeCase };
-                        const id = recordToUpdate.id;
-                        if (id) delete recordToUpdate.id;
+                        const id = bodyInSnakeCase.id;
                         if (!id) return res.status(400).json({ error: 'ID is required for update' });
-                    
-                        let queryBuilder = (supabase.from(resource) as any).update(recordToUpdate).eq('id', id);
-                    
+                        
+                        const recordToUpdate = { ...bodyInSnakeCase };
+                        delete recordToUpdate.id;
+
+                        let query = supabase.from(resource).update(recordToUpdate).eq('id', id);
+
                         if (resource === 'dashboard_widgets') {
-                            queryBuilder = queryBuilder.eq('user_id', user.id);
+                            query = query.eq('user_id', user.id);
                         }
-                    
-                        // Chaining .select() is a workaround for a PostgREST schema cache issue.
-                        // It forces the schema to be re-read before the update, fixing "column not found" errors.
-                        const { data, error } = await queryBuilder.select();
+
+                        // This is the definitive fix for the PostgREST schema cache issue.
+                        // By chaining .select(), we force the API to re-read the table schema before the update.
+                        const { data, error } = await query.select();
                         
                         if (error) {
-                            console.error(`Supabase PUT error for resource '${resource}':`, error.message);
+                            // Log the detailed error on the server for debugging
+                            console.error(`Supabase PUT Error [${resource}] for ID '${id}':`, error.message);
+                            // Re-throw to send a 500 response
                             throw error;
                         }
                         
+                        // Standardize the response to always return the updated data array
                         return res.status(200).json(keysToCamel(data));
                     }
                     case 'DELETE': {
