@@ -90,7 +90,7 @@ export function renderTaskCard(task: Task) {
                             <span>${commentsCount}</span>
                         </div>
                     ` : ''}
-                    ${kanbanViewMode === 'detailed' && subtasks.length > 0 ? `
+                    ${kanbanViewMode === 'simple' && subtasks.length > 0 ? `
                         <div class="stat-item" title="${t('tasks.subtask_progress', { completed: completedSubtasks.toString(), total: subtasks.length.toString() })}">
                             <span class="material-icons-sharp">check_box</span>
                             <span>${completedSubtasks}/${subtasks.length}</span>

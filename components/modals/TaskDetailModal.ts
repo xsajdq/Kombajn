@@ -239,12 +239,15 @@ function renderDependenciesTab(task: Task) {
 }
 
 function renderSidebar(task: Task) {
-    const project = state.projects.find(p => p.id === task.projectId);
-    const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean) as User[];
+    const assignees = state.taskAssignees
+        .filter(a => a.taskId === task.id)
+        .map(a => state.users.find(u => u.id === a.userId))
+        .filter((u): u is User => !!u);
+        
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === task.workspaceId)
         .map(m => state.users.find(u => u.id === m.userId))
-        .filter(Boolean);
+        .filter((u): u is User => !!u);
     
     const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
 
@@ -289,15 +292,15 @@ function renderSidebar(task: Task) {
                 <label>${t('modals.assignees')}</label>
                 <div class="assignee-list">
                     ${assignees.map(user => `
-                        <div class="assignee-item">
+                        <div class="assignee-item group">
                             <div class="avatar">${user.initials}</div>
                             <span>${user.name}</span>
                             <button class="btn-icon remove-assignee" data-user-id="${user.id}"><span class="material-icons-sharp text-base">close</span></button>
                         </div>
                     `).join('')}
                     <div class="relative">
-                        <button class="add-assignee-btn">${t('modals.assignees')}</button>
-                        <div class="assignee-dropdown">
+                        <button class="add-assignee-btn" data-menu-toggle="assignee-dropdown">${t('modals.assignees')}</button>
+                        <div id="assignee-dropdown" class="assignee-dropdown">
                             ${workspaceMembers.map(user => `
                                 <div class="assignee-dropdown-item" data-user-id="${user!.id}">
                                     <div class="avatar">${user!.initials}</div>
@@ -342,8 +345,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
         </div>
     `;
 
-    const { activeTab, isEditing } = state.ui.taskDetail;
-    const project = state.projects.find(p => p.id === task.projectId);
+    const { activeTab } = state.ui.taskDetail;
 
     let tabContent = '';
     switch(activeTab) {
@@ -355,7 +357,6 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
     }
 
     const tabs = ['activity', 'checklist', 'subtasks', 'dependencies', 'attachments'];
-    const canManage = can('manage_tasks');
 
     return `
         <div class="task-detail-layout">

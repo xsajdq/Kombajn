@@ -15,8 +15,9 @@ export async function bootstrapApp(session: Session) {
     if (isBootstrapping || appInitialized) return;
     isBootstrapping = true;
 
-    document.getElementById('app')!.innerHTML = `<div class="fixed inset-0 bg-background flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>`;
-        
+    // The app shell will be rendered immediately, with a loader inside the main content area.
+    // This avoids a blank white page or a full-screen loader, improving perceived performance.
+    
     try {
         await fetchInitialData(session);
 
@@ -34,12 +35,24 @@ export async function bootstrapApp(session: Session) {
             localStorage.removeItem('activeWorkspaceId');
         }
 
-        if (state.activeWorkspaceId) {
-            await fetchWorkspaceData(state.activeWorkspaceId);
-        }
-
         history.replaceState({}, '', `/${state.currentPage}`);
-        await renderApp();
+        
+        // Render the app shell with a loading state for the main content
+        if (state.activeWorkspaceId && state.currentPage !== 'setup') {
+            // Use the dashboard's loading flag as it's the main entry point and fetches all workspace data.
+            state.ui.dashboard.isLoading = true;
+            await renderApp(); // Renders shell and the page with its internal loader.
+
+            // Now fetch the detailed data for the workspace
+            await fetchWorkspaceData(state.activeWorkspaceId);
+            state.ui.dashboard.isLoading = false;
+            
+            // Re-render just the page content with the new data
+            await updateUI(['page']);
+        } else {
+            // For the 'setup' page or if there's no workspace, no heavy data is needed before the first render.
+            await renderApp();
+        }
         
         if (state.currentUser) subscribeToUserChannel();
         if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);

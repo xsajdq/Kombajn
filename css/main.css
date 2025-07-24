@@ -38,6 +38,22 @@
 }
 
 @layer components {
+  /* == Global Custom Scrollbar == */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: rgba(var(--background-color-rgb), 0.5);
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--subtle-text-color-rgb), 0.4);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(var(--subtle-text-color-rgb), 0.6);
+  }
+
   /* == Side Panel Overlay == */
   #side-panel-container {
       @apply fixed top-0 right-0 h-full w-[95vw] sm:w-[60vw] max-w-3xl bg-content shadow-2xl z-40 transform translate-x-full transition-transform duration-300 ease-in-out;
@@ -102,34 +118,50 @@
     @apply text-xs;
   }
 
-  /* == Redesigned Task Detail Modal (Single Column) == */
-  .task-detail-header-view-grid, .task-detail-header-edit-grid {
-    @apply grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3;
+  /* == Redesigned Task Detail Modal == */
+  .task-detail-layout {
+      @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
   }
-  .task-detail-header-item {
-    @apply flex flex-col gap-1;
+  .task-detail-main {
+      @apply lg:col-span-2 space-y-4;
   }
-  .task-detail-header-label {
-    @apply text-xs font-medium text-text-subtle;
+  .task-detail-sidebar {
+      @apply lg:col-span-1 space-y-4;
   }
-  .task-detail-header-value {
-    @apply text-sm font-medium flex items-center gap-1.5;
+  .sidebar-item {
+      @apply flex flex-col gap-1.5;
   }
-  
-  .task-detail-title { @apply text-xl font-bold; }
-  .task-detail-description { @apply text-sm text-text-subtle mt-2 mb-4; }
-  .task-detail-tabs {
-    @apply flex border-b border-border-color my-4;
+  .sidebar-item label {
+      @apply text-xs font-medium text-text-subtle;
   }
-  .task-detail-tab {
-    @apply px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer;
+  .assignee-list {
+      @apply space-y-2;
   }
-  .task-detail-tab.active {
-    @apply border-primary text-primary;
+  .assignee-item {
+      @apply flex items-center gap-2 p-1 rounded-md text-sm hover:bg-background;
   }
-  .task-detail-tab:not(.active) {
-    @apply border-transparent text-text-subtle hover:border-border-color hover:text-text-main;
+  .assignee-item .avatar {
+      @apply w-6 h-6 text-xs;
   }
+  .assignee-item .remove-assignee {
+      @apply ml-auto opacity-0 group-hover:opacity-100;
+  }
+  .add-assignee-btn {
+      @apply w-full text-left text-sm text-text-subtle p-2 rounded-md hover:bg-background;
+  }
+  .assignee-dropdown {
+      @apply absolute z-10 w-full bg-content border border-border-color rounded-md shadow-lg mt-1 hidden;
+  }
+  .assignee-dropdown-item {
+      @apply flex items-center gap-2 p-2 text-sm hover:bg-background cursor-pointer;
+  }
+  .sidebar-divider {
+      @apply border-t border-border-color my-2;
+  }
+  .sidebar-heading {
+      @apply text-sm font-semibold text-text-subtle;
+  }
+
   .activity-feed { @apply space-y-4 max-h-96 overflow-y-auto pr-2 -mr-2 mb-4; }
   .activity-item { @apply flex gap-3; }
   .activity-item .avatar { @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold shrink-0; }
@@ -143,6 +175,7 @@
   .rich-text-input { @apply w-full p-2 text-sm outline-none bg-transparent min-h-[60px]; }
   .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
   .add-comment-form button { @apply self-end; }
+  .checklist-item { @apply flex justify-between items-center; }
 
   .form-control {
     @apply w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
@@ -178,39 +211,8 @@
     @apply fixed z-[60]; /* Higher than modal's z-index */
   }
 
-  /* == Redesigned Subtasks Tab == */
-  .subtask-list-enhanced {
-      @apply space-y-1;
-  }
-  .subtask-item-enhanced {
-      @apply flex items-center gap-3 p-2 rounded-md hover:bg-background;
-  }
-  .subtask-item-enhanced.clickable {
-      @apply cursor-pointer;
-  }
-  .subtask-status-toggle .subtask-checkbox {
-      @apply w-4 h-4 rounded text-primary focus:ring-primary;
-  }
-  .subtask-name {
-      @apply flex-1 text-sm;
-  }
-  .subtask-name.done {
-      @apply line-through text-text-subtle;
-  }
-  .subtask-meta {
-      @apply flex items-center gap-3 text-xs text-text-subtle;
-  }
-  .subtask-meta .avatar-stack .avatar {
-      @apply w-5 h-5 text-xs;
-  }
-  .subtask-duedate {
-      @apply px-1.5 py-0.5 rounded-md bg-border-color;
-  }
-  .delete-subtask-btn {
-      @apply opacity-0 group-hover:opacity-100 transition-opacity;
-  }
-  .subtask-item-enhanced:hover .delete-subtask-btn {
-      @apply opacity-100;
+  .dependency-item {
+      @apply flex justify-between items-center bg-background p-2 rounded-md text-sm;
   }
 
   /* == Tasks Page (Redesigned) == */
@@ -225,21 +227,6 @@
   }
   .tasks-board-column-body {
     @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-2 -mx-2;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--subtle-text-color-rgb), 0.4) transparent;
-  }
-  .tasks-board-column-body::-webkit-scrollbar {
-    width: 6px;
-  }
-  .tasks-board-column-body::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .tasks-board-column-body::-webkit-scrollbar-thumb {
-    background-color: rgba(var(--subtle-text-color-rgb), 0.4);
-    border-radius: 3px;
-  }
-  .tasks-board-column-body::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(var(--subtle-text-color-rgb), 0.6);
   }
 
   /* Redesigned Task Card */
