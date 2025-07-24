@@ -10,6 +10,7 @@ import { fetchInitialData, fetchWorkspaceData } from './handlers/main.ts';
 import type { Session } from '@supabase/supabase-js';
 
 let isBootstrapping = false;
+let hasBootstrapped = false;
 
 // This function now ONLY handles fetching data and setting state. It should THROW on error.
 export async function bootstrapApp(session: Session) {
@@ -78,6 +79,7 @@ async function main() {
         if (session) {
             // 1. Fetch all data first.
             await bootstrapApp(session);
+            hasBootstrapped = true;
             // 2. Then render the complete app with populated state.
             await renderApp();
             
@@ -94,10 +96,11 @@ async function main() {
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
 
-            if (event === 'SIGNED_IN' && session) {
+            if (event === 'SIGNED_IN' && session && !hasBootstrapped) {
                 showLoader();
                 try {
                     await bootstrapApp(session);
+                    hasBootstrapped = true;
                     await renderApp();
                     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
                     if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
@@ -109,6 +112,7 @@ async function main() {
             } else if (event === 'SIGNED_OUT') {
                 await unsubscribeAll();
                 isBootstrapping = false;
+                hasBootstrapped = false;
                 Object.assign(state, getInitialState());
                 state.currentUser = null;
                 state.currentPage = 'auth';
