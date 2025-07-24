@@ -1,5 +1,3 @@
-
-
 import { GenerateContentResponse } from "@google/genai";
 import { state } from './state.ts';
 import { t } from './i18n.ts';
@@ -21,68 +19,75 @@ export function generateInvoicePDF(invoiceId: string) {
         return;
     }
 
-    const { jsPDF } = jspdf;
+    const { jsPDF, autoTable } = jspdf;
     const doc = new jsPDF({
         orientation: 'p',
         unit: 'mm',
         format: 'a4'
     });
-    const pageHeight = doc.internal.pageSize.height;
-    const pageMargin = 15;
+    const pageMargin = 20;
     const pageWidth = doc.internal.pageSize.width;
 
     const generatePdfContent = () => {
+        let yPos = 30;
+
         // --- HEADER ---
-        doc.setFontSize(26);
+        doc.setFontSize(28);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(31, 41, 55); // Gray 800
-        doc.text(`${t('invoices.invoice_singular').toUpperCase()}`, pageMargin, 30);
+        doc.setTextColor('#111827');
+        doc.text(t('invoices.invoice_singular').toUpperCase(), pageMargin, yPos);
+        yPos += 8;
 
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(107, 114, 128); // Gray 500
-        doc.text(`${invoice.invoiceNumber}`, pageMargin, 37);
-        
-        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, 35, { align: 'right' });
-        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, 42, { align: 'right' });
+        doc.setTextColor('#6B7280');
+        doc.text(`${invoice.invoiceNumber}`, pageMargin, yPos);
 
+        // --- DATES (Aligned with title, below logo) ---
+        const datesY = 38;
+        doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, datesY, { align: 'right' });
+        doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, datesY + 7, { align: 'right' });
+
+        yPos = 65; // Set yPos for the next section
 
         // --- SELLER & BUYER ---
-        let yPos = 55;
-        doc.setFontSize(10);
+        doc.setLineWidth(0.1);
+        doc.setDrawColor('#E5E7EB');
+        doc.line(pageMargin, yPos - 10, pageWidth - pageMargin, yPos - 10);
+
+        doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(107, 114, 128);
-        doc.text(`${t('panels.seller').toUpperCase()}`, pageMargin, yPos);
-        doc.text(`${t('panels.buyer').toUpperCase()}`, pageWidth / 2, yPos);
-        yPos += 6;
-        
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(31, 41, 55);
-        doc.setFontSize(11);
-        doc.text(workspace.companyName || '', pageMargin, yPos);
-        doc.text(client.name, pageWidth / 2, yPos);
+        doc.setTextColor('#6B7280');
+        doc.text(t('panels.seller').toUpperCase(), pageMargin, yPos);
+        doc.text(t('panels.buyer').toUpperCase(), pageWidth / 2 + 10, yPos);
         yPos += 6;
 
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor('#1F2937');
         doc.setFontSize(10);
-        doc.setTextColor(55, 65, 81);
+        doc.text(workspace.companyName || '', pageMargin, yPos);
+        doc.text(client.name, pageWidth / 2 + 10, yPos);
+        yPos += 5;
+
+        doc.setFontSize(9);
+        doc.setTextColor('#4B5563');
         const sellerAddress = (workspace.companyAddress || '').split('\n');
         let tempY = yPos;
         sellerAddress.forEach(line => {
             doc.text(line, pageMargin, tempY);
-            tempY += 5;
+            tempY += 4;
         });
         doc.text(`${t('modals.vat_id')}: ${workspace.companyVatId || ''}`, pageMargin, tempY);
 
         const buyerAddress = (client.address || 'Address not specified').split('\n');
         tempY = yPos;
         buyerAddress.forEach(line => {
-            doc.text(line, pageWidth / 2, tempY);
-            tempY += 5;
+            doc.text(line, pageWidth / 2 + 10, tempY);
+            tempY += 4;
         });
-        doc.text(`${t('modals.vat_id')}: ${client.vatId || t('misc.not_applicable')}`, pageWidth / 2, tempY);
-        
-        yPos = tempY + 15;
+        doc.text(`${t('modals.vat_id')}: ${client.vatId || t('misc.not_applicable')}`, pageWidth / 2 + 10, tempY);
 
+        yPos = tempY + 20;
 
         // --- TABLE ---
         const tableColumn = ["#", t('modals.item_description'), t('modals.item_qty'), t('invoices.unit_price'), t('invoices.total_price')];
@@ -91,14 +96,13 @@ export function generateInvoicePDF(invoiceId: string) {
 
         invoice.items.forEach((item, index) => {
             const total = item.quantity * item.unitPrice;
-            const row = [
+            tableRows.push([
                 index + 1,
                 item.description,
                 item.quantity.toFixed(2),
-                item.unitPrice.toFixed(2),
-                total.toFixed(2)
-            ];
-            tableRows.push(row);
+                item.unitPrice.toFixed(2) + ' PLN',
+                total.toFixed(2) + ' PLN'
+            ]);
             subtotal += total;
         });
 
@@ -106,86 +110,61 @@ export function generateInvoicePDF(invoiceId: string) {
             head: [tableColumn],
             body: tableRows,
             startY: yPos,
-            theme: 'striped', // 'striped', 'grid', 'plain'
+            theme: 'striped',
             headStyles: {
-                fillColor: [59, 130, 246], // Blue 500
+                fillColor: [59, 130, 246],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 10
             },
             styles: {
                 cellPadding: 3,
-                fontSize: 10
+                fontSize: 9,
+                valign: 'middle'
             },
             columnStyles: {
-                2: { halign: 'right' },
-                3: { halign: 'right' },
-                4: { halign: 'right' }
+                0: { cellWidth: 10 },
+                2: { halign: 'right', cellWidth: 20 },
+                3: { halign: 'right', cellWidth: 30 },
+                4: { halign: 'right', cellWidth: 30 },
             }
         });
-        
+
         let finalY = (doc as any).lastAutoTable.finalY;
 
         // --- TOTALS ---
-        finalY += 10;
-        const total = subtotal; // Assuming no tax for now
-        
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(55, 65, 81);
-        doc.text(`${t('modals.total')}:`, pageWidth - pageMargin - 30, finalY, { align: 'right'});
-
+        finalY += 15;
+        doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(31, 41, 55);
-        doc.text(`${total.toFixed(2)} PLN`, pageWidth - pageMargin, finalY, { align: 'right' });
-
-
-        // --- FOOTER / PAYMENT INFO ---
-        finalY = pageHeight - 40;
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(229, 231, 235); // Gray 200
-        doc.line(pageMargin, finalY, pageWidth - pageMargin, finalY);
-        finalY += 10;
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(107, 114, 128);
-        doc.text("Payment Details", pageMargin, finalY);
-
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(55, 65, 81);
-        doc.text(workspace.companyBankName || 'Bank Name Not Provided', pageMargin, finalY + 6);
-        doc.text(workspace.companyBankAccount || 'Bank Account Not Provided', pageMargin, finalY + 11);
-
+        doc.text(`${t('modals.total')}:`, pageWidth - pageMargin - 40, finalY, { align: 'right' });
+        doc.text(`${subtotal.toFixed(2)} PLN`, pageWidth - pageMargin, finalY, { align: 'right' });
 
         doc.save(`invoice-${invoice.invoiceNumber}.pdf`);
     };
-    
-    // --- LOGO HANDLING ---
+
     if (workspace.companyLogo) {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.src = workspace.companyLogo;
         img.onload = () => {
             if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                const logoHeight = 15; 
+                const logoHeight = 15;
                 const logoWidth = (img.naturalWidth * logoHeight) / img.naturalHeight;
-                const maxLogoWidth = 50;
-                const finalLogoWidth = logoWidth > maxLogoWidth ? maxLogoWidth : logoWidth;
+                const maxLogoWidth = 60;
+                const finalLogoWidth = Math.min(logoWidth, maxLogoWidth);
                 const format = workspace.companyLogo!.includes('jpeg') ? 'JPEG' : 'PNG';
                 
-                // Position logo on the top right
-                doc.addImage(img, format, pageWidth - pageMargin - finalLogoWidth, 15, finalLogoWidth, logoHeight);
+                // Position logo on the top right with padding from the top and right edges
+                doc.addImage(img, format, pageWidth - pageMargin - finalLogoWidth, 18, finalLogoWidth, logoHeight);
             }
             generatePdfContent();
         };
-        img.onerror = () => {
-            console.error("Failed to load logo for PDF, generating without it.");
-            generatePdfContent();
-        };
+        img.onerror = () => generatePdfContent();
     } else {
         generatePdfContent();
     }
 }
+
 
 export async function sendSlackNotification(userId: string, message: string, workspaceId: string) {
     try {

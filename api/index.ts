@@ -210,12 +210,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         }
                     
                         if (resource === 'tasks') {
-                            const { error } = await queryBuilder.select();
+                            const { data, error } = await queryBuilder.select();
                             if (error) {
                                 console.error('Supabase update error for tasks:', error.message);
                                 throw error;
                             }
-                            return res.status(204).send(undefined);
+                            return res.status(200).json(keysToCamel(data));
                         } else {
                             const { data, error } = await queryBuilder.select();
                             if (error) throw error;
