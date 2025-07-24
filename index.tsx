@@ -16,8 +16,10 @@ export async function bootstrapApp(session: Session) {
     isBootstrapping = true;
     
     try {
+        // 1. Fetch core data needed for the shell (user, workspaces)
         await fetchInitialData(session);
 
+        // 2. Determine active workspace
         const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
         if (userWorkspaces.length > 0) {
             const lastActiveId = localStorage.getItem('activeWorkspaceId');
@@ -34,15 +36,21 @@ export async function bootstrapApp(session: Session) {
 
         history.replaceState({}, '', `/${state.currentPage}`);
         
-        // Fetch data BEFORE rendering to ensure widgets are populated.
+        // 3. Set loading state and render the app shell (with a loading indicator in the dashboard)
+        if (state.activeWorkspaceId && state.currentPage !== 'setup') {
+            state.ui.dashboard.isLoading = true;
+        }
+        await renderApp(); // Render the shell
+
+        // 4. Fetch the detailed workspace data in the background
         if (state.activeWorkspaceId && state.currentPage !== 'setup') {
             await fetchWorkspaceData(state.activeWorkspaceId);
+            state.ui.dashboard.isLoading = false;
+            updateUI(['page']); // Re-render ONLY the page content with the new data
         }
-
-        // Now that all data is loaded, render the entire application.
-        await renderApp();
         
-        if (state.currentUser) subscribeToUserChannel();
+        // 5. Subscribe to channels and handle onboarding
+        if (state.currentUser) await subscribeToUserChannel();
         if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
         
         const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
@@ -61,13 +69,8 @@ export async function bootstrapApp(session: Session) {
 
 
 async function main() {
-    // Show a global loader immediately while we fetch initial data.
-    // renderApp() will replace this once everything is ready.
-    document.getElementById('app')!.innerHTML = `
-        <div class="flex items-center justify-center h-screen bg-background">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-        </div>
-    `;
+    // The app shell will be rendered first, with its own internal loading state.
+    // This avoids a jarring full-screen loader.
 
     try {
         setupEventListeners();

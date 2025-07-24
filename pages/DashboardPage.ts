@@ -255,21 +255,19 @@ export function DashboardPage() {
     const { currentUser, activeWorkspaceId } = state;
     if (!currentUser || !activeWorkspaceId) return '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
-    const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
-    if (!activeWorkspace) return '';
-
     if (state.ui.dashboard.isLoading) {
         return `
             <div class="flex flex-col items-center justify-center h-full">
                 <div class="w-full max-w-xs text-center p-4">
-                    <div class="w-full bg-border-color rounded-full h-1.5 mb-4 overflow-hidden">
-                        <div class="bg-primary h-1.5 rounded-full animate-pulse" style="width: 75%"></div>
-                    </div>
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
                     <p class="text-sm text-text-subtle">Loading your dashboard...</p>
                 </div>
             </div>
         `;
     }
+    
+    const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
+    if (!activeWorkspace) return '';
     
     const { isEditing, activeTab } = state.ui.dashboard;
 

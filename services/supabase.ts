@@ -43,10 +43,19 @@ export async function initSupabase() {
     }
 }
 
-export function subscribeToUserChannel() {
+export async function subscribeToUserChannel() {
     if (!supabase || !state.currentUser || (userChannel && (userChannel.state === 'joined' || userChannel.state === 'joining'))) return;
 
-    if (userChannel) supabase.removeChannel(userChannel);
+    if (userChannel) await supabase.removeChannel(userChannel);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+        console.error("No session token found, cannot subscribe to user channel.");
+        return;
+    }
+
+    // Explicitly set the auth token for the realtime client
+    supabase.realtime.setAuth(session.access_token);
 
     const userId = state.currentUser.id;
     userChannel = supabase.channel(`user-notifications:${userId}`);
@@ -68,11 +77,21 @@ export function subscribeToUserChannel() {
                 }
             }
         )
-        .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') console.log(`Successfully subscribed to user channel for ${userId}`);
-            if (status === 'CHANNEL_ERROR' && err) console.error(`Failed to subscribe to user channel:`, err);
+        .subscribe(async (status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`Successfully subscribed to user channel for ${userId}`);
+            }
+            if (status === 'CHANNEL_ERROR' && err) {
+                console.error(`Failed to subscribe to user channel:`, err);
+                // Attempt to re-subscribe on channel error (e.g., token expired)
+                console.log('Attempting to re-subscribe to user channel...');
+                await supabase!.removeChannel(userChannel!);
+                userChannel = null;
+                setTimeout(subscribeToUserChannel, 3000); // Retry after 3 seconds
+            }
         });
 }
+
 
 export async function switchWorkspaceChannel(workspaceId: string) {
     if (!supabase) return;
