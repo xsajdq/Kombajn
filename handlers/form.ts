@@ -4,7 +4,7 @@ import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
-import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment } from '../types.ts';
+import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment, Budget } from '../types.ts';
 import { t } from '../i18n.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
@@ -481,27 +481,61 @@ export async function handleFormSubmit() {
         
         if (type === 'addExpense') {
             const form = document.getElementById('addExpenseForm') as HTMLFormElement;
-            const projectId = form.dataset.projectId!;
             const description = (document.getElementById('expenseDescription') as HTMLInputElement).value;
             const amount = parseFloat((document.getElementById('expenseAmount') as HTMLInputElement).value);
             const date = (document.getElementById('expenseDate') as HTMLInputElement).value;
-
-            if (!description || isNaN(amount) || !date || !projectId) {
-                alert("Please fill all fields for the expense.");
+            const category = (document.getElementById('expenseCategory') as HTMLSelectElement).value;
+            const projectId = (document.getElementById('expenseProject') as HTMLSelectElement).value;
+        
+            if (!description || isNaN(amount) || !date || !category) {
+                alert("Please fill all required fields for the expense.");
                 return;
             }
-
+        
             const payload: Omit<Expense, 'id'> = {
                 workspaceId: activeWorkspaceId,
-                projectId,
+                userId: state.currentUser.id,
+                projectId: projectId || undefined,
                 description,
                 amount,
                 date,
-                isBillable: true, // Default to billable for now
+                category,
             };
-
+        
             const [newExpense] = await apiPost('expenses', payload);
             state.expenses.push(newExpense);
+        }
+
+        if (type === 'setBudgets') {
+            const form = document.getElementById('setBudgetsForm') as HTMLFormElement;
+            const period = form.dataset.period!;
+            const budgetRows = form.querySelectorAll<HTMLElement>('.budget-item-row');
+            
+            const budgetPayloads: Omit<Budget, 'id'>[] = [];
+            budgetRows.forEach(row => {
+                const category = (row.querySelector<HTMLInputElement>('input[name="category"]'))!.value;
+                const amount = parseFloat((row.querySelector<HTMLInputElement>('input[name="amount"]'))!.value);
+                if (category && !isNaN(amount)) {
+                    budgetPayloads.push({
+                        workspaceId: activeWorkspaceId,
+                        category,
+                        period,
+                        amount,
+                    });
+                }
+            });
+
+            if (budgetPayloads.length > 0) {
+                const updatedBudgets = await apiPost('budgets', budgetPayloads);
+                updatedBudgets.forEach((updated: Budget) => {
+                    const index = state.budgets.findIndex(b => b.id === updated.id);
+                    if (index > -1) {
+                        state.budgets[index] = updated;
+                    } else {
+                        state.budgets.push(updated);
+                    }
+                });
+            }
         }
 
         if (type === 'addInventoryItem') {

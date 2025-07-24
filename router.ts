@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
@@ -20,6 +21,7 @@ import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './h
 import { updateUI } from './app-renderer.ts';
 import { GoalsPage } from './pages/GoalsPage.ts';
 import { InventoryPage } from './pages/InventoryPage.ts';
+import { BudgetPage } from './pages/BudgetPage.ts';
 
 export async function router() {
     // If no user is authenticated, always show the authentication page.
@@ -93,6 +95,7 @@ export async function router() {
         case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
         case 'goals':           return can('view_goals') ? GoalsPage() : DashboardPage();
         case 'inventory':       return can('view_inventory') ? InventoryPage() : DashboardPage();
+        case 'budget-and-expenses': return can('view_budgets') ? BudgetPage() : DashboardPage();
         case 'auth':            return AuthPage(); // Fallback case
         case 'dashboard':
         default:

@@ -58,6 +58,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.keyResults = data.keyResults || [];
         state.inventoryItems = data.inventoryItems || [];
         state.inventoryAssignments = data.inventoryAssignments || [];
+        state.budgets = data.budgets || [];
         
         // Set loaded flags to prevent re-fetching on navigation
         state.ui.dashboard.loadedWorkspaceId = workspaceId;

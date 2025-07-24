@@ -75,6 +75,7 @@ export function getInitialState(): AppState {
         inventoryItems: [],
         inventoryAssignments: [],
         userTaskSortOrders: [],
+        budgets: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,

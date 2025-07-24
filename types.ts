@@ -41,6 +41,7 @@ export type Permission =
     | 'view_settings'
     | 'view_goals'
     | 'view_inventory'
+    | 'view_budgets'
     // Main Entity Management
     | 'manage_projects'
     | 'create_projects'
@@ -50,7 +51,8 @@ export type Permission =
     | 'manage_tasks'
     | 'manage_automations'
     | 'manage_goals'
-    | 'manage_inventory';
+    | 'manage_inventory'
+    | 'manage_budgets';
 
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'business' | 'enterprise';
@@ -441,13 +443,16 @@ export interface CalendarEvent {
 export interface Expense {
     id: string;
     workspaceId: string;
-    projectId: string;
+    projectId?: string;
+    userId?: string;
     description: string;
     amount: number;
     date: string; // YYYY-MM-DD
     invoiceId?: string;
-    // New field
     isBillable?: boolean;
+    category?: string;
+    vendor?: string;
+    receiptUrl?: string;
 }
 
 export interface Deal {
@@ -563,11 +568,19 @@ export interface InventoryAssignment {
     createdAt: string;
 }
 
+export interface Budget {
+    id: string;
+    workspaceId: string;
+    category: string;
+    period: string; // YYYY-MM-01 for monthly, YYYY-MM-DD for quarterly start
+    amount: number;
+}
+
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 
 export interface AppState {
-    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory';
+    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
     currentUser: User | null;
     activeWorkspaceId: string | null;
     workspaces: Workspace[];
@@ -612,6 +625,7 @@ export interface AppState {
     inventoryItems: InventoryItem[];
     inventoryAssignments: InventoryAssignment[];
     userTaskSortOrders: UserTaskSortOrder[];
+    budgets: Budget[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -670,7 +684,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | 'setBudgets' | null;
             data?: any;
             justOpened?: boolean;
         };
