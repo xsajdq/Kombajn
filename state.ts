@@ -1,5 +1,4 @@
 
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -33,6 +32,7 @@ export function getInitialState(): AppState {
         currentPage: 'dashboard',
         currentUser: null,
         activeWorkspaceId: null,
+        error: null,
         workspaces: [],
         workspaceMembers: [],
         projectMembers: [],

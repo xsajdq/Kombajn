@@ -583,6 +583,7 @@ export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
     currentUser: User | null;
     activeWorkspaceId: string | null;
+    error: string | null;
     workspaces: Workspace[];
     workspaceMembers: WorkspaceMember[];
     projectMembers: ProjectMember[];

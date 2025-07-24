@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -77,6 +78,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.ui.clients.loadedWorkspaceId = null;
         state.ui.invoices.loadedWorkspaceId = null;
         state.ui.sales.loadedWorkspaceId = null;
+        throw error; // Re-throw the error to be caught by the bootstrap process
     }
 }
 

@@ -10,51 +10,42 @@ import { fetchInitialData, fetchWorkspaceData } from './handlers/main.ts';
 import type { Session } from '@supabase/supabase-js';
 
 let isBootstrapping = false;
-let appInitialized = false;
 
-// This function now ONLY handles fetching data and setting state. It does NOT render.
+// This function now ONLY handles fetching data and setting state. It should THROW on error.
 export async function bootstrapApp(session: Session) {
     if (isBootstrapping) return;
     isBootstrapping = true;
-    appInitialized = false;
     
-    try {
-        // 1. Fetch core data needed for the shell (user, workspaces)
-        await fetchInitialData(session);
+    // 1. Fetch core data needed for the shell (user, workspaces)
+    await fetchInitialData(session);
 
-        // 2. Determine active workspace
-        const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
-        if (userWorkspaces.length > 0) {
-            const lastActiveId = localStorage.getItem('activeWorkspaceId');
-            const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
-            state.activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
-            localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId!);
-            
-            if (state.currentPage === 'auth' || state.currentPage === 'setup') state.currentPage = 'dashboard';
-        } else {
-            state.currentPage = 'setup';
-            state.activeWorkspaceId = null;
-            localStorage.removeItem('activeWorkspaceId');
-        }
-
-        history.replaceState({}, '', `/${state.currentPage}`);
+    // 2. Determine active workspace
+    const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
+    if (userWorkspaces.length > 0) {
+        const lastActiveId = localStorage.getItem('activeWorkspaceId');
+        const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
+        state.activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
+        localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId!);
         
-        // 3. Fetch all detailed workspace data
-        if (state.activeWorkspaceId && state.currentPage !== 'setup') {
-            await fetchWorkspaceData(state.activeWorkspaceId);
-        }
-        
-        // 4. Subscribe to channels after fetching data
-        if (state.currentUser) await subscribeToUserChannel();
-        if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
-        
-        appInitialized = true;
-    } catch (error) {
-        console.error(">>> BOOTSTRAP FAILED <<<", error);
-        await auth.logout();
-    } finally {
-        isBootstrapping = false;
+        if (state.currentPage === 'auth' || state.currentPage === 'setup') state.currentPage = 'dashboard';
+    } else {
+        state.currentPage = 'setup';
+        state.activeWorkspaceId = null;
+        localStorage.removeItem('activeWorkspaceId');
     }
+
+    history.replaceState({}, '', `/${state.currentPage}`);
+    
+    // 3. Fetch all detailed workspace data. If this fails, the error will be caught by main().
+    if (state.activeWorkspaceId && state.currentPage !== 'setup') {
+        await fetchWorkspaceData(state.activeWorkspaceId);
+    }
+    
+    // 4. Subscribe to channels after fetching data
+    if (state.currentUser) await subscribeToUserChannel();
+    if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
+    
+    isBootstrapping = false;
 }
 
 
@@ -63,8 +54,14 @@ async function main() {
     const showLoader = () => {
         app.innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div></div>`;
     };
+    const showError = (message: string) => {
+        app.innerHTML = `<div class="flex flex-col items-center justify-center h-screen text-center p-4">
+            <h3 class="text-xl font-semibold mb-2">Failed to Load Application</h3>
+            <p class="text-text-subtle mb-4 max-w-md">${message}</p>
+            <button onclick="window.location.reload()" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Refresh</button>
+        </div>`;
+    };
 
-    // Show loader immediately, as we might need to fetch data.
     showLoader();
 
     try {
@@ -99,16 +96,19 @@ async function main() {
 
             if (event === 'SIGNED_IN' && session) {
                 showLoader();
-                await bootstrapApp(session);
-                await renderApp();
-                const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-                if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
-                    setTimeout(() => startOnboarding(), 500);
+                try {
+                    await bootstrapApp(session);
+                    await renderApp();
+                    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+                    if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
+                        setTimeout(() => startOnboarding(), 500);
+                    }
+                } catch (error) {
+                    showError((error as Error).message);
                 }
             } else if (event === 'SIGNED_OUT') {
                 await unsubscribeAll();
                 isBootstrapping = false;
-                appInitialized = false;
                 Object.assign(state, getInitialState());
                 state.currentUser = null;
                 state.currentPage = 'auth';
@@ -151,7 +151,7 @@ async function main() {
     } catch (error) {
         console.error("Application initialization failed:", error);
         const errorMessage = (error as Error).message || 'Could not initialize the application.';
-        document.getElementById('app')!.innerHTML = `<div class="empty-state"><h3>Failed to load application</h3><p>${errorMessage}</p></div>`;
+        showError(errorMessage);
     }
 }
 
