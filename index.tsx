@@ -1,3 +1,4 @@
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -11,9 +12,11 @@ import type { Session } from '@supabase/supabase-js';
 let isBootstrapping = false;
 let appInitialized = false;
 
+// This function now ONLY handles fetching data and setting state. It does NOT render.
 export async function bootstrapApp(session: Session) {
-    if (isBootstrapping || appInitialized) return;
+    if (isBootstrapping) return;
     isBootstrapping = true;
+    appInitialized = false;
     
     try {
         // 1. Fetch core data needed for the shell (user, workspaces)
@@ -36,22 +39,14 @@ export async function bootstrapApp(session: Session) {
 
         history.replaceState({}, '', `/${state.currentPage}`);
         
-        // 3. Fetch all detailed workspace data BEFORE the first render
+        // 3. Fetch all detailed workspace data
         if (state.activeWorkspaceId && state.currentPage !== 'setup') {
             await fetchWorkspaceData(state.activeWorkspaceId);
         }
         
-        // 4. Now that all data is loaded, render the complete app
-        await renderApp();
-        
-        // 5. Subscribe to channels and handle onboarding
+        // 4. Subscribe to channels after fetching data
         if (state.currentUser) await subscribeToUserChannel();
         if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
-        
-        const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-        if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
-            setTimeout(() => startOnboarding(), 500);
-        }
         
         appInitialized = true;
     } catch (error) {
@@ -69,6 +64,9 @@ async function main() {
         app.innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div></div>`;
     };
 
+    // Show loader immediately, as we might need to fetch data.
+    showLoader();
+
     try {
         setupEventListeners();
         window.addEventListener('popstate', () => updateUI(['page', 'sidebar']));
@@ -77,25 +75,36 @@ async function main() {
         await initSupabase();
         if (!supabase) throw new Error("Supabase client failed to initialize.");
 
-        // Handle the initial session on page load
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) console.error("Error getting initial session:", sessionError);
 
         if (session) {
-            showLoader();
+            // 1. Fetch all data first.
             await bootstrapApp(session);
+            // 2. Then render the complete app with populated state.
+            await renderApp();
+            
+            // 3. Handle post-render actions like onboarding
+            const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+            if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
+                setTimeout(() => startOnboarding(), 500);
+            }
         } else {
             state.currentPage = 'auth';
             await renderApp();
         }
         
-        // Listen for subsequent auth changes
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
 
             if (event === 'SIGNED_IN' && session) {
                 showLoader();
                 await bootstrapApp(session);
+                await renderApp();
+                const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+                if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
+                    setTimeout(() => startOnboarding(), 500);
+                }
             } else if (event === 'SIGNED_OUT') {
                 await unsubscribeAll();
                 isBootstrapping = false;
@@ -107,7 +116,6 @@ async function main() {
             }
         });
         
-        // Timer update interval
         setInterval(() => {
             const { isRunning, startTime } = state.ui.globalTimer;
             if (isRunning && startTime) {
