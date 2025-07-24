@@ -300,6 +300,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
                 }
             
+                // Sequentially fetch project_members based on fetched projects
+                const projects = projectsRes.data || [];
+                const projectIds = projects.map(p => p.id);
+                const { data: projectMembersData, error: projectMembersError } =
+                    projectIds.length > 0
+                    ? await supabase.from('project_members').select('*').in('project_id', projectIds)
+                    : { data: [], error: null };
+                if (projectMembersError) throw projectMembersError;
+
                 // Fetch and attach invoice line items
                 const invoices = invoicesRes.data || [];
                 if (invoices.length > 0) {
@@ -322,7 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 return res.status(200).json(keysToCamel({
                     dashboardWidgets: dashboardWidgetsRes.data,
-                    projects: projectsRes.data,
+                    projects: projects,
                     tasks: tasksRes.data,
                     clients: clientsRes.data,
                     invoices: invoices,
@@ -334,6 +343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     timeOffRequests: timeOffRequestsRes.data,
                     reviews: reviewsRes.data,
                     userTaskSortOrders: userTaskSortOrdersRes.data,
+                    projectMembers: projectMembersData,
                 }));
             }
             case 'clients-page-data':

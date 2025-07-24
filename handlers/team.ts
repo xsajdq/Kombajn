@@ -8,7 +8,8 @@ import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
 import { switchWorkspaceChannel, supabase } from '../services/supabase.ts';
 import { startOnboarding } from './onboarding.ts';
-import { bootstrapApp } from '../index.tsx';
+import { renderApp } from '../app-renderer.ts';
+import { fetchWorkspaceData } from './main.ts';
 
 export async function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
@@ -29,12 +30,9 @@ export async function handleWorkspaceSwitch(workspaceId: string) {
 
         await switchWorkspaceChannel(workspaceId);
 
-        // Re-bootstrap the workspace data only
-        const session = await supabase?.auth.getSession();
-        if (session?.data.session) {
-             // A "soft" bootstrap, only for the new workspace data
-             await bootstrapApp(session.data.session);
-        }
+        // Fetch new workspace data and re-render the entire app
+        await fetchWorkspaceData(workspaceId);
+        await renderApp();
     }
 }
 

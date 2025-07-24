@@ -1,80 +1,15 @@
-
-
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
-import { apiFetch } from './services/api.ts';
-import type { User, Workspace, WorkspaceMember, DashboardWidget, Invoice, InvoiceLineItem, Integration, ClientContact, Client, Notification, FilterView } from './types.ts';
 import { initSupabase, subscribeToUserChannel, switchWorkspaceChannel, unsubscribeAll, supabase } from './services/supabase.ts';
 import { startOnboarding } from './handlers/onboarding.ts';
 import * as auth from './services/auth.ts';
+import { fetchInitialData, fetchWorkspaceData } from './handlers/main.ts';
 import type { Session } from '@supabase/supabase-js';
 
 let isBootstrapping = false;
 let appInitialized = false;
-
-export async function fetchInitialData(session: Session) {
-    console.log("Fetching core data...");
-    const data = await apiFetch('/api?action=bootstrap', {}, session);
-
-    if (!data) throw new Error("Bootstrap data is null or undefined.");
-    
-    state.currentUser = data.currentUser;
-    if (!state.currentUser) throw new Error("Bootstrap data is missing current user profile.");
-
-    state.users = data.profiles || [];
-    state.workspaces = (data.workspaces || []).map((w: any) => ({
-        ...w,
-        subscription: { planId: w.subscriptionPlanId, status: w.subscriptionStatus },
-        planHistory: w.planHistory || []
-    }));
-    state.workspaceMembers = data.workspaceMembers || [];
-    state.workspaceJoinRequests = data.workspaceJoinRequests || [];
-    
-    // Notifications and integrations are global to the user, load them here.
-    state.notifications = data.notifications || [];
-    state.integrations = data.integrations || [];
-    state.filterViews = [];
-    
-    console.log("Core data fetched successfully.");
-}
-
-async function fetchWorkspaceData(workspaceId: string) {
-    console.log(`Fetching data for workspace ${workspaceId}...`);
-    
-    // Mark dashboard as loading for this workspace
-    state.ui.dashboard.isLoading = true;
-    updateUI(['page']);
-
-    try {
-        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}`);
-        if (!data) throw new Error("Dashboard data fetch returned null.");
-
-        state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        state.projects = data.projects || [];
-        state.tasks = data.tasks || [];
-        state.clients = data.clients || [];
-        state.invoices = data.invoices || [];
-        state.timeLogs = data.timeLogs || [];
-        state.comments = data.comments || [];
-        state.taskAssignees = data.taskAssignees || [];
-        state.projectSections = data.projectSections || [];
-        state.taskViews = data.taskViews || [];
-        state.reviews = data.reviews || [];
-        state.timeOffRequests = data.timeOffRequests || [];
-        state.userTaskSortOrders = data.userTaskSortOrders || [];
-        
-        state.ui.dashboard.loadedWorkspaceId = workspaceId;
-        console.log(`Successfully fetched data for workspace ${workspaceId}.`);
-    } catch (error) {
-        console.error("Failed to fetch workspace data:", error);
-    } finally {
-        state.ui.dashboard.isLoading = false;
-        // The caller (bootstrapApp) will handle rendering.
-    }
-}
-
 
 export async function bootstrapApp(session: Session) {
     if (isBootstrapping || appInitialized) return;
