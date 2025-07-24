@@ -14,9 +14,6 @@ let appInitialized = false;
 export async function bootstrapApp(session: Session) {
     if (isBootstrapping || appInitialized) return;
     isBootstrapping = true;
-
-    // The app shell will be rendered immediately, with a loader inside the main content area.
-    // This avoids a blank white page or a full-screen loader, improving perceived performance.
     
     try {
         await fetchInitialData(session);
@@ -37,22 +34,13 @@ export async function bootstrapApp(session: Session) {
 
         history.replaceState({}, '', `/${state.currentPage}`);
         
-        // Render the app shell with a loading state for the main content
+        // Fetch data BEFORE rendering to ensure widgets are populated.
         if (state.activeWorkspaceId && state.currentPage !== 'setup') {
-            // Use the dashboard's loading flag as it's the main entry point and fetches all workspace data.
-            state.ui.dashboard.isLoading = true;
-            await renderApp(); // Renders shell and the page with its internal loader.
-
-            // Now fetch the detailed data for the workspace
             await fetchWorkspaceData(state.activeWorkspaceId);
-            state.ui.dashboard.isLoading = false;
-            
-            // Re-render just the page content with the new data
-            await updateUI(['page']);
-        } else {
-            // For the 'setup' page or if there's no workspace, no heavy data is needed before the first render.
-            await renderApp();
         }
+
+        // Now that all data is loaded, render the entire application.
+        await renderApp();
         
         if (state.currentUser) subscribeToUserChannel();
         if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
@@ -73,6 +61,14 @@ export async function bootstrapApp(session: Session) {
 
 
 async function main() {
+    // Show a global loader immediately while we fetch initial data.
+    // renderApp() will replace this once everything is ready.
+    document.getElementById('app')!.innerHTML = `
+        <div class="flex items-center justify-center h-screen bg-background">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+        </div>
+    `;
+
     try {
         setupEventListeners();
         window.addEventListener('popstate', () => updateUI(['page', 'sidebar']));

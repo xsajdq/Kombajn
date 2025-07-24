@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -18,20 +17,6 @@ export function Sidebar() {
         { id: 'goals', icon: 'track_changes', text: t('sidebar.goals'), permission: 'view_goals' },
         { id: 'projects', icon: 'folder', text: t('sidebar.projects'), permission: 'view_projects' },
         { id: 'tasks', icon: 'checklist', text: t('sidebar.tasks'), permission: 'view_tasks' },
-    ];
-    
-    const customTaskViews: NavItem[] = (state.taskViews || [])
-        .filter(tv => tv.workspaceId === state.activeWorkspaceId)
-        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-        .map(tv => ({
-            id: `task-view/${tv.id}`,
-            icon: tv.icon,
-            text: tv.name
-        }));
-
-    const allMainItems: NavItem[] = [
-        ...allNavItems,
-        ...customTaskViews,
         { id: 'team-calendar', icon: 'calendar_month', text: t('sidebar.team_calendar'), permission: 'view_team_calendar' },
         { id: 'chat', icon: 'chat', text: t('sidebar.chat'), permission: 'view_chat' },
         { id: 'clients', icon: 'people', text: t('sidebar.clients'), permission: 'view_clients' },
@@ -44,7 +29,16 @@ export function Sidebar() {
         { id: 'reports', icon: 'assessment', text: t('sidebar.reports'), permission: 'view_reports' },
     ];
     
-    const navItems = allMainItems.filter(item => !item.permission || can(item.permission));
+    const customTaskViews: NavItem[] = (state.taskViews || [])
+        .filter(tv => tv.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        .map(tv => ({
+            id: `task-view/${tv.id}`,
+            icon: tv.icon,
+            text: tv.name
+        }));
+
+    const navItems = allNavItems.filter(item => !item.permission || can(item.permission));
     
     const allFooterNavItems: NavItem[] = [
         { id: 'settings', icon: 'settings', text: t('sidebar.settings'), permission: 'view_settings' },
@@ -62,11 +56,37 @@ export function Sidebar() {
       <nav class="flex-grow p-2" aria-label="Main navigation">
         <ul class="space-y-1">
           ${navItems.map(item => {
-            const isTaskView = item.id.startsWith('task-view/');
-            const isActive = isTaskView
-              ? state.ui.activeTaskViewId === item.id.split('/')[1]
-              : state.currentPage === item.id && !state.ui.activeTaskViewId;
-
+            if (item.id === 'tasks') {
+                const isParentActive = state.currentPage === 'tasks' || state.ui.activeTaskViewId !== null;
+                return `
+                <li class="relative group/tasks">
+                  <a href="/tasks" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isParentActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}">
+                    <span class="material-icons-sharp">${item.icon}</span>
+                    <span class="ml-3">${item.text}</span>
+                  </a>
+                  ${customTaskViews.length > 0 ? `
+                  <div class="absolute left-full top-0 ml-2 p-2 w-48 bg-content rounded-md shadow-lg border border-border-color z-20 
+                               opacity-0 invisible -translate-x-2 group-hover/tasks:opacity-100 group-hover/tasks:visible group-hover/tasks:translate-x-0 transition-all duration-200 ease-in-out">
+                    <ul class="space-y-1">
+                        ${customTaskViews.map(view => {
+                            const isViewActive = state.ui.activeTaskViewId === view.id.split('/')[1];
+                            return `
+                                <li>
+                                  <a href="/${view.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isViewActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}">
+                                    <span class="material-icons-sharp text-base">${view.icon}</span>
+                                    <span class="ml-2">${view.text}</span>
+                                  </a>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                  </div>
+                  ` : ''}
+                </li>
+                `;
+            }
+            
+            const isActive = state.currentPage === item.id;
             return `
             <li>
               <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
