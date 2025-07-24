@@ -36,18 +36,13 @@ export async function bootstrapApp(session: Session) {
 
         history.replaceState({}, '', `/${state.currentPage}`);
         
-        // 3. Set loading state and render the app shell (with a loading indicator in the dashboard)
-        if (state.activeWorkspaceId && state.currentPage !== 'setup') {
-            state.ui.dashboard.isLoading = true;
-        }
-        await renderApp(); // Render the shell
-
-        // 4. Fetch the detailed workspace data in the background
+        // 3. Fetch all detailed workspace data BEFORE the first render
         if (state.activeWorkspaceId && state.currentPage !== 'setup') {
             await fetchWorkspaceData(state.activeWorkspaceId);
-            state.ui.dashboard.isLoading = false;
-            updateUI(['page']); // Re-render ONLY the page content with the new data
         }
+        
+        // 4. Now that all data is loaded, render the complete app
+        await renderApp();
         
         // 5. Subscribe to channels and handle onboarding
         if (state.currentUser) await subscribeToUserChannel();
@@ -69,8 +64,10 @@ export async function bootstrapApp(session: Session) {
 
 
 async function main() {
-    // The app shell will be rendered first, with its own internal loading state.
-    // This avoids a jarring full-screen loader.
+    const app = document.getElementById('app')!;
+    const showLoader = () => {
+        app.innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div></div>`;
+    };
 
     try {
         setupEventListeners();
@@ -85,6 +82,7 @@ async function main() {
         if (sessionError) console.error("Error getting initial session:", sessionError);
 
         if (session) {
+            showLoader();
             await bootstrapApp(session);
         } else {
             state.currentPage = 'auth';
@@ -96,7 +94,7 @@ async function main() {
             console.log(`Auth event: ${event}`);
 
             if (event === 'SIGNED_IN' && session) {
-                // If user just signed in, bootstrap the app. The guard inside bootstrapApp will prevent re-runs.
+                showLoader();
                 await bootstrapApp(session);
             } else if (event === 'SIGNED_OUT') {
                 await unsubscribeAll();

@@ -222,7 +222,7 @@ function renderOverviewTab() {
         .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     
     // One-time setup for users who have no widgets configured
-    if (userWidgets.length === 0 && !state.ui.dashboard.isLoading) {
+    if (userWidgets.length === 0) {
         dashboardHandlers.createDefaultWidgets();
         return `<div class="flex items-center justify-center h-full"><p>Setting up your dashboard...</p></div>`;
     }
@@ -251,20 +251,9 @@ export function initDashboardCharts() {
 }
 
 export function DashboardPage() {
-    // Data for dashboard widgets is now loaded during bootstrap, so no extra fetch is needed here.
+    // Data for dashboard widgets is now guaranteed to be loaded before this function is called.
     const { currentUser, activeWorkspaceId } = state;
-    if (!currentUser || !activeWorkspaceId) return '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
-
-    if (state.ui.dashboard.isLoading) {
-        return `
-            <div class="flex flex-col items-center justify-center h-full">
-                <div class="w-full max-w-xs text-center p-4">
-                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
-                    <p class="text-sm text-text-subtle">Loading your dashboard...</p>
-                </div>
-            </div>
-        `;
-    }
+    if (!currentUser || !activeWorkspaceId) return '';
     
     const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!activeWorkspace) return '';
