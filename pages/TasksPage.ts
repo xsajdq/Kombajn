@@ -154,7 +154,7 @@ function renderBoardView(filteredTasks: Task[]) {
     const boardHtml = columnsToRender.map(renderColumn).join('');
         
     return `
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 overflow-y-auto overflow-x-hidden">
         <div class="tasks-board-container">
             ${boardHtml}
         </div>
