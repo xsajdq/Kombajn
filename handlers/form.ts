@@ -1,7 +1,5 @@
 
 
-
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -207,9 +205,6 @@ export async function handleFormSubmit() {
 
             const workflow = getWorkspaceKanbanWorkflow(activeWorkspaceId);
             const status = workflow === 'advanced' ? 'backlog' : 'todo';
-            const tasksInStatus = state.tasks.filter(t => t.status === status);
-            const maxSortOrder = Math.max(0, ...tasksInStatus.map(t => t.sortOrder || 0));
-
 
             const taskData: Partial<Task> = {
                 workspaceId: activeWorkspaceId,
@@ -224,7 +219,6 @@ export async function handleFormSubmit() {
                 priority: ((form.querySelector('#taskPriority') as HTMLSelectElement).value as Task['priority']) || null,
                 estimatedHours: parseDurationStringToHours(estimatedHoursString),
                 type: ((form.querySelector('#taskType') as HTMLSelectElement).value as Task['type']) || null,
-                sortOrder: maxSortOrder + 1,
             };
 
             if (data?.dealId) {

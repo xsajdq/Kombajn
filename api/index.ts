@@ -157,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views', 'reviews'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -193,6 +193,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         return res.status(200).json(keysToCamel(data));
                     }
                     case 'POST': {
+                        if (resource === 'user_task_sort_orders') {
+                            const { data, error } = await (supabase.from(resource) as any)
+                                .upsert(bodyInSnakeCase, { onConflict: 'user_id, task_id' })
+                                .select();
+                            if (error) throw error;
+                            return res.status(200).json(keysToCamel(data));
+                        }
                         const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
                         if (error) throw error;
                         return res.status(201).json(keysToCamel(data));
@@ -206,8 +213,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         const recordToUpdate = { ...bodyInSnakeCase };
                         delete recordToUpdate.id;
                     
-                        // Refactored to be more robust against schema caching issues.
-                        // This simplified approach uses .match() and chains .select() to force a schema reload.
                         const queryBuilder = supabase
                             .from(resource)
                             .update(recordToUpdate)
@@ -270,7 +275,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes, userTaskSortOrdersRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -284,11 +289,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
                     supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId),
                     supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes
+                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, reviewsRes, userTaskSortOrdersRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -327,6 +333,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     taskViews: taskViewsRes.data,
                     timeOffRequests: timeOffRequestsRes.data,
                     reviews: reviewsRes.data,
+                    userTaskSortOrders: userTaskSortOrdersRes.data,
                 }));
             }
             case 'clients-page-data':

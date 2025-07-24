@@ -102,7 +102,14 @@ function getFilteredTasks(): Task[] {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             case 'manual':
             default:
-                return (a.sortOrder || 0) - (b.sortOrder || 0);
+                const sortOrderMap = new Map(
+                    state.userTaskSortOrders
+                        .filter(o => o.userId === state.currentUser?.id)
+                        .map(o => [o.taskId, o.sortOrder])
+                );
+                const orderA = sortOrderMap.get(a.id) ?? Infinity;
+                const orderB = sortOrderMap.get(b.id) ?? Infinity;
+                return orderA - orderB;
         }
     });
 

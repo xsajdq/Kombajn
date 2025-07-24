@@ -156,7 +156,6 @@ export interface Task {
     parentId?: string; // For subtasks
     recurrence?: 'none' | 'daily' | 'weekly' | 'monthly'; // For recurring tasks
     checklist?: { id: string; text: string; completed: boolean; }[];
-    sortOrder?: number;
     // New fields
     estimatedHours?: number; // in hours
     type?: 'feature' | 'bug' | 'chore' | null;
@@ -514,6 +513,15 @@ export interface Review {
     createdAt: string; // ISO
 }
 
+export interface UserTaskSortOrder {
+    id: string;
+    userId: string;
+    taskId: string;
+    workspaceId: string;
+    status: Task['status'];
+    sortOrder: number;
+}
+
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 
 export interface AppState {
@@ -559,6 +567,7 @@ export interface AppState {
     integrations: Integration[];
     filterViews: FilterView[];
     reviews: Review[];
+    userTaskSortOrders: UserTaskSortOrder[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';

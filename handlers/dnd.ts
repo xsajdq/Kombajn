@@ -1,10 +1,11 @@
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Task, Deal, DashboardWidget } from '../types.ts';
+import type { Task, Deal, DashboardWidget, UserTaskSortOrder } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
-import { apiPut } from '../services/api.ts';
+import { apiPut, apiPost } from '../services/api.ts';
 
 let draggedItemId: string | null = null;
 let draggedItemType: 'task' | 'deal' | 'widget' | null = null;
@@ -92,44 +93,78 @@ export async function handleDrop(e: DragEvent) {
         const task = state.tasks.find(t => t.id === draggedItemId);
         if (!task || !newStatus) return;
 
-        const originalTaskState = { status: task.status, sortOrder: task.sortOrder };
+        const originalTaskStatus = task.status;
+        const sortOrderRecord = state.userTaskSortOrders.find(o => o.taskId === task.id && o.userId === state.currentUser!.id);
+        const originalSortOrderState = sortOrderRecord ? { ...sortOrderRecord } : null;
 
         // --- Calculate new sortOrder ---
+        const userSortOrders = state.userTaskSortOrders.filter(o => o.userId === state.currentUser!.id);
+        const sortOrderMap = new Map(userSortOrders.map(o => [o.taskId, o.sortOrder]));
+
         const columnBody = column.querySelector('.tasks-board-column-body');
         const tasksInColumn = Array.from(columnBody?.children || [])
             .map(el => state.tasks.find(t => t.id === (el as HTMLElement).dataset.taskId))
             .filter((t): t is Task => !!t)
-            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            .sort((a, b) => (sortOrderMap.get(a.id) || Infinity) - (sortOrderMap.get(b.id) || Infinity));
 
         const dropTargetElement = (e.target as HTMLElement).closest('.task-card');
         const dropIndex = dropTargetElement ? tasksInColumn.findIndex(t => t.id === (dropTargetElement as HTMLElement).dataset.taskId) : tasksInColumn.length;
         
         let newSortOrder: number;
         if (dropIndex === 0) {
-            newSortOrder = (tasksInColumn[0]?.sortOrder || 1) / 2;
+            newSortOrder = (sortOrderMap.get(tasksInColumn[0]?.id) || 1) / 2;
         } else if (dropIndex === tasksInColumn.length) {
-            newSortOrder = (tasksInColumn[tasksInColumn.length - 1]?.sortOrder || 0) + 1;
+            newSortOrder = (sortOrderMap.get(tasksInColumn[tasksInColumn.length - 1]?.id) || 0) + 1;
         } else {
-            const before = tasksInColumn[dropIndex - 1].sortOrder || 0;
-            const after = tasksInColumn[dropIndex].sortOrder || 0;
+            const before = sortOrderMap.get(tasksInColumn[dropIndex - 1].id) || 0;
+            const after = sortOrderMap.get(tasksInColumn[dropIndex].id) || 0;
             newSortOrder = (before + after) / 2;
         }
 
         // Optimistic update
         task.status = newStatus;
-        task.sortOrder = newSortOrder;
+        if (sortOrderRecord) {
+            sortOrderRecord.sortOrder = newSortOrder;
+            sortOrderRecord.status = newStatus;
+        } else {
+            state.userTaskSortOrders.push({
+                id: `temp-${Date.now()}`,
+                userId: state.currentUser.id,
+                taskId: task.id,
+                workspaceId: task.workspaceId,
+                status: newStatus,
+                sortOrder: newSortOrder
+            });
+        }
         renderApp();
 
         try {
-            await apiPut('tasks', { id: task.id, status: newStatus, sortOrder: newSortOrder });
-            if (originalTaskState.status !== newStatus) {
+            await apiPut('tasks', { id: task.id, status: newStatus });
+            await apiPost('user_task_sort_orders', {
+                userId: state.currentUser.id,
+                taskId: task.id,
+                workspaceId: task.workspaceId,
+                status: newStatus,
+                sortOrder: newSortOrder
+            });
+
+            if (originalTaskStatus !== newStatus) {
                 runAutomations('statusChange', { task, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error("Failed to update task:", error);
             alert("Failed to update task. Reverting change.");
-            task.status = originalTaskState.status;
-            task.sortOrder = originalTaskState.sortOrder;
+            task.status = originalTaskStatus;
+            
+            // Revert sort order state
+            const sortOrderIndex = state.userTaskSortOrders.findIndex(o => o.taskId === task.id && o.userId === state.currentUser!.id);
+            if (sortOrderIndex > -1) {
+                if (originalSortOrderState) {
+                    state.userTaskSortOrders[sortOrderIndex] = originalSortOrderState;
+                } else {
+                    state.userTaskSortOrders.splice(sortOrderIndex, 1);
+                }
+            }
             renderApp();
         }
     }

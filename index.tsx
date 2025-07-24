@@ -63,6 +63,7 @@ async function fetchWorkspaceData(workspaceId: string) {
         state.taskViews = data.taskViews || [];
         state.reviews = data.reviews || [];
         state.timeOffRequests = data.timeOffRequests || [];
+        state.userTaskSortOrders = data.userTaskSortOrders || [];
         
         state.ui.dashboard.loadedWorkspaceId = workspaceId;
         console.log(`Successfully fetched data for workspace ${workspaceId}.`);
