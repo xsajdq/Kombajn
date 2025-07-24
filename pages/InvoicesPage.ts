@@ -34,17 +34,9 @@ function getFilteredInvoices() {
         });
 }
 
-export function InvoicesPage() {
-    fetchClientsAndInvoicesData();
-
+function renderInvoicesList() {
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return '';
-
-    if (state.ui.invoices.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>`;
-    }
 
     const usage = getUsage(activeWorkspace.id);
     const planLimits = PLANS[activeWorkspace.subscription.planId];
@@ -55,17 +47,10 @@ export function InvoicesPage() {
     const clients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
 
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
-    
+
     return `
         <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!isAllowedToCreate || !canCreateInvoice ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
-                </button>
-            </div>
-            
-            <div id="invoice-filter-panel" class="bg-content p-3 rounded-lg border border-border-color grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+             <div id="invoice-filter-panel" class="bg-content p-3 rounded-lg border border-border-color grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div>
                     <label for="invoice-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('invoices.col_client')}</label>
                     <select id="invoice-filter-client" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" data-filter-key="clientId">
@@ -124,6 +109,7 @@ export function InvoicesPage() {
                                         </td>
                                         <td data-label="${t('invoices.col_actions')}" class="px-4 py-3">
                                             <div class="flex justify-end items-center gap-1">
+                                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="addInvoice" data-invoice-id="${invoice.id}" title="${t('misc.edit')}"><span class="material-icons-sharp text-lg">edit</span></button>
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-download-invoice-id="${invoice.id}" title="${t('invoices.download_pdf')}"><span class="material-icons-sharp text-lg">picture_as_pdf</span></button>
                                                 ${invoice.status === 'pending' ? `<button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')} ${invoice.emailStatus === 'sent' ? `(${t('invoices.status_sent')})` : ''}"><span class="material-icons-sharp text-lg">${invoice.emailStatus === 'sent' ? 'mark_email_read' : 'email'}</span></button>` : ''}
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-toggle-invoice-status-id="${invoice.id}" title="${invoice.status === 'paid' ? t('invoices.mark_as_unpaid') : t('invoices.mark_as_paid')}"><span class="material-icons-sharp text-lg">${invoice.status === 'paid' ? 'remove_done' : 'done_all'}</span></button>
@@ -137,6 +123,77 @@ export function InvoicesPage() {
                      ${filteredInvoices.length === 0 ? `<div class="text-center py-8 text-text-subtle">${t('invoices.no_invoices_yet')}</div>` : ''}
                 </div>
             </div>
+        </div>
+    `;
+}
+
+function renderInboxTab() {
+    return `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center bg-content p-8 rounded-lg max-w-lg">
+                 <span class="material-icons-sharp text-5xl text-primary mb-4">mark_email_unread</span>
+                 <h3 class="text-xl font-bold">${t('invoices.connect_email_title')}</h3>
+                 <p class="text-text-subtle mt-2 mb-6">${t('invoices.connect_email_desc')}</p>
+                 <div class="flex justify-center items-center gap-4">
+                     <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
+                         <img src="https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg" class="w-5 h-5" alt="Gmail logo">
+                         ${t('invoices.connect_gmail')}
+                    </button>
+                    <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
+                         <img src="https://www.vectorlogo.zone/logos/microsoft_outlook/microsoft_outlook-icon.svg" class="w-5 h-5" alt="Outlook logo">
+                         ${t('invoices.connect_outlook')}
+                    </button>
+                 </div>
+            </div>
+        </div>
+    `;
+}
+
+export function InvoicesPage() {
+    fetchClientsAndInvoicesData();
+
+    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    if (!activeWorkspace) return '';
+
+    if (state.ui.invoices.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
+
+    const usage = getUsage(activeWorkspace.id);
+    const planLimits = PLANS[activeWorkspace.subscription.planId];
+    const canCreateInvoice = usage.invoicesThisMonth < planLimits.invoices;
+    const isAllowedToCreate = can('manage_invoices');
+    const { activeTab } = state.ui.invoices;
+
+    let tabContent = '';
+    switch (activeTab) {
+        case 'invoices':
+            tabContent = renderInvoicesList();
+            break;
+        case 'inbox':
+            tabContent = renderInboxTab();
+            break;
+    }
+
+    return `
+        <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!isAllowedToCreate || !canCreateInvoice ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
+                </button>
+            </div>
+
+            <div class="border-b border-border-color">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-invoice-tab="invoices">${t('invoices.tab_invoices')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-invoice-tab="inbox">${t('invoices.tab_inbox')}</button>
+                </nav>
+            </div>
+            
+            ${tabContent}
         </div>
     `;
 }

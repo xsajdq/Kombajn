@@ -1,4 +1,5 @@
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -127,7 +128,11 @@ export function getInitialState(): AppState {
                 loadedWorkspaceId: null,
                 filters: { text: '', status: 'all' },
             },
-            invoices: { isLoading: false, loadedWorkspaceId: null },
+            invoices: { 
+                isLoading: false, 
+                loadedWorkspaceId: null,
+                activeTab: 'invoices',
+            },
             projects: { isLoading: false, loadedWorkspaceId: null },
             globalTimer: {
                 isRunning: false,

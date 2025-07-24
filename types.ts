@@ -730,6 +730,7 @@ export interface AppState {
         invoices: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            activeTab: 'invoices' | 'inbox';
         };
         projects: {
             isLoading: boolean;

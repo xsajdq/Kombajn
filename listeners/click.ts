@@ -267,6 +267,12 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-toggle-invoice-status-id]')) { invoiceHandlers.handleToggleInvoiceStatus(target.closest<HTMLElement>('[data-toggle-invoice-status-id]')!.dataset.toggleInvoiceStatusId!); return; }
     if (target.closest('#generate-invoice-items-btn')) { invoiceHandlers.handleGenerateInvoiceItems(); return; }
     if (target.closest('#add-invoice-item-btn')) { if (state.ui.modal.type === 'addInvoice') { state.ui.modal.data.items.push({ id: `new-${Date.now()}`, description: '', quantity: 1, unitPrice: 0 }); updateUI(['modal']); } return; }
+    if (target.closest<HTMLElement>('[data-invoice-tab]')) {
+        const tab = target.closest<HTMLElement>('[data-invoice-tab]')!.dataset.invoiceTab as 'invoices' | 'inbox';
+        state.ui.invoices.activeTab = tab;
+        updateUI(['page']);
+        return;
+    }
     const removeInvoiceItemBtn = target.closest('.remove-invoice-item-btn');
     if (removeInvoiceItemBtn) {
         const row = removeInvoiceItemBtn.closest<HTMLElement>('.invoice-item-row');
@@ -316,6 +322,12 @@ export async function handleClick(e: MouseEvent) {
             newCalDate.setMonth(newCalDate.getMonth() + (direction === 'next' ? 1 : -1));
             state.ui.calendarDate = newCalDate.toISOString().slice(0, 7);
         }
+        updateUI(['page']);
+        return;
+    }
+    const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
+    if (teamCalendarViewBtn) {
+        state.ui.teamCalendarView = teamCalendarViewBtn.dataset.teamCalendarView as 'month' | 'week' | 'day';
         updateUI(['page']);
         return;
     }

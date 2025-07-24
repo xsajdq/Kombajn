@@ -13,7 +13,7 @@ export function FloatingActionButton() {
     return `
         <div class="fab-container" id="fab-container">
             <div class="fab-options">
-                ${availableOptions.reverse().map(opt => `
+                ${availableOptions.map(opt => `
                     <button class="fab-option" data-modal-target="${opt.modal}">
                         <span class="font-medium text-sm">${opt.text}</span>
                         <span class="material-icons-sharp text-primary">${opt.icon}</span>
