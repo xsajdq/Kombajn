@@ -26,22 +26,26 @@ function getSupabaseAdmin() {
 }
 
 function getBaseUrl(req: VercelRequest): string {
-    // Prioritize the canonical production URL for OAuth stability across environments.
+    // 1. Use the explicitly set BASE_URL if available. This is the most reliable method.
+    if (process.env.BASE_URL) {
+        // Ensure it doesn't have a trailing slash
+        return process.env.BASE_URL.replace(/\/$/, '');
+    }
+    
+    // 2. Fallback to Vercel's production URL variable.
     if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
         return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
     }
-    // Fallback to the unique deployment URL if the production URL isn't set.
+    
+    // 3. Fallback to the current deployment's URL (less ideal for OAuth).
     if (process.env.VERCEL_URL) {
         return `https://${process.env.VERCEL_URL}`;
     }
-    // Fallback for local development or other non-Vercel environments.
+    
+    // 4. Last resort for local development or other environments.
     const proto = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['host'];
-    if (!host) {
-        // This is a last resort and should not happen in a real request context.
-        return 'http://localhost:3000';
-    }
-    return `${proto}://${host}`;
+    return host ? `${proto}://${host}` : 'http://localhost:3000';
 }
 
 
