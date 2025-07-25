@@ -26,35 +26,40 @@ function getEventBarDetails(item: any) {
     let text = '';
     let handler = '';
     let title = '';
+    let type = 'event';
 
     if ('status' in item && 'projectId' in item) { // Task
         const priorityColors: Record<string, string> = {
-            high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-            low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+            high: 'bg-red-500/80 border-red-700',
+            medium: 'bg-yellow-500/80 border-yellow-700',
+            low: 'bg-blue-500/80 border-blue-700',
         };
         colorClasses = `cursor-pointer ${priorityColors[item.priority || 'low']}`;
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
+        type = 'task';
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        colorClasses = `${getUserColorClass(item.userId)}`;
+        const userColor = getUserColorClass(item.userId).split(' ')[0].replace('bg-', 'bg-')
+        colorClasses = `${userColor.replace('100', '300')} border-${userColor.split('-')[1]}-400`;
         text = `${userName}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
+        type = 'time_off';
     } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
         const event = item as CalendarEvent;
-        colorClasses = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+        colorClasses = 'bg-indigo-400 border-indigo-600';
         text = event.title;
         title = `${t(`team_calendar.${event.type || 'event'}`)}: ${event.title}`;
     } else if ('name' in item && 'date' in item) { // PublicHoliday
-        colorClasses = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        colorClasses = 'bg-green-400 border-green-600';
         text = item.name;
         title = `${t('team_calendar.public_holiday')}: ${item.name}`;
+        type = 'holiday';
     }
 
-    return { colorClasses, text, handler, title };
+    return { colorClasses, text, handler, title, type };
 }
 
 function getItemsForDay(dayDateString: string) {
@@ -110,7 +115,7 @@ function renderMonthView(year: number, month: number) {
             startDateStr = holiday.date;
             endDateStr = holiday.date;
         }
-
+        
         if (!startDateStr || !endDateStr) return null;
         
         let d1 = new Date(Date.UTC(parseInt(startDateStr.slice(0,4)), parseInt(startDateStr.slice(5,7)) - 1, parseInt(startDateStr.slice(8,10))));
@@ -133,96 +138,107 @@ function renderMonthView(year: number, month: number) {
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    // --- New, robust layout calculation ---
-    const lanes: { item: any, startDate: Date, endDate: Date }[][] = [];
-    for (const item of allItems) {
+    const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    const calendarStartDate = new Date(firstDayOfMonth);
+    calendarStartDate.setUTCDate(calendarStartDate.getUTCDate() - (firstDayOfMonth.getUTCDay() + 6) % 7);
+    
+    const calendarEndDate = new Date(calendarStartDate);
+    calendarEndDate.setUTCDate(calendarEndDate.getUTCDate() + 41);
+
+    const weeks: { date: Date, events: any[] }[][] = [];
+    let currentDate = new Date(calendarStartDate);
+    while (currentDate <= calendarEndDate) {
+        const week: { date: Date, events: any[] }[] = [];
+        for (let i = 0; i < 7; i++) {
+            week.push({ date: new Date(currentDate), events: [] });
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        }
+        weeks.push(week);
+    }
+
+    const lanes: { endDate: Date }[][] = [];
+    allItems.forEach(event => {
         let placed = false;
         for (let i = 0; i < lanes.length; i++) {
-            const lane = lanes[i];
-            const hasOverlap = lane.some(placedItem => 
-                item.startDate <= placedItem.endDate && item.endDate >= placedItem.startDate
-            );
-            if (!hasOverlap) {
-                (item as any).laneIndex = i;
-                lane.push(item);
+            if (!lanes[i].some(e => e.endDate >= event.startDate)) {
+                (event as any).lane = i;
+                lanes[i].push({ endDate: event.endDate });
+                lanes[i].sort((a,b) => a.endDate.getTime() - b.endDate.getTime());
                 placed = true;
                 break;
             }
         }
         if (!placed) {
-            (item as any).laneIndex = lanes.length;
-            lanes.push([item]);
+            (event as any).lane = lanes.length;
+            lanes.push([{ endDate: event.endDate }]);
         }
-    }
+    });
 
-    const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1));
-    const calendarStartDate = new Date(firstDayOfMonth);
-    calendarStartDate.setUTCDate(calendarStartDate.getUTCDate() - (firstDayOfMonth.getUTCDay() + 6) % 7);
-
-    let dayCellsHtml = '';
-    const dateIterator = new Date(calendarStartDate);
-    for (let i = 0; i < 42; i++) {
-        const isCurrentMonth = dateIterator.getUTCMonth() === month - 1;
-        const isToday = dateIterator.getTime() === today.getTime();
-        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[140px] relative ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
-                           <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getUTCDate()}</div>
-                       </div>`;
-        dateIterator.setUTCDate(dateIterator.getUTCDate() + 1);
-    }
-
-    let eventBarsHtml = '';
-    for (const item of allItems) {
-        let currentIterDate = new Date(item.startDate > calendarStartDate ? item.startDate : calendarStartDate);
-        
-        while (currentIterDate <= item.endDate) {
-            const dayOfWeek = (currentIterDate.getUTCDay() + 6) % 7;
-            const weekStartDate = new Date(currentIterDate);
-            weekStartDate.setUTCDate(weekStartDate.getUTCDate() - dayOfWeek);
-
-            const daysInGrid = (currentIterDate.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24);
-            const week = Math.floor(daysInGrid / 7);
-
-            const segStartDate = currentIterDate;
-            const weekEndDate = new Date(weekStartDate);
-            weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
-            const segEndDate = item.endDate < weekEndDate ? item.endDate : weekEndDate;
-            
-            const startDayOfWeekSeg = (segStartDate.getUTCDay() + 6) % 7;
-            const endDayOfWeekSeg = (segEndDate.getUTCDay() + 6) % 7;
-            const span = endDayOfWeekSeg - startDayOfWeekSeg + 1;
-
-            if (span <= 0) break;
-
-            const isStart = segStartDate.getTime() === item.startDate.getTime();
-            const isEnd = segEndDate.getTime() === item.endDate.getTime();
-
-            const { colorClasses, text, handler, title } = getEventBarDetails(item.item);
-            let finalClasses = `calendar-event-content ${colorClasses}`;
-            if (isStart) finalClasses += ' is-start';
-            if (isEnd) finalClasses += ' is-end';
-            if (!isStart) finalClasses += ' is-continued';
-            
-            const barText = isStart ? text : '&nbsp;';
-
-            eventBarsHtml += `
-                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeekSeg + 1} / span ${span}; top: ${32 + (item as any).laneIndex * 24}px;" ${handler} title="${title}">
-                    <div class="${finalClasses}">${barText}</div>
-                </div>`;
-
-            currentIterDate = new Date(weekEndDate);
-            currentIterDate.setUTCDate(currentIterDate.getUTCDate() + 1);
-        }
-    }
-    
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
     return `
-        <div class="overflow-x-auto">
-            <div class="relative grid grid-cols-7 min-w-[900px]">
-                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
-                ${dayCellsHtml}
-                ${eventBarsHtml}
+    <div class="overflow-x-auto">
+        <div class="relative min-w-[1200px]">
+            <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
+                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+            </div>
+            <div class="grid grid-cols-7 grid-flow-row auto-rows-[minmax(120px,1fr)]">
+                ${weeks.flat().map(day => {
+                    const isCurrentMonth = day.date.getUTCMonth() === month - 1;
+                    const isToday = day.date.getTime() === today.getTime();
+                    return `<div class="border-r border-b border-border-color p-2 relative ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                               <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.date.getUTCDate()}</div>
+                           </div>`;
+                }).join('')}
+            </div>
+            <div class="absolute top-[37px] left-0 right-0 bottom-0 grid grid-cols-7 grid-flow-row auto-rows-[minmax(120px,1fr)] pointer-events-none">
+                ${allItems.map(event => {
+                    const duration = (event.endDate.getTime() - event.startDate.getTime()) / (1000 * 3600 * 24) + 1;
+                    const offsetDays = (event.startDate.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24);
+                    
+                    if (offsetDays < 0 || offsetDays >= 42) return '';
+                    
+                    const startColumn = (offsetDays % 7) + 1;
+                    const startRow = Math.floor(offsetDays / 7) + 1;
+                    const lane = (event as any).lane;
+                    
+                    const { colorClasses, text, handler, title, type } = getEventBarDetails(event.item);
+                    const textColor = type === 'task' ? 'text-white' : 'text-gray-900';
+                    const barHeight = 20;
+                    const topOffset = 28 + (lane * (barHeight + 4));
+                    
+                    let effectiveSpan = duration;
+                    if (startColumn + duration -1 > 7) {
+                        effectiveSpan = 7 - startColumn + 1;
+                    }
+
+                    return `
+                        <div class="pointer-events-auto p-1" style="grid-column: ${startColumn} / span ${effectiveSpan}; grid-row: ${startRow}; margin-top: ${topOffset}px; z-index: ${10+lane};">
+                            <div class="h-full w-full rounded-md text-xs font-medium truncate px-2 flex items-center ${textColor} ${colorClasses}" ${handler} title="${title}">
+                                ${text}
+                            </div>
+                        </div>
+                        ${(startColumn + duration - 1 > 7) ? 
+                            (()=>{
+                                let remainingDuration = duration - effectiveSpan;
+                                let currentRow = startRow + 1;
+                                let bars = '';
+                                while(remainingDuration > 0) {
+                                    const span = Math.min(remainingDuration, 7);
+                                    bars += `<div class="pointer-events-auto p-1" style="grid-column: 1 / span ${span}; grid-row: ${currentRow}; margin-top: ${topOffset}px; z-index: ${10+lane};">
+                                        <div class="h-full w-full rounded-md text-xs font-medium truncate px-2 flex items-center ${textColor} ${colorClasses}" ${handler} title="${title}">&nbsp;</div>
+                                    </div>`;
+                                    remainingDuration -= span;
+                                    currentRow++;
+                                }
+                                return bars;
+                            })()
+                        : ''}
+                    `;
+                }).join('')}
             </div>
         </div>
+    </div>
     `;
 }
 
@@ -281,8 +297,8 @@ function renderDayView(currentDate: Date) {
 export async function TeamCalendarPage() {
     const { teamCalendarDate, teamCalendarView } = state.ui;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
+    const year = currentDate.getUTCFullYear();
+    const month = currentDate.getUTCMonth() + 1;
 
     await Promise.all([
         fetchPublicHolidays(year - 1),
