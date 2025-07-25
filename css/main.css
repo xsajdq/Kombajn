@@ -709,19 +709,16 @@
 
   /* Team Calendar Month View Events */
   .calendar-event-bar {
-    @apply absolute h-5 z-10;
+    @apply absolute px-px box-border; /* Use padding to create gaps without affecting width calculations */
   }
   .calendar-event-content {
-    @apply w-full h-full flex items-center text-xs font-medium truncate px-1;
+    @apply w-full h-full flex items-center text-xs font-medium truncate;
   }
   .calendar-event-content.is-start {
     @apply rounded-l-md pl-2;
   }
   .calendar-event-content.is-end {
     @apply rounded-r-md;
-  }
-  .calendar-event-content.is-continued {
-     @apply -ml-px; /* Overlap borders for seamless look */
   }
 
   /* Workload View Styles */
