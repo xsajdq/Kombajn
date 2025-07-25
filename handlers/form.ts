@@ -371,20 +371,24 @@ export async function handleFormSubmit() {
             const to = (document.getElementById('email-to') as HTMLInputElement).value;
             const subject = (document.getElementById('email-subject') as HTMLInputElement).value;
             const body = (document.getElementById('email-body') as HTMLTextAreaElement).value;
-            const sendButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+            const sendButton = document.getElementById('modal-save-btn') as HTMLButtonElement;
 
             if (!to || !subject || !body) {
                 alert('Please fill all email fields.');
                 return;
             }
-            sendButton.disabled = true;
-            sendButton.textContent = 'Sending...';
+            if (sendButton) {
+                sendButton.disabled = true;
+                sendButton.textContent = 'Sending...';
+            }
 
             const pdfDataUri = await generateInvoicePDF(invoiceId, { outputType: 'datauristring' }) as string;
             if (!pdfDataUri) {
                 alert('Could not generate PDF for the invoice.');
-                sendButton.disabled = false;
-                sendButton.textContent = 'Send';
+                if (sendButton) {
+                    sendButton.disabled = false;
+                    sendButton.textContent = 'Send Email';
+                }
                 return;
             }
             const pdfBase64 = pdfDataUri.substring(pdfDataUri.indexOf(',') + 1);
