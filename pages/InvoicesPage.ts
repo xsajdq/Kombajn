@@ -111,7 +111,7 @@ function renderInvoicesList() {
                                             <div class="flex justify-end items-center gap-1">
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="addInvoice" data-invoice-id="${invoice.id}" title="${t('misc.edit')}"><span class="material-icons-sharp text-lg">edit</span></button>
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-download-invoice-id="${invoice.id}" title="${t('invoices.download_pdf')}"><span class="material-icons-sharp text-lg">picture_as_pdf</span></button>
-                                                ${invoice.status === 'pending' ? `<button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')} ${invoice.emailStatus === 'sent' ? `(${t('invoices.status_sent')})` : ''}"><span class="material-icons-sharp text-lg">${invoice.emailStatus === 'sent' ? 'mark_email_read' : 'email'}</span></button>` : ''}
+                                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-send-invoice-id="${invoice.id}" title="${t('invoices.send_by_email')} ${invoice.emailStatus === 'sent' ? `(${t('invoices.status_sent')})` : ''}"><span class="material-icons-sharp text-lg">${invoice.emailStatus === 'sent' ? 'mark_email_read' : 'email'}</span></button>
                                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-toggle-invoice-status-id="${invoice.id}" title="${invoice.status === 'paid' ? t('invoices.mark_as_unpaid') : t('invoices.mark_as_paid')}"><span class="material-icons-sharp text-lg">${invoice.status === 'paid' ? 'remove_done' : 'done_all'}</span></button>
                                             </div>
                                         </td>
@@ -128,22 +128,36 @@ function renderInvoicesList() {
 }
 
 function renderInboxTab() {
+    const gmailIntegration = state.integrations.find(i => i.workspaceId === state.activeWorkspaceId && i.provider === 'google_gmail' && i.isActive);
+    
+    let content;
+    if (gmailIntegration) {
+        content = `
+            <span class="material-icons-sharp text-5xl text-success mb-4">check_circle</span>
+            <h3 class="text-xl font-bold">${t('integrations.connected_as', { email: gmailIntegration.settings.googleUserEmail || '' })}</h3>
+            <p class="text-text-subtle mt-2 mb-6">You can now send invoices directly from your Gmail account.</p>
+            <button class="px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-disconnect-provider="google_gmail">
+                 ${t('integrations.disconnect')}
+            </button>
+        `;
+    } else {
+        content = `
+            <span class="material-icons-sharp text-5xl text-primary mb-4">mark_email_unread</span>
+            <h3 class="text-xl font-bold">${t('invoices.connect_email_title')}</h3>
+            <p class="text-text-subtle mt-2 mb-6">${t('invoices.connect_email_desc')}</p>
+            <div class="flex justify-center items-center gap-4">
+                 <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-connect-provider="google_gmail">
+                     <img src="https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg" class="w-5 h-5" alt="Gmail logo">
+                     ${t('invoices.connect_gmail')}
+                </button>
+            </div>
+        `;
+    }
+
     return `
         <div class="flex items-center justify-center h-full">
             <div class="text-center bg-content p-8 rounded-lg max-w-lg">
-                 <span class="material-icons-sharp text-5xl text-primary mb-4">mark_email_unread</span>
-                 <h3 class="text-xl font-bold">${t('invoices.connect_email_title')}</h3>
-                 <p class="text-text-subtle mt-2 mb-6">${t('invoices.connect_email_desc')}</p>
-                 <div class="flex justify-center items-center gap-4">
-                     <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
-                         <img src="https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg" class="w-5 h-5" alt="Gmail logo">
-                         ${t('invoices.connect_gmail')}
-                    </button>
-                    <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
-                         <img src="https://www.vectorlogo.zone/logos/microsoft_outlook/microsoft_outlook-icon.svg" class="w-5 h-5" alt="Outlook logo">
-                         ${t('invoices.connect_outlook')}
-                    </button>
-                 </div>
+                ${content}
             </div>
         </div>
     `;

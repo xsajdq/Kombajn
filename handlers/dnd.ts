@@ -6,6 +6,7 @@ import type { Task, Deal, DashboardWidget, UserTaskSortOrder } from '../types.ts
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
 import { apiPut, apiPost } from '../services/api.ts';
+import { showModal } from './ui.ts';
 
 let draggedItemId: string | null = null;
 let draggedItemType: 'task' | 'deal' | 'widget' | null = null;
@@ -184,6 +185,9 @@ export async function handleDrop(e: DragEvent) {
 
             try {
                 await apiPut('deals', { id: deal.id, stage: newStage, lastActivityAt: newActivityDate });
+                if (newStage === 'won') {
+                    showModal('dealWon', { dealId: deal.id, clientId: deal.clientId, dealName: deal.name });
+                }
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
                 alert("Failed to update deal stage. Reverting change.");

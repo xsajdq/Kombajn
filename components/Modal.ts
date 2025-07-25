@@ -114,21 +114,21 @@ export function Modal() {
         const templates = state.projectTemplates.filter(pt => pt.workspaceId === state.activeWorkspaceId);
         
         const existingMemberIds = isEdit ? new Set(state.projectMembers.filter(pm => pm.projectId === project!.id).map(pm => pm.userId)) : new Set([state.currentUser?.id]);
-
+        const projectNameFromDeal = modalData.projectName;
 
         body = `
             <form id="projectForm" class="space-y-4">
                  <input type="hidden" id="projectId" value="${project?.id || ''}">
                  <div class="${formGroupClasses}">
                     <label for="projectName" class="${labelClasses}">${t('modals.project_name')}</label>
-                    <input type="text" id="projectName" class="${formControlClasses}" required value="${project?.name || ''}">
+                    <input type="text" id="projectName" class="${formControlClasses}" required value="${project?.name || projectNameFromDeal || ''}">
                 </div>
                 <div class="${modalFormGridClasses}">
                     <div class="${formGroupClasses}">
                         <label for="projectClient" class="${labelClasses}">${t('modals.assign_to_client')}</label>
                         <select id="projectClient" class="${formControlClasses}" required>
                             <option value="">${t('modals.select_a_client')}</option>
-                            ${workspaceClients.map(c => `<option value="${c.id}" ${project?.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                            ${workspaceClients.map(c => `<option value="${c.id}" ${project?.clientId === c.id || modalData.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
@@ -422,6 +422,39 @@ export function Modal() {
             </form>
         `;
         footer = defaultFooter;
+    }
+
+    if (state.ui.modal.type === 'sendInvoiceEmail') {
+        const invoice = state.invoices.find(i => i.id === modalData.invoiceId);
+        const client = invoice ? state.clients.find(c => c.id === invoice.clientId) : null;
+        const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+        const subject = t('invoices.email_template_subject').replace('{invoiceNumber}', invoice?.invoiceNumber || '').replace('{companyName}', workspace?.companyName || '');
+        const bodyText = t('invoices.email_template_body').replace('{invoiceNumber}', invoice?.invoiceNumber || '').replace('{companyName}', workspace?.companyName || '');
+        title = `Send Invoice ${invoice?.invoiceNumber}`;
+        body = `
+            <form id="send-invoice-email-form" data-invoice-id="${invoice?.id}" class="space-y-4">
+                <div class="${formGroupClasses}">
+                    <label for="email-to" class="${labelClasses}">To:</label>
+                    <input type="email" id="email-to" class="${formControlClasses}" value="${client?.email || ''}" required>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="email-subject" class="${labelClasses}">Subject:</label>
+                    <input type="text" id="email-subject" class="${formControlClasses}" value="${subject}" required>
+                </div>
+                <div class="${formGroupClasses}">
+                    <label for="email-body" class="${labelClasses}">Body:</label>
+                    <textarea id="email-body" class="${formControlClasses}" rows="8" required>${bodyText}</textarea>
+                </div>
+                <div class="flex items-center gap-2 text-sm bg-background p-2 rounded-md">
+                    <span class="material-icons-sharp text-text-subtle">attachment</span>
+                    <span class="font-medium">Invoice-${invoice?.invoiceNumber}.pdf</span>
+                </div>
+            </form>
+        `;
+        footer = `
+            <button class="btn-close-modal">${t('modals.cancel')}</button>
+            <button class="btn btn-primary" id="modal-save-btn" type="submit" form="send-invoice-email-form">Send Email</button>
+        `;
     }
 
     if (state.ui.modal.type === 'addWidget') {
@@ -793,6 +826,17 @@ export function Modal() {
                     </div>
                 </div>
             </form>
+        `;
+    }
+
+    if (state.ui.modal.type === 'dealWon') {
+        const { dealName, clientId } = modalData;
+        maxWidth = 'max-w-md';
+        title = `Deal "${dealName}" Won!`;
+        body = `<p class="text-text-subtle">Congratulations! What would you like to do next?</p>`;
+        footer = `
+            <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">Not Now</button>
+            <button class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-hover" id="create-project-from-deal-btn" data-client-id="${clientId}" data-deal-name="${dealName}">${t('dashboard.action_new_project')}</button>
         `;
     }
 

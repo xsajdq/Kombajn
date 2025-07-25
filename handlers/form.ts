@@ -16,6 +16,7 @@ import * as dealHandler from './deals.ts';
 import * as projectHandlers from './projects.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
 import * as projectSectionHandlers from './projectSections.ts';
+import { generateInvoicePDF } from '../services.ts';
 
 export async function handleFormSubmit() {
     const { type, data } = state.ui.modal;
@@ -362,6 +363,38 @@ export async function handleFormSubmit() {
                     if (expense) expense.invoiceId = newInvoice.id;
                 }
             }
+        }
+
+        if (type === 'sendInvoiceEmail') {
+            const form = document.getElementById('send-invoice-email-form') as HTMLFormElement;
+            const invoiceId = form.dataset.invoiceId!;
+            const to = (document.getElementById('email-to') as HTMLInputElement).value;
+            const subject = (document.getElementById('email-subject') as HTMLInputElement).value;
+            const body = (document.getElementById('email-body') as HTMLTextAreaElement).value;
+            const sendButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+            if (!to || !subject || !body) {
+                alert('Please fill all email fields.');
+                return;
+            }
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+
+            const pdfDataUri = await generateInvoicePDF(invoiceId, { outputType: 'datauristring' }) as string;
+            if (!pdfDataUri) {
+                alert('Could not generate PDF for the invoice.');
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+                return;
+            }
+            const pdfBase64 = pdfDataUri.substring(pdfDataUri.indexOf(',') + 1);
+
+            await apiFetch('/api?action=send-invoice-gmail', {
+                method: 'POST',
+                body: JSON.stringify({ workspaceId: activeWorkspaceId, invoiceId, to, subject, body, pdfBase64 })
+            });
+            const invoice = state.invoices.find(i => i.id === invoiceId);
+            if(invoice) invoice.emailStatus = 'sent';
         }
         
         if (type === 'addTimeOffRequest') {

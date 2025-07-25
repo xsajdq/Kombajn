@@ -98,7 +98,7 @@ function renderMonthView(year: number, month: number) {
             const task = original as Task;
             id = task.id;
             startDateStr = task.startDate || task.dueDate!;
-            endDateStr = task.dueDate!;
+            endDateStr = task.dueDate || task.startDate!;
         } else if ('id' in original) { // TimeOffRequest or CalendarEvent
             const eventOrRequest = original as TimeOffRequest | CalendarEvent;
             id = eventOrRequest.id;
@@ -110,11 +110,16 @@ function renderMonthView(year: number, month: number) {
             startDateStr = holiday.date;
             endDateStr = holiday.date;
         }
+        
+        let d1 = new Date(startDateStr + 'T12:00:00Z');
+        let d2 = new Date(endDateStr + 'T12:00:00Z');
+        if (d1 > d2) { [d1, d2] = [d2, d1]; }
+        
         return { 
             id,
             item: original, 
-            startDate: new Date(startDateStr + 'T12:00:00Z'), 
-            endDate: new Date(endDateStr + 'T12:00:00Z')
+            startDate: d1, 
+            endDate: d2,
         };
     }).filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate);
     

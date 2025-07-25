@@ -283,7 +283,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealNotesRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -301,12 +301,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('key_results').select('*').in('objective_id', (await supabase.from('objectives').select('id').eq('workspace_id', workspaceId)).data?.map(o => o.id) || []),
                     supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
                     supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('deals').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('deal_notes').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealNotesRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -359,6 +361,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     keyResults: keyResultsRes.data,
                     inventoryItems: inventoryItemsRes.data,
                     inventoryAssignments: inventoryAssignmentsRes.data,
+                    deals: dealsRes.data,
+                    dealNotes: dealNotesRes.data,
                     budgets: [], // Temporarily return empty array to prevent crash
                     channels: [], // Temporarily return empty array to prevent crash
                     chatMessages: [], // Temporarily return empty array to prevent crash
@@ -622,12 +626,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 
                 return res.status(200).json({ message: 'Password updated successfully.' });
             }
-            case 'auth-connect-google': {
+            case 'auth-connect-google_drive': {
                 const { workspaceId } = req.query;
                 if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
                 const clientId = process.env.GOOGLE_CLIENT_ID;
                 if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
-                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-google`;
+                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-google_drive`;
                 const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/drive.file'];
                 const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
                 authUrl.searchParams.set('client_id', clientId);
@@ -639,7 +643,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 authUrl.searchParams.set('prompt', 'consent');
                 return res.redirect(302, authUrl.toString());
             }
-            case 'auth-callback-google': {
+            case 'auth-callback-google_drive': {
                 const { code, state: workspaceId, error: authError } = req.query;
                 if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'google_drive'));
                 if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_drive'));
@@ -652,7 +656,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         code: code as string,
                         client_id: process.env.GOOGLE_CLIENT_ID!,
                         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                        redirect_uri: `${process.env.BASE_URL}/api?action=auth-callback-google`,
+                        redirect_uri: `${process.env.BASE_URL}/api?action=auth-callback-google_drive`,
                         grant_type: 'authorization_code',
                     }),
                 });
@@ -670,6 +674,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (dbError) throw dbError;
 
                 return res.status(200).send(renderClosingPage(true, undefined, 'google_drive'));
+            }
+            case 'auth-connect-google_gmail': {
+                const { workspaceId } = req.query;
+                if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
+                const clientId = process.env.GOOGLE_CLIENT_ID;
+                if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
+                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-google_gmail`;
+                const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/gmail.send'];
+                const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+                authUrl.searchParams.set('client_id', clientId);
+                authUrl.searchParams.set('redirect_uri', redirectUri);
+                authUrl.searchParams.set('response_type', 'code');
+                authUrl.searchParams.set('scope', scopes.join(' '));
+                authUrl.searchParams.set('state', workspaceId as string);
+                authUrl.searchParams.set('access_type', 'offline');
+                authUrl.searchParams.set('prompt', 'consent');
+                return res.redirect(302, authUrl.toString());
+            }
+            case 'auth-callback-google_gmail': {
+                const { code, state: workspaceId, error: authError } = req.query;
+                if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'google_gmail'));
+                if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_gmail'));
+                
+                const supabase = getSupabaseAdmin();
+                const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        code: code as string,
+                        client_id: process.env.GOOGLE_CLIENT_ID!,
+                        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+                        redirect_uri: `${process.env.BASE_URL}/api?action=auth-callback-google_gmail`,
+                        grant_type: 'authorization_code',
+                    }),
+                });
+                const tokenData = await tokenResponse.json();
+                if (!tokenResponse.ok) throw new Error(tokenData.error_description || 'Failed to fetch access token.');
+
+                const { access_token, refresh_token, expires_in } = tokenData;
+                const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { 'Authorization': `Bearer ${access_token}` } });
+                const userData = await userResponse.json();
+
+                const { error: dbError } = await supabase.from('integrations').upsert({
+                    provider: 'google_gmail', workspace_id: workspaceId, is_active: true,
+                    settings: { accessToken: access_token, refreshToken: refresh_token, tokenExpiry: Math.floor(Date.now() / 1000) + expires_in, googleUserEmail: userData.email },
+                }, { onConflict: 'workspace_id, provider' });
+                if (dbError) throw dbError;
+
+                return res.status(200).send(renderClosingPage(true, undefined, 'google_gmail'));
             }
              case 'auth-connect-slack': {
                 const { workspaceId } = req.query;
@@ -746,6 +799,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["name", "description"] } },
                 }});
                 return res.status(200).json(JSON.parse((response.text || '').trim()));
+            }
+            case 'send-invoice-gmail': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
+
+                const { workspaceId, invoiceId, to, subject, body, pdfBase64 } = req.body;
+
+                const { data: integration, error: dbError } = await supabase.from('integrations').select('*').eq('workspace_id', workspaceId).eq('provider', 'google_gmail').single();
+                if (dbError || !integration?.is_active) return res.status(400).json({ error: 'Gmail integration is not active for this workspace.' });
+
+                let accessToken = integration.settings.accessToken;
+                if (Math.floor(Date.now() / 1000) >= (integration.settings.tokenExpiry || 0) - 60) {
+                    const refreshResponse = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, refresh_token: integration.settings.refreshToken, grant_type: 'refresh_token' }) });
+                    const tokenData = await refreshResponse.json();
+                    if (!refreshResponse.ok) throw new Error('Failed to refresh Gmail token.');
+                    accessToken = tokenData.access_token;
+                    await supabase.from('integrations').update({ settings: { ...integration.settings, accessToken, tokenExpiry: Math.floor(Date.now() / 1000) + tokenData.expires_in } }).eq('id', integration.id);
+                }
+
+                const {data: invoice} = await supabase.from('invoices').select('invoice_number').eq('id', invoiceId).single();
+
+                const boundary = "foo_bar_baz";
+                const mail = [
+                    `To: ${to}`,
+                    `Subject: ${subject}`,
+                    'Content-Type: multipart/mixed; boundary="' + boundary + '"',
+                    '',
+                    '--' + boundary,
+                    'Content-Type: text/plain; charset="UTF-8"',
+                    'Content-Transfer-Encoding: 7bit',
+                    '',
+                    body,
+                    '',
+                    '--' + boundary,
+                    `Content-Type: application/pdf; name="Invoice-${invoice.invoice_number}.pdf"`,
+                    'Content-Transfer-Encoding: base64',
+                    `Content-Disposition: attachment; filename="Invoice-${invoice.invoice_number}.pdf"`,
+                    '',
+                    pdfBase64,
+                    '--' + boundary + '--'
+                ].join('\r\n');
+
+                const base64EncodedEmail = Buffer.from(mail).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+                await fetch('https://www.googleapis.com/upload/gmail/v1/users/me/messages/send', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ raw: base64EncodedEmail }),
+                });
+
+                await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
+                return res.status(200).json({ success: true });
             }
             case 'notify-slack': {
                 if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });

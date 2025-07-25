@@ -46,7 +46,7 @@ async function AppLayout() {
         
         <div id="modal-container">${state.ui.modal.isOpen ? Modal() : ''}</div>
         <div id="command-palette-container">${state.ui.isCommandPaletteOpen ? CommandPalette() : ''}</div>
-        <div id="fab-container">${FloatingActionButton()}</div>
+        <div id="fab-container" class="fab-container">${FloatingActionButton()}</div>
         <div id="onboarding-container">${state.ui.onboarding.isActive ? OnboardingGuide() : ''}</div>
         <div id="mention-popover-container"></div>
     </div>

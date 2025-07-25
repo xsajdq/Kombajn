@@ -421,4 +421,13 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#global-timer-toggle')) { if(state.ui.globalTimer.isRunning) timerHandlers.stopGlobalTimer(); else timerHandlers.startGlobalTimer(); return; }
     if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
     if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
+    const createProjectFromDealBtn = target.closest('#create-project-from-deal-btn');
+    if (createProjectFromDealBtn) {
+        const btn = createProjectFromDealBtn as HTMLElement;
+        const clientId = btn.dataset.clientId;
+        const dealName = btn.dataset.dealName;
+        uiHandlers.closeModal(false);
+        uiHandlers.showModal('addProject', { clientId, projectName: dealName });
+        return;
+    }
 }

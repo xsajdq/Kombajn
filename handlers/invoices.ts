@@ -3,6 +3,7 @@ import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
 import { t } from '../i18n.ts';
 import { apiPut } from '../services/api.ts';
+import { showModal } from './ui.ts';
 
 export function handleGenerateInvoiceItems() {
     const clientSelect = document.getElementById('invoiceClient') as HTMLSelectElement | null;
@@ -105,6 +106,14 @@ export async function handleToggleInvoiceStatus(invoiceId: string) {
 }
 
 export async function handleSendInvoiceByEmail(invoiceId: string) {
+    const gmailIntegration = state.integrations.find(i => i.workspaceId === state.activeWorkspaceId && i.provider === 'google_gmail' && i.isActive);
+
+    if (gmailIntegration) {
+        showModal('sendInvoiceEmail', { invoiceId });
+        return;
+    }
+
+    // Fallback to mailto link
     const invoice = state.invoices.find(inv => inv.id === invoiceId);
     if (!invoice) return;
 

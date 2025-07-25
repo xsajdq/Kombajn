@@ -11,18 +11,16 @@ export function FloatingActionButton() {
     const availableOptions = options.filter(opt => can(opt.permission));
 
     return `
-        <div class="fab-container" id="fab-container">
-            <div class="fab-options">
-                ${availableOptions.map(opt => `
-                    <button class="fab-option" data-modal-target="${opt.modal}">
-                        <span class="font-medium text-sm">${opt.text}</span>
-                        <span class="material-icons-sharp text-primary">${opt.icon}</span>
-                    </button>
-                `).join('')}
-            </div>
-            <button class="fab-main" id="fab-main-btn" aria-label="Quick actions">
-                <span class="material-icons-sharp">add</span>
-            </button>
+        <div class="fab-options">
+            ${availableOptions.map(opt => `
+                <button class="fab-option" data-modal-target="${opt.modal}">
+                    <span class="font-medium text-sm">${opt.text}</span>
+                    <span class="material-icons-sharp text-primary">${opt.icon}</span>
+                </button>
+            `).join('')}
         </div>
+        <button class="fab-main" id="fab-main-btn" aria-label="Quick actions">
+            <span class="material-icons-sharp">add</span>
+        </button>
     `;
 }

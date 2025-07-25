@@ -8,7 +8,8 @@ import { apiFetch } from "./services/api.ts";
 
 declare const jspdf: any;
 
-export function generateInvoicePDF(invoiceId: string) {
+export function generateInvoicePDF(invoiceId: string, options: { outputType?: 'download' | 'datauristring' } = {}) {
+    const { outputType = 'download' } = options;
     const activeWorkspaceId = state.activeWorkspaceId;
     const invoice = state.invoices.find(inv => inv.id === invoiceId && inv.workspaceId === activeWorkspaceId);
     const client = state.clients.find(c => c.id === invoice?.clientId && c.workspaceId === activeWorkspaceId);
@@ -16,22 +17,22 @@ export function generateInvoicePDF(invoiceId: string) {
 
     if (!invoice || !client || !workspace) {
         alert("Could not find invoice, client or workspace data.");
-        return;
+        return null;
     }
 
-    const { jsPDF, autoTable } = jspdf;
+    const { jsPDF } = jspdf;
     const doc = new jsPDF({
         orientation: 'p',
         unit: 'mm',
         format: 'a4'
     });
+
     const pageMargin = 20;
-    const pageWidth = doc.internal.pageSize.width;
 
-    const generatePdfContent = () => {
+    const generateAndProcess = (): string | void => {
         let yPos = 30;
+        const pageWidth = doc.internal.pageSize.width;
 
-        // --- HEADER ---
         doc.setFontSize(28);
         doc.setFont("helvetica", "bold");
         doc.setTextColor('#111827');
@@ -43,14 +44,12 @@ export function generateInvoicePDF(invoiceId: string) {
         doc.setTextColor('#6B7280');
         doc.text(`${invoice.invoiceNumber}`, pageMargin, yPos);
 
-        // --- DATES (Aligned with title, below logo) ---
         const datesY = 38;
         doc.text(`${t('modals.issue_date')}: ${formatDate(invoice.issueDate)}`, pageWidth - pageMargin, datesY, { align: 'right' });
         doc.text(`${t('modals.due_date')}: ${formatDate(invoice.dueDate)}`, pageWidth - pageMargin, datesY + 7, { align: 'right' });
 
-        yPos = 65; // Set yPos for the next section
+        yPos = 65;
 
-        // --- SELLER & BUYER ---
         doc.setLineWidth(0.1);
         doc.setDrawColor('#E5E7EB');
         doc.line(pageMargin, yPos - 10, pageWidth - pageMargin, yPos - 10);
@@ -73,96 +72,68 @@ export function generateInvoicePDF(invoiceId: string) {
         doc.setTextColor('#4B5563');
         const sellerAddress = (workspace.companyAddress || '').split('\n');
         let tempY = yPos;
-        sellerAddress.forEach(line => {
-            doc.text(line, pageMargin, tempY);
-            tempY += 4;
-        });
+        sellerAddress.forEach(line => { doc.text(line, pageMargin, tempY); tempY += 4; });
         doc.text(`${t('modals.vat_id')}: ${workspace.companyVatId || ''}`, pageMargin, tempY);
 
         const buyerAddress = (client.address || 'Address not specified').split('\n');
         tempY = yPos;
-        buyerAddress.forEach(line => {
-            doc.text(line, pageWidth / 2 + 10, tempY);
-            tempY += 4;
-        });
+        buyerAddress.forEach(line => { doc.text(line, pageWidth / 2 + 10, tempY); tempY += 4; });
         doc.text(`${t('modals.vat_id')}: ${client.vatId || t('misc.not_applicable')}`, pageWidth / 2 + 10, tempY);
 
         yPos = tempY + 20;
 
-        // --- TABLE ---
         const tableColumn = ["#", t('modals.item_description'), t('modals.item_qty'), t('invoices.unit_price'), t('invoices.total_price')];
         const tableRows: any[] = [];
         let subtotal = 0;
-
         invoice.items.forEach((item, index) => {
             const total = item.quantity * item.unitPrice;
-            tableRows.push([
-                index + 1,
-                item.description,
-                item.quantity.toFixed(2),
-                item.unitPrice.toFixed(2) + ' PLN',
-                total.toFixed(2) + ' PLN'
-            ]);
+            tableRows.push([index + 1, item.description, item.quantity.toFixed(2), item.unitPrice.toFixed(2) + ' PLN', total.toFixed(2) + ' PLN']);
             subtotal += total;
         });
 
         (doc as any).autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: yPos,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [59, 130, 246],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 10
-            },
-            styles: {
-                cellPadding: 3,
-                fontSize: 9,
-                valign: 'middle'
-            },
-            columnStyles: {
-                0: { cellWidth: 10 },
-                2: { halign: 'right', cellWidth: 20 },
-                3: { halign: 'right', cellWidth: 30 },
-                4: { halign: 'right', cellWidth: 30 },
-            }
+            head: [tableColumn], body: tableRows, startY: yPos, theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+            styles: { cellPadding: 3, fontSize: 9, valign: 'middle' },
+            columnStyles: { 0: { cellWidth: 10 }, 2: { halign: 'right', cellWidth: 20 }, 3: { halign: 'right', cellWidth: 30 }, 4: { halign: 'right', cellWidth: 30 } }
         });
 
         let finalY = (doc as any).lastAutoTable.finalY;
-
-        // --- TOTALS ---
         finalY += 15;
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.text(`${t('modals.total')}:`, pageWidth - pageMargin - 40, finalY, { align: 'right' });
         doc.text(`${subtotal.toFixed(2)} PLN`, pageWidth - pageMargin, finalY, { align: 'right' });
 
-        doc.save(`invoice-${invoice.invoiceNumber}.pdf`);
+        if (outputType === 'datauristring') {
+            return doc.output('datauristring');
+        } else {
+            doc.save(`invoice-${invoice.invoiceNumber}.pdf`);
+        }
     };
 
-    if (workspace.companyLogo) {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.src = workspace.companyLogo;
-        img.onload = () => {
-            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                const logoHeight = 15;
-                const logoWidth = (img.naturalWidth * logoHeight) / img.naturalHeight;
-                const maxLogoWidth = 60;
-                const finalLogoWidth = Math.min(logoWidth, maxLogoWidth);
-                const format = workspace.companyLogo!.includes('jpeg') ? 'JPEG' : 'PNG';
-                
-                // Position logo on the top right with padding from the top and right edges
-                doc.addImage(img, format, pageWidth - pageMargin - finalLogoWidth, 18, finalLogoWidth, logoHeight);
-            }
-            generatePdfContent();
-        };
-        img.onerror = () => generatePdfContent();
-    } else {
-        generatePdfContent();
-    }
+    return new Promise((resolve) => {
+        if (workspace.companyLogo) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = workspace.companyLogo;
+            const process = () => resolve(generateAndProcess());
+            img.onload = () => {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    const logoHeight = 15;
+                    const logoWidth = (img.naturalWidth * logoHeight) / img.naturalHeight;
+                    const maxLogoWidth = 60;
+                    const finalLogoWidth = Math.min(logoWidth, maxLogoWidth);
+                    const format = workspace.companyLogo!.includes('jpeg') ? 'JPEG' : 'PNG';
+                    doc.addImage(img, format, doc.internal.pageSize.width - pageMargin - finalLogoWidth, 18, finalLogoWidth, logoHeight);
+                }
+                process();
+            };
+            img.onerror = process;
+        } else {
+            resolve(generateAndProcess());
+        }
+    });
 }
 
 
