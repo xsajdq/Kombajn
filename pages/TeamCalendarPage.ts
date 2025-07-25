@@ -6,60 +6,43 @@ import type { Task, TimeOffRequest, CalendarEvent } from '../types.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 import { formatDate } from '../utils.ts';
 
-function getUserColorClass(userId: string): string {
-    const colors = [
-        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-        'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-        'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-        'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
-        'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
-        'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-        'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-    ];
-    const colorIndex = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-    return colors[colorIndex];
-}
-
 function getEventBarDetails(item: any) {
     let colorClasses = '';
+    let textColorClass = 'text-white';
     let text = '';
     let handler = '';
     let title = '';
-    let type = 'event';
 
     if ('status' in item && 'projectId' in item) { // Task
         const priorityColors: Record<string, string> = {
-            high: 'bg-red-500/80 border-red-700',
-            medium: 'bg-yellow-500/80 border-yellow-700',
-            low: 'bg-blue-500/80 border-blue-700',
+            high: 'bg-red-500 border-red-700',
+            medium: 'bg-yellow-500 border-yellow-700',
+            low: 'bg-blue-500 border-blue-700',
         };
         colorClasses = `cursor-pointer ${priorityColors[item.priority || 'low']}`;
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
-        type = 'task';
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        const userColor = getUserColorClass(item.userId).split(' ')[0].replace('bg-', 'bg-')
-        colorClasses = `${userColor.replace('100', '300')} border-${userColor.split('-')[1]}-400`;
+        colorClasses = 'bg-green-400 border-green-600';
+        textColorClass = 'text-green-900';
         text = `${userName}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
-        type = 'time_off';
     } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
         const event = item as CalendarEvent;
         colorClasses = 'bg-indigo-400 border-indigo-600';
         text = event.title;
         title = `${t(`team_calendar.${event.type || 'event'}`)}: ${event.title}`;
     } else if ('name' in item && 'date' in item) { // PublicHoliday
-        colorClasses = 'bg-green-400 border-green-600';
+        colorClasses = 'bg-teal-400 border-teal-600';
+        textColorClass = 'text-teal-900';
         text = item.name;
         title = `${t('team_calendar.public_holiday')}: ${item.name}`;
-        type = 'holiday';
     }
 
-    return { colorClasses, text, handler, title, type };
+    return { colorClasses, textColorClass, text, handler, title };
 }
 
 function getItemsForDay(dayDateString: string) {
@@ -91,6 +74,7 @@ function renderMonthView(year: number, month: number) {
     const monthStartDate = new Date(Date.UTC(year, month - 1, 1));
     const monthEndDate = new Date(Date.UTC(year, month, 0));
 
+    // 1. Collect and normalize all items
     const allItems = [
         ...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && (t.startDate || t.dueDate)),
         ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
@@ -98,38 +82,29 @@ function renderMonthView(year: number, month: number) {
         ...state.publicHolidays
     ].map(original => {
         let startDateStr: string, endDateStr: string;
-        let id: string;
-        if ('projectId' in original) {
+        if ('projectId' in original) { // Task
             const task = original as Task;
-            id = task.id;
             startDateStr = task.startDate || task.dueDate!;
             endDateStr = task.dueDate || task.startDate!;
-        } else if ('id' in original) {
+        } else if ('userId' in original) { // TimeOffRequest or CalendarEvent
             const eventOrRequest = original as TimeOffRequest | CalendarEvent;
-            id = eventOrRequest.id;
             startDateStr = eventOrRequest.startDate;
             endDateStr = eventOrRequest.endDate;
-        } else {
-            const holiday = original as {date: string, name: string};
-            id = holiday.date;
+        } else { // PublicHoliday
+            const holiday = original as { date: string };
             startDateStr = holiday.date;
             endDateStr = holiday.date;
         }
         
         if (!startDateStr || !endDateStr) return null;
+
+        let d1 = new Date(startDateStr);
+        let d2 = new Date(endDateStr);
+        if (d1 > d2) [d1, d2] = [d2, d1];
         
-        let d1 = new Date(Date.UTC(parseInt(startDateStr.slice(0,4)), parseInt(startDateStr.slice(5,7)) - 1, parseInt(startDateStr.slice(8,10))));
-        let d2 = new Date(Date.UTC(parseInt(endDateStr.slice(0,4)), parseInt(endDateStr.slice(5,7)) - 1, parseInt(endDateStr.slice(8,10))));
-        if (d1 > d2) { [d1, d2] = [d2, d1]; }
-        
-        return { 
-            id,
-            item: original, 
-            startDate: d1, 
-            endDate: d2,
-        };
+        return { item: original, startDate: d1, endDate: d2 };
     })
-    .filter((e): e is { id: string; item: any; startDate: Date; endDate: Date } => e !== null)
+    .filter((e): e is { item: any; startDate: Date; endDate: Date } => e !== null)
     .filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate)
     .sort((a, b) => {
         if (a.startDate.getTime() !== b.startDate.getTime()) {
@@ -138,24 +113,12 @@ function renderMonthView(year: number, month: number) {
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    // 2. Determine calendar grid boundaries
+    const firstDayOfMonth = new Date(year, month - 1, 1);
     const calendarStartDate = new Date(firstDayOfMonth);
-    calendarStartDate.setUTCDate(calendarStartDate.getUTCDate() - (firstDayOfMonth.getUTCDay() + 6) % 7);
+    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
     
-    const calendarEndDate = new Date(calendarStartDate);
-    calendarEndDate.setUTCDate(calendarEndDate.getUTCDate() + 41);
-
-    const weeks: { date: Date, events: any[] }[][] = [];
-    let currentDate = new Date(calendarStartDate);
-    while (currentDate <= calendarEndDate) {
-        const week: { date: Date, events: any[] }[] = [];
-        for (let i = 0; i < 7; i++) {
-            week.push({ date: new Date(currentDate), events: [] });
-            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-        }
-        weeks.push(week);
-    }
-
+    // 3. Assign lanes to events to prevent vertical overlap
     const lanes: { endDate: Date }[][] = [];
     allItems.forEach(event => {
         let placed = false;
@@ -163,7 +126,6 @@ function renderMonthView(year: number, month: number) {
             if (!lanes[i].some(e => e.endDate >= event.startDate)) {
                 (event as any).lane = i;
                 lanes[i].push({ endDate: event.endDate });
-                lanes[i].sort((a,b) => a.endDate.getTime() - b.endDate.getTime());
                 placed = true;
                 break;
             }
@@ -174,71 +136,72 @@ function renderMonthView(year: number, month: number) {
         }
     });
 
+    // 4. Render Grid and Events
+    const weeks: Date[][] = [];
+    let currentDate = new Date(calendarStartDate);
+    for (let i = 0; i < 6; i++) {
+        const week: Date[] = [];
+        for (let j = 0; j < 7; j++) {
+            week.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        weeks.push(week);
+    }
+    
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-    return `
-    <div class="overflow-x-auto">
-        <div class="relative min-w-[1200px]">
-            <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
-                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
-            </div>
-            <div class="grid grid-cols-7 grid-flow-row auto-rows-[minmax(120px,1fr)]">
-                ${weeks.flat().map(day => {
-                    const isCurrentMonth = day.date.getUTCMonth() === month - 1;
-                    const isToday = day.date.getTime() === today.getTime();
-                    return `<div class="border-r border-b border-border-color p-2 relative ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
-                               <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.date.getUTCDate()}</div>
-                           </div>`;
-                }).join('')}
-            </div>
-            <div class="absolute top-[37px] left-0 right-0 bottom-0 grid grid-cols-7 grid-flow-row auto-rows-[minmax(120px,1fr)] pointer-events-none">
-                ${allItems.map(event => {
-                    const duration = (event.endDate.getTime() - event.startDate.getTime()) / (1000 * 3600 * 24) + 1;
-                    const offsetDays = (event.startDate.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24);
-                    
-                    if (offsetDays < 0 || offsetDays >= 42) return '';
-                    
-                    const startColumn = (offsetDays % 7) + 1;
-                    const startRow = Math.floor(offsetDays / 7) + 1;
-                    const lane = (event as any).lane;
-                    
-                    const { colorClasses, text, handler, title, type } = getEventBarDetails(event.item);
-                    const textColor = type === 'task' ? 'text-white' : 'text-gray-900';
-                    const barHeight = 20;
-                    const topOffset = 28 + (lane * (barHeight + 4));
-                    
-                    let effectiveSpan = duration;
-                    if (startColumn + duration -1 > 7) {
-                        effectiveSpan = 7 - startColumn + 1;
-                    }
+    let eventBarsHtml = '';
+    allItems.forEach(event => {
+        const lane = (event as any).lane;
+        const barHeight = 20;
+        const barGap = 4;
+        const topOffset = 28 + (lane * (barHeight + barGap));
 
-                    return `
-                        <div class="pointer-events-auto p-1" style="grid-column: ${startColumn} / span ${effectiveSpan}; grid-row: ${startRow}; margin-top: ${topOffset}px; z-index: ${10+lane};">
-                            <div class="h-full w-full rounded-md text-xs font-medium truncate px-2 flex items-center ${textColor} ${colorClasses}" ${handler} title="${title}">
-                                ${text}
-                            </div>
-                        </div>
-                        ${(startColumn + duration - 1 > 7) ? 
-                            (()=>{
-                                let remainingDuration = duration - effectiveSpan;
-                                let currentRow = startRow + 1;
-                                let bars = '';
-                                while(remainingDuration > 0) {
-                                    const span = Math.min(remainingDuration, 7);
-                                    bars += `<div class="pointer-events-auto p-1" style="grid-column: 1 / span ${span}; grid-row: ${currentRow}; margin-top: ${topOffset}px; z-index: ${10+lane};">
-                                        <div class="h-full w-full rounded-md text-xs font-medium truncate px-2 flex items-center ${textColor} ${colorClasses}" ${handler} title="${title}">&nbsp;</div>
-                                    </div>`;
-                                    remainingDuration -= span;
-                                    currentRow++;
-                                }
-                                return bars;
-                            })()
-                        : ''}
-                    `;
-                }).join('')}
+        weeks.forEach((week, weekIndex) => {
+            const weekStart = week[0];
+            const weekEnd = week[6];
+
+            if (event.startDate > weekEnd || event.endDate < weekStart) return;
+
+            const startDayIndex = Math.max(0, Math.floor((event.startDate.getTime() - weekStart.getTime()) / (1000 * 3600 * 24)));
+            const endDayIndex = Math.min(6, Math.floor((event.endDate.getTime() - weekStart.getTime()) / (1000 * 3600 * 24)));
+            const duration = endDayIndex - startDayIndex + 1;
+            
+            const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(event.item);
+
+            const isStart = event.startDate >= weekStart;
+            const isEnd = event.endDate <= weekEnd;
+            
+            eventBarsHtml += `
+                <div class="calendar-event-bar" 
+                     style="grid-row: ${weekIndex + 1}; grid-column: ${startDayIndex + 1} / span ${duration}; top: ${topOffset}px; height: ${barHeight}px;"
+                     ${handler} title="${title}">
+                    <div class="calendar-event-content ${colorClasses} ${textColorClass} ${isStart ? 'is-start' : ''} ${isEnd ? 'is-end' : ''} ${!isStart ? 'is-continued' : ''}">
+                        ${isStart ? text : '&nbsp;'}
+                    </div>
+                </div>
+            `;
+        });
+    });
+
+    return `
+        <div class="overflow-x-auto">
+            <div class="min-w-[1200px]">
+                <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
+                    ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-7 grid-flow-row auto-rows-[minmax(120px,1fr)] relative">
+                    ${weeks.flat().map(day => {
+                        const isCurrentMonth = day.getMonth() === month - 1;
+                        const isToday = day.getTime() === today.getTime();
+                        return `<div class="border-r border-b border-border-color p-2 ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                                   <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.getDate()}</div>
+                               </div>`;
+                    }).join('')}
+                    ${eventBarsHtml}
+                </div>
             </div>
         </div>
-    </div>
     `;
 }
 
