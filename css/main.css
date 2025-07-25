@@ -709,7 +709,7 @@
 
   /* Team Calendar Month View Events */
   .calendar-event-bar {
-    @apply absolute h-6 z-10;
+    @apply absolute h-5 z-10;
   }
   .calendar-event-content {
     @apply w-full h-full flex items-center text-xs font-medium truncate px-1;

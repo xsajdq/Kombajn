@@ -170,7 +170,7 @@ function renderMonthView(year: number, month: number) {
             if (!isStart) finalClasses += ' is-continued';
             
             eventBarsHtml += `
-                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeek + 1} / span ${span}; top: ${2 + laneIndex * 26}px;" ${handler} title="${title}">
+                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeek + 1} / span ${span}; top: ${32 + laneIndex * 24}px;" ${handler} title="${title}">
                     <div class="${finalClasses}">${text}</div>
                 </div>`;
         }
@@ -179,14 +179,14 @@ function renderMonthView(year: number, month: number) {
     for (let i = 0; i < 42; i++) {
         const isCurrentMonth = dateIterator.getMonth() === month - 1;
         const isToday = dateIterator.getTime() === today.getTime();
-        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[120px] ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}"><div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getDate()}</div></div>`;
+        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[140px] ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}"><div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getDate()}</div></div>`;
         dateIterator.setDate(dateIterator.getDate() + 1);
     }
     
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return `
         <div class="overflow-x-auto">
-            <div class="relative grid grid-cols-7 min-w-[900px]" style="grid-template-rows: auto repeat(6, minmax(120px, auto));">
+            <div class="relative grid grid-cols-7 min-w-[900px]" style="grid-template-rows: auto repeat(6, minmax(140px, auto));">
                 ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
                 ${dayCellsHtml}
                 ${eventBarsHtml}
