@@ -641,6 +641,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 authUrl.searchParams.set('state', workspaceId as string);
                 authUrl.searchParams.set('access_type', 'offline');
                 authUrl.searchParams.set('prompt', 'consent');
+                authUrl.searchParams.set('include_granted_scopes', 'true');
                 return res.redirect(302, authUrl.toString());
             }
             case 'auth-callback-google_drive': {
@@ -690,6 +691,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 authUrl.searchParams.set('state', workspaceId as string);
                 authUrl.searchParams.set('access_type', 'offline');
                 authUrl.searchParams.set('prompt', 'consent');
+                authUrl.searchParams.set('include_granted_scopes', 'true');
                 return res.redirect(302, authUrl.toString());
             }
             case 'auth-callback-google_gmail': {
