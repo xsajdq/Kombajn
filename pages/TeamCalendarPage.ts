@@ -133,21 +133,25 @@ function renderMonthView(year: number, month: number) {
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    // --- Layout Calculation ---
-    const lanes: Date[] = [];
+    // --- New, robust layout calculation ---
+    const lanes: { item: any, startDate: Date, endDate: Date }[][] = [];
     allItems.forEach(item => {
         let placed = false;
         for (let i = 0; i < lanes.length; i++) {
-            if (lanes[i].getTime() < item.startDate.getTime()) {
+            const lane = lanes[i];
+            const hasOverlap = lane.some(placedItem => 
+                item.startDate <= placedItem.endDate && item.endDate >= placedItem.startDate
+            );
+            if (!hasOverlap) {
                 (item as any).laneIndex = i;
-                lanes[i] = item.endDate;
+                lane.push(item);
                 placed = true;
                 break;
             }
         }
         if (!placed) {
             (item as any).laneIndex = lanes.length;
-            lanes.push(item.endDate);
+            lanes.push([item]);
         }
     });
 
