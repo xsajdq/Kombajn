@@ -1,6 +1,6 @@
 
 
-import { state } from './state.ts';
+import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
