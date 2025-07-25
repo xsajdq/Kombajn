@@ -694,5 +694,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { 'Authorization': `Bearer ${access_token}` } });
                 const userData = await userResponse.json();
 
-                const { error: dbError } = await supabase.from('integrations').upsert({
-                    provider: 'google_drive', workspace_id: workspaceId, is_active:
+                const integrationData = {
+                    provider: 'google_drive',
+                    workspace_id: workspaceId,
+                    is_active: true,
+                    settings: {
+                        accessToken: access_token,
+                        refreshToken: refresh_token,
+                        tokenExpiry: Math.floor(Date.now() / 1000) + expires_in,
+                        googleUserEmail: userData.email,
+                    }
+                };
+
+                const { error: dbError } = await supabase.from('integrations').upsert(integrationData, {
+                    onConflict: 'workspace_id, provider'
+                });
+                
+                if (dbError) {
+                    console.error('Supabase error on integration upsert:', dbError);
+                    return res.status(200).send(renderClosingPage(false, 'Failed to save integration details.', 'google_drive'));
+                }
+
+                return res.status(200).send(renderClosingPage(true, undefined, 'google_drive'));
+            }
+            // Add other cases here...
+
+            default:
+                return res.status(404).json({ error: `Action '${action}' not found.` });
+        }
+    } catch (error: any) {
+        console.error(`[API Error] Action: ${action}`, error);
+        return res.status(500).json({ error: error.message || 'An unexpected error occurred on the server.' });
+    }
+}
