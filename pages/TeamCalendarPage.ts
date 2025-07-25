@@ -83,8 +83,8 @@ function renderMonthView(year: number, month: number) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const monthStartDate = new Date(year, month - 1, 1);
-    const monthEndDate = new Date(year, month, 0);
+    const monthStartDate = new Date(Date.UTC(year, month - 1, 1));
+    const monthEndDate = new Date(Date.UTC(year, month, 0));
 
     const allItems = [
         ...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && (t.startDate || t.dueDate)),
@@ -94,25 +94,27 @@ function renderMonthView(year: number, month: number) {
     ].map(original => {
         let startDateStr: string, endDateStr: string;
         let id: string;
-        if ('projectId' in original) { // Task
+        if ('projectId' in original) {
             const task = original as Task;
             id = task.id;
             startDateStr = task.startDate || task.dueDate!;
             endDateStr = task.dueDate || task.startDate!;
-        } else if ('id' in original) { // TimeOffRequest or CalendarEvent
+        } else if ('id' in original) {
             const eventOrRequest = original as TimeOffRequest | CalendarEvent;
             id = eventOrRequest.id;
             startDateStr = eventOrRequest.startDate;
             endDateStr = eventOrRequest.endDate;
-        } else { // PublicHoliday
+        } else {
             const holiday = original as {date: string, name: string};
             id = holiday.date;
             startDateStr = holiday.date;
             endDateStr = holiday.date;
         }
+
+        if (!startDateStr || !endDateStr) return null;
         
-        let d1 = new Date(startDateStr + 'T12:00:00Z');
-        let d2 = new Date(endDateStr + 'T12:00:00Z');
+        let d1 = new Date(Date.UTC(parseInt(startDateStr.slice(0,4)), parseInt(startDateStr.slice(5,7)) - 1, parseInt(startDateStr.slice(8,10))));
+        let d2 = new Date(Date.UTC(parseInt(endDateStr.slice(0,4)), parseInt(endDateStr.slice(5,7)) - 1, parseInt(endDateStr.slice(8,10))));
         if (d1 > d2) { [d1, d2] = [d2, d1]; }
         
         return { 
@@ -121,72 +123,97 @@ function renderMonthView(year: number, month: number) {
             startDate: d1, 
             endDate: d2,
         };
-    }).filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate);
+    })
+    .filter((e): e is { id: string; item: any; startDate: Date; endDate: Date } => e !== null)
+    .filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate)
+    .sort((a, b) => {
+        if (a.startDate.getTime() !== b.startDate.getTime()) {
+            return a.startDate.getTime() - b.startDate.getTime();
+        }
+        return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
+    });
     
-    const firstDayOfMonth = new Date(year, month - 1, 1);
+    // --- Layout Calculation ---
+    const lanes: Date[] = [];
+    allItems.forEach(item => {
+        let placed = false;
+        for (let i = 0; i < lanes.length; i++) {
+            if (lanes[i].getTime() < item.startDate.getTime()) {
+                (item as any).laneIndex = i;
+                lanes[i] = item.endDate;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            (item as any).laneIndex = lanes.length;
+            lanes.push(item.endDate);
+        }
+    });
+
+    const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1));
     const calendarStartDate = new Date(firstDayOfMonth);
-    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
+    calendarStartDate.setUTCDate(calendarStartDate.getUTCDate() - (firstDayOfMonth.getUTCDay() + 6) % 7);
 
     let dayCellsHtml = '';
-    let eventBarsHtml = '';
     const dateIterator = new Date(calendarStartDate);
+    for (let i = 0; i < 42; i++) {
+        const isCurrentMonth = dateIterator.getUTCMonth() === month - 1;
+        const isToday = dateIterator.getTime() === today.getTime();
+        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[140px] relative ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                           <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getUTCDate()}</div>
+                       </div>`;
+        dateIterator.setUTCDate(dateIterator.getUTCDate() + 1);
+    }
 
-    for (let week = 0; week < 6; week++) {
-        const weekStartDate = new Date(calendarStartDate);
-        weekStartDate.setDate(weekStartDate.getDate() + week * 7);
-        const weekEndDate = new Date(weekStartDate);
-        weekEndDate.setDate(weekEndDate.getDate() + 6);
+    let eventBarsHtml = '';
+    for (const item of allItems) {
+        let currentIterDate = new Date(item.startDate > calendarStartDate ? item.startDate : calendarStartDate);
+        
+        while (currentIterDate <= item.endDate) {
+            const dayOfWeek = (currentIterDate.getUTCDay() + 6) % 7;
+            const weekStartDate = new Date(currentIterDate);
+            weekStartDate.setUTCDate(weekStartDate.getUTCDate() - dayOfWeek);
 
-        const itemsInWeek = allItems
-            .filter(item => item.startDate <= weekEndDate && item.endDate >= weekStartDate)
-            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime() || (b.endDate.getTime() - a.endDate.getTime()));
+            const daysInGrid = (currentIterDate.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24);
+            const week = Math.floor(daysInGrid / 7);
 
-        const weekLayout: (string | null)[][] = Array.from({ length: 7 }, () => []);
-
-        for (const { id, item, startDate, endDate } of itemsInWeek) {
-            const startDayOfWeek = startDate < weekStartDate ? 0 : (startDate.getDay() + 6) % 7;
-            const endDayOfWeek = endDate > weekEndDate ? 6 : (endDate.getDay() + 6) % 7;
+            const segStartDate = currentIterDate;
+            const weekEndDate = new Date(weekStartDate);
+            weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
+            const segEndDate = item.endDate < weekEndDate ? item.endDate : weekEndDate;
             
-            let laneIndex = 0;
-            while (true) {
-                let isFree = true;
-                for (let d = startDayOfWeek; d <= endDayOfWeek; d++) {
-                    if (weekLayout[d][laneIndex] !== undefined) { isFree = false; break; }
-                }
-                if (isFree) break;
-                laneIndex++;
-            }
-            
-            for (let d = startDayOfWeek; d <= endDayOfWeek; d++) { weekLayout[d][laneIndex] = id; }
-            
-            const span = endDayOfWeek - startDayOfWeek + 1;
-            const isStart = startDate >= weekStartDate;
-            const isEnd = endDate <= weekEndDate;
+            const startDayOfWeekSeg = (segStartDate.getUTCDay() + 6) % 7;
+            const endDayOfWeekSeg = (segEndDate.getUTCDay() + 6) % 7;
+            const span = endDayOfWeekSeg - startDayOfWeekSeg + 1;
 
-            const { colorClasses, text, handler, title } = getEventBarDetails(item);
+            if (span <= 0) break;
+
+            const isStart = segStartDate.getTime() === item.startDate.getTime();
+            const isEnd = segEndDate.getTime() === item.endDate.getTime();
+
+            const { colorClasses, text, handler, title } = getEventBarDetails(item.item);
             let finalClasses = `calendar-event-content ${colorClasses}`;
             if (isStart) finalClasses += ' is-start';
             if (isEnd) finalClasses += ' is-end';
             if (!isStart) finalClasses += ' is-continued';
             
+            const barText = isStart ? text : '&nbsp;';
+
             eventBarsHtml += `
-                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeek + 1} / span ${span}; top: ${32 + laneIndex * 24}px;" ${handler} title="${title}">
-                    <div class="${finalClasses}">${text}</div>
+                <div class="calendar-event-bar" style="grid-row: ${week + 2}; grid-column: ${startDayOfWeekSeg + 1} / span ${span}; top: ${32 + (item as any).laneIndex * 24}px;" ${handler} title="${title}">
+                    <div class="${finalClasses}">${barText}</div>
                 </div>`;
+
+            currentIterDate = new Date(weekEndDate);
+            currentIterDate.setUTCDate(currentIterDate.getUTCDate() + 1);
         }
-    }
-    
-    for (let i = 0; i < 42; i++) {
-        const isCurrentMonth = dateIterator.getMonth() === month - 1;
-        const isToday = dateIterator.getTime() === today.getTime();
-        dayCellsHtml += `<div class="border-r border-b border-border-color p-2 min-h-[140px] ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}"><div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${dateIterator.getDate()}</div></div>`;
-        dateIterator.setDate(dateIterator.getDate() + 1);
     }
     
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return `
         <div class="overflow-x-auto">
-            <div class="relative grid grid-cols-7 min-w-[900px]" style="grid-template-rows: auto repeat(6, minmax(140px, auto));">
+            <div class="relative grid grid-cols-7 min-w-[900px]">
                 ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
                 ${dayCellsHtml}
                 ${eventBarsHtml}
