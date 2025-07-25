@@ -717,7 +717,161 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 return res.status(200).send(renderClosingPage(true, undefined, 'google_drive'));
             }
-            // Add other cases here...
+            case 'auth-connect-google_gmail': {
+                const { workspaceId } = req.query;
+                if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
+                const clientId = process.env.GOOGLE_CLIENT_ID;
+                if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
+                const baseUrl = getBaseUrl(req);
+                const redirectUri = `${baseUrl}/api?action=auth-callback-google_gmail`;
+                const scopes = [
+                    'https://www.googleapis.com/auth/userinfo.email',
+                    'https://www.googleapis.com/auth/gmail.send',
+                    'openid'
+                ];
+                const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+                authUrl.searchParams.set('client_id', clientId);
+                authUrl.searchParams.set('redirect_uri', redirectUri);
+                authUrl.searchParams.set('response_type', 'code');
+                authUrl.searchParams.set('scope', scopes.join(' '));
+                authUrl.searchParams.set('state', workspaceId as string);
+                authUrl.searchParams.set('access_type', 'offline');
+                authUrl.searchParams.set('prompt', 'consent');
+                authUrl.searchParams.set('include_granted_scopes', 'true');
+                return res.redirect(302, authUrl.toString());
+            }
+            case 'auth-callback-google_gmail': {
+                const { code, state: workspaceId, error: authError } = req.query;
+                if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'google_gmail'));
+                if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_gmail'));
+                
+                const supabase = getSupabaseAdmin();
+                const baseUrl = getBaseUrl(req);
+                const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        code: code as string,
+                        client_id: process.env.GOOGLE_CLIENT_ID!,
+                        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+                        redirect_uri: `${baseUrl}/api?action=auth-callback-google_gmail`,
+                        grant_type: 'authorization_code',
+                    }),
+                });
+                const tokenData = await tokenResponse.json();
+                if (!tokenResponse.ok) throw new Error(tokenData.error_description || 'Failed to fetch access token.');
+
+                const { access_token, refresh_token, expires_in } = tokenData;
+                const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { 'Authorization': `Bearer ${access_token}` } });
+                const userData = await userResponse.json();
+
+                const integrationData = {
+                    provider: 'google_gmail',
+                    workspace_id: workspaceId,
+                    is_active: true,
+                    settings: {
+                        accessToken: access_token,
+                        refreshToken: refresh_token,
+                        tokenExpiry: Math.floor(Date.now() / 1000) + expires_in,
+                        googleUserEmail: userData.email,
+                    }
+                };
+
+                const { error: dbError } = await supabase.from('integrations').upsert(integrationData, {
+                    onConflict: 'workspace_id, provider'
+                }).select();
+                
+                if (dbError) {
+                    console.error('Supabase error on gmail integration upsert:', dbError);
+                    return res.status(200).send(renderClosingPage(false, 'Failed to save integration details.', 'google_gmail'));
+                }
+
+                return res.status(200).send(renderClosingPage(true, undefined, 'google_gmail'));
+            }
+            case 'send-invoice-gmail': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
+
+                const { workspaceId, invoiceId, to, subject, body, pdfBase64 } = req.body;
+
+                const { data: integration, error: dbError } = await supabase.from('integrations').select('*').eq('workspace_id', workspaceId).eq('provider', 'google_gmail').single();
+                if (dbError || !integration || !integration.is_active) return res.status(404).json({ error: 'Active Gmail integration not found.' });
+
+                let accessToken = integration.settings.accessToken;
+                const refreshToken = integration.settings.refreshToken;
+                const tokenExpiry = integration.settings.tokenExpiry;
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+
+                if (tokenExpiry && refreshToken && nowInSeconds >= tokenExpiry - 60) {
+                     const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            client_id: process.env.GOOGLE_CLIENT_ID!,
+                            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+                            refresh_token: refreshToken,
+                            grant_type: 'refresh_token',
+                        }),
+                    });
+                    const refreshedTokenData = await refreshResponse.json();
+                    if (!refreshResponse.ok) throw new Error('Failed to refresh Google token.');
+                    accessToken = refreshedTokenData.access_token;
+                    const newSettings = { ...integration.settings, accessToken, tokenExpiry: nowInSeconds + refreshedTokenData.expires_in };
+                    await supabase.from('integrations').update({ settings: newSettings }).eq('id', integration.id);
+                }
+
+                const boundary = "boundary_string_kombajn";
+                const { data: invoiceData } = await supabase.from('invoices').select('invoice_number').eq('id', invoiceId).single();
+                const fileName = `Invoice-${invoiceData?.invoice_number || 'invoice'}.pdf`;
+
+                const mimeMessage = [
+                    `To: ${to}`,
+                    `Subject: ${subject}`,
+                    'Content-Type: multipart/mixed; boundary="' + boundary + '"',
+                    '',
+                    '--' + boundary,
+                    'Content-Type: text/plain; charset="UTF-8"',
+                    '',
+                    body,
+                    '',
+                    '--' + boundary,
+                    'Content-Type: application/pdf',
+                    'Content-Disposition: attachment; filename="' + fileName + '"',
+                    'Content-Transfer-Encoding: base64',
+                    '',
+                    pdfBase64,
+                    '',
+                    '--' + boundary + '--'
+                ].join('\n');
+
+                const base64EncodedEmail = Buffer.from(mimeMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                
+                const gmailResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        raw: base64EncodedEmail
+                    })
+                });
+
+                const gmailResult = await gmailResponse.json();
+                if (!gmailResponse.ok) {
+                    console.error("Gmail API Error:", gmailResult);
+                    throw new Error(gmailResult.error?.message || "Failed to send email via Gmail API.");
+                }
+
+                await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
+
+                return res.status(200).json({ message: 'Email sent successfully.' });
+            }
+
 
             default:
                 return res.status(404).json({ error: `Action '${action}' not found.` });
