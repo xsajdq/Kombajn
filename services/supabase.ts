@@ -15,7 +15,12 @@ export async function initSupabase() {
         const responseBody = await response.json().catch(() => null);
 
         if (!response.ok) {
-            const errorMessage = responseBody?.error || `Failed to fetch config with status: ${response.status}`;
+            // Specifically check for the 500 error which indicates missing env vars on the server.
+            if (response.status === 500 && responseBody && responseBody.error === 'Server configuration error: Supabase credentials missing.') {
+                throw new Error("Could not connect to the database. The server is missing the required SUPABASE_URL and SUPABASE_ANON_KEY environment variables. Please add them to your Vercel project settings.");
+            }
+            // Generic error for other failures.
+            const errorMessage = responseBody?.error || `Failed to fetch application configuration (Status: ${response.status}). Please check your network connection and server status.`;
             throw new Error(errorMessage);
         }
         
