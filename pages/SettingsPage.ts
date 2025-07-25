@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
@@ -207,10 +206,12 @@ export function SettingsPage() {
     const renderIntegrationsSettings = () => {
         const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.workspaceId === state.activeWorkspaceId);
         const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.workspaceId === state.activeWorkspaceId);
+        const gmailIntegration = state.integrations.find(i => i.provider === 'google_gmail' && i.workspaceId === state.activeWorkspaceId);
 
         const integrations = [
             { provider: 'slack', title: t('integrations.slack_title'), desc: t('integrations.slack_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/slack-new-logo.svg', enabled: true, instance: slackIntegration },
             { provider: 'google_drive', title: t('integrations.google_drive_title'), desc: t('integrations.google_drive_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/google-drive-2.svg', enabled: true, instance: googleDriveIntegration },
+            { provider: 'google_gmail', title: t('integrations.gmail_title'), desc: t('integrations.gmail_desc'), logo: 'https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg', enabled: true, instance: gmailIntegration },
             { provider: 'github', title: t('integrations.github_title'), desc: t('integrations.github_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/github-icon-1.svg', enabled: false },
             { provider: 'figma', title: t('integrations.figma_title'), desc: t('integrations.figma_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/figma-1.svg', enabled: false },
         ];
@@ -226,7 +227,7 @@ export function SettingsPage() {
                     if (int.instance?.isActive) {
                         if (int.provider === 'slack') {
                             connectionStatus = t('integrations.connected_to').replace('{workspaceName}', int.instance?.settings?.slackWorkspaceName || 'Slack');
-                        } else if (int.provider === 'google_drive') {
+                        } else if (int.provider === 'google_drive' || int.provider === 'google_gmail') {
                             connectionStatus = t('integrations.connected_as').replace('{email}', int.instance?.settings?.googleUserEmail || '');
                         }
                     }

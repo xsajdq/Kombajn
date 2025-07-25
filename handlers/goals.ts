@@ -2,6 +2,33 @@ import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPut } from '../services/api.ts';
 
+export function handleAddMilestone() {
+    const container = document.getElementById('milestones-container');
+    const input = document.getElementById('new-milestone-input') as HTMLInputElement;
+    if (!container || !input || !input.value.trim()) return;
+
+    const text = input.value.trim();
+    const id = `new-${Date.now()}`;
+
+    const milestoneHtml = `
+        <div class="flex items-center gap-2 milestone-item" data-id="${id}">
+            <input type="text" class="form-control milestone-input" value="${text}" readonly>
+            <button type="button" class="btn-icon remove-milestone-btn"><span class="material-icons-sharp text-base">delete</span></button>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', milestoneHtml);
+    input.value = '';
+    input.focus();
+}
+
+export function handleRemoveMilestone(id: string) {
+    const item = document.querySelector(`.milestone-item[data-id="${id}"]`);
+    if (item) {
+        item.remove();
+    }
+}
+
 export async function handleToggleMilestone(milestoneId: string) {
     const milestone = state.keyResults.find(kr => kr.id === milestoneId);
     if (!milestone) return;

@@ -482,13 +482,14 @@ export interface Deal {
     nextStep?: string;
 }
 
-export interface DealNote {
+export interface DealActivity {
     id: string;
     workspaceId: string;
     dealId: string;
     userId: string;
     content: string;
     createdAt: string; // ISO
+    type: 'note' | 'call' | 'meeting' | 'email';
 }
 
 export interface WorkspaceJoinRequest {
@@ -627,7 +628,7 @@ export interface AppState {
     calendarEvents: CalendarEvent[];
     expenses: Expense[];
     deals: Deal[];
-    dealNotes: DealNote[];
+    dealActivities: DealActivity[];
     workspaceJoinRequests: WorkspaceJoinRequest[];
     publicHolidays: PublicHoliday[];
     integrations: Integration[];
@@ -740,11 +741,11 @@ export interface AppState {
         invoices: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
-            activeTab: 'invoices' | 'inbox';
         };
         projects: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            viewMode: 'grid' | 'portfolio';
         };
         globalTimer: {
             isRunning: boolean;

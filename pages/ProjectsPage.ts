@@ -1,37 +1,31 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getUsage, PLANS, formatDate, formatCurrency } from '../utils.ts';
+import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds } from '../utils.ts';
 import { can } from '../permissions.ts';
 import { fetchProjectsData } from '../handlers/main.ts';
 
-export function ProjectsPage() {
-    fetchProjectsData();
-
-    const { activeWorkspaceId } = state;
-    const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
-    if (!activeWorkspace) return '';
-
-    if (state.ui.projects.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>`;
-    }
-
-    const usage = getUsage(activeWorkspace.id);
-    const planLimits = PLANS[activeWorkspace.subscription.planId];
-    const canCreateProject = usage.projects < planLimits.projects;
-    const isAllowedToCreate = can('create_projects');
-    const canManage = can('manage_projects');
-    
+function renderGridView() {
     const projects = state.projects.filter(p => {
         if (p.workspaceId !== state.activeWorkspaceId) return false;
         if (p.privacy === 'public') return true;
         return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
     });
-    
     const today = new Date().toISOString().slice(0, 10);
+    const canManage = can('manage_projects');
 
-    const content = projects.length > 0 ? `
+    if (projects.length === 0) {
+        return `<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
+            <span class="material-icons-sharp text-5xl text-text-subtle">folder_off</span>
+            <h3 class="text-lg font-medium mt-4">${t('projects.no_projects_yet')}</h3>
+            <p class="text-sm text-text-subtle mt-1">${t('projects.no_projects_desc')}</p>
+            <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject">
+                ${t('modals.add_project_title')}
+            </button>
+        </div>`;
+    }
+
+    return `
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 projects-grid">
             ${projects.map(project => {
                 const client = state.clients.find(c => c.id === project.clientId);
@@ -134,31 +128,144 @@ export function ProjectsPage() {
                 `;
             }).join('')}
         </div>
-    ` : `
-        <div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
-            <span class="material-icons-sharp text-5xl text-text-subtle">folder_off</span>
-            <h3 class="text-lg font-medium mt-4">${t('projects.no_projects_yet')}</h3>
-            <p class="text-sm text-text-subtle mt-1">${t('projects.no_projects_desc')}</p>
-            <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''}>
-                ${t('modals.add_project_title')}
-            </button>
-        </div>
     `;
+}
+
+function renderPortfolioView() {
+    const projects = state.projects.filter(p => {
+        if (p.workspaceId !== state.activeWorkspaceId) return false;
+        if (p.privacy === 'public') return true;
+        return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    return `
+    <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
+        <table class="portfolio-table">
+            <thead>
+                <tr>
+                    <th class="w-2/5">${t('sidebar.projects')}</th>
+                    <th>${t('projects.col_status')}</th>
+                    <th>${t('projects.col_progress')}</th>
+                    <th>${t('projects.col_due_date')}</th>
+                    <th>${t('projects.col_budget')}</th>
+                    <th>${t('projects.col_team')}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${projects.map(project => {
+                    const tasks = state.tasks.filter(t => t.projectId === project.id);
+                    const completedTasks = tasks.filter(t => t.status === 'done').length;
+                    const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+                    const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
+
+                    let status: 'on_track' | 'at_risk' | 'completed' = 'on_track';
+                    let statusText = t('projects.status_on_track');
+                    let statusClass = 'status-badge-ontrack';
+
+                    if (progress === 100) {
+                        status = 'completed';
+                        statusText = t('projects.status_completed');
+                        statusClass = 'status-badge-completed';
+                    } else if (overdueTasks > 0) {
+                        status = 'at_risk';
+                        statusText = t('projects.status_at_risk');
+                        statusClass = 'status-badge-atrisk';
+                    }
+                    
+                    const dueDates = tasks.filter(t => t.dueDate && t.status !== 'done').map(t => new Date(t.dueDate!));
+                    const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => d.getTime()))) : null;
+
+                    const totalTrackedSeconds = tasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+                    const actualCost = project.hourlyRate ? (totalTrackedSeconds / 3600) * project.hourlyRate : null;
+
+                    const members = state.projectMembers.filter(pm => pm.projectId === project.id);
+                    const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
+
+                    return `
+                        <tr class="portfolio-table-row" data-project-id="${project.id}">
+                            <td>
+                                <div class="font-semibold">${project.name}</div>
+                            </td>
+                            <td>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <div class="progress-bar-cell">
+                                        <div class="progress-bar">
+                                            <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-text-subtle">${Math.round(progress)}%</span>
+                                </div>
+                            </td>
+                            <td>${latestDueDate ? formatDate(latestDueDate.toISOString()) : t('misc.not_applicable')}</td>
+                            <td>
+                                ${project.budgetCost ? `
+                                    <div class="text-xs">
+                                        <span>${formatCurrency(actualCost)}</span> / 
+                                        <span class="text-text-subtle">${formatCurrency(project.budgetCost)}</span>
+                                    </div>
+                                ` : t('misc.not_applicable')}
+                            </td>
+                            <td>
+                                <div class="avatar-stack">
+                                    ${memberUsers.slice(0, 3).map(u => u ? `<div class="avatar-small" title="${u.name || u.initials}">${u.initials}</div>` : '').join('')}
+                                    ${memberUsers.length > 3 ? `<div class="avatar-small more-avatar">+${memberUsers.length - 3}</div>` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+
+                }).join('')}
+            </tbody>
+        </table>
+    </div>
+    `;
+}
+
+export function ProjectsPage() {
+    fetchProjectsData();
+
+    const { activeWorkspaceId } = state;
+    const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
+    if (!activeWorkspace) return '';
+
+    if (state.ui.projects.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
+
+    const usage = getUsage(activeWorkspace.id);
+    const planLimits = PLANS[activeWorkspace.subscription.planId];
+    const canCreateProject = usage.projects < planLimits.projects;
+    const isAllowedToCreate = can('create_projects');
+    
+    const { viewMode } = state.ui.projects;
 
     return `
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 class="text-2xl font-bold">${t('sidebar.projects')}</h2>
-                <div class="flex items-center gap-2">
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                        <span class="material-icons-sharp text-base">auto_awesome</span> ${t('modals.ai_planner_title')}
-                    </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                        <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
-                    </button>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center p-1 bg-content border border-border-color rounded-lg">
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === 'grid' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-project-view-mode="grid">${t('projects.grid_view')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === 'portfolio' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-project-view-mode="portfolio">${t('projects.portfolio_view')}</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                            <span class="material-icons-sharp text-base">auto_awesome</span> ${t('modals.ai_planner_title')}
+                        </button>
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                            <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
+                        </button>
+                    </div>
                 </div>
             </div>
-            ${content}
+            ${viewMode === 'portfolio' ? renderPortfolioView() : renderGridView()}
         </div>
     `;
 }

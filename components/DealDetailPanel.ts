@@ -3,34 +3,50 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
-import type { Deal, Task } from '../types.ts';
+import type { Deal, Task, DealActivity } from '../types.ts';
 
 function renderActivityTab(deal: Deal) {
-    const notes = state.dealNotes
-        .filter(n => n.dealId === deal.id)
+    const activities = state.dealActivities
+        .filter(a => a.dealId === deal.id)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const activityIcons: Record<DealActivity['type'], string> = {
+        note: 'note',
+        call: 'call',
+        meeting: 'groups',
+        email: 'email'
+    };
 
     return `
         <div class="deal-activity-feed">
-            ${notes.length > 0 ? notes.map(note => {
-                const user = state.users.find(u => u.id === note.userId);
+            ${activities.length > 0 ? activities.map(activity => {
+                const user = state.users.find(u => u.id === activity.userId);
                 return `
-                    <div class="deal-note-item">
-                        <div class="avatar">${user?.initials || '?'}</div>
-                        <div class="note-content">
-                            <div class="note-header">
+                    <div class="activity-item">
+                        <div class="avatar flex items-center justify-center bg-background" title="${activity.type}">
+                             <span class="material-icons-sharp text-text-subtle">${activityIcons[activity.type]}</span>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
                                 <strong>${user?.name || 'User'}</strong>
-                                <span class="subtle-text">${formatDate(note.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+                                <span class="subtle-text">${formatDate(activity.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                             </div>
-                            <p>${note.content}</p>
+                            <p class="text-sm">${activity.content}</p>
                         </div>
                     </div>
                 `;
             }).join('') : `<p class="subtle-text">${t('panels.no_deal_activity')}</p>`}
         </div>
-        <form id="add-deal-note-form" data-deal-id="${deal.id}" class="add-deal-note-form">
-            <textarea class="form-control" name="note-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
-            <button class="btn btn-primary" type="submit" style="align-self: flex-end;">${t('panels.add_note')}</button>
+        <form id="log-deal-activity-form" data-deal-id="${deal.id}" class="flex flex-col gap-2 mt-4">
+            <div class="activity-log-tabs">
+                <button type="button" class="active" data-activity-type="note"><span class="material-icons-sharp">note</span> ${t('panels.add_note')}</button>
+                <button type="button" data-activity-type="call"><span class="material-icons-sharp">call</span> ${t('panels.call')}</button>
+                <button type="button" data-activity-type="meeting"><span class="material-icons-sharp">groups</span> ${t('panels.meeting')}</button>
+                <button type="button" data-activity-type="email"><span class="material-icons-sharp">email</span> Email</button>
+            </div>
+            <input type="hidden" name="activity-type" value="note">
+            <textarea class="form-control" name="activity-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
+            <button class="btn btn-primary self-end" type="submit">${t('panels.log_activity')}</button>
         </form>
     `;
 }

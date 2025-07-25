@@ -1,6 +1,5 @@
 
 
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -68,7 +67,7 @@ export function getInitialState(): AppState {
         calendarEvents: [],
         expenses: [],
         deals: [],
-        dealNotes: [],
+        dealActivities: [],
         workspaceJoinRequests: [],
         publicHolidays: [],
         integrations: [],
@@ -132,9 +131,8 @@ export function getInitialState(): AppState {
             invoices: { 
                 isLoading: false, 
                 loadedWorkspaceId: null,
-                activeTab: 'invoices',
             },
-            projects: { isLoading: false, loadedWorkspaceId: null },
+            projects: { isLoading: false, loadedWorkspaceId: null, viewMode: 'grid' },
             globalTimer: {
                 isRunning: false,
                 startTime: null,

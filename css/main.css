@@ -76,49 +76,29 @@
       @apply flex-1 p-4 sm:p-6 overflow-y-auto;
   }
 
-   /* == Deal Detail Panel == */
-  .deal-pipeline-visualizer {
-    @apply flex items-center text-xs font-semibold text-center mb-4;
-  }
-  .pipeline-stage {
-    @apply flex-1 py-2 border-b-2 border-border-color text-text-subtle;
-  }
-  .pipeline-stage.active {
-    @apply border-primary text-primary;
-  }
-  .deal-kpi-grid {
-    @apply grid grid-cols-2 gap-4 mb-6;
-  }
-  .deal-kpi-item {
-    @apply bg-background p-3 rounded-lg;
-  }
-  .deal-kpi-item label {
-    @apply text-xs text-text-subtle block mb-1;
-  }
-  .deal-kpi-item .value {
-    @apply font-semibold flex items-center gap-2;
-  }
-  .deal-kpi-item .value .avatar {
-    @apply w-5 h-5 text-xs;
-  }
-  .add-deal-note-form {
-    @apply flex flex-col gap-2 mt-4;
-  }
-  .deal-activity-feed {
-    @apply space-y-4;
-  }
-  .deal-note-item {
-    @apply flex items-start gap-3;
-  }
-  .note-content {
-    @apply flex-1 bg-background p-3 rounded-lg;
-  }
-  .note-header {
-    @apply flex items-baseline gap-2 text-sm mb-1;
-  }
-  .note-header .subtle-text {
-    @apply text-xs;
-  }
+   /* == Deal Detail Panel (New Activity Logger) == */
+  .deal-pipeline-visualizer { @apply flex items-center text-xs font-semibold text-center mb-4; }
+  .pipeline-stage { @apply flex-1 py-2 border-b-2 border-border-color text-text-subtle; }
+  .pipeline-stage.active { @apply border-primary text-primary; }
+  .deal-kpi-grid { @apply grid grid-cols-2 gap-4 mb-6; }
+  .deal-kpi-item { @apply bg-background p-3 rounded-lg; }
+  .deal-kpi-item label { @apply text-xs text-text-subtle block mb-1; }
+  .deal-kpi-item .value { @apply font-semibold flex items-center gap-2; }
+  .deal-kpi-item .value .avatar { @apply w-5 h-5 text-xs; }
+
+  .activity-log-container { @apply bg-background p-3 rounded-lg; }
+  .activity-log-tabs { @apply flex border-b border-border-color mb-3; }
+  .activity-log-tabs button { @apply flex-1 px-3 py-2 text-sm font-medium text-text-subtle border-b-2 border-transparent -mb-px hover:text-text-main; }
+  .activity-log-tabs button.active { @apply border-primary text-primary; }
+
+  .deal-activity-timeline { @apply space-y-4 mt-6; }
+  .deal-activity-item { @apply flex items-start gap-3; }
+  .activity-icon { @apply w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0; }
+  .activity-content-wrapper { @apply flex-1; }
+  .activity-item-header { @apply flex items-baseline gap-2 text-sm mb-1; }
+  .activity-item-header .subtle-text { @apply text-xs; }
+  .activity-item-body { @apply text-sm bg-content p-3 rounded-md border border-border-color; }
+
 
   /* == Redesigned Task Detail Modal == */
   .task-detail-layout {
@@ -784,6 +764,19 @@
       @apply shadow-lg;
       transform: translateY(-1px);
   }
+  
+    /* === NEW: Portfolio View === */
+  .portfolio-table { @apply w-full text-sm; }
+  .portfolio-table th { @apply px-4 py-3 text-left text-xs font-semibold text-text-subtle uppercase tracking-wider; }
+  .portfolio-table tbody tr { @apply border-b border-border-color hover:bg-background cursor-pointer; }
+  .portfolio-table td { @apply px-4 py-4 align-middle; }
+  .status-badge { @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full; }
+  .status-badge-ontrack { @apply bg-success/10 text-success; }
+  .status-badge-atrisk { @apply bg-danger/10 text-danger; }
+  .status-badge-completed { @apply bg-background text-text-subtle; }
+  .progress-bar-cell { @apply w-32; }
+  .progress-bar { @apply w-full bg-border-color rounded-full h-2; }
+  .progress-bar-inner { @apply h-2 rounded-full bg-primary; }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

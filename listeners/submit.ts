@@ -1,7 +1,8 @@
 
+
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
-import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction } from '../types.ts';
+import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
@@ -183,12 +184,14 @@ export async function handleSubmit(e: SubmitEvent) {
             }
         }
         return;
-    } else if (target.id === 'add-deal-note-form') {
-        const dealId = target.dataset.dealId!;
-        const textarea = target.querySelector('textarea') as HTMLTextAreaElement;
+    } else if (target.id === 'log-deal-activity-form') {
+        const form = target as HTMLFormElement;
+        const dealId = form.dataset.dealId!;
+        const textarea = form.querySelector('textarea[name="activity-content"]') as HTMLTextAreaElement;
+        const type = (form.querySelector('input[name="activity-type"]') as HTMLInputElement).value as DealActivity['type'];
         const content = textarea.value.trim();
-        if (dealId && content) {
-            await dealHandlers.handleAddDealNote(dealId, content);
+        if (dealId && content && type) {
+            await dealHandlers.handleAddDealActivity(dealId, type, content);
             textarea.value = '';
         }
     } else if (target.id === 'add-new-tag-form') {

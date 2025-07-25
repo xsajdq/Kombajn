@@ -1,7 +1,8 @@
+
 import { state } from '../state.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Deal, Client, User, DealNote } from '../types.ts';
+import type { Deal, Client, User, DealActivity } from '../types.ts';
 
 export async function fetchSalesData() {
     if (!state.activeWorkspaceId || state.ui.sales.isLoading) return;
@@ -37,20 +38,21 @@ export async function fetchSalesData() {
 }
 
 
-export async function handleAddDealNote(dealId: string, content: string) {
+export async function handleAddDealActivity(dealId: string, type: DealActivity['type'], content: string) {
     const { activeWorkspaceId, currentUser } = state;
     if (!activeWorkspaceId || !currentUser || !content.trim()) return;
 
-    const payload: Omit<DealNote, 'id' | 'createdAt'> = {
+    const payload: Omit<DealActivity, 'id' | 'createdAt'> = {
         workspaceId: activeWorkspaceId,
         dealId,
         userId: currentUser.id,
+        type,
         content: content.trim(),
     };
 
     try {
-        const [newNote] = await apiPost('deal_notes', payload);
-        state.dealNotes.push(newNote);
+        const [newActivity] = await apiPost('deal_activities', payload);
+        state.dealActivities.push(newActivity);
 
         const deal = state.deals.find(d => d.id === dealId);
         if (deal) {
@@ -61,7 +63,7 @@ export async function handleAddDealNote(dealId: string, content: string) {
 
         updateUI(['side-panel']);
     } catch (error) {
-        console.error("Failed to add deal note:", error);
-        alert("Could not save the note. Please try again.");
+        console.error("Failed to add deal activity:", error);
+        alert("Could not save the activity. Please try again.");
     }
 }

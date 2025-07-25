@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_notes', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -307,7 +307,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealNotesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -326,13 +326,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
                     supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
                     supabase.from('deals').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('deal_notes').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealNotesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -386,7 +386,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     inventoryItems: inventoryItemsRes.data,
                     inventoryAssignments: inventoryAssignmentsRes.data,
                     deals: dealsRes.data,
-                    dealNotes: dealNotesRes.data,
+                    dealActivities: dealActivitiesRes.data,
                     budgets: [], // Temporarily return empty array to prevent crash
                     channels: [], // Temporarily return empty array to prevent crash
                     chatMessages: [], // Temporarily return empty array to prevent crash
@@ -695,243 +695,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const userData = await userResponse.json();
 
                 const { error: dbError } = await supabase.from('integrations').upsert({
-                    provider: 'google_drive', workspace_id: workspaceId, is_active: true,
-                    settings: { accessToken: access_token, refreshToken: refresh_token, tokenExpiry: Math.floor(Date.now() / 1000) + expires_in, googleUserEmail: userData.email, },
-                }, { onConflict: 'workspace_id, provider' });
-                if (dbError) throw dbError;
-
-                return res.status(200).send(renderClosingPage(true, undefined, 'google_drive'));
-            }
-            case 'auth-connect-google_gmail': {
-                const { workspaceId } = req.query;
-                if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
-                const clientId = process.env.GOOGLE_CLIENT_ID;
-                if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
-                const baseUrl = getBaseUrl(req);
-                const redirectUri = `${baseUrl}/api?action=auth-callback-google_gmail`;
-                const scopes = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/gmail.send'];
-                const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-                authUrl.searchParams.set('client_id', clientId);
-                authUrl.searchParams.set('redirect_uri', redirectUri);
-                authUrl.searchParams.set('response_type', 'code');
-                authUrl.searchParams.set('scope', scopes.join(' '));
-                authUrl.searchParams.set('state', workspaceId as string);
-                authUrl.searchParams.set('access_type', 'offline');
-                authUrl.searchParams.set('prompt', 'consent');
-                authUrl.searchParams.set('include_granted_scopes', 'true');
-                return res.redirect(302, authUrl.toString());
-            }
-            case 'auth-callback-google_gmail': {
-                const { code, state: workspaceId, error: authError } = req.query;
-                if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'google_gmail'));
-                if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_gmail'));
-                
-                const supabase = getSupabaseAdmin();
-                const baseUrl = getBaseUrl(req);
-                const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        code: code as string,
-                        client_id: process.env.GOOGLE_CLIENT_ID!,
-                        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                        redirect_uri: `${baseUrl}/api?action=auth-callback-google_gmail`,
-                        grant_type: 'authorization_code',
-                    }),
-                });
-                const tokenData = await tokenResponse.json();
-                if (!tokenResponse.ok) throw new Error(tokenData.error_description || 'Failed to fetch access token.');
-
-                const { access_token, refresh_token, expires_in } = tokenData;
-                const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { 'Authorization': `Bearer ${access_token}` } });
-                const userData = await userResponse.json();
-
-                const { error: dbError } = await supabase.from('integrations').upsert({
-                    provider: 'google_gmail', workspace_id: workspaceId, is_active: true,
-                    settings: { accessToken: access_token, refreshToken: refresh_token, tokenExpiry: Math.floor(Date.now() / 1000) + expires_in, googleUserEmail: userData.email },
-                }, { onConflict: 'workspace_id, provider' });
-                if (dbError) throw dbError;
-
-                return res.status(200).send(renderClosingPage(true, undefined, 'google_gmail'));
-            }
-             case 'auth-connect-slack': {
-                const { workspaceId } = req.query;
-                if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
-                const clientId = process.env.SLACK_CLIENT_ID;
-                if (!clientId) return res.status(500).json({ error: 'Slack Client ID not configured on server.' });
-                const baseUrl = getBaseUrl(req);
-                const redirectUri = `${baseUrl}/api?action=auth-callback-slack`;
-                const userScopes = ['chat:write', 'users:read', 'users:read.email'];
-                const authUrl = new URL('https://slack.com/oauth/v2/authorize');
-                authUrl.searchParams.set('client_id', clientId);
-                authUrl.searchParams.set('redirect_uri', redirectUri);
-                authUrl.searchParams.set('user_scope', userScopes.join(' '));
-                authUrl.searchParams.set('state', workspaceId as string);
-                return res.redirect(302, authUrl.toString());
-            }
-            case 'auth-callback-slack': {
-                const { code, state: workspaceId, error: authError } = req.query;
-                if (authError) return res.status(200).send(renderClosingPage(false, authError as string, 'slack'));
-                if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'slack'));
-                
-                const token = req.cookies['sb-access-token'];
-                if (!token) return res.status(401).send(renderClosingPage(false, 'User session not found.', 'slack'));
-                const supabaseUserClient = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } });
-                const { data: { user } } = await supabaseUserClient.auth.getUser();
-
-                if (!user) return res.status(401).send(renderClosingPage(false, 'Invalid user session.', 'slack'));
-
-                const supabaseAdmin = getSupabaseAdmin();
-                const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ code: code as string, client_id: process.env.SLACK_CLIENT_ID!, client_secret: process.env.SLACK_CLIENT_SECRET! }),
-                });
-                const tokenData = await tokenResponse.json();
-                if (!tokenData.ok) throw new Error(tokenData.error || 'Failed to fetch access token from Slack.');
-                
-                const { authed_user, team } = tokenData;
-                await supabaseAdmin.from('profiles').update({ slack_user_id: authed_user.id }).eq('id', user.id);
-                await supabaseAdmin.from('integrations').upsert({
-                    provider: 'slack', workspace_id: workspaceId, is_active: true,
-                    settings: { accessToken: authed_user.access_token, slackWorkspaceName: team.name, slackTeamId: team.id },
-                }, { onConflict: 'workspace_id, provider' });
-
-                return res.status(200).send(renderClosingPage(true, undefined, 'slack'));
-            }
-
-            // ============================================================================
-            // AI & ACTION HANDLERS
-            // ============================================================================
-            case 'generate-tasks': {
-                if (req.method !== 'POST') return res.status(405).json({ error: "Method Not Allowed" });
-                const { promptText } = req.body;
-                if (!promptText) return res.status(400).json({ error: "Prompt text is required." });
-                if (!process.env.API_KEY) return res.status(500).json({ error: 'Server configuration error: Missing Google AI API key.' });
-
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `Generate a list of tasks for the following project: "${promptText}".`, config: { 
-                    systemInstruction: `You are an expert project manager. Your task is to break down a user's high-level project idea into a list of specific, actionable tasks. Respond ONLY with a valid JSON array of objects. Do not include any other text, explanations, or markdown formatting around the JSON. The JSON schema for the response should be an array of objects, where each object has a "name" (a short, clear task title) and a "description" (a one-sentence explanation of what the task involves).`,
-                    responseMimeType: "application/json" 
-                }});
-                let jsonStr = (response.text || '').trim().replace(/^```(\w*)?\s*\n?(.*?)\n?\s*```$/s, '$2');
-                return res.status(200).json(JSON.parse(jsonStr));
-            }
-            case 'plan-project': {
-                 if (req.method !== 'POST') return res.status(405).json({ error: "Method Not Allowed" });
-                const { goal } = req.body;
-                if (!goal) return res.status(400).json({ error: "Project goal is required." });
-                if (!process.env.API_KEY) return res.status(500).json({ error: 'Server configuration error: Missing Google AI API key.' });
-                
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `Project Goal: "${goal}"`, config: {
-                    systemInstruction: `You are a world-class project manager. A user will provide a project goal. Your job is to break it down into a list of actionable tasks. Return a JSON array of objects. Each object must have two properties: "name" (a short, imperative task title) and a "description" (a one-sentence explanation of the task). Do not add any commentary. Only return the JSON array.`,
-                    responseMimeType: "application/json",
-                    responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING } }, required: ["name", "description"] } },
-                }});
-                return res.status(200).json(JSON.parse((response.text || '').trim()));
-            }
-            case 'send-invoice-gmail': {
-                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
-
-                const { workspaceId, invoiceId, to, subject, body, pdfBase64 } = req.body;
-
-                const { data: integration, error: dbError } = await supabase.from('integrations').select('*').eq('workspace_id', workspaceId).eq('provider', 'google_gmail').single();
-                if (dbError || !integration?.is_active) return res.status(400).json({ error: 'Gmail integration is not active for this workspace.' });
-
-                let accessToken = integration.settings.accessToken;
-                if (Math.floor(Date.now() / 1000) >= (integration.settings.tokenExpiry || 0) - 60) {
-                    const refreshResponse = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, refresh_token: integration.settings.refreshToken, grant_type: 'refresh_token' }) });
-                    const tokenData = await refreshResponse.json();
-                    if (!refreshResponse.ok) throw new Error('Failed to refresh Gmail token.');
-                    accessToken = tokenData.access_token;
-                    await supabase.from('integrations').update({ settings: { ...integration.settings, accessToken, tokenExpiry: Math.floor(Date.now() / 1000) + tokenData.expires_in } }).eq('id', integration.id);
-                }
-
-                const {data: invoice} = await supabase.from('invoices').select('invoice_number').eq('id', invoiceId).single();
-
-                const boundary = "foo_bar_baz";
-                const mail = [
-                    `To: ${to}`,
-                    `Subject: ${subject}`,
-                    'Content-Type: multipart/mixed; boundary="' + boundary + '"',
-                    '',
-                    '--' + boundary,
-                    'Content-Type: text/plain; charset="UTF-8"',
-                    'Content-Transfer-Encoding: 7bit',
-                    '',
-                    body,
-                    '',
-                    '--' + boundary,
-                    `Content-Type: application/pdf; name="Invoice-${invoice.invoice_number}.pdf"`,
-                    'Content-Transfer-Encoding: base64',
-                    `Content-Disposition: attachment; filename="Invoice-${invoice.invoice_number}.pdf"`,
-                    '',
-                    pdfBase64,
-                    '--' + boundary + '--'
-                ].join('\r\n');
-
-                const base64EncodedEmail = Buffer.from(mail).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-                await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ raw: base64EncodedEmail }),
-                });
-
-                await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
-                return res.status(200).json({ success: true });
-            }
-            case 'notify-slack': {
-                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const { userId, message, workspaceId } = req.body;
-                
-                const { data: user } = await supabase.from('profiles').select('slack_user_id').eq('id', userId).single();
-                const { data: integration } = await supabase.from('integrations').select('settings').eq('workspace_id', workspaceId).eq('provider', 'slack').single();
-                
-                if (user?.slack_user_id && integration?.settings?.accessToken) {
-                    await fetch('https://slack.com/api/chat.postMessage', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${integration.settings.accessToken}` },
-                        body: JSON.stringify({ channel: user.slack_user_id, text: message }),
-                    });
-                }
-                return res.status(200).json({ success: true });
-            }
-            case 'save-workspace-prefs': {
-                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
-
-                const { workspaceId, workflow } = req.body;
-                if (!workspaceId || !workflow || !['simple', 'advanced'].includes(workflow)) return res.status(400).json({ error: 'Invalid request body.' });
-
-                const { data: member, error: memberError } = await supabase.from('workspace_members').select('role').eq('user_id', user.id).eq('workspace_id', workspaceId).single();
-                if (memberError || !member || !['owner', 'admin'].includes(member.role)) return res.status(403).json({ error: 'Permission denied.' });
-                
-                const { data: existing } = await supabase.from('integrations').select('settings').eq('workspace_id', workspaceId).eq('provider', 'internal_settings').single();
-                const newSettings = { ...(existing?.settings || {}), defaultKanbanWorkflow: workflow };
-
-                const { data, error } = await supabase.from('integrations').upsert({ workspace_id: workspaceId, provider: 'internal_settings', is_active: false, settings: newSettings }, { onConflict: 'workspace_id, provider' }).select().single();
-                if (error) throw error;
-                
-                return res.status(200).json({ success: true, data: keysToCamel(data) });
-            }
-
-            default:
-                return res.status(404).json({ error: `Action '${action}' not found.` });
-        }
-    } catch (error: any) {
-        console.error(`API Error for action '${action}':`, error);
-        return res.status(500).json({ error: error.message || 'An internal server error occurred.' });
-    }
-}
+                    provider: 'google_drive', workspace_id: workspaceId, is_active:

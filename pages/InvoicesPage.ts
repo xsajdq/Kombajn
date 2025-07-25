@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
@@ -127,42 +126,6 @@ function renderInvoicesList() {
     `;
 }
 
-function renderInboxTab() {
-    const gmailIntegration = state.integrations.find(i => i.workspaceId === state.activeWorkspaceId && i.provider === 'google_gmail' && i.isActive);
-    
-    let content;
-    if (gmailIntegration) {
-        content = `
-            <span class="material-icons-sharp text-5xl text-success mb-4">check_circle</span>
-            <h3 class="text-xl font-bold">${t('integrations.connected_as', { email: gmailIntegration.settings.googleUserEmail || '' })}</h3>
-            <p class="text-text-subtle mt-2 mb-6">You can now send invoices directly from your Gmail account.</p>
-            <button class="px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-disconnect-provider="google_gmail">
-                 ${t('integrations.disconnect')}
-            </button>
-        `;
-    } else {
-        content = `
-            <span class="material-icons-sharp text-5xl text-primary mb-4">mark_email_unread</span>
-            <h3 class="text-xl font-bold">${t('invoices.connect_email_title')}</h3>
-            <p class="text-text-subtle mt-2 mb-6">${t('invoices.connect_email_desc')}</p>
-            <div class="flex justify-center items-center gap-4">
-                 <button class="px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-connect-provider="google_gmail">
-                     <img src="https://www.vectorlogo.zone/logos/gmail/gmail-icon.svg" class="w-5 h-5" alt="Gmail logo">
-                     ${t('invoices.connect_gmail')}
-                </button>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="flex items-center justify-center h-full">
-            <div class="text-center bg-content p-8 rounded-lg max-w-lg">
-                ${content}
-            </div>
-        </div>
-    `;
-}
-
 export function InvoicesPage() {
     fetchClientsAndInvoicesData();
 
@@ -179,17 +142,6 @@ export function InvoicesPage() {
     const planLimits = PLANS[activeWorkspace.subscription.planId];
     const canCreateInvoice = usage.invoicesThisMonth < planLimits.invoices;
     const isAllowedToCreate = can('manage_invoices');
-    const { activeTab } = state.ui.invoices;
-
-    let tabContent = '';
-    switch (activeTab) {
-        case 'invoices':
-            tabContent = renderInvoicesList();
-            break;
-        case 'inbox':
-            tabContent = renderInboxTab();
-            break;
-    }
 
     return `
         <div class="space-y-6">
@@ -199,15 +151,8 @@ export function InvoicesPage() {
                     <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
                 </button>
             </div>
-
-            <div class="border-b border-border-color">
-                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'invoices' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-invoice-tab="invoices">${t('invoices.tab_invoices')}</button>
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-invoice-tab="inbox">${t('invoices.tab_inbox')}</button>
-                </nav>
-            </div>
             
-            ${tabContent}
+            ${renderInvoicesList()}
         </div>
     `;
 }
