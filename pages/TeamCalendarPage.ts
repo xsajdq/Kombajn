@@ -135,7 +135,7 @@ function renderMonthView(year: number, month: number) {
     
     // --- New, robust layout calculation ---
     const lanes: { item: any, startDate: Date, endDate: Date }[][] = [];
-    allItems.forEach(item => {
+    for (const item of allItems) {
         let placed = false;
         for (let i = 0; i < lanes.length; i++) {
             const lane = lanes[i];
@@ -153,7 +153,7 @@ function renderMonthView(year: number, month: number) {
             (item as any).laneIndex = lanes.length;
             lanes.push([item]);
         }
-    });
+    }
 
     const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1));
     const calendarStartDate = new Date(firstDayOfMonth);
