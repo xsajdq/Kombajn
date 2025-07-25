@@ -3,7 +3,7 @@ import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
 import { can } from '../../permissions.ts';
-import type { Task, User, Attachment, CustomFieldDefinition } from '../../types.ts';
+import type { Task, User, Attachment, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, Comment, TimeLog } from '../../types.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
     if (!bytes || bytes === 0) return '0 Bytes';
@@ -14,20 +14,122 @@ function formatBytes(bytes: number, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+function renderCommentBody(content: string) {
+    const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
+    const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
+    return `<p>${html}</p>`;
+};
+
+function renderComment(comment: Comment) {
+    const user = state.users.find(u => u.id === comment.userId);
+    const userName = user?.name || user?.initials || 'User';
+    const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
+    const reactionsByEmoji = (comment.reactions || []).reduce((acc, reaction) => {
+        if (!acc[reaction.emoji]) {
+            acc[reaction.emoji] = [];
+        }
+        acc[reaction.emoji].push(reaction.userId);
+        return acc;
+    }, {} as Record<string, string[]>);
+
+    const reactionsHtml = Object.entries(reactionsByEmoji).map(([emoji, userIds]) => {
+        const isReactedByUser = userIds.includes(state.currentUser!.id);
+        const userNames = userIds.map(id => state.users.find(u => u.id === id)?.name || 'Someone').join(', ');
+        return `
+            <button class="reaction-chip ${isReactedByUser ? 'reacted-by-user' : ''}" data-comment-id="${comment.id}" data-emoji="${emoji}" title="${userNames} reacted with ${emoji}">
+                <span>${emoji}</span>
+                <span>${userIds.length}</span>
+            </button>
+        `;
+    }).join('');
+
+    return `
+        <div class="activity-item comment-container" data-comment-id="${comment.id}">
+            <div class="avatar">${user?.initials || '?'}</div>
+            <div class="activity-content">
+                <div class="activity-header">
+                    <strong>${userName}</strong>
+                    <span class="activity-time">${formatDate(comment.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+                </div>
+                <div class="activity-body">
+                    ${renderCommentBody(comment.content)}
+                </div>
+                <div class="comment-actions">
+                    <button class="btn-text" data-reply-to-comment-id="${comment.id}">${t('modals.reply_button')}</button>
+                    <div class="relative">
+                         <button class="btn-text" data-react-to-comment-id="${comment.id}">😊</button>
+                         <div id="reaction-picker-${comment.id}" class="reaction-picker hidden">
+                            ${EMOJI_REACTIONS.map(emoji => `<button data-emoji="${emoji}">${emoji}</button>`).join('')}
+                         </div>
+                    </div>
+                </div>
+                ${reactionsHtml ? `<div class="reaction-chips">${reactionsHtml}</div>` : ''}
+                <div id="reply-form-container-${comment.id}" class="reply-form-container"></div>
+            </div>
+        </div>
+    `;
+}
+
+function renderTimeLog(item: TimeLog) {
+    const user = state.users.find(u => u.id === item.userId);
+    const userName = user?.name || user?.initials || 'User';
+    return `
+        <div class="activity-item">
+            <div class="avatar">${user?.initials || '?'}</div>
+            <div class="activity-content">
+                <div class="activity-header">
+                    <strong>${userName}</strong>
+                    <span>${t('modals.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
+                    <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+                </div>
+                ${item.comment ? `
+                <div class="activity-body">
+                    <p class="timelog-comment">${item.comment}</p>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
 
 function renderActivityTab(task: Task) {
     const comments = state.comments.filter(c => c.taskId === task.id);
     const timeLogs = state.timeLogs.filter(tl => tl.taskId === task.id);
+    
+    const allActivity = [...comments, ...timeLogs].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    const activityItems = [...comments, ...timeLogs]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const repliesByParentId = new Map<string, Comment[]>();
+    comments.forEach(comment => {
+        if (comment.parentId) {
+            if (!repliesByParentId.has(comment.parentId)) {
+                repliesByParentId.set(comment.parentId, []);
+            }
+            repliesByParentId.get(comment.parentId)!.push(comment);
+        }
+    });
 
-    const renderActivityBody = (content: string) => {
-        const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-        const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
-        return `<p>${html}</p>`;
+    const renderRepliesFor = (parentId: string): string => {
+        const replies = repliesByParentId.get(parentId);
+        if (!replies || replies.length === 0) return '';
+        return `
+            <div class="reply-container">
+                ${replies.map(renderFullComment).join('')}
+            </div>
+        `;
+    };
+
+    const renderFullComment = (comment: Comment): string => {
+        return `
+            <div>
+                ${renderComment(comment)}
+                ${renderRepliesFor(comment.id)}
+            </div>
+        `;
     };
     
+    const topLevelActivity = allActivity.filter(item => !('parentId' in item && item.parentId));
+
     return `
         <div class="flex justify-end mb-4">
             <button class="btn btn-secondary btn-sm" data-modal-target="addManualTimeLog" data-task-id="${task.id}">
@@ -36,42 +138,11 @@ function renderActivityTab(task: Task) {
             </button>
         </div>
         <div class="activity-feed">
-            ${activityItems.length > 0 ? activityItems.map(item => {
-                const user = state.users.find(u => u.id === item.userId);
-                const userName = user?.name || user?.initials || 'User';
-                if ('content' in item) { // It's a Comment
-                    return `
-                        <div class="activity-item">
-                            <div class="avatar">${user?.initials || '?'}</div>
-                            <div class="activity-content">
-                                <div class="activity-header">
-                                    <strong>${userName}</strong>
-                                    <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
-                                </div>
-                                <div class="activity-body">
-                                    ${renderActivityBody(item.content)}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else { // It's a TimeLog
-                     return `
-                        <div class="activity-item">
-                            <div class="avatar">${user?.initials || '?'}</div>
-                            <div class="activity-content">
-                                <div class="activity-header">
-                                    <strong>${userName}</strong>
-                                    <span>${t('modals.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
-                                    <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
-                                </div>
-                                ${item.comment ? `
-                                <div class="activity-body">
-                                    <p class="timelog-comment">${item.comment}</p>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
+            ${topLevelActivity.length > 0 ? topLevelActivity.map(item => {
+                if ('content' in item) { // Comment
+                    return renderFullComment(item as Comment);
+                } else { // TimeLog
+                    return renderTimeLog(item as TimeLog);
                 }
             }).join('') : `<p class="subtle-text">${t('modals.no_activity')}</p>`}
         </div>

@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction } from '../types.ts';
@@ -164,14 +163,22 @@ export async function handleSubmit(e: SubmitEvent) {
                 inputDiv.innerHTML = ''; // Clear input on send
             }
         }
-    } else if (target.id === 'add-comment-form') {
-        const taskId = (target as HTMLElement).dataset.taskId || state.ui.modal.data.taskId;
-        const inputDiv = document.getElementById('task-comment-input') as HTMLElement;
+    } else if (target.id === 'add-comment-form' || target.classList.contains('reply-form')) {
+        const form = target as HTMLFormElement;
+        const isReply = form.classList.contains('reply-form');
+        const parentId = isReply ? form.dataset.parentId : null;
+        const taskId = form.dataset.taskId || state.ui.modal.data.taskId;
+        const inputDiv = form.querySelector<HTMLElement>('.rich-text-input');
+        
         if (taskId && inputDiv) {
             const content = parseMentionContent(inputDiv);
             if (content.trim()) {
-                await taskHandlers.handleAddTaskComment(taskId, content.trim(), null, () => {
-                    inputDiv.innerHTML = '';
+                await taskHandlers.handleAddTaskComment(taskId, content.trim(), parentId, () => {
+                    if (isReply) {
+                        form.parentElement?.remove(); // Remove the container
+                    } else {
+                        inputDiv.innerHTML = ''; // Clear main input
+                    }
                 });
             }
         }

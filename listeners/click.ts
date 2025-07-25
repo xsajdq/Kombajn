@@ -1,6 +1,4 @@
 
-
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -115,6 +113,80 @@ export async function handleClick(e: MouseEvent) {
         closeMobileMenu();
         return;
     }
+    
+    // --- START: New Handlers for Comments & Reactions ---
+
+    // Reply button
+    const replyBtn = target.closest<HTMLElement>('[data-reply-to-comment-id]');
+    if (replyBtn) {
+        const commentId = replyBtn.dataset.replyToCommentId!;
+        const container = document.getElementById(`reply-form-container-${commentId}`);
+        if (container) {
+            if (container.innerHTML) { // Form is open, so close it
+                container.innerHTML = '';
+            } else { // Form is closed, so open it
+                container.innerHTML = `
+                    <form class="reply-form" data-task-id="${state.ui.modal.data.taskId}" data-parent-id="${commentId}">
+                        <div class="rich-text-input-container">
+                            <div class="rich-text-input" contenteditable="true" data-placeholder="${t('modals.add_comment')}"></div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-2">
+                            <button type="button" class="btn btn-secondary btn-sm cancel-reply-btn">${t('modals.cancel')}</button>
+                            <button type="submit" class="btn btn-primary btn-sm">${t('modals.reply_button')}</button>
+                        </div>
+                    </form>
+                `;
+                container.querySelector<HTMLElement>('.rich-text-input')?.focus();
+            }
+        }
+        return;
+    }
+    
+    // Cancel reply button
+    if (target.closest('.cancel-reply-btn')) {
+        target.closest('.reply-form-container')!.innerHTML = '';
+        return;
+    }
+    
+    // React button
+    const reactBtn = target.closest<HTMLElement>('[data-react-to-comment-id]');
+    if (reactBtn) {
+        const commentId = reactBtn.dataset.reactToCommentId!;
+        const picker = document.getElementById(`reaction-picker-${commentId}`);
+        if(picker) {
+            const isHidden = picker.classList.contains('hidden');
+            // Close all other pickers
+            document.querySelectorAll('.reaction-picker').forEach(p => p.classList.add('hidden'));
+            if(isHidden) picker.classList.remove('hidden');
+        }
+        return;
+    }
+    
+    // Close reaction pickers if clicking outside
+    if (!target.closest('.reaction-picker') && !target.closest('[data-react-to-comment-id]')) {
+        document.querySelectorAll('.reaction-picker').forEach(p => p.classList.add('hidden'));
+    }
+    
+    // Emoji button in picker
+    const emojiBtn = target.closest<HTMLElement>('.reaction-picker button[data-emoji]');
+    if (emojiBtn) {
+        const commentId = emojiBtn.closest('.reaction-picker')!.id.replace('reaction-picker-', '');
+        const emoji = emojiBtn.dataset.emoji!;
+        taskHandlers.handleToggleReaction(commentId, emoji);
+        emojiBtn.closest('.reaction-picker')!.classList.add('hidden'); // Close picker after reaction
+        return;
+    }
+    
+    // Reaction chip button (to toggle)
+    const reactionChip = target.closest<HTMLElement>('.reaction-chip');
+    if (reactionChip) {
+        const commentId = reactionChip.dataset.commentId!;
+        const emoji = reactionChip.dataset.emoji!;
+        taskHandlers.handleToggleReaction(commentId, emoji);
+        return;
+    }
+
+    // --- END: New Handlers for Comments & Reactions ---
 
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     if (!menuToggle && !target.closest('[aria-haspopup="true"] + div')) {
