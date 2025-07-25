@@ -140,4 +140,12 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
 
                 <nav class="side-panel-tabs" role="tablist" aria-label="Deal sections">
                     <button class="side-panel-tab ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity" role="tab" aria-selected="${activeTab === 'activity'}">${t('panels.activity')}</button>
-                    <button class="side-panel-tab ${activeTab === 'tasks' ? 'active'
+                    <button class="side-panel-tab ${activeTab === 'tasks' ? 'active' : ''}" data-tab="tasks" role="tab" aria-selected="${activeTab === 'tasks'}">${t('panels.tasks')}</button>
+                </nav>
+                <div class="mt-4">
+                    ${tabContent}
+                </div>
+            </div>
+        </div>
+    `;
+}
