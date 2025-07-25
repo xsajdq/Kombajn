@@ -709,7 +709,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
                 const baseUrl = getBaseUrl(req);
                 const redirectUri = `${baseUrl}/api?action=auth-callback-google_gmail`;
-                const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/gmail.send'];
+                const scopes = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/gmail.send'];
                 const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
                 authUrl.searchParams.set('client_id', clientId);
                 authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -878,7 +878,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const base64EncodedEmail = Buffer.from(mail).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-                await fetch('https://www.googleapis.com/upload/gmail/v1/users/me/messages/send', {
+                await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ raw: base64EncodedEmail }),
