@@ -1,6 +1,6 @@
 import { state, generateId } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag } from '../types.ts';
+import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
@@ -14,16 +14,17 @@ export function openTaskDetail(taskId: string) {
     showModal('taskDetail', { taskId });
 }
 
-export async function handleAddTaskComment(taskId: string, content: string, successCallback: () => void) {
+export async function handleAddTaskComment(taskId: string, content: string, parentId: string | null, successCallback: () => void) {
     if (!content || !state.currentUser) return;
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const newCommentPayload: Omit<Comment, 'id'|'createdAt'> = {
+    const newCommentPayload: Omit<Comment, 'id'|'createdAt'|'reactions'> = {
         workspaceId: task.workspaceId,
         taskId,
         content: content,
         userId: state.currentUser.id,
+        parentId: parentId || undefined,
     };
 
     try {
@@ -59,6 +60,43 @@ export async function handleAddTaskComment(taskId: string, content: string, succ
         alert("Could not add comment. Please try again.");
     }
 }
+
+export async function handleToggleReaction(commentId: string, emoji: string) {
+    const comment = state.comments.find(c => c.id === commentId);
+    if (!comment || !state.currentUser) return;
+
+    if (!comment.reactions) {
+        comment.reactions = [];
+    }
+
+    const userId = state.currentUser.id;
+    const existingReactionIndex = comment.reactions.findIndex(r => r.emoji === emoji && r.userId === userId);
+
+    if (existingReactionIndex > -1) {
+        // User is removing their reaction
+        comment.reactions.splice(existingReactionIndex, 1);
+    } else {
+        // User is adding a reaction
+        comment.reactions.push({ emoji, userId });
+    }
+
+    updateUI(['modal']); // Optimistic update
+
+    try {
+        await apiPut('comments', { id: commentId, reactions: comment.reactions });
+    } catch (error) {
+        console.error("Failed to toggle reaction:", error);
+        alert("Could not save reaction.");
+        // Revert UI change on failure
+        if (existingReactionIndex > -1) {
+            comment.reactions.splice(existingReactionIndex, 0, { emoji, userId });
+        } else {
+            comment.reactions.pop();
+        }
+        updateUI(['modal']);
+    }
+}
+
 
 export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, value: any) {
     const task = state.tasks.find(t => t.id === taskId);

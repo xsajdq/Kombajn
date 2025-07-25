@@ -1,6 +1,5 @@
 
 
-
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction } from '../types.ts';
@@ -171,7 +170,7 @@ export async function handleSubmit(e: SubmitEvent) {
         if (taskId && inputDiv) {
             const content = parseMentionContent(inputDiv);
             if (content.trim()) {
-                await taskHandlers.handleAddTaskComment(taskId, content.trim(), () => {
+                await taskHandlers.handleAddTaskComment(taskId, content.trim(), null, () => {
                     inputDiv.innerHTML = '';
                 });
             }

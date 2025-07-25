@@ -225,6 +225,11 @@ export interface TimeLog {
     createdAt: string; // ISO 8601 date string
     invoiceId?: string;
 }
+
+export interface CommentReaction {
+    userId: string;
+    emoji: string;
+}
 export interface Comment {
     id: string;
     workspaceId: string;
@@ -232,6 +237,8 @@ export interface Comment {
     userId: string;
     content: string;
     createdAt: string; // ISO 8601 date string
+    parentId?: string;
+    reactions?: CommentReaction[];
 }
 
 export interface NotificationAction {

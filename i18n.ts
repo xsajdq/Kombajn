@@ -1,4 +1,5 @@
 
+
 import { state } from './state';
 
 const translations = {
@@ -256,7 +257,7 @@ const translations = {
             task_details_title: 'Task Details', status: 'Status', priority: 'Priority',
             status_backlog: 'Backlog', status_todo: 'To Do', status_inprogress: 'In Progress', status_inreview: 'In Review', status_done: 'Done',
             priority_none: 'None', priority_low: 'Low', priority_medium: 'Medium', priority_high: 'High',
-            details: 'Details', activity: 'Activity', no_activity: 'No activity yet.', add_comment: 'Add a comment...', comment_button: 'Comment', logged: 'logged',
+            details: 'Details', activity: 'Activity', no_activity: 'No activity yet.', add_comment: 'Add a comment...', comment_button: 'Comment', reply_button: 'Reply', logged: 'logged',
             add_timelog_comment_title: 'Add a comment to your time log', time_tracked: 'Time tracked', save_without_comment: 'Save without comment', save_log: 'Save Log', comment_placeholder: 'What did you work on?',
             create_invoice_title: 'Create Invoice', edit_invoice_title: 'Edit Invoice', client: 'Client', issue_date: 'Issue Date', invoice_items: 'Invoice Items', item_description: 'Description', item_qty: 'Qty', item_price: 'Unit Price', add_item: 'Add Item', remove_item: 'Remove Item', total: 'Total', generate_from_time: 'Generate from unbilled time & expenses',
             automations_title: 'Automations for {projectName}', add_automation_title: 'Create Automation', edit_automation_title: 'Edit Automation', automation_name: 'Automation Name', trigger: 'Trigger', actions: 'Actions', add_action: 'Add Action',
@@ -569,7 +570,7 @@ const translations = {
             task_details_title: 'Szczegóły zadania', status: 'Status', priority: 'Priorytet',
             status_backlog: 'Backlog', status_todo: 'Do zrobienia', status_inprogress: 'W toku', status_inreview: 'W recenzji', status_done: 'Ukończone',
             priority_none: 'Brak', priority_low: 'Niski', priority_medium: 'Średni', priority_high: 'Wysoki',
-            details: 'Szczegóły', activity: 'Aktywność', no_activity: 'Brak aktywności.', add_comment: 'Dodaj komentarz...', comment_button: 'Skomentuj', logged: 'zarejestrował(a)',
+            details: 'Szczegóły', activity: 'Aktywność', no_activity: 'Brak aktywności.', add_comment: 'Dodaj komentarz...', comment_button: 'Skomentuj', reply_button: 'Odpowiedz', logged: 'zarejestrował(a)',
             add_timelog_comment_title: 'Dodaj komentarz do swojego wpisu czasu', time_tracked: 'Zarejestrowany czas', save_without_comment: 'Zapisz bez komentarza', save_log: 'Zapisz wpis', comment_placeholder: 'Nad czym pracowałeś(aś)?',
             create_invoice_title: 'Utwórz fakturę', edit_invoice_title: 'Edytuj fakturę', client: 'Klient', issue_date: 'Data wystawienia', invoice_items: 'Pozycje na fakturze', item_description: 'Opis', item_qty: 'Ilość', item_price: 'Cena jedn.', add_item: 'Dodaj pozycję', remove_item: 'Usuń pozycję', total: 'Suma', generate_from_time: 'Generuj z nierozliczonego czasu i wydatków',
             automations_title: 'Automatyzacje dla {projectName}', add_automation_title: 'Utwórz Automatyzację', edit_automation_title: 'Edytuj Automatyzację', automation_name: 'Nazwa Automatyzacji', trigger: 'Wyzwalacz', actions: 'Akcje', add_action: 'Dodaj Akcję',

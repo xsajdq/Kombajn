@@ -1,7 +1,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { Task, TimeOffRequest, CalendarEvent } from '../types.ts';
+import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday } from '../types.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 import { formatDate } from '../utils.ts';
 
@@ -14,20 +14,21 @@ function getEventBarDetails(item: any) {
 
     if ('status' in item && 'projectId' in item) { // Task
         const priorityColors: Record<string, string> = {
-            high: 'bg-danger',
-            medium: 'bg-warning',
-            low: 'bg-primary',
+            high: 'bg-red-500',
+            medium: 'bg-yellow-500',
+            low: 'bg-blue-500',
         };
         colorClasses = `cursor-pointer ${priorityColors[item.priority || 'low']}`;
+        textColorClass = 'text-white';
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
     } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
-        colorClasses = 'bg-success';
+        colorClasses = 'bg-green-500';
         textColorClass = 'text-white';
-        text = `${userName}`;
+        text = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
         title = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
     } else if ('title' in item && 'isAllDay' in item) { // CalendarEvent
         const event = item as CalendarEvent;
@@ -46,7 +47,7 @@ function getEventBarDetails(item: any) {
 
 function getItemsForDay(dayDateString: string) {
     const dayDate = new Date(dayDateString + 'T12:00:00Z');
-    const items: (Task | TimeOffRequest | CalendarEvent | {date: string, name: string})[] = [];
+    const items: (Task | TimeOffRequest | CalendarEvent | PublicHoliday)[] = [];
     
     items.push(...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.dueDate === dayDateString));
     items.push(...state.timeOffRequests.filter(to => {
@@ -72,51 +73,123 @@ function renderMonthView(year: number, month: number) {
 
     const monthStartDate = new Date(year, month - 1, 1);
     const monthEndDate = new Date(year, month, 0);
+    
+    // --- 1. Get Calendar Grid Dates ---
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const calendarStartDate = new Date(firstDayOfMonth);
+    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
+    const calendarEndDate = new Date(calendarStartDate);
+    calendarEndDate.setDate(calendarEndDate.getDate() + 41); // 6 weeks * 7 days - 1
 
-    const allItems = [
+    const weeks: Date[][] = [];
+    let currentDateIterator = new Date(calendarStartDate);
+    while(currentDateIterator <= calendarEndDate) {
+        const week: Date[] = [];
+        for (let j = 0; j < 7; j++) {
+            week.push(new Date(currentDateIterator));
+            currentDateIterator.setDate(currentDateIterator.getDate() + 1);
+        }
+        weeks.push(week);
+        if (week[6] >= monthEndDate && (week[6].getDay() + 6) % 7 === 6) break;
+    }
+
+    // --- 2. Fetch and Categorize All Items for the View ---
+    const allItemsRaw = [
         ...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && (t.startDate || t.dueDate)),
         ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
         ...state.calendarEvents.filter(e => e.workspaceId === state.activeWorkspaceId),
         ...state.publicHolidays
-    ].map(original => {
-        let startDateStr: string, endDateStr: string;
+    ];
+
+    const allItems = allItemsRaw.map(original => {
+        let startDateStr: string, endDateStr: string, type: 'leave' | 'grid' = 'grid';
         if ('projectId' in original) {
             const task = original as Task;
             startDateStr = task.startDate || task.dueDate!;
             endDateStr = task.dueDate || task.startDate!;
         } else if ('userId' in original) {
+            type = 'leave';
             const eventOrRequest = original as TimeOffRequest | CalendarEvent;
             startDateStr = eventOrRequest.startDate;
             endDateStr = eventOrRequest.endDate;
-        } else {
-            const holiday = original as { date: string };
+        } else if ('isAllDay' in original) {
+             const event = original as CalendarEvent;
+             startDateStr = event.startDate;
+             endDateStr = event.endDate;
+        }
+        else {
+            type = 'leave';
+            const holiday = original as PublicHoliday;
             startDateStr = holiday.date;
             endDateStr = holiday.date;
         }
         
         if (!startDateStr || !endDateStr) return null;
-
         let d1 = new Date(startDateStr + 'T12:00:00Z');
         let d2 = new Date(endDateStr + 'T12:00:00Z');
         if (d1 > d2) [d1, d2] = [d2, d1];
         
-        return { item: original, startDate: d1, endDate: d2 };
+        return { item: original, startDate: d1, endDate: d2, type };
     })
-    .filter((e): e is { item: any; startDate: Date; endDate: Date } => e !== null)
-    .filter(e => e.startDate <= monthEndDate && e.endDate >= monthStartDate)
+    .filter((e): e is { item: any; startDate: Date; endDate: Date; type: 'leave' | 'grid' } => e !== null)
+    .filter(e => e.startDate <= calendarEndDate && e.endDate >= calendarStartDate)
     .sort((a, b) => {
-        if (a.startDate.getTime() !== b.startDate.getTime()) {
-            return a.startDate.getTime() - b.startDate.getTime();
-        }
+        if (a.startDate.getTime() !== b.startDate.getTime()) return a.startDate.getTime() - b.startDate.getTime();
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    const firstDayOfMonth = new Date(year, month - 1, 1);
-    const calendarStartDate = new Date(firstDayOfMonth);
-    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
+    const leaveItems = allItems.filter(i => i.type === 'leave');
+    const gridItems = allItems.filter(i => i.type === 'grid');
+    
+    // --- 3. Render Leave Header ---
+    const leaveByUser = new Map<string, any[]>();
+    leaveItems.forEach(event => {
+        const key = 'userId' in event.item ? event.item.userId : 'public_holidays';
+        if (!leaveByUser.has(key)) leaveByUser.set(key, []);
+        leaveByUser.get(key)!.push(event);
+    });
 
+    let leaveHeaderHtml = '';
+    if (leaveByUser.size > 0) {
+        let userRowsHtml = '';
+        leaveByUser.forEach((events, userId) => {
+            const user = state.users.find(u => u.id === userId);
+            const userName = user?.name || user?.initials || t('team_calendar.public_holiday');
+            
+            let eventBars = '';
+            events.forEach(event => {
+                const start = event.startDate > calendarStartDate ? event.startDate : calendarStartDate;
+                const end = event.endDate < calendarEndDate ? event.endDate : calendarEndDate;
+                
+                const startDayIndex = Math.floor((start.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24));
+                const endDayIndex = Math.floor((end.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24));
+                const duration = endDayIndex - startDayIndex + 1;
+                
+                const { colorClasses, textColorClass, text, title } = getEventBarDetails(event.item);
+
+                eventBars += `
+                    <div class="calendar-event-bar" style="grid-column: ${startDayIndex + 1} / span ${duration};" title="${title}">
+                        <div class="calendar-event-content ${colorClasses} ${textColorClass} is-start is-end">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+            });
+
+            userRowsHtml += `
+                <div class="leave-header-row">
+                    <div class="leave-header-user">${userName}</div>
+                    <div class="leave-header-timeline">${eventBars}</div>
+                </div>
+            `;
+        });
+
+        leaveHeaderHtml = `<div class="team-calendar-leave-header">${userRowsHtml}</div>`;
+    }
+    
+    // --- 4. Render Main Grid with Lane Algorithm ---
     const lanes: Date[] = [];
-    allItems.forEach(event => {
+    gridItems.forEach(event => {
         let assignedLane = -1;
         for (let i = 0; i < lanes.length; i++) {
             if (lanes[i] < event.startDate) {
@@ -132,32 +205,10 @@ function renderMonthView(year: number, month: number) {
         (event as any).lane = assignedLane;
     });
 
-    const weeks: Date[][] = [];
-    let currentDateIterator = new Date(calendarStartDate);
-    const lastDayOfMonth = new Date(year, month, 0);
-    let weeksToRender = 5;
-    if ( (firstDayOfMonth.getDay() === 0 && lastDayOfMonth.getDate() > 29) || (firstDayOfMonth.getDay() === 6 && lastDayOfMonth.getDate() > 30) ) {
-        weeksToRender = 6;
-    } else if (firstDayOfMonth.getDay() === 1 && lastDayOfMonth.getDate() === 28) {
-        weeksToRender = 4;
-    }
-
-
-    for (let i = 0; i < weeksToRender; i++) {
-        const week: Date[] = [];
-        for (let j = 0; j < 7; j++) {
-            week.push(new Date(currentDateIterator));
-            currentDateIterator.setDate(currentDateIterator.getDate() + 1);
-        }
-        weeks.push(week);
-    }
-    
-    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
     let eventBarsHtml = '';
-    allItems.forEach(event => {
+    gridItems.forEach(event => {
         const lane = (event as any).lane;
-        const barHeight = 20;
+        const barHeight = 22;
         const barGap = 2;
         const topOffset = 30 + (lane * (barHeight + barGap));
         const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(event.item);
@@ -187,13 +238,16 @@ function renderMonthView(year: number, month: number) {
         });
     });
 
+    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
     return `
+        ${leaveHeaderHtml}
         <div class="overflow-x-auto">
             <div class="min-w-[1200px] relative">
                 <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
                     ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
                 </div>
-                <div class="grid grid-cols-7 auto-rows-[120px]">
+                <div class="grid grid-cols-7" style="grid-template-rows: repeat(${weeks.length}, 120px)">
                     ${weeks.flat().map(day => {
                         const isCurrentMonth = day.getMonth() === month - 1;
                         const isToday = day.getTime() === today.getTime();
@@ -234,8 +288,8 @@ function renderWeekView(currentDate: Date) {
                 </div>
                 <div class="space-y-1">
                     ${itemsForDay.map(item => {
-                        const { colorClasses, text, handler, title } = getEventBarDetails(item);
-                        return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses}" title="${title}" ${handler}>${text}</div>`
+                        const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
+                        return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses} ${textColorClass}" title="${title}" ${handler}>${text}</div>`
                     }).join('')}
                 </div>
             </div>
@@ -253,8 +307,8 @@ function renderDayView(currentDate: Date) {
         <div class="p-4 space-y-2">
             ${itemsForDay.length > 0
                 ? itemsForDay.map(item => {
-                    const { colorClasses, text, handler, title } = getEventBarDetails(item);
-                    return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses}" title="${title}" ${handler}>${text}</div>`
+                    const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
+                    return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses} ${textColorClass}" title="${title}" ${handler}>${text}</div>`
                 }).join('')
                 : `<div class="flex items-center justify-center py-8 text-text-subtle">${t('misc.no_events_for_day')}</div>`
             }

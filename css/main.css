@@ -1,3 +1,5 @@
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -176,6 +178,20 @@
   .rich-text-input:empty:before { content: attr(data-placeholder); @apply text-text-subtle pointer-events-none; }
   .add-comment-form button { @apply self-end; }
   .checklist-item { @apply flex justify-between items-center; }
+
+  /* === Threaded Comments & Reactions === */
+  .comment-container { @apply relative; }
+  .reply-container { @apply mt-3 ml-8 pl-4 border-l-2 border-border-color space-y-4; }
+  .comment-actions { @apply flex items-center gap-2 mt-1 relative; }
+  .comment-actions button { @apply text-xs text-text-subtle hover:text-text-main flex items-center gap-1; }
+  .reaction-picker { @apply absolute z-10 bg-content p-1 rounded-full shadow-lg border border-border-color flex gap-1; }
+  .reaction-picker button { @apply p-1 rounded-full hover:bg-background text-lg transition-transform transform hover:scale-125; }
+  .reaction-chips { @apply flex flex-wrap gap-1 mt-2; }
+  .reaction-chip { @apply flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full border border-primary/20 cursor-pointer; }
+  .reaction-chip.reacted-by-user { @apply bg-primary text-white border-primary-hover; }
+  .reply-form { @apply mt-3; }
+  .reply-form .rich-text-input { @apply min-h-[40px]; }
+
 
   .form-control {
     @apply w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
@@ -707,7 +723,23 @@
     @apply text-center p-8 text-text-subtle;
   }
 
-  /* Team Calendar Month View Events */
+  /* == NEW Team Calendar Month View Events == */
+  .team-calendar-leave-header {
+    @apply p-2 border-b-2 border-border-color min-w-[1200px];
+  }
+  .leave-header-row {
+    @apply flex items-center;
+  }
+  .leave-header-user {
+    @apply w-32 shrink-0 text-sm font-medium pr-2 text-right;
+  }
+  .leave-header-timeline {
+    @apply flex-1 grid grid-cols-7 relative h-8;
+  }
+  .leave-header-timeline .calendar-event-bar {
+    @apply h-6 top-1/2 -translate-y-1/2;
+  }
+
   .calendar-event-bar {
     @apply absolute px-px box-border; /* Use padding to create gaps without affecting width calculations */
   }
