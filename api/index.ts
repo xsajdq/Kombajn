@@ -25,6 +25,22 @@ function getSupabaseAdmin() {
     return supabaseAdmin;
 }
 
+function getBaseUrl(req: VercelRequest): string {
+    // Vercel provides the deployment URL in an env var.
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    // Fallback for other environments (including local).
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['host'];
+    if (!host) {
+        // This is a last resort, should not happen in a real environment.
+        return 'http://localhost:3000';
+    }
+    return `${proto}://${host}`;
+}
+
+
 const CAMEL_CASE_EXCEPTIONS = new Set([
   'planHistory',
   'contractInfoNotes',
@@ -631,7 +647,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
                 const clientId = process.env.GOOGLE_CLIENT_ID;
                 if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
-                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-google_drive`;
+                const baseUrl = getBaseUrl(req);
+                const redirectUri = `${baseUrl}/api?action=auth-callback-google_drive`;
                 const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/drive.file'];
                 const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
                 authUrl.searchParams.set('client_id', clientId);
@@ -650,6 +667,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_drive'));
                 
                 const supabase = getSupabaseAdmin();
+                const baseUrl = getBaseUrl(req);
                 const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -657,7 +675,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         code: code as string,
                         client_id: process.env.GOOGLE_CLIENT_ID!,
                         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                        redirect_uri: `${process.env.BASE_URL}/api?action=auth-callback-google_drive`,
+                        redirect_uri: `${baseUrl}/api?action=auth-callback-google_drive`,
                         grant_type: 'authorization_code',
                     }),
                 });
@@ -681,7 +699,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
                 const clientId = process.env.GOOGLE_CLIENT_ID;
                 if (!clientId) return res.status(500).json({ error: 'Google Client ID not configured on server.' });
-                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-google_gmail`;
+                const baseUrl = getBaseUrl(req);
+                const redirectUri = `${baseUrl}/api?action=auth-callback-google_gmail`;
                 const scopes = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/gmail.send'];
                 const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
                 authUrl.searchParams.set('client_id', clientId);
@@ -700,6 +719,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!code) return res.status(400).send(renderClosingPage(false, 'Authorization code is missing.', 'google_gmail'));
                 
                 const supabase = getSupabaseAdmin();
+                const baseUrl = getBaseUrl(req);
                 const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -707,7 +727,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         code: code as string,
                         client_id: process.env.GOOGLE_CLIENT_ID!,
                         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                        redirect_uri: `${process.env.BASE_URL}/api?action=auth-callback-google_gmail`,
+                        redirect_uri: `${baseUrl}/api?action=auth-callback-google_gmail`,
                         grant_type: 'authorization_code',
                     }),
                 });
@@ -731,7 +751,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!workspaceId) return res.status(400).json({ error: 'Workspace ID is required' });
                 const clientId = process.env.SLACK_CLIENT_ID;
                 if (!clientId) return res.status(500).json({ error: 'Slack Client ID not configured on server.' });
-                const redirectUri = `${process.env.BASE_URL}/api?action=auth-callback-slack`;
+                const baseUrl = getBaseUrl(req);
+                const redirectUri = `${baseUrl}/api?action=auth-callback-slack`;
                 const userScopes = ['chat:write', 'users:read', 'users:read.email'];
                 const authUrl = new URL('https://slack.com/oauth/v2/authorize');
                 authUrl.searchParams.set('client_id', clientId);
