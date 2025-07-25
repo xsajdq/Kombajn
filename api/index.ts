@@ -26,15 +26,19 @@ function getSupabaseAdmin() {
 }
 
 function getBaseUrl(req: VercelRequest): string {
-    // Vercel provides the deployment URL in an env var.
+    // Prioritize the canonical production URL for OAuth stability across environments.
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    // Fallback to the unique deployment URL if the production URL isn't set.
     if (process.env.VERCEL_URL) {
         return `https://${process.env.VERCEL_URL}`;
     }
-    // Fallback for other environments (including local).
+    // Fallback for local development or other non-Vercel environments.
     const proto = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers['host'];
     if (!host) {
-        // This is a last resort, should not happen in a real environment.
+        // This is a last resort and should not happen in a real request context.
         return 'http://localhost:3000';
     }
     return `${proto}://${host}`;
