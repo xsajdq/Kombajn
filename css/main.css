@@ -88,7 +88,7 @@
 
   .activity-log-container { @apply bg-background p-3 rounded-lg; }
   .activity-log-tabs { @apply flex border-b border-border-color mb-3; }
-  .activity-log-tabs button { @apply flex-1 px-3 py-2 text-sm font-medium text-text-subtle border-b-2 border-transparent -mb-px hover:text-text-main; }
+  .activity-log-tabs button { @apply flex items-center justify-center gap-2 flex-1 px-3 py-2 text-sm font-medium text-text-subtle border-b-2 border-transparent -mb-px hover:text-text-main; }
   .activity-log-tabs button.active { @apply border-primary text-primary; }
 
   .deal-activity-timeline { @apply space-y-4 mt-6; }

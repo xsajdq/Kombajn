@@ -708,7 +708,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 const { error: dbError } = await supabase.from('integrations').upsert(integrationData, {
                     onConflict: 'workspace_id, provider'
-                });
+                }).select();
                 
                 if (dbError) {
                     console.error('Supabase error on integration upsert:', dbError);

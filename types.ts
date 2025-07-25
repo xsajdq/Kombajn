@@ -1,7 +1,5 @@
 
 
-import { string } from "@google/genai/dist/protos/src";
-
 export interface User {
     id: string;
     name?: string;

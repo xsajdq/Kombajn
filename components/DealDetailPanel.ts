@@ -18,36 +18,42 @@ function renderActivityTab(deal: Deal) {
     };
 
     return `
-        <div class="deal-activity-feed">
-            ${activities.length > 0 ? activities.map(activity => {
-                const user = state.users.find(u => u.id === activity.userId);
-                return `
-                    <div class="activity-item">
-                        <div class="avatar flex items-center justify-center bg-background" title="${activity.type}">
-                             <span class="material-icons-sharp text-text-subtle">${activityIcons[activity.type]}</span>
-                        </div>
-                        <div class="activity-content">
-                            <div class="activity-header">
-                                <strong>${user?.name || 'User'}</strong>
-                                <span class="subtle-text">${formatDate(activity.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+        <div class="space-y-4">
+            <form id="log-deal-activity-form" data-deal-id="${deal.id}" class="bg-background p-3 rounded-lg">
+                <input type="hidden" name="activity-type" value="note">
+                <div class="activity-log-tabs">
+                    <button type="button" class="active" data-activity-type="note"><span class="material-icons-sharp text-base">note</span> ${t('panels.add_note')}</button>
+                    <button type="button" data-activity-type="call"><span class="material-icons-sharp text-base">call</span> ${t('panels.call')}</button>
+                    <button type="button" data-activity-type="meeting"><span class="material-icons-sharp text-base">groups</span> ${t('panels.meeting')}</button>
+                </div>
+                <textarea class="form-control" name="activity-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
+                <div class="flex justify-end mt-2">
+                    <button class="btn btn-primary btn-sm" type="submit">${t('panels.log_activity')}</button>
+                </div>
+            </form>
+
+            <div class="deal-activity-timeline">
+                ${activities.length > 0 ? activities.map(activity => {
+                    const user = state.users.find(u => u.id === activity.userId);
+                    return `
+                        <div class="deal-activity-item">
+                            <div class="activity-icon" title="${activity.type}">
+                                <span class="material-icons-sharp">${activityIcons[activity.type]}</span>
                             </div>
-                            <p class="text-sm">${activity.content}</p>
+                            <div class="activity-content-wrapper">
+                                <div class="activity-item-header">
+                                    <strong>${user?.name || 'User'}</strong>
+                                    <span class="subtle-text">${formatDate(activity.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+                                </div>
+                                <div class="activity-item-body">
+                                    <p>${activity.content}</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }).join('') : `<p class="subtle-text">${t('panels.no_deal_activity')}</p>`}
-        </div>
-        <form id="log-deal-activity-form" data-deal-id="${deal.id}" class="flex flex-col gap-2 mt-4">
-            <div class="activity-log-tabs">
-                <button type="button" class="active" data-activity-type="note"><span class="material-icons-sharp">note</span> ${t('panels.add_note')}</button>
-                <button type="button" data-activity-type="call"><span class="material-icons-sharp">call</span> ${t('panels.call')}</button>
-                <button type="button" data-activity-type="meeting"><span class="material-icons-sharp">groups</span> ${t('panels.meeting')}</button>
-                <button type="button" data-activity-type="email"><span class="material-icons-sharp">email</span> Email</button>
+                    `;
+                }).join('') : `<p class="subtle-text text-center py-8">${t('panels.no_deal_activity')}</p>`}
             </div>
-            <input type="hidden" name="activity-type" value="note">
-            <textarea class="form-control" name="activity-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
-            <button class="btn btn-primary self-end" type="submit">${t('panels.log_activity')}</button>
-        </form>
+        </div>
     `;
 }
 
@@ -132,16 +138,6 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
                     </div>
                 </div>
 
-                <div class="side-panel-tabs" role="tablist" aria-label="Deal sections">
-                    <div class="side-panel-tab ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity" role="tab" aria-selected="${activeTab === 'activity'}">${t('panels.activity')}</div>
-                    <div class="side-panel-tab ${activeTab === 'tasks' ? 'active' : ''}" data-tab="tasks" role="tab" aria-selected="${activeTab === 'tasks'}">${t('panels.tasks')}</div>
-                </div>
-
-                <div class="card" style="margin-top: 1.5rem;">
-                    ${tabContent}
-                </div>
-
-            </div>
-        </div>
-    `;
-}
+                <nav class="side-panel-tabs" role="tablist" aria-label="Deal sections">
+                    <button class="side-panel-tab ${activeTab === 'activity' ? 'active' : ''}" data-tab="activity" role="tab" aria-selected="${activeTab === 'activity'}">${t('panels.activity')}</button>
+                    <button class="side-panel-tab ${activeTab === 'tasks' ? 'active'
