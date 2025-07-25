@@ -366,6 +366,115 @@ function renderGanttView() {
     return `<div id="gantt-chart-container" class="bg-content rounded-lg p-4"><svg id="gantt-chart"></svg></div>`;
 }
 
+function renderWorkloadView(filteredTasks: Task[]) {
+    const users = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter((u): u is User => !!u)
+        .sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    const dates: Date[] = Array.from({ length: 14 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        return date;
+    });
+
+    const tasksWithData = filteredTasks.filter(t => t.startDate && t.dueDate && t.estimatedHours);
+
+    // Render grid structure and capacity
+    let headerHtml = `<div class="workload-header"></div>`;
+    dates.forEach(d => {
+        headerHtml += `<div class="workload-header">
+            <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
+            <div class="font-bold">${d.getDate()}</div>
+        </div>`;
+    });
+    
+    let gridHtml = headerHtml;
+    let taskBarsHtml = '';
+
+    users.forEach((user, userIndex) => {
+        gridHtml += `<div class="workload-user-cell">${user.name}</div>`;
+        const userTasks = tasksWithData.filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id));
+        
+        dates.forEach((date) => {
+            const dateStr = date.toISOString().slice(0, 10);
+            let dailyHours = 0;
+            userTasks.forEach(task => {
+                const start = new Date(task.startDate!);
+                const end = new Date(task.dueDate!);
+                const currentDate = new Date(dateStr);
+                if (currentDate >= start && currentDate <= end) {
+                    const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
+                    dailyHours += (task.estimatedHours || 0) / durationDays;
+                }
+            });
+            
+            let capacityClass = 'capacity-under';
+            if (dailyHours > 8) capacityClass = 'capacity-over';
+            else if (dailyHours > 6) capacityClass = 'capacity-good';
+            
+            gridHtml += `<div class="workload-day-cell ${capacityClass}">
+                <span class="workload-day-capacity">${dailyHours > 0 ? `${dailyHours.toFixed(1)}h` : ''}</span>
+            </div>`;
+        });
+
+        // Task bar layout algorithm for this user
+        const tracks: { task: Task, end: Date }[][] = [];
+        userTasks.sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
+
+        userTasks.forEach(task => {
+            const taskStart = new Date(task.startDate!);
+            const taskEnd = new Date(task.dueDate!);
+            let placed = false;
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                const hasOverlap = track.some(placed => new Date(placed.task.startDate!) < taskEnd && new Date(placed.task.dueDate!) > taskStart);
+                if (!hasOverlap) {
+                    track.push({ task, end: taskEnd });
+                    taskBarsHtml += renderTaskBar(task, userIndex, dates, i);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                tracks.push([{ task, end: taskEnd }]);
+                taskBarsHtml += renderTaskBar(task, userIndex, dates, tracks.length - 1);
+            }
+        });
+    });
+    
+    return `<div class="overflow-x-auto"><div class="workload-grid-container" style="grid-template-rows: auto repeat(${users.length}, minmax(80px, auto));">${gridHtml}${taskBarsHtml}</div></div>`;
+}
+
+function renderTaskBar(task: Task, userIndex: number, dates: Date[], trackIndex: number) {
+    const viewStart = dates[0];
+    const viewEnd = dates[dates.length - 1];
+    const taskStart = new Date(task.startDate!);
+    const taskEnd = new Date(task.dueDate!);
+
+    const start = taskStart < viewStart ? viewStart : taskStart;
+    const end = taskEnd > viewEnd ? viewEnd : taskEnd;
+
+    const startDayIndex = Math.floor((start.getTime() - viewStart.getTime()) / (1000 * 3600 * 24));
+    const endDayIndex = Math.floor((end.getTime() - viewStart.getTime()) / (1000 * 3600 * 24));
+    const duration = endDayIndex - startDayIndex + 1;
+
+    if (duration <= 0) return '';
+    
+    const priorityColors: Record<string, string> = {
+        high: 'bg-red-500', medium: 'bg-yellow-500', low: 'bg-blue-500'
+    };
+    const colorClass = priorityColors[task.priority || 'low'];
+
+    return `<div class="workload-task-bar ${colorClass}" 
+                 style="grid-row: ${userIndex + 2}; grid-column: ${startDayIndex + 2} / span ${duration}; top: ${2 + trackIndex * 28}px"
+                 data-task-id="${task.id}"
+                 title="${task.name}">
+                 ${task.name}
+            </div>`;
+}
+
 export function initTasksPage() {
     if (state.ui.tasks.viewMode !== 'gantt') {
         ganttChart = null; // Destroy gantt instance if we switch away
@@ -431,6 +540,7 @@ export function TasksPage() {
             case 'list': viewContent = renderListView(filteredTasks); break;
             case 'calendar': viewContent = renderCalendarView(filteredTasks); break;
             case 'gantt': viewContent = renderGanttView(); break;
+            case 'workload': viewContent = renderWorkloadView(filteredTasks); break;
         }
     }
     
@@ -450,6 +560,7 @@ export function TasksPage() {
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'list' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp text-xl">view_list</span></button>
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'calendar' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp text-xl">calendar_today</span></button>
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">analytics</span></button>
+                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'workload' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="workload" aria-label="${t('tasks.workload_view')}"><span class="material-icons-sharp text-xl">person</span></button>
                     </div>
                     ${state.ui.tasks.viewMode === 'board' ? `
                         <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-kanban-view title="Toggle card details">

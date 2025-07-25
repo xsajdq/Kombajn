@@ -723,6 +723,38 @@
   .calendar-event-content.is-continued {
      @apply -ml-px; /* Overlap borders for seamless look */
   }
+
+  /* Workload View Styles */
+  .workload-grid-container {
+    @apply grid relative;
+  }
+  .workload-header, .workload-user-cell, .workload-day-cell {
+      @apply p-2 border-b border-r border-border-color;
+  }
+  .workload-header {
+      @apply font-semibold text-sm text-center sticky top-0 bg-content z-10;
+  }
+  .workload-user-cell {
+      @apply font-semibold text-sm sticky left-0 bg-content z-10;
+  }
+  .workload-day-cell {
+      @apply relative min-h-[40px];
+  }
+  .workload-day-capacity {
+      @apply text-xs font-mono text-text-subtle;
+  }
+  .capacity-over { @apply bg-danger/20; }
+  .capacity-good { @apply bg-success/10; }
+  .capacity-under { @apply bg-background/50; }
+
+  .workload-task-bar {
+    @apply absolute h-6 text-white text-xs font-medium rounded cursor-pointer overflow-hidden flex items-center px-2 z-20;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+  .workload-task-bar:hover {
+      @apply shadow-lg;
+      transform: translateY(-1px);
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

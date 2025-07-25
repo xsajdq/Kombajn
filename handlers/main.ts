@@ -1,6 +1,6 @@
 
 
-import { state } from '../state.ts';
+import { state } from './state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
@@ -194,7 +194,7 @@ export async function handleSaveProjectAsTemplate(projectId: string) {
 
     const automationsToTemplate = state.automations
         .filter(a => a.projectId === projectId)
-        .map(({ trigger, action }): Omit<Automation, 'id' | 'workspaceId' | 'projectId'> => ({ trigger, action }));
+        .map(({ name, trigger, actions }): Omit<Automation, 'id' | 'workspaceId' | 'projectId'> => ({ name, trigger, actions }));
 
     const newTemplatePayload: Omit<ProjectTemplate, 'id'> = {
         workspaceId: state.activeWorkspaceId,

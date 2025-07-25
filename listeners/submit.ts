@@ -1,8 +1,9 @@
 
 
+
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
-import type { Role, Task, CustomFieldType, ProjectRole } from '../types.ts';
+import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction } from '../types.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
@@ -134,11 +135,26 @@ export async function handleSubmit(e: SubmitEvent) {
             nameInput.value = '';
         }
     } else if (target.id === 'add-automation-form') {
-        const projectId = target.querySelector<HTMLSelectElement>('#automation-project')!.value;
-        const triggerStatus = target.querySelector<HTMLSelectElement>('#automation-trigger-status')!.value as Task['status'];
-        const actionUser = target.querySelector<HTMLSelectElement>('#automation-action-user')!.value;
-        if (projectId && triggerStatus && actionUser) {
-            automationHandlers.handleAddAutomation(projectId, triggerStatus, actionUser);
+        const form = target as HTMLFormElement;
+        const projectId = state.ui.modal.data?.projectId;
+        const automationId = form.dataset.automationId || null;
+        const name = (form.querySelector('input[name="automation-name"]') as HTMLInputElement).value;
+        const triggerStatus = (form.querySelector('select[name="automation-trigger-status"]') as HTMLSelectElement).value as Task['status'];
+        
+        const actions: AutomationAction[] = [];
+        form.querySelectorAll('.automation-action-row').forEach(row => {
+            const type = (row.querySelector('select[name="action-type"]') as HTMLSelectElement).value;
+            const value = (row.querySelector('select[name="action-value"]') as HTMLSelectElement).value;
+            if (type === 'assignUser') {
+                actions.push({ type: 'assignUser', userId: value });
+            } else if (type === 'changeStatus') {
+                actions.push({ type: 'changeStatus', status: value as Task['status'] });
+            }
+        });
+
+        if (projectId && name && triggerStatus && actions.length > 0) {
+            const trigger = { type: 'statusChange' as const, status: triggerStatus };
+            await automationHandlers.handleSaveAutomation(automationId, projectId, name, trigger, actions);
         }
     } else if (target.id === 'chat-form') {
         const inputDiv = document.getElementById('chat-message-input') as HTMLElement;

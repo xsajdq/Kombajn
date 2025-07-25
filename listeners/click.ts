@@ -1,9 +1,10 @@
 
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption } from '../types.ts';
+import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -33,6 +34,7 @@ import * as userHandlers from '../handlers/user.ts';
 import * as projectSectionHandlers from '../handlers/projectSections.ts';
 import * as taskViewHandlers from '../handlers/taskViews.ts';
 import * as goalHandlers from '../handlers/goals.ts';
+import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
 function closeAllTaskMenus() {
     document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
@@ -430,4 +432,124 @@ export async function handleClick(e: MouseEvent) {
         uiHandlers.showModal('addProject', { clientId, projectName: dealName });
         return;
     }
+
+    // --- Automation Modal ---
+    if (target.closest('#show-add-automation-form-btn')) {
+        const container = document.getElementById('add-automation-view');
+        if (container) {
+            container.innerHTML = renderAutomationForm();
+            container.classList.remove('hidden');
+            target.closest('button')?.classList.add('hidden');
+        }
+        return;
+    }
+    if (target.closest('#cancel-automation-form-btn')) {
+        const container = document.getElementById('add-automation-view');
+        if(container) container.innerHTML = '';
+        container?.classList.add('hidden');
+        document.getElementById('show-add-automation-form-btn')?.classList.remove('hidden');
+        return;
+    }
+    if (target.closest('[data-edit-automation-id]')) {
+        const automationId = target.closest<HTMLElement>('[data-edit-automation-id]')!.dataset.editAutomationId!;
+        const automation = state.automations.find(a => a.id === automationId);
+        const container = document.getElementById('add-automation-view');
+        if (container && automation) {
+            container.innerHTML = renderAutomationForm(automation);
+            container.classList.remove('hidden');
+            document.getElementById('show-add-automation-form-btn')?.classList.add('hidden');
+        }
+        return;
+    }
+    if (target.closest('[data-delete-automation-id]')) {
+        const automationId = target.closest<HTMLElement>('[data-delete-automation-id]')!.dataset.deleteAutomationId!;
+        if (confirm('Are you sure you want to delete this automation?')) {
+            automationHandlers.handleDeleteAutomation(automationId);
+        }
+        return;
+    }
+    if (target.closest('#add-automation-action-btn')) {
+        const container = document.getElementById('automation-actions-container');
+        container?.insertAdjacentHTML('beforeend', renderAutomationActionRow());
+        return;
+    }
+    if (target.closest('.remove-automation-action-btn')) {
+        target.closest('.automation-action-row')?.remove();
+        return;
+    }
+}
+
+function renderAutomationForm(automation?: any) {
+    const isEdit = !!automation;
+    const workflow = getWorkspaceKanbanWorkflow(state.activeWorkspaceId);
+    const statuses = workflow === 'advanced' ? ['backlog', 'todo', 'inprogress', 'inreview', 'done'] : ['todo', 'inprogress', 'done'];
+    const workspaceMembers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter(Boolean);
+
+    return `
+        <form id="add-automation-form" class="bg-background rounded-lg p-4 border border-border-color space-y-4" data-automation-id="${automation?.id || ''}">
+            <h5 class="font-semibold">${isEdit ? t('modals.edit_automation_title') : t('modals.add_automation_title')}</h5>
+            <div>
+                <label class="text-sm font-medium text-text-subtle">${t('modals.automation_name')}</label>
+                <input type="text" name="automation-name" class="form-control mt-1" value="${automation?.name || ''}" required placeholder="e.g., 'Notify QA when ready for review'">
+            </div>
+            <div>
+                <label class="text-sm font-medium text-text-subtle">${t('panels.when')} (${t('modals.trigger')})</label>
+                <div class="flex items-center gap-2 mt-1">
+                    <span>${t('panels.trigger_status_change')}</span>
+                    <select name="automation-trigger-status" class="form-control">
+                        ${statuses.map(s => `<option value="${s}" ${automation?.trigger.status === s ? 'selected' : ''}>${t(`tasks.${s}`)}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            <div>
+                 <label class="text-sm font-medium text-text-subtle">${t('panels.then')} (${t('modals.actions')})</label>
+                 <div id="automation-actions-container" class="space-y-2 mt-1">
+                    ${(automation?.actions || [{type: 'assignUser'}]).map((action: any) => renderAutomationActionRow(action)).join('')}
+                 </div>
+                 <button type="button" id="add-automation-action-btn" class="btn btn-secondary btn-sm mt-2">
+                    <span class="material-icons-sharp text-base">add</span> ${t('modals.add_action')}
+                 </button>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" id="cancel-automation-form-btn" class="btn btn-secondary">${t('modals.cancel')}</button>
+                <button type="submit" class="btn btn-primary">${t('modals.save')}</button>
+            </div>
+        </form>
+    `;
+}
+
+function renderAutomationActionRow(action?: any) {
+    const workflow = getWorkspaceKanbanWorkflow(state.activeWorkspaceId);
+    const statuses = workflow === 'advanced' ? ['backlog', 'todo', 'inprogress', 'inreview', 'done'] : ['todo', 'inprogress', 'done'];
+    const workspaceMembers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter(Boolean);
+
+    let valueControl = '';
+    if (!action || action.type === 'assignUser') {
+        valueControl = `<select name="action-value" class="form-control">
+            ${workspaceMembers.map(u => u ? `<option value="${u.id}" ${action?.userId === u.id ? 'selected' : ''}>${u.name}</option>` : '').join('')}
+        </select>`;
+    } else if (action.type === 'changeStatus') {
+        valueControl = `<select name="action-value" class="form-control">
+             ${statuses.map(s => `<option value="${s}" ${action?.status === s ? 'selected' : ''}>${t(`tasks.${s}`)}</option>`).join('')}
+        </select>`;
+    }
+
+    return `
+        <div class="automation-action-row grid grid-cols-[auto,1fr,auto] items-center gap-2 p-2 rounded-md bg-content">
+            <select name="action-type" class="form-control">
+                <option value="assignUser" ${action?.type === 'assignUser' ? 'selected' : ''}>${t('panels.action_assign_user')}</option>
+                <option value="changeStatus" ${action?.type === 'changeStatus' ? 'selected' : ''}>${t('panels.action_change_status_to')}</option>
+            </select>
+            <div class="action-value-container">
+               ${valueControl}
+            </div>
+            <button type="button" class="btn-icon remove-automation-action-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp text-danger">delete</span></button>
+        </div>
+    `;
 }

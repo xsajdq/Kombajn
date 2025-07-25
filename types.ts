@@ -11,6 +11,7 @@ export interface User {
     slackUserId?: string;
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
+
     vacationAllowanceHours?: number; // Total vacation hours for the year
     kanbanViewMode?: 'simple' | 'detailed';
 }
@@ -290,16 +291,18 @@ export interface AutomationTrigger {
     type: 'statusChange';
     status: Task['status'];
 }
-export interface AutomationAction {
-    type: 'assignUser';
-    userId: string;
-}
+
+export type AutomationAction = 
+    | { type: 'assignUser'; userId: string; }
+    | { type: 'changeStatus'; status: Task['status']; };
+
 export interface Automation {
     id: string;
     workspaceId: string;
     projectId: string;
+    name: string;
     trigger: AutomationTrigger;
-    action: AutomationAction;
+    actions: AutomationAction[];
 }
 
 export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance' | 'timeTrackingSummary' | 'invoiceSummary';
@@ -652,7 +655,7 @@ export interface AppState {
             rect: DOMRect | null;
         };
         tasks: {
-            viewMode: 'board' | 'list' | 'calendar' | 'gantt';
+            viewMode: 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
             isFilterOpen: boolean;
             filters: TaskFilters;
             activeFilterViewId: string | null;
