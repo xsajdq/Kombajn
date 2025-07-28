@@ -291,7 +291,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const taskCardOrRow = target.closest<HTMLElement>('.task-list-row, .task-card, [data-task-id]');
+    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, [data-task-id]');
     if (taskCardOrRow && !target.closest('button, a, input, .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) {
@@ -452,6 +452,14 @@ export async function handleClick(e: MouseEvent) {
     const hrTab = target.closest<HTMLElement>('a[data-hr-tab]');
     if (hrTab) {
         teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
+        return;
+    }
+    const roleMenuItem = target.closest<HTMLElement>('[data-new-role-for-member-id]');
+    if (roleMenuItem) {
+        const memberId = roleMenuItem.dataset.newRoleForMemberId!;
+        const newRole = roleMenuItem.dataset.role as Role;
+        teamHandlers.handleChangeUserRole(memberId, newRole);
+        roleMenuItem.closest('[aria-haspopup="true"] + div')?.classList.add('hidden');
         return;
     }
     if (target.closest('#hr-invite-member-btn')) { document.getElementById('hr-invite-flyout')?.classList.add('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.add('is-open'); return; }

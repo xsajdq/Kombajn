@@ -7,7 +7,7 @@ import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User, ProjectSection, SortByOption } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
-import { getWorkspaceKanbanWorkflow, fetchTasksData } from '../handlers/main.ts';
+import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
 
 declare const Gantt: any;
@@ -214,7 +214,7 @@ function renderListView(filteredTasks: Task[]) {
                          ` : ''}
                     </summary>
                     <div class="task-section-body">
-                        ${tasks.map(renderRow).join('')}
+                        ${tasks.map(renderListRow).join('')}
                     </div>
                 </details>
             `;
@@ -240,7 +240,7 @@ function renderListView(filteredTasks: Task[]) {
         <div class="bg-content rounded-lg shadow-sm">
             ${renderListHeader()}
             <div>
-                ${filteredTasks.map(renderRow).join('')}
+                ${filteredTasks.map(renderListRow).join('')}
             </div>
         </div>
     `;
@@ -248,44 +248,66 @@ function renderListView(filteredTasks: Task[]) {
 
 function renderListHeader() {
     return `
-        <div class="grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase hidden md:grid">
+        <div class="task-list-grid modern-list-row p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase hidden md:grid">
             <div>${t('tasks.col_task')}</div>
             <div>${t('tasks.col_project')}</div>
             <div>${t('modals.assignees')}</div>
             <div>${t('tasks.col_due_date')}</div>
             <div>${t('tasks.col_priority')}</div>
-            <div>${t('tasks.col_status')}</div>
             <div class="text-right">${t('tasks.col_time')}</div>
         </div>
     `;
 }
 
-function renderRow(task: Task) {
+function renderListRow(task: Task) {
     const project = state.projects.find(p => p.id === task.projectId);
     const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const isRunning = !!state.activeTimers[task.id];
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
 
+    const priorityClasses = {
+        high: 'bg-danger',
+        medium: 'bg-warning',
+        low: 'bg-primary'
+    };
+    
+    const statusClasses = {
+        done: 'bg-success',
+        inprogress: 'bg-primary',
+        inreview: 'bg-purple-500',
+        todo: 'bg-gray-400',
+        backlog: 'bg-gray-400',
+    };
+    
+    const priorityClass = priorityClasses[task.priority as keyof typeof priorityClasses] || 'bg-gray-400';
+    const statusClass = statusClasses[task.status as keyof typeof statusClasses] || 'bg-gray-400';
+    
     return `
-        <div class="grid-cols-[3fr,1fr,1fr,1fr,1fr,1fr,1fr] items-center p-3 border-b border-border-color cursor-pointer hover:bg-background ${task.isArchived ? 'opacity-60' : ''} task-list-row" data-task-id="${task.id}" role="button" tabindex="0">
+        <div class="modern-list-row task-list-grid group cursor-pointer ${task.isArchived ? 'opacity-60' : ''}" data-task-id="${task.id}" role="button" tabindex="0">
              <div class="font-medium flex items-center gap-2">
+                <div class="task-list-indicator">
+                    <div class="indicator-dot ${statusClass}"></div>
+                    <span class="text-text-subtle">${t('tasks.' + task.status)}</span>
+                </div>
                 ${task.isArchived ? `<span class="material-icons-sharp text-base text-text-subtle" title="${t('tasks.archive')}d">archive</span>` : ''}
                 ${task.name}
             </div>
-             <div data-label="${t('tasks.col_project')}">${project?.name || t('misc.not_applicable')}</div>
-             <div data-label="${t('modals.assignees')}">
+             <div>${project?.name || t('misc.not_applicable')}</div>
+             <div>
                 <div class="flex -space-x-2">
                     ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
                         <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
                     `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
                 </div>
              </div>
-             <div data-label="${t('tasks.col_due_date')}" class="${isOverdue ? 'text-danger' : ''}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-             <div data-label="${t('tasks.col_priority')}">${task.priority ? `<span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.priority_' + task.priority)}</span>` : t('tasks.priority_none')}</div>
-             <div data-label="${t('tasks.col_status')}"><span class="px-2 py-1 text-xs font-medium rounded-full capitalize ${task.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${t('tasks.' + task.status)}</span></div>
-             <div data-label="${t('tasks.col_time')}" class="flex items-center justify-end gap-2 text-text-subtle">
+             <div class="${isOverdue ? 'text-danger' : ''}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
+             <div class="task-list-indicator">
+                <div class="indicator-dot ${priorityClass}"></div>
+                <span>${task.priority ? t('tasks.priority_' + task.priority) : t('tasks.priority_none')}</span>
+             </div>
+             <div class="flex items-center justify-end gap-2 text-text-subtle">
                  <span class="text-sm font-mono task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                 <button class="p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
+                 <button class="actions-on-hover p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
                     <span class="material-icons-sharp text-xl">${isRunning ? 'pause_circle' : 'play_circle_outline'}</span>
                 </button>
              </div>
@@ -516,8 +538,6 @@ export function initTasksPage() {
 }
 
 export function TasksPage() {
-    fetchTasksData();
-
     if (state.ui.tasks.isLoading) {
         return `<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

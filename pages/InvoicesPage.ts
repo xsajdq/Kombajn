@@ -4,7 +4,6 @@ import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
 import type { Invoice } from '../types.ts';
 import { can } from '../permissions.ts';
-import { fetchClientsAndInvoicesData } from '../handlers/main.ts';
 
 function getFilteredInvoices() {
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
@@ -127,8 +126,6 @@ function renderInvoicesList() {
 }
 
 export function InvoicesPage() {
-    fetchClientsAndInvoicesData();
-
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return '';
 

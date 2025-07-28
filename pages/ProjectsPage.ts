@@ -3,7 +3,6 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds } from '../utils.ts';
 import { can } from '../permissions.ts';
-import { fetchProjectsData } from '../handlers/main.ts';
 
 function renderGridView() {
     const projects = state.projects.filter(p => {
@@ -227,8 +226,6 @@ function renderPortfolioView() {
 }
 
 export function ProjectsPage() {
-    fetchProjectsData();
-
     const { activeWorkspaceId } = state;
     const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!activeWorkspace) return '';

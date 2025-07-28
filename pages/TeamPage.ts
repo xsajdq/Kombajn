@@ -43,38 +43,46 @@ async function renderEmployeesTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="grid grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
+                <div class="modern-list-row hr-list-grid px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
                     <div>${t('hr.employee')}</div>
-                    <div>Role</div>
+                    <div>${t('hr.role')}</div>
                     <div>Email</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color md:divide-y-0 hr-table-body">
+                <div class="divide-y divide-border-color hr-table-body">
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
                         return `
-                        <div class="grid-cols-[2fr,1fr,2fr,1fr] gap-4 px-4 py-3 items-center hr-table-row" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
-                            <div class="flex items-center gap-3" data-label="Employee">
+                        <div class="modern-list-row hr-list-grid group" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
+                            <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
                                 <div class="font-semibold">
                                     ${displayName} ${isSelf ? `<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
                                 </div>
                             </div>
-                            <div data-label="Role">
+                            <div>
                                 ${canManageRoles && !isOwner && !isSelf ? `
-                                    <select class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" data-change-role-for-member-id="${member.id}">
-                                        ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
-                                            <option value="${role}" ${member.role === role ? 'selected' : ''}>${t(`hr.role_${role}`)}</option>
-                                        `).join('')}
-                                    </select>
+                                    <div class="relative">
+                                        <button class="role-tag" data-menu-toggle="role-menu-${member.id}" aria-haspopup="true" aria-expanded="false">
+                                            <span>${t(`hr.role_${member.role}`)}</span>
+                                            <span class="material-icons-sharp text-base">expand_more</span>
+                                        </button>
+                                        <div id="role-menu-${member.id}" class="role-menu">
+                                            ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
+                                                <button class="role-menu-item ${member.role === role ? 'active' : ''}" data-new-role-for-member-id="${member.id}" data-role="${role}">
+                                                    ${t(`hr.role_${role}`)}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    </div>
                                 ` : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
                             </div>
-                            <div data-label="Email">
+                            <div>
                                 <span class="text-text-subtle">${user.email || t('misc.not_applicable')}</span>
                             </div>
-                            <div class="flex justify-end items-center gap-1" data-label="Actions">
+                            <div class="flex justify-end items-center gap-1 actions-on-hover">
                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="View/Edit Details">
                                     <span class="material-icons-sharp text-lg">edit_note</span>
                                 </button>

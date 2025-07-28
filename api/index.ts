@@ -307,7 +307,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
+                    automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
+                    projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
+                    budgetsRes, reviewsRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -327,12 +330,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
                     supabase.from('deals').select('*').eq('workspace_id', workspaceId),
                     supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('automations').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('tags').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('project_templates').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('wiki_history').select('*'), // This might need a workspace_id filter in the future
+                    supabase.from('channels').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('chat_messages').select('*'), // This should be filtered by channels
+                    supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('expenses').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes
+                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
+                    automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
+                    projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
+                    budgetsRes, reviewsRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -387,167 +406,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     inventoryAssignments: inventoryAssignmentsRes.data,
                     deals: dealsRes.data,
                     dealActivities: dealActivitiesRes.data,
-                    budgets: [], // Temporarily return empty array to prevent crash
-                    channels: [], // Temporarily return empty array to prevent crash
-                    chatMessages: [], // Temporarily return empty array to prevent crash
+                    automations: automationsRes.data,
+                    tags: tagsRes.data,
+                    taskTags: taskTagsRes.data,
+                    customFieldDefinitions: customFieldDefinitionsRes.data,
+                    customFieldValues: customFieldValuesRes.data,
+                    projectTemplates: projectTemplatesRes.data,
+                    wikiHistory: wikiHistoryRes.data,
+                    channels: channelsRes.data,
+                    chatMessages: chatMessagesRes.data,
+                    calendarEvents: calendarEventsRes.data,
+                    expenses: expensesRes.data,
+                    budgets: budgetsRes.data,
+                    reviews: reviewsRes.data,
                 }));
             }
-            case 'clients-page-data':
-            case 'get-clients-page-data': {
-                 if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
-                
-                const { workspaceId } = req.query;
-                if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
-
-                const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
-                if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
-
-                const [clientsRes, projectsRes, invoicesRes] = await Promise.all([
-                    supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId),
-                    supabase.from('projects').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId)
-                ]);
-
-                for (const r of [clientsRes, projectsRes, invoicesRes]) if (r.error) throw new Error(`Clients/Invoices data fetch failed: ${r.error.message}`);
-                
-                 // FIX: Process invoices to rename 'invoice_line_items' to 'items'
-                const processedInvoices = (invoicesRes.data || []).map(invoice => {
-                    const newInvoice = { ...invoice, items: invoice.invoice_line_items || [] };
-                    delete (newInvoice as any).invoice_line_items;
-                    return newInvoice;
-                });
-
-                return res.status(200).json(keysToCamel({
-                    clients: clientsRes.data || [], projects: projectsRes.data || [], invoices: processedInvoices,
-                }));
-            }
-            case 'projects-page-data': {
-                if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId } = req.query;
-                if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
-            
-                const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
-                if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
-            
-                const { data: projectsData, error: projectsError } = await supabase
-                    .from('projects')
-                    .select('*')
-                    .eq('workspace_id', workspaceId);
-            
-                if (projectsError) throw new Error(`Projects page data fetch failed: ${projectsError.message}`);
-            
-                const projectIds = projectsData ? projectsData.map(p => p.id) : [];
-            
-                const [clientsRes, tasksRes, projectMembersRes] = await Promise.all([
-                    supabase.from('clients').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
-                    projectIds.length > 0
-                        ? supabase.from('project_members').select('*').in('project_id', projectIds)
-                        : Promise.resolve({ data: [], error: null })
-                ]);
-            
-                for (const r of [clientsRes, tasksRes, projectMembersRes]) {
-                    if (r.error) throw new Error(`Projects page data fetch failed: ${r.error.message}`);
-                }
-            
-                return res.status(200).json(keysToCamel({
-                    projects: projectsData || [],
-                    clients: clientsRes.data || [],
-                    tasks: tasksRes.data || [],
-                    projectMembers: projectMembersRes.data || [],
-                }));
-            }
-            case 'tasks-page-data': {
-                if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
-                
-                const { workspaceId } = req.query;
-                if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
-
-                const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
-                if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
-
-                const { data: workspaceProjects, error: projectsError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
-                if(projectsError) throw new Error(`Tasks page data fetch failed: ${projectsError.message}`);
-                const projectIds = workspaceProjects ? workspaceProjects.map(p => p.id) : [];
-
-                const [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes, taskViewsRes, userTaskSortOrdersRes] = await Promise.all([
-                    supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('projects').select('id, name').eq('workspace_id', workspaceId),
-                    supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId),
-                    projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null }),
-                    supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id)
-                ]);
-
-                for (const r of [tasksRes, projectSectionsRes, projectsRes, taskAssigneesRes, tagsRes, taskTagsRes, dependenciesRes, projectMembersRes, taskViewsRes, userTaskSortOrdersRes]) if (r.error) throw new Error(`Tasks page data fetch failed: ${r.error.message}`);
-                
-                return res.status(200).json(keysToCamel({
-                    tasks: tasksRes.data || [],
-                    project_sections: projectSectionsRes.data || [],
-                    projects: projectsRes.data || [],
-                    taskAssignees: taskAssigneesRes.data || [],
-                    tags: tagsRes.data || [],
-                    taskTags: taskTagsRes.data || [],
-                    dependencies: dependenciesRes.data || [],
-                    projectMembers: projectMembersRes.data || [],
-                    taskViews: taskViewsRes.data || [],
-                    userTaskSortOrders: userTaskSortOrdersRes.data || []
-                }));
-            }
-            case 'sales-data': {
-                if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
-                const supabase = getSupabaseAdmin();
-                const token = req.headers.authorization?.split('Bearer ')[1];
-                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
-                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-                if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
-                
-                const { workspaceId } = req.query;
-                if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
-
-                const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
-                if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
-
-                const { data: deals, error: dealsError } = await supabase.from('deals').select('*').eq('workspace_id', workspaceId);
-                if (dealsError) throw dealsError;
-
-                if (!deals || deals.length === 0) return res.status(200).json(keysToCamel({ deals: [], clients: [], users: [] }));
-
-                const clientIds = [...new Set(deals.map((d: { client_id: string }) => d.client_id))];
-                const ownerIds = [...new Set(deals.map((d: { owner_id: string }) => d.owner_id))];
-
-                const [clientsRes, usersRes] = await Promise.all([
-                    supabase.from('clients').select('*, client_contacts(*)').in('id', clientIds),
-                    supabase.from('profiles').select('id, name, initials, avatar_url').in('id', ownerIds)
-                ]);
-                
-                if (clientsRes.error) throw clientsRes.error;
-                if (usersRes.error) throw usersRes.error;
-
-                return res.status(200).json(keysToCamel({
-                    deals: deals, clients: clientsRes.data || [], users: usersRes.data || [],
-                }));
-            }
              // ============================================================================
             // CONFIG HANDLER
             // ============================================================================

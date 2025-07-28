@@ -13,14 +13,6 @@ import { t } from '../i18n.ts';
 export function handleChange(e: Event) {
     const target = e.target as HTMLElement;
 
-    if (target.matches('[data-change-role-for-member-id]')) {
-        const select = target as HTMLSelectElement;
-        const memberId = select.dataset.changeRoleForMemberId!;
-        const newRole = select.value as Role;
-        teamHandlers.handleChangeUserRole(memberId, newRole);
-        return;
-    }
-
     const projectRoleSelect = target.closest<HTMLSelectElement>('[data-project-member-id]');
     if (projectRoleSelect) {
         const memberId = projectRoleSelect.dataset.projectMemberId!;

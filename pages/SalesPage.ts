@@ -3,7 +3,6 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
-import { fetchSalesData } from '../handlers/deals.ts';
 import { formatCurrency } from '../utils.ts';
 
 function renderDealCard(deal: Deal) {
@@ -70,7 +69,6 @@ function renderKanbanBoard() {
 }
 
 export function SalesPage() {
-    fetchSalesData();
     const canManage = can('manage_deals');
     const { sales: { isLoading } } = state.ui;
 

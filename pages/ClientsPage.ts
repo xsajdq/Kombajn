@@ -3,11 +3,8 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate } from '../utils.ts';
-import { fetchClientsAndInvoicesData } from '../handlers/main.ts';
 
 export function ClientsPage() {
-    fetchClientsAndInvoicesData();
-
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
 

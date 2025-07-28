@@ -7,8 +7,6 @@ import { t } from '../i18n.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
 import { Session } from '@supabase/supabase-js';
 
-type PageName = 'clients' | 'invoices' | 'projects' | 'tasks' | 'sales';
-
 export async function fetchInitialData(session: Session) {
     console.log("Fetching core data...");
     const data = await apiFetch('/api?action=bootstrap', {}, session);
@@ -46,6 +44,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.projects = data.projects || [];
         state.tasks = data.tasks || [];
         state.clients = data.clients || [];
+        state.clientContacts = data.clients.flatMap((c: any) => c.clientContacts || []);
         state.invoices = data.invoices || [];
         state.timeLogs = data.timeLogs || [];
         state.comments = data.comments || [];
@@ -63,6 +62,17 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.budgets = data.budgets || [];
         state.deals = data.deals || [];
         state.dealActivities = data.dealActivities || [];
+        state.automations = data.automations || [];
+        state.tags = data.tags || [];
+        state.taskTags = data.taskTags || [];
+        state.customFieldDefinitions = data.customFieldDefinitions || [];
+        state.customFieldValues = data.customFieldValues || [];
+        state.projectTemplates = data.projectTemplates || [];
+        state.wikiHistory = data.wikiHistory || [];
+        state.channels = data.channels || [];
+        state.chatMessages = data.chatMessages || [];
+        state.calendarEvents = data.calendarEvents || [];
+        state.expenses = data.expenses || [];
         
         // Set loaded flags to prevent re-fetching on navigation
         state.ui.dashboard.loadedWorkspaceId = workspaceId;
@@ -84,62 +94,6 @@ export async function fetchWorkspaceData(workspaceId: string) {
         throw error; // Re-throw the error to be caught by the bootstrap process
     }
 }
-
-
-async function fetchPageData(pageName: PageName, apiAction: string, relatedPage?: PageName) {
-    const uiState = state.ui[pageName as keyof typeof state.ui] as any;
-    if (!state.activeWorkspaceId || uiState.isLoading) return;
-
-    if (uiState.loadedWorkspaceId === state.activeWorkspaceId) {
-        return; 
-    }
-
-    uiState.isLoading = true;
-    updateUI(['page']);
-
-    try {
-        const data = await apiFetch(`/api?action=${apiAction}&workspaceId=${state.activeWorkspaceId}`);
-        
-        if (data) {
-            Object.keys(data).forEach(key => {
-                if (key in state && Array.isArray(state[key as keyof typeof state])) {
-                    const existingDataArray = state[key as keyof typeof state] as any[];
-                    const newDataFromFetch = data[key] || [];
-
-                    // Remove all items from the current workspace before adding the new ones
-                    const otherWorkspaceItems = existingDataArray.filter(item => item.workspaceId !== state.activeWorkspaceId);
-                    
-                    // Add the newly fetched items for the current workspace
-                    (state as any)[key] = [...otherWorkspaceItems, ...newDataFromFetch];
-                }
-            });
-        }
-        
-        uiState.loadedWorkspaceId = state.activeWorkspaceId;
-        if (relatedPage) {
-            (state.ui[relatedPage as keyof typeof state.ui] as any).loadedWorkspaceId = state.activeWorkspaceId;
-        }
-    } catch (error) {
-        console.error(`Failed to fetch ${pageName} data:`, error);
-        uiState.loadedWorkspaceId = null; // Allow retry
-    } finally {
-        uiState.isLoading = false;
-        updateUI(['page']);
-    }
-}
-
-export async function fetchClientsAndInvoicesData() {
-    await fetchPageData('clients', 'clients-page-data', 'invoices');
-}
-
-export async function fetchProjectsData() {
-    await fetchPageData('projects', 'projects-page-data');
-}
-
-export async function fetchTasksData() {
-    await fetchPageData('tasks', 'tasks-page-data');
-}
-
 
 export function getUserProjectRole(userId: string, projectId: string): ProjectRole | null {
     if (!userId || !projectId) return null;
