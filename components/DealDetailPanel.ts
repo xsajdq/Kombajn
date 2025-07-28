@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -16,21 +17,52 @@ function renderActivityTab(deal: Deal) {
         meeting: 'groups',
         email: 'email'
     };
+    
+    const gmailIntegration = state.integrations.find(i => i.workspaceId === state.activeWorkspaceId && i.provider === 'google_gmail' && i.isActive);
+    const client = state.clients.find(c => c.id === deal.clientId);
+    const clientContacts = client ? client.contacts.filter(c => c.email) : [];
+
 
     return `
         <div class="space-y-4">
-            <form id="log-deal-activity-form" data-deal-id="${deal.id}" class="bg-background p-3 rounded-lg">
-                <input type="hidden" name="activity-type" value="note">
+            <div class="bg-background p-3 rounded-lg activity-log-container">
                 <div class="activity-log-tabs">
                     <button type="button" class="active" data-activity-type="note"><span class="material-icons-sharp text-base">note</span> ${t('panels.add_note')}</button>
                     <button type="button" data-activity-type="call"><span class="material-icons-sharp text-base">call</span> ${t('panels.call')}</button>
                     <button type="button" data-activity-type="meeting"><span class="material-icons-sharp text-base">groups</span> ${t('panels.meeting')}</button>
+                    ${gmailIntegration ? `<button type="button" data-activity-type="email"><span class="material-icons-sharp text-base">email</span> ${t('panels.email')}</button>` : ''}
                 </div>
-                <textarea class="form-control" name="activity-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
-                <div class="flex justify-end mt-2">
-                    <button class="btn btn-primary btn-sm" type="submit">${t('panels.log_activity')}</button>
-                </div>
-            </form>
+
+                <form id="log-deal-activity-form" data-deal-id="${deal.id}" class="deal-activity-form" data-form-type="note">
+                    <input type="hidden" name="activity-type" value="note">
+                    <textarea class="form-control" name="activity-content" rows="3" placeholder="${t('modals.note_placeholder')}" required></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button class="btn btn-primary btn-sm" type="submit">${t('panels.log_activity')}</button>
+                    </div>
+                </form>
+
+                ${gmailIntegration ? `
+                <form id="send-deal-email-form" data-deal-id="${deal.id}" class="deal-activity-form hidden space-y-3" data-form-type="email">
+                    <div>
+                        <label class="text-xs font-medium text-text-subtle" for="deal-email-to">To:</label>
+                        <select name="email-to" id="deal-email-to" class="form-control" required>
+                            ${clientContacts.map(c => `<option value="${c.email}">${c.name} (${c.email})</option>`).join('')}
+                        </select>
+                    </div>
+                     <div>
+                        <label class="text-xs font-medium text-text-subtle" for="deal-email-subject">Subject:</label>
+                        <input type="text" name="email-subject" id="deal-email-subject" class="form-control" required>
+                    </div>
+                    <div>
+                         <label class="text-xs font-medium text-text-subtle" for="deal-email-body">Body:</label>
+                        <textarea class="form-control" name="email-body" id="deal-email-body" rows="5" required></textarea>
+                    </div>
+                    <div class="flex justify-end mt-2">
+                        <button class="btn btn-primary btn-sm" type="submit">Send Email</button>
+                    </div>
+                </form>
+                ` : ''}
+            </div>
 
             <div class="deal-activity-timeline">
                 ${activities.length > 0 ? activities.map(activity => {
@@ -46,7 +78,7 @@ function renderActivityTab(deal: Deal) {
                                     <span class="subtle-text">${formatDate(activity.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                                 </div>
                                 <div class="activity-item-body">
-                                    <p>${activity.content}</p>
+                                    <p style="white-space: pre-wrap;">${activity.content}</p>
                                 </div>
                             </div>
                         </div>
@@ -84,7 +116,7 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
 
     const client = state.clients.find(c => c.id === deal.clientId);
     const owner = state.users.find(u => u.id === deal.ownerId);
-    const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
+    const stages = state.pipelineStages.filter(s => s.workspaceId === state.activeWorkspaceId).sort((a, b) => a.sortOrder - b.sortOrder);
     const activeTab = state.ui.dealDetail.activeTab;
 
     let tabContent = '';
@@ -115,7 +147,7 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
             </div>
             <div class="side-panel-content">
                 <div class="deal-pipeline-visualizer">
-                    ${stages.map(stage => `<div class="pipeline-stage ${deal.stage === stage ? 'active' : ''}">${t(`sales.stage_${stage}`)}</div>`).join('')}
+                    ${stages.map(stage => `<div class="pipeline-stage ${deal.stageId === stage.id ? 'active' : ''}">${stage.name}</div>`).join('')}
                 </div>
                 <div class="deal-kpi-grid">
                     <div class="deal-kpi-item">

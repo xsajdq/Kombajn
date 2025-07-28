@@ -34,3 +34,36 @@ export async function handleAddDealActivity(dealId: string, type: DealActivity['
         alert("Could not save the activity. Please try again.");
     }
 }
+
+export async function handleSendDealEmail(dealId: string, to: string, subject: string, body: string, form: HTMLFormElement) {
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    const sendButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (sendButton) {
+        sendButton.disabled = true;
+        sendButton.textContent = 'Sending...';
+    }
+
+    try {
+        await apiFetch('/api?action=send-deal-email', {
+            method: 'POST',
+            body: JSON.stringify({ workspaceId: activeWorkspaceId, to, subject, body })
+        });
+        
+        const contact = state.clientContacts.find(c => c.email === to);
+        const activityContent = `Email sent to ${contact?.name || to}\nSubject: ${subject}\n\n${body}`;
+        await handleAddDealActivity(dealId, 'email', activityContent);
+        
+        form.reset();
+
+    } catch (error) {
+        console.error("Failed to send deal email:", error);
+        alert(`Could not send email: ${(error as Error).message}`);
+    } finally {
+        if (sendButton) {
+            sendButton.disabled = false;
+            sendButton.textContent = 'Send Email';
+        }
+    }
+}

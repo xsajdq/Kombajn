@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -501,7 +502,7 @@ export async function handleFormSubmit() {
                 clientId,
                 value,
                 ownerId: (document.getElementById('dealOwner') as HTMLSelectElement).value,
-                stage: (document.getElementById('dealStage') as HTMLSelectElement).value as Deal['stage'],
+                stageId: (document.getElementById('dealStage') as HTMLSelectElement).value,
                 expectedCloseDate: (document.getElementById('dealExpectedCloseDate') as HTMLInputElement).value || undefined,
             };
 
@@ -717,7 +718,7 @@ export async function handleFormSubmit() {
             const startValue = parseFloat((document.getElementById('krStartValue') as HTMLInputElement).value);
             const targetValue = parseFloat((document.getElementById('krTargetValue') as HTMLInputElement).value);
             if (objectiveId && title && !isNaN(startValue) && !isNaN(targetValue)) {
-                await okrHandler.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
+                await okrHandlers.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
             }
             return; // Handler manages its own state
         }

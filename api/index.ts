@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -310,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
                     automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes
+                    budgetsRes, reviewsRes, pipelineStagesRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -343,6 +343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('expenses').select('*').eq('workspace_id', workspaceId),
                     supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
                     supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
@@ -351,7 +352,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
                     automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes
+                    budgetsRes, reviewsRes, pipelineStagesRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -406,6 +407,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     inventoryAssignments: inventoryAssignmentsRes.data,
                     deals: dealsRes.data,
                     dealActivities: dealActivitiesRes.data,
+                    pipelineStages: pipelineStagesRes.data,
                     automations: automationsRes.data,
                     tags: tagsRes.data,
                     taskTags: taskTagsRes.data,
@@ -742,6 +744,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
 
                 await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
+
+                return res.status(200).json({ message: 'Email sent successfully.' });
+            }
+            case 'send-deal-email': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                const supabase = getSupabaseAdmin();
+                const token = req.headers.authorization?.split('Bearer ')[1];
+                if (!token) return res.status(401).json({ error: 'Authentication token required.' });
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (authError || !user) return res.status(401).json({ error: 'Invalid user session.' });
+
+                const { workspaceId, to, subject, body } = req.body;
+
+                const { data: integration, error: dbError } = await supabase.from('integrations').select('*').eq('workspace_id', workspaceId).eq('provider', 'google_gmail').single();
+                if (dbError || !integration || !integration.is_active) return res.status(404).json({ error: 'Active Gmail integration not found.' });
+
+                let accessToken = integration.settings.accessToken;
+                const refreshToken = integration.settings.refreshToken;
+                const tokenExpiry = integration.settings.tokenExpiry;
+                const nowInSeconds = Math.floor(Date.now() / 1000);
+
+                if (tokenExpiry && refreshToken && nowInSeconds >= tokenExpiry - 60) {
+                     const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            client_id: process.env.GOOGLE_CLIENT_ID!,
+                            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+                            refresh_token: refreshToken,
+                            grant_type: 'refresh_token',
+                        }),
+                    });
+                    const refreshedTokenData = await refreshResponse.json();
+                    if (!refreshResponse.ok) throw new Error('Failed to refresh Google token.');
+                    accessToken = refreshedTokenData.access_token;
+                    const newSettings = { ...integration.settings, accessToken, tokenExpiry: nowInSeconds + refreshedTokenData.expires_in };
+                    await supabase.from('integrations').update({ settings: newSettings }).eq('id', integration.id);
+                }
+
+                const mimeMessage = [
+                    `To: ${to}`,
+                    `Subject: ${subject}`,
+                    'Content-Type: text/plain; charset="UTF-8"',
+                    'Content-Transfer-Encoding: 8bit',
+                    '',
+                    body
+                ].join('\n');
+
+                const base64EncodedEmail = Buffer.from(mimeMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                
+                const gmailResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        raw: base64EncodedEmail
+                    })
+                });
+
+                const gmailResult = await gmailResponse.json();
+                if (!gmailResponse.ok) {
+                    console.error("Gmail API Error:", gmailResult);
+                    throw new Error(gmailResult.error?.message || "Failed to send email via Gmail API.");
+                }
 
                 return res.status(200).json({ message: 'Email sent successfully.' });
             }

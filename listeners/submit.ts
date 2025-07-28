@@ -13,6 +13,7 @@ import * as mainHandlers from '../handlers/main.ts';
 import * as dealHandlers from '../handlers/deals.ts';
 import * as okrHandlers from '../handlers/okr.ts';
 import { parseMentionContent } from './mentions.ts';
+import * as pipelineHandlers from '../handlers/pipeline.ts';
 
 
 export async function handleSubmit(e: SubmitEvent) {
@@ -194,6 +195,15 @@ export async function handleSubmit(e: SubmitEvent) {
             await dealHandlers.handleAddDealActivity(dealId, type, content);
             textarea.value = '';
         }
+    } else if (target.id === 'send-deal-email-form') {
+        const form = target as HTMLFormElement;
+        const dealId = form.dataset.dealId!;
+        const to = (form.querySelector('select[name="email-to"]') as HTMLSelectElement).value;
+        const subject = (form.querySelector('input[name="email-subject"]') as HTMLInputElement).value;
+        const body = (form.querySelector('textarea[name="email-body"]') as HTMLTextAreaElement).value;
+        if (dealId && to && subject && body) {
+            await dealHandlers.handleSendDealEmail(dealId, to, subject, body, form);
+        }
     } else if (target.id === 'add-new-tag-form') {
         const taskId = target.dataset.taskId!;
         const input = target.querySelector('input')!;
@@ -226,6 +236,14 @@ export async function handleSubmit(e: SubmitEvent) {
             const userId = (addProjectMemberForm.querySelector('#project-member-select') as HTMLSelectElement).value;
             const role = (addProjectMemberForm.querySelector('#project-role-select') as HTMLSelectElement).value as ProjectRole;
             await teamHandlers.handleAddMemberToProject(projectId, userId, role);
+        }
+        return;
+    } else if (target.id === 'add-pipeline-stage-form') {
+        const input = target.querySelector<HTMLInputElement>('input[name="stage-name"]')!;
+        const name = input.value.trim();
+        if (name) {
+            await pipelineHandlers.handleCreateStage(name);
+            input.value = '';
         }
         return;
     }

@@ -463,12 +463,20 @@ export interface Expense {
     receiptUrl?: string;
 }
 
+export interface PipelineStage {
+    id: string;
+    workspaceId: string;
+    name: string;
+    sortOrder: number;
+    category: 'open' | 'won' | 'lost';
+}
+
 export interface Deal {
     id: string;
     workspaceId: string;
     name: string;
     clientId: string;
-    stage: 'lead' | 'contacted' | 'demo' | 'proposal' | 'won' | 'lost';
+    stageId: string;
     value: number;
     ownerId: string;
     expectedCloseDate?: string; // YYYY-MM-DD
@@ -636,6 +644,7 @@ export interface AppState {
     inventoryAssignments: InventoryAssignment[];
     userTaskSortOrders: UserTaskSortOrder[];
     budgets: Budget[];
+    pipelineStages: PipelineStage[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -709,7 +718,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline';
         };
         dashboard: {
             isEditing: boolean;

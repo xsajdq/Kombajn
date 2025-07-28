@@ -1,4 +1,6 @@
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -32,13 +34,15 @@ function renderDealCard(deal: Deal) {
 
 function renderKanbanBoard() {
     const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
-    const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
-    const dealsByStage: { [key in Deal['stage']]: Deal[] } = {
-        lead: [], contacted: [], demo: [], proposal: [], won: [], lost: [],
-    };
+    const stages = state.pipelineStages
+        .filter(s => s.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    const dealsByStage: { [key: string]: Deal[] } = {};
+    stages.forEach(stage => dealsByStage[stage.id] = []);
     deals.forEach(deal => {
-        if (dealsByStage[deal.stage]) {
-            dealsByStage[deal.stage].push(deal);
+        if (dealsByStage[deal.stageId]) {
+            dealsByStage[deal.stageId].push(deal);
         }
     });
 
@@ -46,13 +50,13 @@ function renderKanbanBoard() {
         <div class="flex-1 overflow-x-auto">
             <div class="inline-flex h-full space-x-4 p-1">
                 ${stages.map(stage => {
-                    const columnDeals = dealsByStage[stage];
+                    const columnDeals = dealsByStage[stage.id];
                     const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
                     return `
-                         <div class="flex-shrink-0 w-72 h-full flex flex-col bg-background rounded-lg" data-stage="${stage}">
+                         <div class="flex-shrink-0 w-72 h-full flex flex-col bg-background rounded-lg" data-stage-id="${stage.id}">
                             <div class="p-3 font-semibold text-text-main flex justify-between items-center border-b border-border-color">
-                                <span>${t(`sales.stage_${stage}`)} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
+                                <span>${stage.name} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
                             </div>
                             <div class="px-3 py-2 text-sm font-medium text-text-subtle border-b border-border-color">
                                 ${formatCurrency(totalValue, 'PLN')}

@@ -1,21 +1,24 @@
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
-import type { Task, Deal, DashboardWidget, UserTaskSortOrder } from '../types.ts';
+import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
 import { apiPut, apiPost } from '../services/api.ts';
 import { showModal } from './ui.ts';
+import { handleReorderStages } from './pipeline.ts';
 
 let draggedItemId: string | null = null;
-let draggedItemType: 'task' | 'deal' | 'widget' | null = null;
+let draggedItemType: 'task' | 'deal' | 'widget' | 'pipeline-stage' | null = null;
 
 export function handleDragStart(e: DragEvent) {
     const target = e.target as HTMLElement;
     const taskCard = target.closest<HTMLElement>('.task-card');
     const dealCard = target.closest<HTMLElement>('.deal-card');
     const widget = target.closest<HTMLElement>('[data-widget-id]');
+    const stageRow = target.closest<HTMLElement>('.pipeline-stage-row');
 
     let itemCard: HTMLElement | null = null;
     let id: string | undefined;
@@ -36,6 +39,10 @@ export function handleDragStart(e: DragEvent) {
         itemCard = widget;
         draggedItemType = 'widget';
         id = itemCard.dataset.widgetId;
+    } else if (stageRow) {
+        itemCard = stageRow;
+        draggedItemType = 'pipeline-stage';
+        id = itemCard.dataset.stageId;
     }
 
     if (itemCard && id && e.dataTransfer) {
@@ -51,28 +58,31 @@ export function handleDragEnd(e: DragEvent) {
     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     draggedItemId = null;
     draggedItemType = null;
-    document.querySelectorAll('[data-status], [data-stage]').forEach(el => el.classList.remove('bg-primary/10'));
+    document.querySelectorAll('[data-status], [data-stage-id]').forEach(el => el.classList.remove('bg-primary/10'));
 }
 
 export function handleDragOver(e: DragEvent) {
     e.preventDefault();
     
-    if (draggedItemType === 'widget') {
-        const dropTargetElement = (e.target as HTMLElement).closest('[data-widget-id]');
-        document.querySelectorAll('[data-widget-id].drag-over').forEach(el => el.classList.remove('drag-over'));
-        if (dropTargetElement && (dropTargetElement as HTMLElement).dataset.widgetId !== draggedItemId) {
+    if (draggedItemType === 'widget' || draggedItemType === 'pipeline-stage') {
+        const dropTargetSelector = draggedItemType === 'widget' ? '[data-widget-id]' : '.pipeline-stage-row';
+        const dropTargetElement = (e.target as HTMLElement).closest(dropTargetSelector);
+        document.querySelectorAll(`${dropTargetSelector}.drag-over`).forEach(el => el.classList.remove('drag-over'));
+        
+        const dropTargetId = (dropTargetElement as HTMLElement)?.dataset.widgetId || (dropTargetElement as HTMLElement)?.dataset.stageId;
+        if (dropTargetElement && dropTargetId !== draggedItemId) {
             dropTargetElement.classList.add('drag-over');
         }
         return;
     }
 
-    const column = (e.target as HTMLElement).closest<HTMLElement>('[data-status], [data-stage]');
+    const column = (e.target as HTMLElement).closest<HTMLElement>('[data-status], [data-stage-id]');
     if (column) {
         const isTaskColumn = !!column.dataset.status;
-        const isDealColumn = !!column.dataset.stage;
+        const isDealColumn = !!column.dataset.stageId;
 
         if ((draggedItemType === 'task' && isTaskColumn) || (draggedItemType === 'deal' && isDealColumn)) {
-             document.querySelectorAll('[data-status], [data-stage]').forEach(el => el.classList.remove('bg-primary/10'));
+             document.querySelectorAll('[data-status], [data-stage-id]').forEach(el => el.classList.remove('bg-primary/10'));
             column.classList.add('bg-primary/10');
         }
     }
@@ -171,27 +181,28 @@ export async function handleDrop(e: DragEvent) {
     }
 
     // Handle Deal Drop
-    const dealColumn = (e.target as HTMLElement).closest<HTMLElement>('[data-stage]');
+    const dealColumn = (e.target as HTMLElement).closest<HTMLElement>('[data-stage-id]');
     if (dealColumn && draggedItemType === 'deal') {
-        const newStage = dealColumn.dataset.stage as Deal['stage'];
+        const newStageId = dealColumn.dataset.stageId!;
         const deal = state.deals.find(d => d.id === draggedItemId);
-        if (deal && newStage && deal.stage !== newStage) {
-            const oldStage = deal.stage;
+        if (deal && newStageId && deal.stageId !== newStageId) {
+            const oldStageId = deal.stageId;
             const newActivityDate = new Date().toISOString();
             
-            deal.stage = newStage; // Optimistic update
+            deal.stageId = newStageId; // Optimistic update
             deal.lastActivityAt = newActivityDate;
             renderApp();
 
             try {
-                await apiPut('deals', { id: deal.id, stage: newStage, lastActivityAt: newActivityDate });
-                if (newStage === 'won') {
+                await apiPut('deals', { id: deal.id, stageId: newStageId, lastActivityAt: newActivityDate });
+                const newStage = state.pipelineStages.find(s => s.id === newStageId);
+                if (newStage?.category === 'won') {
                     showModal('dealWon', { dealId: deal.id, clientId: deal.clientId, dealName: deal.name });
                 }
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
                 alert("Failed to update deal stage. Reverting change.");
-                deal.stage = oldStage;
+                deal.stageId = oldStageId;
                 renderApp();
             }
         }
@@ -236,5 +247,28 @@ export async function handleDrop(e: DragEvent) {
             state.dashboardWidgets = originalWidgets; // Revert
             renderApp();
         }
+    }
+    
+    // Handle Pipeline Stage Drop (in settings)
+    const dropTargetStageRow = (e.target as HTMLElement).closest('.pipeline-stage-row');
+    if (draggedItemType === 'pipeline-stage' && dropTargetStageRow) {
+        document.querySelectorAll('.pipeline-stage-row').forEach(el => el.classList.remove('drag-over'));
+        const dropTargetId = (dropTargetStageRow as HTMLElement).dataset.stageId!;
+        if (draggedItemId === dropTargetId) return;
+
+        const stageList = dropTargetStageRow.parentElement!;
+        const draggedElement = stageList.querySelector(`[data-stage-id="${draggedItemId}"]`);
+        
+        if (draggedElement) {
+            const isDraggingDown = (draggedElement.getBoundingClientRect().top - dropTargetStageRow.getBoundingClientRect().top) < 0;
+            if (isDraggingDown) {
+                stageList.insertBefore(draggedElement, dropTargetStageRow.nextSibling);
+            } else {
+                stageList.insertBefore(draggedElement, dropTargetStageRow);
+            }
+        }
+        
+        const orderedIds = Array.from(stageList.querySelectorAll<HTMLElement>('.pipeline-stage-row')).map(row => row.dataset.stageId!);
+        handleReorderStages(orderedIds);
     }
 }

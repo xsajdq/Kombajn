@@ -762,7 +762,7 @@ export function Modal() {
         const isEdit = !!modalData.dealId;
         const deal = isEdit ? state.deals.find(d => d.id === modalData.dealId) : null;
         title = isEdit ? t('modals.edit_deal_title') : t('modals.add_deal_title');
-        const stages: Deal['stage'][] = ['lead', 'contacted', 'demo', 'proposal', 'won', 'lost'];
+        const stages = state.pipelineStages.filter(s => s.workspaceId === state.activeWorkspaceId && s.category === 'open').sort((a, b) => a.sortOrder - b.sortOrder);
         body = `
             <form id="dealForm" class="space-y-4">
                 <input type="hidden" id="dealId" value="${deal?.id || ''}">
@@ -791,7 +791,7 @@ export function Modal() {
                     <div class="${formGroupClasses}">
                         <label for="dealStage" class="${labelClasses}">${t('modals.deal_stage')}</label>
                         <select id="dealStage" class="${formControlClasses}" required>
-                            ${stages.map(s => `<option value="${s}" ${deal?.stage === s ? 'selected' : ''}>${t(`sales.stage_${s}`)}</option>`).join('')}
+                            ${stages.map(s => `<option value="${s.id}" ${deal?.stageId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses} sm:col-span-2">

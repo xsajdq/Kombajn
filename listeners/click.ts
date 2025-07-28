@@ -34,6 +34,7 @@ import * as projectSectionHandlers from '../handlers/projectSections.ts';
 import * as taskViewHandlers from '../handlers/taskViews.ts';
 import * as goalHandlers from '../handlers/goals.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
+import * as pipelineHandlers from '../handlers/pipeline.ts';
 
 function closeAllTaskMenus() {
     document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
@@ -448,6 +449,8 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('.save-task-view-btn')) { const viewItem = target.closest<HTMLElement>('.task-view-item')!; const id = viewItem.dataset.viewId!; const name = viewItem.querySelector<HTMLInputElement>('input[name="view-name"]')!.value; const icon = viewItem.querySelector<HTMLInputElement>('input[name="view-icon"]')!.value; taskViewHandlers.handleUpdateTaskView(id, name, icon); return; }
     if (target.closest('.delete-task-view-btn')) { taskViewHandlers.handleDeleteTaskView(target.closest<HTMLElement>('[data-view-id]')!.dataset.viewId!); return; }
     if (target.closest('#add-task-view-btn')) { const name = document.getElementById('new-task-view-name') as HTMLInputElement; const icon = document.getElementById('new-task-view-icon') as HTMLInputElement; if (name.value) { taskViewHandlers.handleCreateTaskView(name.value, icon.value); name.value = ''; icon.value = 'checklist'; } return; }
+    if (target.closest('[data-delete-pipeline-stage]')) { pipelineHandlers.handleDeleteStage(target.closest<HTMLElement>('[data-delete-pipeline-stage]')!.dataset.deletePipelineStage!); return; }
+    if (target.closest('[data-save-pipeline-stage]')) { const stageId = target.closest<HTMLElement>('[data-save-pipeline-stage]')!.dataset.savePipelineStage!; const input = document.querySelector(`input[data-stage-name-id="${stageId}"]`) as HTMLInputElement; pipelineHandlers.handleUpdateStage(stageId, input.value); return; }
 
     const hrTab = target.closest<HTMLElement>('a[data-hr-tab]');
     if (hrTab) {
@@ -525,10 +528,28 @@ export async function handleClick(e: MouseEvent) {
 
     const activityTab = target.closest<HTMLElement>('.activity-log-tabs button');
     if (activityTab) {
-        const type = activityTab.dataset.activityType!;
-        const form = activityTab.closest('form')!;
-        form.querySelectorAll('.activity-log-tabs button').forEach(btn => btn.classList.remove('active'));
-        activityTab.classList.add('active');
-        (form.querySelector('input[name="activity-type"]') as HTMLInputElement).value = type;
+        const type = activityTab.dataset.activityType!; // 'note', 'call', 'meeting', 'email'
+        const formContainer = activityTab.closest('.activity-log-container');
+        if (formContainer) {
+            formContainer.querySelectorAll('.activity-log-tabs button').forEach(btn => btn.classList.remove('active'));
+            activityTab.classList.add('active');
+    
+            formContainer.querySelectorAll('.deal-activity-form').forEach(form => {
+                const formEl = form as HTMLElement;
+                if (formEl.dataset.formType === type) {
+                    formEl.classList.remove('hidden');
+                    if (type === 'note' || type === 'call' || type === 'meeting') {
+                        // Set the hidden input for the generic logger form
+                        const hiddenInput = formEl.querySelector('input[name="activity-type"]') as HTMLInputElement;
+                        if (hiddenInput) hiddenInput.value = type;
+                        const textarea = formEl.querySelector('textarea');
+                        if(textarea) textarea.placeholder = t(`modals.${type === 'note' ? 'note_placeholder' : `Log ${type} details...`}`);
+                    }
+                } else {
+                    formEl.classList.add('hidden');
+                }
+            });
+        }
+        return;
     }
 }

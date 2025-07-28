@@ -62,6 +62,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.budgets = data.budgets || [];
         state.deals = data.deals || [];
         state.dealActivities = data.dealActivities || [];
+        state.pipelineStages = data.pipelineStages || [];
         state.automations = data.automations || [];
         state.tags = data.tags || [];
         state.taskTags = data.taskTags || [];
