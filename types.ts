@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export interface User {
     id: string;
     name?: string;
@@ -252,6 +247,7 @@ export interface Comment {
     userId: string;
     content: string;
     createdAt: string; // ISO 8601 date string
+    updatedAt?: string;
     parentId?: string;
     reactions?: CommentReaction[];
 }

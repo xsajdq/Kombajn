@@ -1,4 +1,5 @@
 
+
 import { state, getInitialState } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -94,6 +95,14 @@ async function main() {
         }
         
         supabase.auth.onAuthStateChange(async (event, session) => {
+            // Set auth token for Realtime on sign-in or token refresh to prevent WebSocket errors
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+                if (supabase) {
+                    supabase.realtime.setAuth(session.access_token);
+                    console.log('Supabase Realtime auth token set/refreshed.');
+                }
+            }
+        
             if (event === 'SIGNED_IN' && session && !hasBootstrapped) {
                 showLoader();
                 try {
@@ -108,6 +117,9 @@ async function main() {
                     showError((error as Error).message);
                 }
             } else if (event === 'SIGNED_OUT') {
+                if (supabase) {
+                    supabase.realtime.setAuth(null); // Important to clear the token on sign out
+                }
                 await unsubscribeAll();
                 isBootstrapping = false;
                 hasBootstrapped = false;

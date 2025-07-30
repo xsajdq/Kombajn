@@ -19,7 +19,7 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const newCommentPayload: Omit<Comment, 'id'|'createdAt'|'reactions'> = {
+    const newCommentPayload: Omit<Comment, 'id'|'createdAt'|'reactions'|'updatedAt'> = {
         workspaceId: task.workspaceId,
         taskId,
         content: content,
@@ -62,6 +62,38 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
     } catch (error) {
         console.error("Failed to add comment:", error);
         alert("Could not add comment. Please try again.");
+    }
+}
+
+export async function handleUpdateTaskComment(commentId: string, newContent: string) {
+    const comment = state.comments.find(c => c.id === commentId);
+    if (!comment || !newContent.trim() || comment.content === newContent.trim()) {
+        // If no change, just re-render to exit edit mode
+        updateUI(['modal']);
+        return;
+    }
+
+    const originalContent = comment.content;
+    const originalUpdatedAt = comment.updatedAt;
+
+    // Optimistic update
+    comment.content = newContent.trim();
+    comment.updatedAt = new Date().toISOString();
+    updateUI(['modal']);
+
+    try {
+        await apiPut('comments', { 
+            id: commentId, 
+            content: comment.content,
+            updatedAt: comment.updatedAt 
+        });
+    } catch (error) {
+        console.error("Failed to update comment:", error);
+        alert("Could not save comment changes. Reverting.");
+        // Revert on failure
+        comment.content = originalContent;
+        comment.updatedAt = originalUpdatedAt;
+        updateUI(['modal']);
     }
 }
 

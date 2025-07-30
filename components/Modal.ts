@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -1079,6 +1080,19 @@ export function Modal() {
         } else {
             body = '<p>User not found.</p>';
         }
+    }
+
+    if (state.ui.modal.type === 'rejectTimeOffRequest') {
+        const requestId = modalData.requestId as string;
+        title = t('modals.reject_request_title');
+        body = `
+            <form id="rejectTimeOffForm" class="space-y-4" data-request-id="${requestId}">
+                <div class="${formGroupClasses}">
+                    <label for="rejectionReason" class="${labelClasses}">${t('modals.rejection_reason')}</label>
+                    <textarea id="rejectionReason" class="${formControlClasses}" rows="4" required></textarea>
+                </div>
+            </form>
+        `;
     }
 
 

@@ -16,46 +16,70 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step0_content'),
     },
     {
-        targetSelector: 'a[href="/projects"]',
+        targetSelector: '#workspace-switcher',
         title: t('onboarding.step1_title'),
         content: t('onboarding.step1_content'),
     },
     {
-        targetSelector: '.projects-page-new-project-btn',
+        targetSelector: '#app-sidebar nav',
         title: t('onboarding.step2_title'),
         content: t('onboarding.step2_content'),
+    },
+    {
+        targetSelector: '.projects-page-new-project-btn',
+        title: t('onboarding.step3_title'),
+        content: t('onboarding.step3_content'),
         preAction: () => {
             history.pushState({}, '', '/projects');
             updateUI(['page', 'sidebar']);
         }
     },
     {
-        targetSelector: 'a[href="/tasks"]',
-        title: t('onboarding.step3_title'),
-        content: t('onboarding.step3_content'),
+        targetSelector: '[data-view-mode="board"]',
+        title: t('onboarding.step4_title'),
+        content: t('onboarding.step4_content'),
         preAction: () => {
             history.pushState({}, '', '/tasks');
             updateUI(['page', 'sidebar']);
         }
     },
     {
-        targetSelector: 'a[href="/settings"]',
-        title: t('onboarding.step4_title'),
-        content: t('onboarding.step4_content'),
-        preAction: () => {
-            history.pushState({}, '', '/settings');
-            updateUI(['page', 'sidebar']);
-        }
-    },
-    {
+        targetSelector: '#global-timer-container',
         title: t('onboarding.step5_title'),
         content: t('onboarding.step5_content'),
         preAction: () => {
             history.pushState({}, '', '/dashboard');
             updateUI(['page', 'sidebar']);
         }
+    },
+    {
+        targetSelector: '#notification-bell',
+        title: t('onboarding.step6_title'),
+        content: t('onboarding.step6_content'),
+    },
+    {
+        title: t('onboarding.step7_title'),
+        content: t('onboarding.step7_content'),
+    },
+    {
+        targetSelector: 'a[href="/settings"]',
+        title: t('onboarding.step8_title'),
+        content: t('onboarding.step8_content'),
+        preAction: () => {
+            history.pushState({}, '', '/settings');
+            updateUI(['page', 'sidebar']);
+        }
+    },
+    {
+        title: t('onboarding.step9_title'),
+        content: t('onboarding.step9_content'),
+        preAction: () => {
+            history.pushState({}, '', '/dashboard');
+            updateUI(['page', 'sidebar']);
+        }
     }
 ];
+
 
 export function startOnboarding() {
     console.log("Starting onboarding...");

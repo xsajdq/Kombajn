@@ -1,8 +1,3 @@
-
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
@@ -23,7 +18,7 @@ export function SettingsPage() {
                 <option value="dark" ${state.settings.theme === 'dark' ? 'selected' : ''}>${t('settings.theme_dark')}</option>
             </select>
         </div>
-        <div class="flex justify-between items-center py-4">
+        <div class="flex justify-between items-center py-4 border-b border-border-color">
             <div>
                 <h4 class="font-semibold">${t('settings.language')}</h4>
                 <p class="text-sm text-text-subtle">${t('settings.language_desc')}</p>
@@ -32,6 +27,13 @@ export function SettingsPage() {
                 <option value="en" ${state.settings.language === 'en' ? 'selected' : ''}>${t('settings.english')}</option>
                 <option value="pl" ${state.settings.language === 'pl' ? 'selected' : ''}>${t('settings.polish')}</option>
             </select>
+        </div>
+        <div class="flex justify-between items-center py-4">
+            <div>
+                <h4 class="font-semibold">${t('settings.rerun_onboarding')}</h4>
+                <p class="text-sm text-text-subtle">${t('settings.rerun_onboarding_desc')}</p>
+            </div>
+            <button id="restart-onboarding-btn" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.start_tour')}</button>
         </div>
     `;
 

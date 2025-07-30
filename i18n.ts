@@ -1,8 +1,3 @@
-
-
-
-
-
 import { state } from './state';
 
 const translations = {
@@ -233,7 +228,7 @@ const translations = {
             add_to_project: 'Add to project',
             all_tasks_added: 'All suggested tasks have been added!',
         },
-        settings: { title: 'Settings', theme: 'Theme', theme_desc: 'Choose the visual appearance of the application.', theme_light: 'Light', theme_dark: 'Dark', theme_minimal: 'Minimal', language: 'Language', language_desc: 'Choose the application language.', english: 'English', polish: 'Polski', tab_general: 'General', tab_custom_fields: 'Custom Fields', tab_workspace: 'Workspace', tab_integrations: 'Integrations', add_field: 'Add Field', field_name: 'Field Name', field_type: 'Field Type', field_type_text: 'Text', field_type_number: 'Number', field_type_date: 'Date', field_type_checkbox: 'Checkbox', no_custom_fields: 'No custom fields defined yet.', company_details: 'Company Details', company_name: 'Company Name', company_address: 'Company Address', company_vat_id: 'VAT ID', company_email: 'Company Email (for communication)', bank_details: 'Bank Details', bank_name: 'Bank Name', bank_account: 'Bank Account', company_logo: 'Company Logo', upload_logo: 'Upload Logo', remove_logo: 'Remove Logo', logo_preview: 'Logo Preview', tab_profile: 'Profile', profile_details: 'Profile Details', full_name: 'Full Name', email_address: 'Email Address', avatar: 'Avatar', upload_avatar: 'Upload new photo', change_password: 'Change Password', new_password: 'New Password', confirm_new_password: 'Confirm New Password', password_mismatch: "New passwords do not match.", profile_updated: "Profile updated successfully!", password_updated: "Password updated successfully!", update_profile: "Update Profile", update_password: "Update Password", error_updating_profile: "Error updating profile.", error_updating_password: "Error updating password.", tab_task_views: 'Task Views', add_view: 'Add View', view_name: 'View Name', list_name: 'List Name', icon: 'Icon', tab_pipeline: 'Pipeline', tab_kanban: 'Kanban Board', deal_stages: 'Deal Stages', add_stage: 'Add Stage', drag_to_reorder: 'Drag to reorder stages.', stage_name: 'Stage Name', deals_in_stage_warning: 'Cannot delete a stage that contains deals. Please move deals to another stage first.' },
+        settings: { title: 'Settings', theme: 'Theme', theme_desc: 'Choose the visual appearance of the application.', theme_light: 'Light', theme_dark: 'Dark', theme_minimal: 'Minimal', language: 'Language', language_desc: 'Choose the application language.', english: 'English', polish: 'Polski', tab_general: 'General', tab_custom_fields: 'Custom Fields', tab_workspace: 'Workspace', tab_integrations: 'Integrations', add_field: 'Add Field', field_name: 'Field Name', field_type: 'Field Type', field_type_text: 'Text', field_type_number: 'Number', field_type_date: 'Date', field_type_checkbox: 'Checkbox', no_custom_fields: 'No custom fields defined yet.', company_details: 'Company Details', company_name: 'Company Name', company_address: 'Company Address', company_vat_id: 'VAT ID', company_email: 'Company Email (for communication)', bank_details: 'Bank Details', bank_name: 'Bank Name', bank_account: 'Bank Account', company_logo: 'Company Logo', upload_logo: 'Upload Logo', remove_logo: 'Remove Logo', logo_preview: 'Logo Preview', tab_profile: 'Profile', profile_details: 'Profile Details', full_name: 'Full Name', email_address: 'Email Address', avatar: 'Avatar', upload_avatar: 'Upload new photo', change_password: 'Change Password', new_password: 'New Password', confirm_new_password: 'Confirm New Password', password_mismatch: "New passwords do not match.", profile_updated: "Profile updated successfully!", password_updated: "Password updated successfully!", update_profile: "Update Profile", update_password: "Update Password", error_updating_profile: "Error updating profile.", error_updating_password: "Error updating password.", tab_task_views: 'Task Views', add_view: 'Add View', view_name: 'View Name', list_name: 'List Name', icon: 'Icon', tab_pipeline: 'Pipeline', tab_kanban: 'Kanban Board', deal_stages: 'Deal Stages', add_stage: 'Add Stage', drag_to_reorder: 'Drag to reorder stages.', stage_name: 'Stage Name', deals_in_stage_warning: 'Cannot delete a stage that contains deals. Please move deals to another stage first.', rerun_onboarding: "Re-run Onboarding Tour", rerun_onboarding_desc: "See the introductory product tour again.", start_tour: "Start Tour" },
         integrations: {
             slack_title: 'Slack',
             slack_desc: 'Send notifications about task updates and mentions to your Slack channels.',
@@ -335,16 +330,24 @@ const translations = {
         onboarding: {
             step0_title: "Welcome to Kombajn!",
             step0_content: "Let's take a quick tour to show you the most important features. This will only take a minute.",
-            step1_title: "Projects",
-            step1_content: "This is the heart of your workspace. All your work is organized into projects.",
-            step2_title: "Create Your First Project",
-            step2_content: "Click here to create your first project. You can assign it to a client and start adding tasks.",
-            step3_title: "Tasks View",
-            step3_content: "Here you can see all tasks from all your projects in one place. You can switch between board, list, and calendar views.",
-            step4_title: "Settings",
-            step4_content: "Customize your workspace, profile, and application settings here.",
-            step5_title: "You're All Set!",
-            step5_content: "That's it! You're ready to start working. Feel free to explore and create something amazing.",
+            step1_title: "Manage Workspaces",
+            step1_content: "Switch between your different teams or companies from here. All your data is kept separate for each workspace.",
+            step2_title: "Main Navigation",
+            step2_content: "Use the sidebar to navigate between key modules like Projects, Tasks, and HR.",
+            step3_title: "Create Your First Project",
+            step3_content: "Everything starts with a project. Click here to organize your work, assign tasks, and collaborate.",
+            step4_title: "Visualize Your Tasks",
+            step4_content: "The Tasks page shows all your work in one place. Switch between Board, List, and Calendar views to fit your workflow.",
+            step5_title: "Track Time Effortlessly",
+            step5_content: "Start a timer from anywhere in the app. When you stop it, you can easily assign the tracked time to a specific task.",
+            step6_title: "Stay Updated",
+            step6_content: "You'll receive notifications for important events like new assignments, mentions, and leave requests right here.",
+            step7_title: "Quick Search",
+            step7_content: "Press Ctrl+K (or Cmd+K on Mac) anytime to open the command palette. It's the fastest way to find anything or jump to a page.",
+            step8_title: "Customize Your Workspace",
+            step8_content: "Finally, head to Settings to personalize your profile, workspace details, and connect integrations.",
+            step9_title: "You're All Set!",
+            step9_content: "That's it! You're ready to start working. You can re-run this tour from the Settings page anytime.",
             next: "Next",
             skip: "Skip",
             finish: "Finish"
@@ -577,7 +580,7 @@ const translations = {
             add_to_project: 'Dodaj do projektu',
             all_tasks_added: 'Wszystkie sugerowane zadania zostały dodane!',
         },
-        settings: { title: 'Ustawienia', theme: 'Motyw', theme_desc: 'Wybierz wygląd aplikacji.', theme_light: 'Jasny', theme_dark: 'Ciemny', theme_minimal: 'Minimalny', language: 'Język', language_desc: 'Wybierz język aplikacji.', english: 'Angielski', polish: 'Polski', tab_general: 'Ogólne', tab_custom_fields: 'Pola niestandardowe', tab_workspace: 'Obszar roboczy', tab_integrations: 'Integracje', add_field: 'Dodaj pole', field_name: 'Nazwa pola', field_type: 'Typ pola', field_type_text: 'Tekst', field_type_number: 'Liczba', field_type_date: 'Data', field_type_checkbox: 'Pole wyboru', no_custom_fields: 'Brak zdefiniowanych pól niestandardowych.', company_details: 'Dane firmy', company_name: 'Nazwa firmy', company_address: 'Adres firmy', company_vat_id: 'NIP', company_email: 'Firmowy e-mail (do komunikacji)', bank_details: 'Dane bankowe', bank_name: 'Nazwa banku', bank_account: 'Konto bankowe', company_logo: 'Logo firmy', upload_logo: 'Wgraj logo', remove_logo: 'Usuń logo', logo_preview: 'Podgląd logo', tab_profile: 'Profil', profile_details: 'Szczegóły profilu', full_name: 'Imię i nazwisko', email_address: 'Adres e-mail', avatar: 'Awatar', upload_avatar: 'Wgraj nowe zdjęcie', change_password: 'Zmień hasło', new_password: 'Nowe hasło', confirm_new_password: 'Potwierdź nowe hasło', password_mismatch: "Nowe hasła nie pasują do siebie.", profile_updated: "Profil zaktualizowany pomyślnie!", password_updated: "Hasło zaktualizowane pomyślnie!", update_profile: "Aktualizuj profil", update_password: "Aktualizuj hasło", error_updating_profile: "Błąd podczas aktualizacji profilu.", error_updating_password: "Błąd podczas aktualizacji hasła.", tab_task_views: 'Widoki Zadań', add_view: 'Dodaj widok', view_name: 'Nazwa widoku', list_name: 'Nazwa listy', icon: 'Ikona', tab_pipeline: 'Lejek sprzedaży', tab_kanban: 'Tablica Kanban', deal_stages: 'Etapy szans', add_stage: 'Dodaj etap', drag_to_reorder: 'Przeciągnij, aby zmienić kolejność.', stage_name: 'Nazwa etapu', deals_in_stage_warning: 'Nie można usunąć etapu, który zawiera szanse sprzedaży. Najpierw przenieś szanse do innego etapu.' },
+        settings: { title: 'Ustawienia', theme: 'Motyw', theme_desc: 'Wybierz wygląd aplikacji.', theme_light: 'Jasny', theme_dark: 'Ciemny', theme_minimal: 'Minimalny', language: 'Język', language_desc: 'Wybierz język aplikacji.', english: 'Angielski', polish: 'Polski', tab_general: 'Ogólne', tab_custom_fields: 'Pola niestandardowe', tab_workspace: 'Obszar roboczy', tab_integrations: 'Integracje', add_field: 'Dodaj pole', field_name: 'Nazwa pola', field_type: 'Typ pola', field_type_text: 'Tekst', field_type_number: 'Liczba', field_type_date: 'Data', field_type_checkbox: 'Pole wyboru', no_custom_fields: 'Brak zdefiniowanych pól niestandardowych.', company_details: 'Dane firmy', company_name: 'Nazwa firmy', company_address: 'Adres firmy', company_vat_id: 'NIP', company_email: 'Firmowy e-mail (do komunikacji)', bank_details: 'Dane bankowe', bank_name: 'Nazwa banku', bank_account: 'Konto bankowe', company_logo: 'Logo firmy', upload_logo: 'Wgraj logo', remove_logo: 'Usuń logo', logo_preview: 'Podgląd logo', tab_profile: 'Profil', profile_details: 'Szczegóły profilu', full_name: 'Imię i nazwisko', email_address: 'Adres e-mail', avatar: 'Awatar', upload_avatar: 'Wgraj nowe zdjęcie', change_password: 'Zmień hasło', new_password: 'Nowe hasło', confirm_new_password: 'Potwierdź nowe hasło', password_mismatch: "Nowe hasła nie pasują do siebie.", profile_updated: "Profil zaktualizowany pomyślnie!", password_updated: "Hasło zaktualizowane pomyślnie!", update_profile: "Aktualizuj profil", update_password: "Aktualizuj hasło", error_updating_profile: "Błąd podczas aktualizacji profilu.", error_updating_password: "Błąd podczas aktualizacji hasła.", tab_task_views: 'Widoki Zadań', add_view: 'Dodaj widok', view_name: 'Nazwa widoku', list_name: 'Nazwa listy', icon: 'Ikona', tab_pipeline: 'Lejek sprzedaży', tab_kanban: 'Tablica Kanban', deal_stages: 'Etapy szans', add_stage: 'Dodaj etap', drag_to_reorder: 'Przeciągnij, aby zmienić kolejność.', stage_name: 'Nazwa etapu', deals_in_stage_warning: 'Nie można usunąć etapu, który zawiera szanse sprzedaży. Najpierw przenieś szanse do innego etapu.', rerun_onboarding: "Uruchom Ponownie Samouczek", rerun_onboarding_desc: "Zobacz ponownie wprowadzenie do produktu.", start_tour: "Rozpocznij Samouczek" },
         integrations: {
             slack_title: 'Slack',
             slack_desc: 'Wysyłaj powiadomienia o aktualizacjach zadań i wzmiankach na swoje kanały Slack.',
@@ -679,16 +682,24 @@ const translations = {
         onboarding: {
             step0_title: "Witaj w Kombajnie!",
             step0_content: "Zróbmy szybki przegląd, aby pokazać Ci najważniejsze funkcje. To zajmie tylko minutę.",
-            step1_title: "Projekty",
-            step1_content: "To serce Twojego obszaru roboczego. Cała Twoja praca jest zorganizowana w projektach.",
-            step2_title: "Utwórz swój pierwszy projekt",
-            step2_content: "Kliknij tutaj, aby utworzyć swój pierwszy projekt. Możesz przypisać go do klienta i zacząć dodawać zadania.",
-            step3_title: "Widok zadań",
-            step3_content: "Tutaj możesz zobaczyć wszystkie zadania ze wszystkich swoich projektów w jednym miejscu. Możesz przełączać się między widokami tablicy, listy i kalendarza.",
-            step4_title: "Ustawienia",
-            step4_content: "Dostosuj tutaj swój obszar roboczy, profil i ustawienia aplikacji.",
-            step5_title: "Wszystko gotowe!",
-            step5_content: "To wszystko! Jesteś gotowy(a) do rozpoczęcia pracy. Zachęcamy do eksplorowania i tworzenia czegoś niesamowitego.",
+            step1_title: "Zarządzaj Obszarami Roboczymi",
+            step1_content: "Przełączaj się między swoimi zespołami lub firmami stąd. Wszystkie dane są oddzielone dla każdego obszaru.",
+            step2_title: "Główna Nawigacja",
+            step2_content: "Użyj paska bocznego do nawigacji między kluczowymi modułami, takimi jak Projekty, Zadania i Kadry.",
+            step3_title: "Stwórz Swój Pierwszy Projekt",
+            step3_content: "Wszystko zaczyna się od projektu. Kliknij tutaj, aby zorganizować swoją pracę, przypisać zadania i współpracować.",
+            step4_title: "Wizualizuj Swoje Zadania",
+            step4_content: "Strona Zadania pokazuje całą Twoją pracę w jednym miejscu. Przełączaj się między widokami Tablicy, Listy i Kalendarza, aby dopasować przepływ pracy.",
+            step5_title: "Śledź Czas Bez Wysiłku",
+            step5_content: "Uruchom stoper z dowolnego miejsca w aplikacji. Gdy go zatrzymasz, możesz łatwo przypisać zarejestrowany czas do konkretnego zadania.",
+            step6_title: "Bądź na Bieżąco",
+            step6_content: "Będziesz otrzymywać powiadomienia o ważnych wydarzeniach, takich jak nowe przydziały, wzmianki i wnioski urlopowe, właśnie tutaj.",
+            step7_title: "Szybkie Wyszukiwanie",
+            step7_content: "Naciśnij Ctrl+K (lub Cmd+K na Macu) w dowolnym momencie, aby otworzyć paletę komend. To najszybszy sposób na znalezienie czegokolwiek lub przejście na stronę.",
+            step8_title: "Dostosuj Swój Obszar Roboczy",
+            step8_content: "Na koniec przejdź do Ustawień, aby spersonalizować swój profil, szczegóły obszaru roboczego i połączyć integracje.",
+            step9_title: "Wszystko Gotowe!",
+            step9_content: "To wszystko! Jesteś gotowy(a) do pracy. Możesz ponownie uruchomić ten samouczek w dowolnym momencie z Ustawień.",
             next: "Dalej",
             skip: "Pomiń",
             finish: "Zakończ"

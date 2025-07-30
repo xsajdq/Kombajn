@@ -3,6 +3,7 @@ import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
 import { can } from '../../permissions.ts';
 import type { Task, User, Attachment, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, Comment, TimeLog } from '../../types.ts';
+import { getUserProjectRole } from '../../handlers/main.ts';
 
 function formatBytes(bytes: number, decimals = 2) {
     if (!bytes || bytes === 0) return '0 Bytes';
@@ -43,19 +44,33 @@ function renderComment(comment: Comment) {
         `;
     }).join('');
 
+    const isOwnComment = comment.userId === state.currentUser?.id;
+    const task = state.tasks.find(t => t.id === comment.taskId);
+    const projectRole = task ? getUserProjectRole(state.currentUser?.id || '', task.projectId) : null;
+    const isProjectAdmin = projectRole === 'admin';
+
+    const timeSinceCreation = (new Date().getTime() - new Date(comment.createdAt).getTime()) / (1000 * 60); // in minutes
+    const canEdit = isProjectAdmin || (isOwnComment && timeSinceCreation < 15);
+
+    const isEdited = comment.updatedAt && (new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000); // Check if updated more than a second after creation
+
     return `
         <div class="activity-item comment-container" data-comment-id="${comment.id}">
             <div class="avatar">${user?.initials || '?'}</div>
             <div class="activity-content">
                 <div class="activity-header">
                     <strong>${userName}</strong>
-                    <span class="activity-time">${formatDate(comment.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
+                    <span class="activity-time">
+                        ${formatDate(comment.createdAt, {hour: 'numeric', minute: 'numeric'})}
+                        ${isEdited ? `<em class="text-xs ml-1">(edited)</em>` : ''}
+                    </span>
                 </div>
-                <div class="activity-body">
+                <div class="activity-body" id="comment-body-${comment.id}">
                     ${renderCommentBody(comment.content)}
                 </div>
-                <div class="comment-actions">
+                <div class="comment-actions" id="comment-actions-${comment.id}">
                     <button class="btn-text" data-reply-to-comment-id="${comment.id}">${t('modals.reply_button')}</button>
+                    ${canEdit ? `<button class="btn-text" data-edit-comment-id="${comment.id}">${t('misc.edit')}</button>` : ''}
                     <div class="relative">
                          <button class="btn-text" data-react-to-comment-id="${comment.id}">😊</button>
                          <div id="reaction-picker-${comment.id}" class="reaction-picker hidden">

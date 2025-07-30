@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -190,6 +189,48 @@ export async function handleClick(e: MouseEvent) {
                 container.querySelector<HTMLElement>('.rich-text-input')?.focus();
             }
         }
+        return;
+    }
+    
+    const editCommentBtn = target.closest<HTMLElement>('[data-edit-comment-id]');
+    if (editCommentBtn) {
+        const commentId = editCommentBtn.dataset.editCommentId!;
+        const comment = state.comments.find(c => c.id === commentId);
+        if (!comment) return;
+
+        const commentBody = document.getElementById(`comment-body-${commentId}`);
+        const commentActions = document.getElementById(`comment-actions-${commentId}`);
+
+        if (commentBody && commentActions) {
+            commentActions.classList.add('hidden');
+            commentBody.innerHTML = `
+                <form class="edit-comment-form" data-comment-id="${commentId}">
+                    <div class="rich-text-input-container">
+                        <textarea class="form-control" rows="3">${comment.content}</textarea>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-cancel-edit-comment-id="${commentId}">${t('modals.cancel')}</button>
+                        <button type="button" class="btn btn-primary btn-sm" data-save-edit-comment-id="${commentId}">${t('modals.save')}</button>
+                    </div>
+                </form>
+            `;
+            commentBody.querySelector('textarea')?.focus();
+        }
+        return;
+    }
+
+    const saveCommentBtn = target.closest<HTMLElement>('[data-save-edit-comment-id]');
+    if (saveCommentBtn) {
+        const form = saveCommentBtn.closest('form')!;
+        const commentId = form.dataset.commentId!;
+        const newContent = form.querySelector('textarea')!.value;
+        taskHandlers.handleUpdateTaskComment(commentId, newContent);
+        return;
+    }
+    
+    const cancelCommentBtn = target.closest<HTMLElement>('[data-cancel-edit-comment-id]');
+    if (cancelCommentBtn) {
+        updateUI(['modal']);
         return;
     }
     
@@ -570,6 +611,7 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#global-timer-toggle')) { if(state.ui.globalTimer.isRunning) timerHandlers.stopGlobalTimer(); else timerHandlers.startGlobalTimer(); return; }
     if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
     if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
+    if (target.closest('#restart-onboarding-btn')) { onboardingHandlers.startOnboarding(); return; }
     const createProjectFromDealBtn = target.closest('#create-project-from-deal-btn');
     if (createProjectFromDealBtn) {
         const btn = createProjectFromDealBtn as HTMLElement;
