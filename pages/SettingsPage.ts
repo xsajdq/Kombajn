@@ -1,4 +1,6 @@
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
@@ -257,7 +259,7 @@ export function SettingsPage() {
             </div>
         `;
     };
-
+    
     const renderTaskViewsSettings = () => {
         const taskViews = state.taskViews.filter(tv => tv.workspaceId === state.activeWorkspaceId);
         return `
@@ -313,6 +315,53 @@ export function SettingsPage() {
         `;
     };
 
+    const renderPipelineSettings = () => {
+        const stages = state.pipelineStages
+            .filter(s => s.workspaceId === state.activeWorkspaceId)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+        const openStages = stages.filter(s => s.category === 'open');
+        const wonStage = stages.find(s => s.category === 'won');
+        const lostStage = stages.find(s => s.category === 'lost');
+    
+        const renderStageRow = (stage: any, isDraggable: boolean) => `
+            <div class="flex items-center gap-3 p-3 bg-background rounded-md pipeline-stage-row" data-stage-id="${stage.id}" ${isDraggable ? 'draggable="true"' : ''}>
+                ${isDraggable ? `<span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>` : ''}
+                <input type="text" class="form-control" value="${stage.name}" data-stage-name-id="${stage.id}" ${!isDraggable ? 'disabled' : ''}>
+                ${isDraggable ? `
+                <div class="flex items-center gap-1">
+                    <button class="btn-icon" data-save-pipeline-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
+                    <button class="btn-icon" data-delete-pipeline-stage="${stage.id}" title="${t('modals.delete')}"><span class="material-icons-sharp text-base text-danger">delete</span></button>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    
+        return `
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_pipeline')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Customize the stages of your sales pipeline.</p>
+            </div>
+            <div class="bg-content p-5 rounded-lg shadow-sm">
+                <h5 class="font-semibold mb-2">${t('settings.deal_stages')}</h5>
+                <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
+                <div id="pipeline-stages-list" class="space-y-2">
+                    ${openStages.map(stage => renderStageRow(stage, true)).join('')}
+                    ${wonStage ? renderStageRow(wonStage, false) : ''}
+                    ${lostStage ? renderStageRow(lostStage, false) : ''}
+                </div>
+            </div>
+            <form id="add-pipeline-stage-form" class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                 <div class="flex gap-4 items-end">
+                    <div class="flex-grow">
+                        <label for="new-stage-name" class="text-sm font-medium text-text-subtle">${t('settings.stage_name')}</label>
+                        <input type="text" id="new-stage-name" name="stage-name" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary">${t('settings.add_stage')}</button>
+                </div>
+            </form>
+        `;
+    };
+
     let tabContent = '';
     switch (activeTab) {
         case 'general': tabContent = renderGeneralSettings(); break;
@@ -321,35 +370,41 @@ export function SettingsPage() {
         case 'workspace': if (canManage) tabContent = renderWorkspaceSettings(); break;
         case 'integrations': if (canManage) tabContent = renderIntegrationsSettings(); break;
         case 'taskViews': if (canManage) tabContent = renderTaskViewsSettings(); break;
+        case 'pipeline': if (canManage) tabContent = renderPipelineSettings(); break;
     }
 
     const navItems = [
-        { id: 'general', icon: 'tune', text: t('settings.tab_general') },
-        { id: 'profile', icon: 'account_circle', text: t('settings.tab_profile') },
-        { id: 'workspace', icon: 'business_center', text: t('settings.tab_workspace'), needsPermission: true },
-        { id: 'taskViews', icon: 'view_list', text: t('settings.tab_task_views'), needsPermission: true },
-        { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), needsPermission: true },
-        { id: 'customFields', icon: 'post_add', text: t('settings.tab_custom_fields'), needsPermission: true },
-    ].filter(item => !item.needsPermission || canManage);
+        { id: 'general', icon: 'tune', text: t('settings.tab_general'), permission: null },
+        { id: 'profile', icon: 'account_circle', text: t('settings.tab_profile'), permission: null },
+        { id: 'workspace', icon: 'corporate_fare', text: t('settings.tab_workspace'), permission: 'manage_workspace_settings' },
+        { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), permission: 'manage_workspace_settings' },
+        { id: 'pipeline', icon: 'view_kanban', text: t('settings.tab_pipeline'), permission: 'manage_workspace_settings' },
+        { id: 'customFields', icon: 'ballot', text: t('settings.tab_custom_fields'), permission: 'manage_workspace_settings' },
+        { id: 'taskViews', icon: 'view_list', text: t('settings.tab_task_views'), permission: 'manage_workspace_settings' },
+    ];
+
+    const availableNavItems = navItems.filter(item => !item.permission || can(item.permission as any));
 
     return `
-        <div class="flex flex-col md:flex-row gap-8 h-full">
-            <nav class="flex flex-col w-full md:w-56 shrink-0">
-                <h3 class="text-xl font-bold p-4">${t('settings.title')}</h3>
-                <ul class="space-y-1 p-2">
-                ${navItems.map(item => `
-                    <li>
-                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab="${item.id}">
-                            <span class="material-icons-sharp">${item.icon}</span>
-                            <span>${item.text}</span>
-                        </a>
-                    </li>
-                `).join('')}
-                </ul>
-            </nav>
-            <main class="flex-1 space-y-6">
-                ${tabContent}
-            </main>
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold">${t('settings.title')}</h2>
+            <div class="flex flex-col md:flex-row gap-8">
+                <nav class="flex flex-row md:flex-col md:w-56 shrink-0 overflow-x-auto -mx-4 px-4 md:m-0 md:p-0">
+                    <ul class="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1">
+                        ${availableNavItems.map(item => `
+                            <li>
+                                <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab="${item.id}">
+                                    <span class="material-icons-sharp">${item.icon}</span>
+                                    ${item.text}
+                                </a>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </nav>
+                <main class="flex-1">
+                    ${tabContent}
+                </main>
+            </div>
         </div>
     `;
 }

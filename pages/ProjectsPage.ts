@@ -1,15 +1,27 @@
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds } from '../utils.ts';
 import { can } from '../permissions.ts';
 
 function renderGridView() {
-    const projects = state.projects.filter(p => {
+    const { text: filterText, tagIds: filterTagIds } = state.ui.projects.filters;
+    let projects = state.projects.filter(p => {
         if (p.workspaceId !== state.activeWorkspaceId) return false;
         if (p.privacy === 'public') return true;
         return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
     });
+
+    if (filterText) {
+        projects = projects.filter(p => p.name.toLowerCase().includes(filterText.toLowerCase()));
+    }
+    if (filterTagIds.length > 0) {
+        projects = projects.filter(p => {
+            const projectTagIds = new Set(state.projectTags.filter(pt => pt.projectId === p.id).map(pt => pt.tagId));
+            return filterTagIds.every(tagId => projectTagIds.has(tagId));
+        });
+    }
+
+
     const today = new Date().toISOString().slice(0, 10);
     const canManage = can('manage_projects');
 
@@ -35,6 +47,8 @@ function renderGridView() {
                 const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
                 const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
                 const description = (project.wikiContent?.split('\n')[0] || '').substring(0, 100);
+                const projectTags = state.projectTags.filter(pt => pt.projectId === project.id).map(pt => state.tags.find(t => t.id === pt.tagId)).filter(Boolean);
+
 
                 let projectStatus = 'not_started';
                 let projectStatusText = 'Not Started';
@@ -81,9 +95,11 @@ function renderGridView() {
 
                         ${description ? `<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 100 ? '...' : ''}</p>` : ''}
                         
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full ${projectStatus === 'completed' ? 'bg-green-100 text-green-700' : projectStatus === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">${projectStatusText}</span>
-                        </div>
+                         ${projectTags.length > 0 ? `
+                            <div class="flex flex-wrap gap-1.5 pt-2">
+                                ${projectTags.map(tag => `<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`).join('')}
+                            </div>
+                        ` : ''}
 
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
@@ -94,20 +110,10 @@ function renderGridView() {
                         </div>
                         
                         <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-3">
-                            ${latestDueDate ? `
-                            <div class="flex items-center gap-2">
-                                <span class="material-icons-sharp text-base">calendar_today</span>
-                                <span>Due: ${formatDate(latestDueDate.toISOString())}</span>
-                            </div>` : ''}
-                             ${client ? `
+                            ${client ? `
                             <div class="flex items-center gap-2">
                                 <span class="material-icons-sharp text-base">business</span>
                                 <span>${client.name}</span>
-                            </div>` : ''}
-                            ${project.budgetCost ? `
-                            <div class="flex items-center gap-2">
-                                <span class="material-icons-sharp text-base">monetization_on</span>
-                                <span>Budget: ${formatCurrency(project.budgetCost)}</span>
                             </div>` : ''}
                         </div>
 
@@ -241,7 +247,8 @@ export function ProjectsPage() {
     const canCreateProject = usage.projects < planLimits.projects;
     const isAllowedToCreate = can('create_projects');
     
-    const { viewMode } = state.ui.projects;
+    const { viewMode, filters } = state.ui.projects;
+    const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
 
     return `
         <div class="space-y-6">
@@ -253,15 +260,38 @@ export function ProjectsPage() {
                         <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === 'portfolio' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-project-view-mode="portfolio">${t('projects.portfolio_view')}</button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="aiProjectPlanner" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                            <span class="material-icons-sharp text-base">auto_awesome</span> ${t('modals.ai_planner_title')}
-                        </button>
                         <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                             <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
                         </button>
                     </div>
                 </div>
             </div>
+
+             <div class="bg-content p-4 rounded-lg">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="relative flex-grow">
+                        <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
+                        <input type="text" id="project-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" value="${filters.text}" placeholder="Search projects...">
+                    </div>
+                     <div class="relative" id="project-filter-tags-container">
+                        <button id="project-filter-tags-toggle" class="w-full sm:w-48 form-control text-left flex justify-between items-center">
+                            <span class="truncate">${filters.tagIds.length > 0 ? `${filters.tagIds.length} tags selected` : 'Filter by tag'}</span>
+                            <span class="material-icons-sharp text-base">arrow_drop_down</span>
+                        </button>
+                        <div id="project-filter-tags-dropdown" class="multiselect-dropdown hidden">
+                            <div class="multiselect-list">
+                            ${workspaceTags.map(tag => `
+                                <label class="multiselect-list-item">
+                                    <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ${filters.tagIds.includes(tag.id) ? 'checked' : ''}>
+                                    <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                </label>
+                            `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             ${viewMode === 'portfolio' ? renderPortfolioView() : renderGridView()}
         </div>
     `;

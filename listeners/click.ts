@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -211,7 +209,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display, #task-filter-tags-toggle');
+    const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display, #task-filter-tags-toggle, #client-filter-tags-toggle, #project-filter-tags-toggle');
     if (multiSelectDisplay) {
         const container = multiSelectDisplay.closest<HTMLElement>('.multiselect-container, [id*="-filter-tags-container"]');
         const dropdown = container?.querySelector<HTMLElement>('.multiselect-dropdown');
@@ -322,6 +320,13 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-add-widget-type]')) { const btn = target.closest<HTMLElement>('[data-add-widget-type]')!; dashboardHandlers.addWidget(btn.dataset.addWidgetType as any, btn.dataset.metricType as any); return; }
     if (target.closest<HTMLElement>('.remove-widget-btn')) { dashboardHandlers.removeWidget(target.closest<HTMLElement>('.remove-widget-btn')!.dataset.removeWidgetId!); return; }
     if (target.closest<HTMLElement>('[data-configure-widget-id]')) { dashboardHandlers.showConfigureWidgetModal(target.closest<HTMLElement>('[data-configure-widget-id]')!.dataset.configureWidgetId!); return; }
+    const taskWidgetTab = target.closest<HTMLElement>('[data-task-widget-tab]');
+    if (taskWidgetTab) {
+        const widgetId = taskWidgetTab.closest<HTMLElement>('[data-widget-id]')!.dataset.widgetId!;
+        const filter = taskWidgetTab.dataset.taskWidgetTab!;
+        dashboardHandlers.handleSwitchTaskWidgetTab(widgetId, filter);
+        return;
+    }
 
     const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
     if (clientFilterStatusBtn) { state.ui.clients.filters.status = clientFilterStatusBtn.dataset.clientFilterStatus as any; updateUI(['page']); return; }
@@ -558,18 +563,30 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    // --- New Tag Handlers ---
-    const tagCheckbox = target.closest<HTMLInputElement>('.multiselect-list-item input[type="checkbox"]');
-    if(tagCheckbox) {
-        const multiselect = tagCheckbox.closest<HTMLElement>('.multiselect-container');
+    const multiSelectListItem = target.closest<HTMLElement>('.multiselect-list-item');
+    if (multiSelectListItem) {
+        const checkbox = multiSelectListItem.querySelector<HTMLInputElement>('input[type="checkbox"]');
+        const container = multiSelectListItem.closest<HTMLElement>('.multiselect-container');
+        if (checkbox && container) {
+            const entityType = container.dataset.entityType as 'project' | 'client' | 'task';
+            const entityId = container.dataset.entityId!;
+            const tagId = checkbox.value;
+            tagHandlers.handleToggleTag(entityType, entityId, tagId);
+        }
+        return;
+    }
+
+    const removeTagBtn = target.closest<HTMLElement>('.remove-tag-btn');
+    if(removeTagBtn) {
+        const multiselect = removeTagBtn.closest<HTMLElement>('.multiselect-container');
         if(multiselect) {
-            const entityType = multiselect.dataset.entityType as 'project' | 'client';
+            const entityType = multiselect.dataset.entityType as 'project' | 'client' | 'task';
             const entityId = multiselect.dataset.entityId;
-            const tagId = tagCheckbox.value;
+            const tagId = removeTagBtn.dataset.tagId;
             if(entityId && entityType && tagId) {
                 tagHandlers.handleToggleTag(entityType, entityId, tagId);
-                // Don't return, let the checkbox state change
             }
         }
+        return;
     }
 }

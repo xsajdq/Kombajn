@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
@@ -20,13 +19,12 @@ export async function createDefaultWidgets() {
 
     try {
         const defaultWidgets: Omit<DashboardWidget, 'id'>[] = [
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalRevenue' }, sortOrder: 0, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'activeProjects' }, sortOrder: 1, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'totalClients' }, sortOrder: 2, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'overdueProjects' }, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: {}, sortOrder: 4, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'activeProjects' }, sortOrder: 0, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'timeTrackingSummary', config: { }, sortOrder: 1, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'invoiceSummary', config: { }, sortOrder: 2, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: { taskFilter: 'today' }, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'recentProjects', config: {}, sortOrder: 4, x: 0, y: 0, w: 1, h: 1 },
             { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'activityFeed', config: {}, sortOrder: 5, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'recentProjects', config: {}, sortOrder: 6, x: 0, y: 0, w: 1, h: 1 },
         ];
 
         const savedWidgets = await apiPost('dashboard_widgets', defaultWidgets);
@@ -143,5 +141,23 @@ export async function handleGridColumnsChange(newCount: number) {
         workspace.dashboardGridColumns = originalCount;
         updateUI(['page']);
         alert("Could not save your grid preference.");
+    }
+}
+
+export async function handleSwitchTaskWidgetTab(widgetId: string, filter: string) {
+    const widget = state.dashboardWidgets.find(w => w.id === widgetId);
+    if (!widget || widget.type !== 'todaysTasks') return;
+
+    const originalFilter = widget.config.taskFilter;
+    widget.config.taskFilter = filter as 'overdue' | 'today' | 'tomorrow';
+    updateUI(['page']);
+
+    try {
+        await apiPut('dashboard_widgets', { id: widgetId, config: widget.config });
+    } catch (error) {
+        console.error("Failed to save widget tab preference:", error);
+        widget.config.taskFilter = originalFilter;
+        updateUI(['page']);
+        alert("Could not save your preference.");
     }
 }

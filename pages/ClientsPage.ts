@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -14,16 +13,24 @@ export function ClientsPage() {
         </div>`;
     }
     
-    const { text: filterText, status: filterStatus } = state.ui.clients.filters;
+    const { text: filterText, status: filterStatus, tagIds: filterTagIds } = state.ui.clients.filters;
     const allClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
     
     const filteredClients = allClients.filter(client => {
         const textMatch = !filterText || client.name.toLowerCase().includes(filterText.toLowerCase());
         const statusMatch = filterStatus === 'all' || (client.status ?? 'active') === filterStatus;
-        return textMatch && statusMatch;
+        
+        let tagMatch = true;
+        if (filterTagIds.length > 0) {
+            const clientTagIds = new Set(state.clientTags.filter(ct => ct.clientId === client.id).map(ct => ct.tagId));
+            tagMatch = filterTagIds.every(tagId => clientTagIds.has(tagId));
+        }
+
+        return textMatch && statusMatch && tagMatch;
     });
 
     const canManage = can('manage_clients');
+    const workspaceTags = state.tags.filter(t => t.workspaceId === activeWorkspaceId);
 
     const totalClients = allClients.length;
     const activeClients = allClients.filter(c => (c.status ?? 'active') === 'active').length;
@@ -91,10 +98,26 @@ export function ClientsPage() {
                     <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
                     <input type="text" id="client-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" value="${filterText}" placeholder="Search clients...">
                 </div>
-                <div class="flex items-center p-1 bg-background rounded-lg">
+                 <div class="flex items-center p-1 bg-background rounded-lg">
                     <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'all' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="all">All</button>
                     <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'active' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="active">Active</button>
                     <button class="px-3 py-1 text-sm font-medium rounded-md ${filterStatus === 'archived' ? 'bg-content shadow-sm' : ''}" data-client-filter-status="archived">Archived</button>
+                </div>
+                 <div class="relative" id="client-filter-tags-container">
+                    <button id="client-filter-tags-toggle" class="w-full sm:w-48 form-control text-left flex justify-between items-center">
+                        <span class="truncate">${filterTagIds.length > 0 ? `${filterTagIds.length} tags selected` : 'Filter by tag'}</span>
+                        <span class="material-icons-sharp text-base">arrow_drop_down</span>
+                    </button>
+                    <div id="client-filter-tags-dropdown" class="multiselect-dropdown hidden">
+                        <div class="multiselect-list">
+                        ${workspaceTags.map(tag => `
+                            <label class="multiselect-list-item">
+                                <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ${filterTagIds.includes(tag.id) ? 'checked' : ''}>
+                                <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                            </label>
+                        `).join('')}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -110,7 +133,7 @@ export function ClientsPage() {
                         ? 'bg-green-100 dark:bg-green-900/50 text-green-700' 
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
                     const statusText = status.charAt(0).toUpperCase() + status.slice(1);
-
+                    const clientTags = state.clientTags.filter(ct => ct.clientId === client.id).map(ct => state.tags.find(t => t.id === ct.tagId)).filter(Boolean);
 
                     return `
                     <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-client-id="${client.id}" role="button" tabindex="0">
@@ -124,7 +147,12 @@ export function ClientsPage() {
                             </div>
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">${statusText}</span>
                         </div>
-                        <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4">
+                        ${clientTags.length > 0 ? `
+                            <div class="flex flex-wrap gap-1.5 pt-2 border-t border-border-color">
+                                ${clientTags.map(tag => `<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4 mt-auto">
                             <div class="flex items-center gap-2">
                                 <span class="material-icons-sharp text-base">email</span>
                                 <span>${primaryContact?.email || t('misc.not_applicable')}</span>

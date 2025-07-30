@@ -196,10 +196,16 @@
     @apply w-4 h-4 rounded text-primary focus:ring-primary;
   }
   .multiselect-add-new {
-    @apply p-2 border-b border-border-color;
+    @apply p-2 border-t border-border-color;
   }
   .tag-chip {
     @apply text-xs font-medium px-2 py-0.5 rounded-full border;
+  }
+  .selected-tag-item {
+      @apply flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border;
+  }
+  .remove-tag-btn {
+      @apply w-4 h-4 flex items-center justify-center text-sm hover:text-danger;
   }
   
   /* == Mention Popover (Redesigned) == */

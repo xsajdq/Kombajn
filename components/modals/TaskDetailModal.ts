@@ -1,4 +1,3 @@
-
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -321,6 +320,9 @@ function renderSidebar(task: Task) {
         .filter((u): u is User => !!u);
     
     const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
+    const taskTags = state.taskTags.filter(tt => tt.taskId === task.id).map(tt => state.tags.find(t => t.id === tt.tagId)).filter(Boolean);
+    const workspaceTags = state.tags.filter(t => t.workspaceId === task.workspaceId);
+
 
     const renderCustomField = (field: CustomFieldDefinition) => {
         const value = state.customFieldValues.find(v => v.fieldId === field.id && v.taskId === task.id)?.value;
@@ -399,6 +401,36 @@ function renderSidebar(task: Task) {
                 <label>${t('modals.due_date')}</label>
                 <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}">
             </div>
+
+            <div class="sidebar-item">
+                <label>${t('modals.tags')}</label>
+                <div id="task-tags-selector" class="multiselect-container" data-entity-type="task" data-entity-id="${task.id}">
+                    <div class="multiselect-display">
+                        ${taskTags.length > 0 ? taskTags.map(tag => `
+                            <div class="selected-tag-item" style="background-color: ${tag!.color}20; border-color: ${tag!.color}80;">
+                                <span>${tag!.name}</span>
+                                <button class="remove-tag-btn" data-tag-id="${tag!.id}">&times;</button>
+                            </div>
+                        `).join('') : `<span class="subtle-text">No tags</span>`}
+                    </div>
+                    <div class="multiselect-dropdown hidden">
+                        <div class="multiselect-list">
+                            ${workspaceTags.map(tag => {
+                                const isSelected = taskTags.some(tt => tt!.id === tag.id);
+                                return `
+                                <label class="multiselect-list-item ${isSelected ? 'bg-primary/10' : ''}">
+                                    <input type="checkbox" value="${tag.id}" ${isSelected ? 'checked' : ''}>
+                                    <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                </label>
+                            `}).join('')}
+                        </div>
+                        <div class="multiselect-add-new">
+                            <input type="text" class="form-control" placeholder="Create new tag...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             ${customFields.length > 0 ? `
                 <div class="sidebar-divider"></div>
                 <h5 class="sidebar-heading">${t('modals.custom_fields')}</h5>

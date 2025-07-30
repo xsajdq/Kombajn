@@ -426,6 +426,44 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         `;
     };
 
+    const renderTagsTab = () => {
+        const projectTags = state.projectTags.filter(pt => pt.projectId === project.id).map(pt => state.tags.find(t => t.id === pt.tagId)).filter(Boolean);
+        const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
+    
+        return `
+            <div class="side-panel-content">
+                <div class="card">
+                    <h4>${t('modals.tags')}</h4>
+                    <div id="project-tags-selector" class="multiselect-container mt-4" data-entity-type="project" data-entity-id="${project.id}">
+                        <div class="multiselect-display">
+                            ${projectTags.length > 0 ? projectTags.map(tag => `
+                                <div class="selected-tag-item" style="background-color: ${tag!.color}20; border-color: ${tag!.color}80;">
+                                    <span>${tag!.name}</span>
+                                    <button class="remove-tag-btn" data-tag-id="${tag!.id}">&times;</button>
+                                </div>
+                            `).join('') : `<span class="subtle-text">No tags</span>`}
+                        </div>
+                        <div class="multiselect-dropdown hidden">
+                            <div class="multiselect-list">
+                                ${workspaceTags.map(tag => {
+                                    const isSelected = projectTags.some(pt => pt!.id === tag.id);
+                                    return `
+                                    <label class="multiselect-list-item ${isSelected ? 'bg-primary/10' : ''}">
+                                        <input type="checkbox" value="${tag.id}" ${isSelected ? 'checked' : ''}>
+                                        <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                    </label>
+                                `}).join('')}
+                            </div>
+                            <div class="multiselect-add-new">
+                                <input type="text" class="form-control" placeholder="Create new tag...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
 
     const client = state.clients.find(c => c.id === project.clientId);
     const tabs = [
@@ -433,6 +471,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         { id: 'tasks', text: t('panels.tasks'), content: renderTasksTab() },
         { id: 'wiki', text: t('panels.tab_wiki'), content: renderWikiTab() },
         { id: 'files', text: t('panels.tab_files'), content: renderFilesTab() },
+        { id: 'tags', text: t('modals.tags'), content: renderTagsTab() },
         { id: 'expenses', text: t('panels.tab_expenses'), content: renderExpensesTab() },
         { id: 'okrs', text: t('panels.tab_okrs'), content: renderOkrsTab() },
         { id: 'access', text: t('panels.tab_access'), content: renderAccessTab() },
@@ -449,12 +488,24 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <div id="project-menu-toggle" class="btn-icon" style="position: relative;" role="button" aria-haspopup="true" aria-expanded="false">
-                        <span class="material-icons-sharp">more_vert</span>
-                        <div class="project-header-menu hidden card">
-                            <button id="save-as-template-btn" class="btn-menu-item" data-project-id="${project.id}">
-                                <span class="material-icons-sharp">content_copy</span> ${t('panels.save_as_template')}
-                            </button>
+                     <div class="relative">
+                        <button class="btn-icon" data-menu-toggle="project-actions-${project.id}" aria-haspopup="true" aria-expanded="false" title="Project Actions">
+                            <span class="material-icons-sharp">more_vert</span>
+                        </button>
+                        <div id="project-actions-${project.id}" class="absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                            <div class="py-1">
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-modal-target="addProject" data-project-id="${project.id}">
+                                    <span class="material-icons-sharp text-base">edit</span>
+                                    ${t('misc.edit')}
+                                </button>
+                                <button id="save-as-template-btn" class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-id="${project.id}">
+                                    <span class="material-icons-sharp text-base">content_copy</span> ${t('panels.save_as_template')}
+                                </button>
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-project-id="${project.id}">
+                                    <span class="material-icons-sharp text-base">delete</span>
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <button class="btn-icon btn-close-panel" aria-label="${t('panels.close')}">

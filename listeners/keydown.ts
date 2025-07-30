@@ -4,8 +4,10 @@ import * as uiHandlers from '../handlers/ui.ts';
 import * as commandHandlers from '../handlers/commands.ts';
 import * as onboardingHandlers from '../handlers/onboarding.ts';
 import { handleInsertMention } from './mentions.ts';
+import * as tagHandlers from '../handlers/tags.ts';
 
 export function handleKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement;
     // Command Palette
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -32,10 +34,9 @@ export function handleKeydown(e: KeyboardEvent) {
     
     // Accessibility: Activate role="button" elements with Enter/Space
     if (e.key === 'Enter' || e.key === ' ') {
-        const targetEl = e.target as HTMLElement;
-        if (targetEl.getAttribute('role') === 'button' && targetEl.tagName !== 'BUTTON') {
+        if (target.getAttribute('role') === 'button' && target.tagName !== 'BUTTON') {
             e.preventDefault();
-            targetEl.click();
+            target.click();
         }
     }
 
@@ -89,8 +90,23 @@ export function handleKeydown(e: KeyboardEvent) {
         return;
     }
 
+    // Handle new tag creation on Enter
+    if (e.key === 'Enter' && target.matches('.multiselect-add-new input')) {
+        e.preventDefault();
+        const input = target as HTMLInputElement;
+        const newTagName = input.value.trim();
+        const multiselect = input.closest<HTMLElement>('.multiselect-container');
+        if (newTagName && multiselect) {
+            const entityType = multiselect.dataset.entityType as 'project' | 'client' | 'task';
+            const entityId = multiselect.dataset.entityId!;
+            tagHandlers.handleToggleTag(entityType, entityId, '', newTagName);
+            input.value = '';
+        }
+        return;
+    }
+
     // Global shortcuts (only when not in an input)
-    if (e.target instanceof HTMLElement && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && !(e.target as HTMLElement).isContentEditable) {
+    if (target instanceof HTMLElement && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) && !(target as HTMLElement).isContentEditable) {
         if (e.key === 'n') {
             e.preventDefault();
             uiHandlers.showModal('addTask');

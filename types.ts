@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -323,7 +324,7 @@ export interface Automation {
     actions: AutomationAction[];
 }
 
-export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance' | 'timeTrackingSummary' | 'invoiceSummary';
+export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance' | 'timeTrackingSummary' | 'invoiceSummary' | 'goalProgress';
 export interface DashboardWidget {
     id: string;
     userId: string;
@@ -339,6 +340,7 @@ export interface DashboardWidget {
         projectId?: string;
         userId?: string;
         metric?: 'totalRevenue' | 'activeProjects' | 'totalClients' | 'overdueProjects';
+        taskFilter?: 'overdue' | 'today' | 'tomorrow';
     };
 }
 

@@ -39,6 +39,9 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
         }
     }
 
+    const clientTags = state.clientTags.filter(ct => ct.clientId === client.id).map(ct => state.tags.find(t => t.id === ct.tagId)).filter(Boolean);
+    const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
+
 
     return `
         <div class="side-panel" role="region" aria-label="Client Details Panel">
@@ -82,6 +85,35 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                      <div class="health-status-badge ${healthBadgeClass}">
                         <span class="material-icons-sharp">${healthIcon}</span>
                         <span>${healthText}</span>
+                    </div>
+                </div>
+
+                <div class="side-panel-section">
+                    <h4>${t('modals.tags')}</h4>
+                    <div id="client-tags-selector" class="multiselect-container" data-entity-type="client" data-entity-id="${client.id}">
+                        <div class="multiselect-display">
+                            ${clientTags.length > 0 ? clientTags.map(tag => `
+                                <div class="selected-tag-item" style="background-color: ${tag!.color}20; border-color: ${tag!.color}80;">
+                                    <span>${tag!.name}</span>
+                                    <button class="remove-tag-btn" data-tag-id="${tag!.id}">&times;</button>
+                                </div>
+                            `).join('') : `<span class="subtle-text">No tags</span>`}
+                        </div>
+                        <div class="multiselect-dropdown hidden">
+                            <div class="multiselect-list">
+                                ${workspaceTags.map(tag => {
+                                    const isSelected = clientTags.some(ct => ct!.id === tag.id);
+                                    return `
+                                    <label class="multiselect-list-item ${isSelected ? 'bg-primary/10' : ''}">
+                                        <input type="checkbox" value="${tag.id}" ${isSelected ? 'checked' : ''}>
+                                        <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                    </label>
+                                `}).join('')}
+                            </div>
+                            <div class="multiselect-add-new">
+                                <input type="text" class="form-control" placeholder="Create new tag...">
+                            </div>
+                        </div>
                     </div>
                 </div>
 

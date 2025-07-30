@@ -1,5 +1,6 @@
 
 
+
 import { state } from './state';
 
 const translations = {
@@ -10,9 +11,10 @@ const translations = {
             kpi_total_revenue: 'Total Revenue', kpi_active_projects: 'Active Projects', kpi_total_clients: 'Total Clients', kpi_completion_rate: 'Completion Rate',
             kpi_hours_today: 'Hours Today', kpi_overdue_projects: 'Overdue Projects', kpi_team_productivity: 'Team Productivity', kpi_goals_met: 'Goals Met',
             vs_last_month: 'vs last month',
-            widget_recent_projects_title: 'Recent Projects', widget_todays_tasks_title: "Today's Tasks", widget_activity_feed_title: 'Recent Activity',
+            widget_recent_projects_title: 'Recent Projects', widget_todays_tasks_title: "Tasks", widget_activity_feed_title: 'Recent Activity',
             widget_schedule_title: 'Schedule', widget_messages_title: 'Messages', widget_alerts_title: 'Alerts',
             widget_weekly_performance_title: 'Weekly Performance', widget_quick_actions_title: 'Quick Actions',
+            widget_time_tracking_summary_title: 'Time Tracking Summary', widget_invoice_summary_title: 'Invoice Summary', widget_goal_progress_title: 'Goal Progress',
             action_new_project: 'New Project', action_add_client: 'Add Client', action_create_invoice: 'Create Invoice', action_schedule_meeting: 'Schedule Meeting',
             view_all: 'View All',
             edit_dashboard: 'Edit Dashboard', add_widget: 'Add Widget', done_editing: 'Done Editing',
@@ -22,6 +24,8 @@ const translations = {
             grid_columns: 'Grid Columns',
             increase_width: 'Increase width',
             decrease_width: 'Decrease width',
+            tasks_overdue: 'Overdue', tasks_today: 'Today', tasks_tomorrow: 'Tomorrow',
+            invoices_pending: 'Pending', invoices_overdue: 'Overdue', time_today: 'Time Today',
         },
         projects: {
             no_projects_yet: 'No projects yet.',
@@ -329,9 +333,10 @@ const translations = {
             kpi_total_revenue: 'Całkowity przychód', kpi_active_projects: 'Aktywne projekty', kpi_total_clients: 'Wszyscy klienci', kpi_completion_rate: 'Współczynnik ukończenia',
             kpi_hours_today: 'Godziny dzisiaj', kpi_overdue_projects: 'Zaległe projekty', kpi_team_productivity: 'Produktywność zespołu', kpi_goals_met: 'Osiągnięte cele',
             vs_last_month: 'wzgl. ostatniego miesiąca',
-            widget_recent_projects_title: 'Ostatnie projekty', widget_todays_tasks_title: 'Zadania na dziś', widget_activity_feed_title: 'Ostatnia aktywność',
+            widget_recent_projects_title: 'Ostatnie projekty', widget_todays_tasks_title: 'Zadania', widget_activity_feed_title: 'Ostatnia aktywność',
             widget_schedule_title: 'Harmonogram', widget_messages_title: 'Wiadomości', widget_alerts_title: 'Alerty',
             widget_weekly_performance_title: 'Wyniki tygodniowe', widget_quick_actions_title: 'Szybkie akcje',
+            widget_time_tracking_summary_title: 'Podsumowanie Czasu Pracy', widget_invoice_summary_title: 'Podsumowanie Faktur', widget_goal_progress_title: 'Postęp Celu',
             action_new_project: 'Nowy projekt', action_add_client: 'Dodaj klienta', action_create_invoice: 'Utwórz fakturę', action_schedule_meeting: 'Zaplanuj spotkanie',
             view_all: 'Zobacz wszystko',
             edit_dashboard: 'Edytuj pulpit', add_widget: 'Dodaj widżet', done_editing: 'Zakończ edycję',
@@ -341,6 +346,8 @@ const translations = {
             grid_columns: 'Liczba kolumn',
             increase_width: 'Zwiększ szerokość',
             decrease_width: 'Zmniejsz szerokość',
+            tasks_overdue: 'Zaległe', tasks_today: 'Dziś', tasks_tomorrow: 'Jutro',
+            invoices_pending: 'Oczekujące', invoices_overdue: 'Po terminie', time_today: 'Czas dzisiaj',
         },
         projects: {
             no_projects_yet: 'Brak projektów.',
