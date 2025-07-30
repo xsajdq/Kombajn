@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -392,7 +393,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, [data-task-id]');
+    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id]');
     if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) {
@@ -498,7 +499,7 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-edit-task-id]')) { uiHandlers.showModal('taskDetail', { taskId: target.closest<HTMLElement>('[data-edit-task-id]')!.dataset.editTaskId! }); return; }
     if (target.closest<HTMLElement>('[data-archive-task-id]')) { taskHandlers.handleToggleTaskArchive(target.closest<HTMLElement>('[data-archive-task-id]')!.dataset.archiveTaskId!); return; }
     if (target.closest<HTMLElement>('[data-delete-task-id]')) { taskHandlers.handleDeleteTask(target.closest<HTMLElement>('[data-delete-task-id]')!.dataset.deleteTaskId!); return; }
-    if (target.closest<HTMLElement>('[data-timer-task-id]')) { const taskId = target.closest<HTMLElement>('[data-timer-task-id]')!.dataset.timerTaskId!; if (state.activeTimers[taskId]) timerHandlers.stopTimer(taskId); else timerHandlers.startTimer(taskId); return; }
+    if (target.closest<HTMLElement>('.timer-controls')) { const taskId = target.closest<HTMLElement>('[data-timer-task-id]')!.dataset.timerTaskId!; if (state.activeTimers[taskId]) timerHandlers.stopTimer(taskId); else timerHandlers.startTimer(taskId); return; }
     if (target.closest<HTMLElement>('[data-calendar-nav]')) {
         const navEl = target.closest<HTMLElement>('[data-calendar-nav]')!;
         const direction = navEl.dataset.calendarNav;
@@ -522,7 +523,11 @@ export async function handleClick(e: MouseEvent) {
         updateUI(['page']);
         return;
     }
-    if (target.closest<HTMLElement>('.task-status-toggle')) { taskHandlers.handleToggleProjectTaskStatus(target.closest<HTMLElement>('[data-task-id]')!.dataset.taskId!); return; }
+    const taskStatusToggle = target.closest<HTMLElement>('.task-status-toggle');
+    if (taskStatusToggle) {
+        taskHandlers.handleToggleProjectTaskStatus(target.closest<HTMLElement>('[data-task-id]')!.dataset.taskId!);
+        return;
+    }
 
     const detailTab = target.closest<HTMLElement>('.side-panel-tab, .task-detail-tab');
     if (detailTab) {
