@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -196,51 +197,6 @@ export async function handleClick(e: MouseEvent) {
         closeDynamicMenus();
     }
     
-    // --- START: Dynamic Role Menu Handler ---
-    const roleMenuToggle = target.closest<HTMLElement>('[data-role-menu-for-member-id]');
-    if (roleMenuToggle) {
-        e.stopPropagation(); // Prevent immediate closing
-        const memberId = roleMenuToggle.dataset.roleMenuForMemberId!;
-        const member = state.workspaceMembers.find(m => m.id === memberId);
-        
-        closeDynamicMenus(); // Close any existing menu
-
-        if (!member) return;
-
-        const menu = document.createElement('div');
-        menu.id = 'dynamic-role-menu';
-        // Use existing classes for styling consistency
-        menu.className = 'dropdown-menu role-menu'; 
-        
-        const ALL_ROLES: Role[] = ['owner', 'admin', 'manager', 'member', 'finance', 'client'];
-        menu.innerHTML = ALL_ROLES.filter(r => r !== 'owner').map(role => `
-            <button class="role-menu-item ${member.role === role ? 'active' : ''}" data-new-role-for-member-id="${member.id}" data-role="${role}">
-                ${t(`hr.role_${role}`)}
-            </button>
-        `).join('');
-
-        document.body.appendChild(menu);
-
-        const btnRect = roleMenuToggle.getBoundingClientRect();
-        menu.style.position = 'absolute';
-        menu.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
-        menu.style.left = `${btnRect.left + window.scrollX}px`;
-        menu.style.zIndex = '100'; // High z-index to ensure it's on top
-        
-        return; // Stop further processing for this click
-    }
-
-    // Handle clicking a role item from the dynamic menu
-    const roleMenuItem = target.closest<HTMLElement>('[data-new-role-for-member-id]');
-    if (roleMenuItem) {
-        const memberId = roleMenuItem.dataset.newRoleForMemberId!;
-        const newRole = roleMenuItem.dataset.role as Role;
-        teamHandlers.handleChangeUserRole(memberId, newRole);
-        closeDynamicMenus();
-        return;
-    }
-    // --- END: Dynamic Role Menu Handler ---
-
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
 
