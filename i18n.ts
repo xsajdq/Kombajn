@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from './state';
 
 const translations = {
@@ -183,13 +184,35 @@ const translations = {
         clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client', active_projects: 'Active Projects' },
         reports: {
             title: 'Reports',
-            tab_productivity: 'Productivity', tab_time: 'Time Tracking', tab_financial: 'Financial',
+            tab_productivity: 'Productivity', tab_time: 'Time Tracking', tab_financial: 'Financial', tab_goals: 'Goals',
             filter_date_range: 'Date Range', filter_project: 'Project', filter_user: 'User', filter_client: 'Client',
             all_projects: 'All Projects', all_users: 'All Users', all_clients: 'All Clients',
-            report_task_status_title: 'Task Status', report_user_activity_title: 'User Activity',
-            report_time_tracking_title: 'Time Tracking Details', report_revenue_by_client_title: 'Revenue by Client', report_overdue_invoices_title: 'Overdue Invoices',
             export_csv: 'Export CSV', export_pdf: 'Export PDF',
             no_data: 'No data available for the selected filters.',
+            
+            kpi_tasks_completed: 'Tasks Completed', kpi_total_time_tracked: 'Total Time Tracked', kpi_billable_hours: 'Billable Hours', kpi_avg_completion_time: 'Avg. Completion Time',
+            
+            report_task_velocity_title: 'Task Velocity (completed per day)',
+            report_team_workload_title: 'Team Workload (open tasks)',
+            report_tasks_by_priority_title: 'Completed Tasks by Priority',
+            
+            report_time_by_project_title: 'Time by Project',
+            report_time_by_user_title: 'Time by User',
+            report_billable_time_title: 'Billable vs. Non-billable Time',
+            non_billable: 'Non-billable', billable: 'Billable',
+
+            kpi_total_revenue: 'Total Revenue', kpi_total_expenses: 'Total Expenses', kpi_net_profit: 'Net Profit', kpi_outstanding_revenue: 'Outstanding Revenue',
+            report_revenue_cost_profit_title: 'Revenue, Costs & Profit', revenue: 'Revenue', expenses: 'Expenses', profit: 'Profit',
+            report_invoice_status_title: 'Invoice Status',
+            report_top_clients_title: 'Top Clients by Revenue',
+
+            report_goals_progress_title: 'Overall Goal Progress',
+            report_goal_completion_title: 'Goal Completion Status',
+            report_progress_by_goal_title: 'Progress by Goal',
+            report_milestone_status_title: 'Milestone Status',
+            milestones_completed: 'Milestones Completed',
+            milestones_remaining: 'Milestones Remaining',
+            
             col_user: 'User', col_tasks_completed: 'Tasks Completed', col_time_tracked: 'Time Tracked',
             col_date: 'Date', col_task: 'Task', col_project: 'Project', col_client: 'Client', col_time: 'Time', col_comment: 'Comment',
             col_invoice_number: 'Invoice #', col_due_date: 'Due Date', col_amount: 'Amount', col_days_overdue: 'Days Overdue'
@@ -244,7 +267,7 @@ const translations = {
             rating: 'Rating',
         },
         billing: { title: 'Billing', current_plan: 'Your Current Plan', change_plan: 'Change Plan', workspaces: 'Workspaces', projects: 'Projects', users: 'Users', invoices_month: 'Invoices (this month)', unlimited: 'Unlimited', per_month: 'per month', btn_current_plan: 'Current Plan', btn_change_plan: 'Change Plan', plan_free: 'Free', price_free: '$0', plan_starter: 'Starter', price_starter: '$29', plan_pro: 'Pro', price_pro: '$79', plan_business: 'Business', price_business: '$149', plan_enterprise: 'Enterprise', price_enterprise: 'Contact us', feature_workspaces: '{count} workspaces', feature_unlimited_workspaces: 'Unlimited workspaces', feature_projects: '{count} projects', feature_unlimited_projects: 'Unlimited projects', feature_users: '{count} users', feature_unlimited_users: 'Unlimited users', feature_invoices: '{count} invoices/mo', feature_unlimited_invoices: 'Unlimited invoices', limit_reached_projects: 'You have reached your project limit for the {planName} plan. Please upgrade to create more.', limit_reached_users: 'You have reached your user limit for the {planName} plan. Please upgrade to invite more.', limit_reached_invoices: 'You have reached your monthly invoice limit for the {planName} plan. Please upgrade to create more.', billing_history: 'Billing History', history_plan: 'Plan', history_date: 'Date', confirm_plan_change_title: 'Confirm Plan Change', confirm_plan_change_message: 'Are you sure you want to change to the {planName} plan?', access_denied: 'Access Denied', access_denied_desc: 'Only workspace owners can manage billing.' },
-        panels: { close: 'Close', client_details: 'Client Details', edit_client: 'Edit', associated_projects: 'Associated Projects', projects_soon: 'Projects for this client will appear here.', project_overview: 'Overview', total_time_tracked: 'Total Time Tracked', tasks: 'Tasks', client_info: 'Client Info', client_not_found: 'Client not found.', no_tasks_in_stage: 'No tasks in this stage.', add_task: 'Add Task', tab_tasks: 'Tasks', tab_wiki: 'Wiki', tab_files: 'Files', tab_access: 'Access', tab_okrs: 'OKRs', tab_expenses: 'Expenses', saved: 'Saved!', history: 'History', no_files: 'No files uploaded yet.', upload_file: 'Upload File', seller: 'Seller', buyer: 'Buyer', project_access: 'Project Access', role_admin: 'Admin', role_editor: 'Editor', role_commenter: 'Commenter', role_viewer: 'Viewer', invite_to_project: 'Invite to Project', no_automations: 'No automations configured for this project.', automations_title: 'Project Automations', add_automation: 'New Automation', when: 'When', trigger_status_change: 'Status changes to', then: 'Then', action_assign_user: 'assign user', action_change_status_to: 'change status to', save_as_template: 'Save as template', progress: 'Progress', tasks_todo: 'Tasks To Do', tasks_overdue: 'Overdue', team: 'Team', objective: 'Objective', add_key_result: 'Add Key Result', no_okrs_yet: 'No OKRs defined for this project yet. Add an objective to get started.', deal_details: 'Deal Details', activity: 'Activity', no_deal_activity: 'No activity for this deal yet.', add_note: 'Add Note', log_activity: 'Log Activity', call: 'Call', meeting: 'Meeting', email: 'Email', client_contacts: 'Contacts', budget_time: 'Budget (Time)', budget_cost: 'Budget (Cost)', actual_cost: 'Actual Cost', profitability: 'Profitability', wiki_placeholder: 'Start writing your project documentation here. Use Markdown for formatting.' },
+        panels: { close: 'Close', client_details: 'Client Details', edit_client: 'Edit', associated_projects: 'Associated Projects', projects_soon: 'Projects for this client will appear here.', project_overview: 'Overview', total_time_tracked: 'Total Time Tracked', tasks: 'Tasks', client_info: 'Client Info', client_not_found: 'Client not found.', no_tasks_in_stage: 'No tasks in this stage.', add_task: 'Add Task', tab_tasks: 'Tasks', tab_wiki: 'Wiki', tab_files: 'Files', tab_access: 'Access', tab_okrs: 'OKRs', tab_expenses: 'Expenses', tab_tags: 'Tags', saved: 'Saved!', history: 'History', no_files: 'No files uploaded yet.', upload_file: 'Upload File', seller: 'Seller', buyer: 'Buyer', project_access: 'Project Access', role_admin: 'Admin', role_editor: 'Editor', role_commenter: 'Commenter', role_viewer: 'Viewer', invite_to_project: 'Invite to Project', no_automations: 'No automations configured for this project.', automations_title: 'Project Automations', add_automation: 'New Automation', when: 'When', trigger_status_change: 'Status changes to', then: 'Then', action_assign_user: 'assign user', action_change_status_to: 'change status to', save_as_template: 'Save as template', progress: 'Progress', tasks_todo: 'Tasks To Do', tasks_overdue: 'Overdue', team: 'Team', objective: 'Objective', add_key_result: 'Add Key Result', no_okrs_yet: 'No OKRs defined for this project yet. Add an objective to get started.', deal_details: 'Deal Details', activity: 'Activity', no_deal_activity: 'No activity for this deal yet.', add_note: 'Add Note', log_activity: 'Log Activity', call: 'Call', meeting: 'Meeting', email: 'Email', client_contacts: 'Contacts', budget_time: 'Budget (Time)', budget_cost: 'Budget (Cost)', actual_cost: 'Actual Cost', profitability: 'Profitability', wiki_placeholder: 'Start writing your project documentation here. Use Markdown for formatting.' },
         modals: {
             cancel: 'Cancel', save: 'Save', create_project: 'Create Project',
             add_goal_title: 'Add New Goal',
@@ -505,13 +528,35 @@ const translations = {
         clients: { title: 'Klienci', new_client: 'Nowy klient', no_clients_yet: 'Brak klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj klienta', active_projects: 'Aktywne projekty' },
         reports: {
             title: 'Raporty',
-            tab_productivity: 'Produktywność', tab_time: 'Śledzenie czasu', tab_financial: 'Finanse',
+            tab_productivity: 'Produktywność', tab_time: 'Śledzenie czasu', tab_financial: 'Finanse', tab_goals: 'Cele',
             filter_date_range: 'Zakres dat', filter_project: 'Projekt', filter_user: 'Użytkownik', filter_client: 'Klient',
             all_projects: 'Wszystkie projekty', all_users: 'Wszyscy użytkownicy', all_clients: 'Wszyscy klienci',
-            report_task_status_title: 'Status zadań', report_user_activity_title: 'Aktywność użytkowników',
-            report_time_tracking_title: 'Szczegóły śledzenia czasu', report_revenue_by_client_title: 'Przychód wg klienta', report_overdue_invoices_title: 'Zaległe faktury',
             export_csv: 'Eksportuj CSV', export_pdf: 'Eksportuj PDF',
             no_data: 'Brak danych dla wybranych filtrów.',
+            
+            kpi_tasks_completed: 'Ukończone zadania', kpi_total_time_tracked: 'Całkowity czas pracy', kpi_billable_hours: 'Godziny płatne', kpi_avg_completion_time: 'Śr. czas realizacji',
+            
+            report_task_velocity_title: 'Prędkość realizacji zadań (ukończone dziennie)',
+            report_team_workload_title: 'Obciążenie zespołu (otwarte zadania)',
+            report_tasks_by_priority_title: 'Ukończone zadania wg priorytetu',
+            
+            report_time_by_project_title: 'Czas wg projektu',
+            report_time_by_user_title: 'Czas wg użytkownika',
+            report_billable_time_title: 'Czas płatny vs. niepłatny',
+            non_billable: 'Niepłatny', billable: 'Płatny',
+
+            kpi_total_revenue: 'Całkowity przychód', kpi_total_expenses: 'Całkowite koszty', kpi_net_profit: 'Zysk netto', kpi_outstanding_revenue: 'Zaległe należności',
+            report_revenue_cost_profit_title: 'Przychody, Koszty i Zysk', revenue: 'Przychody', expenses: 'Koszty', profit: 'Zysk',
+            report_invoice_status_title: 'Statusy faktur',
+            report_top_clients_title: 'Najlepsi klienci wg przychodu',
+
+            report_goals_progress_title: 'Ogólny postęp celów',
+            report_goal_completion_title: 'Status realizacji celów',
+            report_progress_by_goal_title: 'Postęp wg celu',
+            report_milestone_status_title: 'Status kamieni milowych',
+            milestones_completed: 'Ukończone kamienie milowe',
+            milestones_remaining: 'Pozostałe kamienie milowe',
+            
             col_user: 'Użytkownik', col_tasks_completed: 'Ukończone zadania', col_time_tracked: 'Zarejestrowany czas',
             col_date: 'Data', col_task: 'Zadanie', col_project: 'Projekt', col_client: 'Klient', col_time: 'Czas', col_comment: 'Komentarz',
             col_invoice_number: 'Nr faktury', col_due_date: 'Termin płatności', col_amount: 'Kwota', col_days_overdue: 'Dni po terminie'
@@ -566,7 +611,7 @@ const translations = {
             rating: 'Ocena',
         },
         billing: { title: 'Rozliczenia', current_plan: 'Twój obecny plan', change_plan: 'Zmień plan', workspaces: 'Obszary robocze', projects: 'Projekty', users: 'Użytkownicy', invoices_month: 'Faktury (w tym miesiącu)', unlimited: 'Nielimitowane', per_month: 'miesięcznie', btn_current_plan: 'Obecny plan', btn_change_plan: 'Zmień plan', plan_free: 'Darmowy', price_free: '0 zł', plan_starter: 'Starter', price_starter: '129 zł', plan_pro: 'Pro', price_pro: '349 zł', plan_business: 'Business', price_business: '649 zł', plan_enterprise: 'Enterprise', price_enterprise: 'Skontaktuj się', feature_workspaces: '{count} obszary robocze', feature_unlimited_workspaces: 'Nielimitowane obszary robocze', feature_projects: '{count} projekty', feature_unlimited_projects: 'Nielimitowane projekty', feature_users: '{count} użytkowników', feature_unlimited_users: 'Nielimitowani użytkownicy', feature_invoices: '{count} faktur/mc', feature_unlimited_invoices: 'Nielimitowane faktury', limit_reached_projects: 'Osiągnąłeś limit projektów dla planu {planName}. Proszę uaktualnić plan, aby tworzyć więcej.', limit_reached_users: 'Osiągnąłeś limit użytkowników dla planu {planName}. Proszę uaktualnić plan, aby zapraszać więcej osób.', limit_reached_invoices: 'Osiągnąłeś miesięczny limit faktur dla planu {planName}. Proszę uaktualnić plan, aby tworzyć więcej.', billing_history: 'Historia rozliczeń', history_plan: 'Plan', history_date: 'Data', confirm_plan_change_title: 'Potwierdź zmianę planu', confirm_plan_change_message: 'Czy na pewno chcesz zmienić plan na {planName}?', access_denied: 'Odmowa dostępu', access_denied_desc: 'Tylko właściciele obszaru roboczego mogą zarządzać rozliczeniami.' },
-        panels: { close: 'Zamknij', client_details: 'Szczegóły klienta', edit_client: 'Edytuj', associated_projects: 'Powiązane projekty', projects_soon: 'Projekty dla tego klienta pojawią się tutaj.', project_overview: 'Przegląd', total_time_tracked: 'Całkowity zarejestrowany czas', tasks: 'Zadania', client_info: 'Informacje o kliencie', client_not_found: 'Nie znaleziono klienta.', no_tasks_in_stage: 'Brak zadań na tym etapie.', add_task: 'Dodaj zadanie', tab_tasks: 'Zadania', tab_wiki: 'Wiki', tab_files: 'Pliki', tab_access: 'Dostęp', tab_okrs: 'OKRy', tab_expenses: 'Wydatki', saved: 'Zapisano!', history: 'Historia', no_files: 'Brak wgranych plików.', upload_file: 'Wgraj plik', seller: 'Sprzedawca', buyer: 'Nabywca', project_access: 'Dostęp do projektu', role_admin: 'Admin', role_editor: 'Edytor', role_commenter: 'Komentujący', role_viewer: 'Przeglądający', invite_to_project: 'Zaproś do projektu', no_automations: 'Brak skonfigurowanych automatyzacji dla tego projektu.', automations_title: 'Automatyzacje Projektu', add_automation: 'Nowa Automatyzacja', when: 'Gdy', trigger_status_change: 'Status zmieni się na', then: 'Wtedy', action_assign_user: 'przypisz użytkownika', action_change_status_to: 'zmień status na', save_as_template: 'Zapisz jako szablon', progress: 'Postęp', tasks_todo: 'Zadania do zrobienia', tasks_overdue: 'Zaległe', team: 'Zespół', objective: 'Cel', add_key_result: 'Dodaj kluczowy rezultat', no_okrs_yet: 'Brak zdefiniowanych OKR-ów dla tego projektu. Dodaj cel, aby zacząć.', deal_details: 'Szczegóły szansy', activity: 'Aktywność', no_deal_activity: 'Brak aktywności dla tej szansy.', add_note: 'Dodaj notatkę', log_activity: 'Zapisz Aktywność', call: 'Rozmowa', meeting: 'Spotkanie', email: 'Email', client_contacts: 'Kontakty', budget_time: 'Budżet (Czas)', budget_cost: 'Budżet (Koszt)', actual_cost: 'Rzeczywisty koszt', profitability: 'Rentowność', wiki_placeholder: 'Zacznij pisać dokumentację swojego projektu tutaj. Użyj Markdown do formatowania.' },
+        panels: { close: 'Zamknij', client_details: 'Szczegóły klienta', edit_client: 'Edytuj', associated_projects: 'Powiązane projekty', projects_soon: 'Projekty dla tego klienta pojawią się tutaj.', project_overview: 'Przegląd', total_time_tracked: 'Całkowity zarejestrowany czas', tasks: 'Zadania', client_info: 'Informacje o kliencie', client_not_found: 'Nie znaleziono klienta.', no_tasks_in_stage: 'Brak zadań na tym etapie.', add_task: 'Dodaj zadanie', tab_tasks: 'Zadania', tab_wiki: 'Wiki', tab_files: 'Pliki', tab_access: 'Dostęp', tab_okrs: 'OKRy', tab_expenses: 'Wydatki', tab_tags: 'Tagi', saved: 'Zapisano!', history: 'Historia', no_files: 'Brak wgranych plików.', upload_file: 'Wgraj plik', seller: 'Sprzedawca', buyer: 'Nabywca', project_access: 'Dostęp do projektu', role_admin: 'Admin', role_editor: 'Edytor', role_commenter: 'Komentujący', role_viewer: 'Przeglądający', invite_to_project: 'Zaproś do projektu', no_automations: 'Brak skonfigurowanych automatyzacji dla tego projektu.', automations_title: 'Automatyzacje Projektu', add_automation: 'Nowa Automatyzacja', when: 'Gdy', trigger_status_change: 'Status zmieni się na', then: 'Wtedy', action_assign_user: 'przypisz użytkownika', action_change_status_to: 'zmień status na', save_as_template: 'Zapisz jako szablon', progress: 'Postęp', tasks_todo: 'Zadania do zrobienia', tasks_overdue: 'Zaległe', team: 'Zespół', objective: 'Cel', add_key_result: 'Dodaj kluczowy rezultat', no_okrs_yet: 'Brak zdefiniowanych OKR-ów dla tego projektu. Dodaj cel, aby zacząć.', deal_details: 'Szczegóły szansy', activity: 'Aktywność', no_deal_activity: 'Brak aktywności dla tej szansy.', add_note: 'Dodaj notatkę', log_activity: 'Zapisz Aktywność', call: 'Rozmowa', meeting: 'Spotkanie', email: 'Email', client_contacts: 'Kontakty', budget_time: 'Budżet (Czas)', budget_cost: 'Budżet (Koszt)', actual_cost: 'Rzeczywisty koszt', profitability: 'Rentowność', wiki_placeholder: 'Zacznij pisać dokumentację swojego projektu tutaj. Użyj Markdown do formatowania.' },
         modals: {
             cancel: 'Anuluj', save: 'Zapisz', create_project: 'Utwórz projekt',
             add_goal_title: 'Dodaj Nowy Cel',

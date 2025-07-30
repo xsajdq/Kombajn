@@ -1,6 +1,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -672,7 +673,7 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
-        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs' | 'expenses';
+        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs' | 'expenses' | 'tags';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;
@@ -722,7 +723,7 @@ export interface AppState {
             justOpened?: boolean;
         };
         reports: {
-            activeTab: 'productivity' | 'time' | 'financial';
+            activeTab: 'productivity' | 'time' | 'financial' | 'goals';
             filters: {
                 dateStart: string;
                 dateEnd: string;

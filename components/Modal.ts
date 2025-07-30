@@ -159,7 +159,7 @@ export function Modal() {
                 </div>
                  <div class="${formGroupClasses}">
                     <label class="${labelClasses}">${t('modals.tags')}</label>
-                    <div id="projectTagsSelector" class="multiselect-container" data-type="tag">
+                    <div id="projectTagsSelector" class="multiselect-container" data-entity-type="project" ${isEdit ? `data-entity-id="${project!.id}"` : ''}>
                         <div class="multiselect-display">
                             <span class="subtle-text">Select tags...</span>
                         </div>

@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -571,13 +572,20 @@ export async function handleClick(e: MouseEvent) {
 
     const multiSelectListItem = target.closest<HTMLElement>('.multiselect-list-item');
     if (multiSelectListItem) {
+        // Allow the default checkbox behavior to toggle the input
+        // The API call logic is now conditional
         const checkbox = multiSelectListItem.querySelector<HTMLInputElement>('input[type="checkbox"]');
         const container = multiSelectListItem.closest<HTMLElement>('.multiselect-container');
+        
         if (checkbox && container) {
             const entityType = container.dataset.entityType as 'project' | 'client' | 'task';
-            const entityId = container.dataset.entityId!;
+            const entityId = container.dataset.entityId; // This can be undefined
             const tagId = checkbox.value;
-            tagHandlers.handleToggleTag(entityType, entityId, tagId);
+
+            // ONLY call the handler if we have an entityId (i.e., we are editing an existing entity)
+            if (entityId) {
+                tagHandlers.handleToggleTag(entityType, entityId, tagId);
+            }
         }
         return;
     }
