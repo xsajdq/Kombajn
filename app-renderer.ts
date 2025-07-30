@@ -1,3 +1,4 @@
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -71,10 +72,19 @@ function postRenderActions() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Only autofocus when modal is first opened to prevent focus stealing
+    // Animate and autofocus modal on open
     if (state.ui.modal.isOpen && state.ui.modal.justOpened) {
-        const modal = document.querySelector<HTMLElement>('.modal-content, .bg-content.rounded-lg.shadow-xl'); // Added second selector for robustness
-        modal?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+        const modalContent = document.getElementById('modal-content');
+        if (modalContent) {
+            // Use a short timeout to allow the element to be painted with its initial
+            // transform/opacity styles before transitioning to the final state.
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+
+            // Autofocus the first focusable element
+            modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+        }
         state.ui.modal.justOpened = false;
     }
 
