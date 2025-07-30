@@ -797,6 +797,23 @@
 
   .task-list-indicator { @apply flex items-center gap-2 text-sm capitalize; }
   .indicator-dot { @apply w-2 h-2 rounded-full; }
+  
+  /* Gantt Chart Custom Styles */
+  .gantt .bar-wrapper.gantt-priority-high .bar { fill: rgba(var(--danger-color-rgb), 0.6); }
+  .gantt .bar-wrapper.gantt-priority-high .bar-progress { fill: rgba(var(--danger-color-rgb), 1); }
+  .gantt .bar-wrapper.gantt-priority-medium .bar { fill: rgba(var(--warning-color-rgb), 0.6); }
+  .gantt .bar-wrapper.gantt-priority-medium .bar-progress { fill: rgba(var(--warning-color-rgb), 1); }
+  .gantt .bar-wrapper.gantt-priority-low .bar { fill: rgba(var(--primary-color-rgb), 0.6); }
+  .gantt .bar-wrapper.gantt-priority-low .bar-progress { fill: rgba(var(--primary-color-rgb), 1); }
+  .gantt .bar-label { fill: #fff; font-weight: 500; }
+  .gantt .grid-header, .gantt .grid-body { fill: rgba(var(--content-bg-rgb), 1); }
+  .gantt .grid-row { fill: rgba(var(--content-bg-rgb), 1); }
+  .gantt .grid-row:nth-child(odd) { fill: rgba(var(--background-color-rgb), 1); }
+  .gantt .tick, .gantt .lower-text, .gantt .upper-text { stroke: rgba(var(--subtle-text-color-rgb), 1); fill: rgba(var(--subtle-text-color-rgb), 1); font-size: 12px; }
+  .gantt .row-line { stroke: rgba(var(--border-color-rgb), 1); }
+  .gantt .arrow { fill: rgba(var(--primary-color-rgb), 1); }
+  .gantt-container .popup-wrapper { background-color: rgba(var(--background-color-rgb), 1); border: 1px solid rgba(var(--border-color-rgb), 1); color: rgba(var(--text-color-rgb), 1); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+  .gantt-container .popup-wrapper .pointer { border-top-color: rgba(var(--border-color-rgb), 1); }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

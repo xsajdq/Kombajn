@@ -1,6 +1,4 @@
 
-
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -150,6 +148,12 @@ export async function handleFormSubmit() {
                 const [savedCreatorMember] = await apiPost('project_members', creatorMember);
                 state.projectMembers.push(savedCreatorMember);
             }
+            
+             // Handle tags
+            const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="project_tags"]:checked');
+            const newTagIds = new Set(Array.from(tagCheckboxes).map(cb => cb.value));
+            await projectHandlers.handleSyncProjectTags(savedProject.id, newTagIds);
+
 
             // Handle members for both edit and create
             if (projectData.privacy === 'private') {

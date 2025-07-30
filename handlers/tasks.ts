@@ -597,3 +597,10 @@ export async function handleDeleteChecklistItem(taskId: string, itemId: string) 
         updateUI(['modal']);
     }
 }
+
+export function handleChangeGanttViewMode(mode: 'Day' | 'Week' | 'Month') {
+    if (state.ui.tasks.ganttViewMode !== mode) {
+        state.ui.tasks.ganttViewMode = mode;
+        updateUI(['page']);
+    }
+}

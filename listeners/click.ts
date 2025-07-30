@@ -375,6 +375,12 @@ export async function handleClick(e: MouseEvent) {
         }
         return;
     }
+    const ganttViewModeBtn = target.closest<HTMLElement>('[data-gantt-view-mode]');
+    if (ganttViewModeBtn) {
+        const mode = ganttViewModeBtn.dataset.ganttViewMode as 'Day' | 'Week' | 'Month';
+        taskHandlers.handleChangeGanttViewMode(mode);
+        return;
+    }
     if (target.closest<HTMLElement>('[data-project-view-mode]')) {
         const newMode = target.closest<HTMLElement>('[data-project-view-mode]')!.dataset.projectViewMode as any;
         if (state.ui.projects.viewMode !== newMode) {

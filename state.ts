@@ -1,5 +1,6 @@
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -99,6 +100,7 @@ export function getInitialState(): AppState {
             mention: { query: null, target: null, activeIndex: 0, rect: null },
             tasks: {
                 viewMode: 'board',
+                ganttViewMode: 'Week',
                 isFilterOpen: false,
                 filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false },
                 activeFilterViewId: null,

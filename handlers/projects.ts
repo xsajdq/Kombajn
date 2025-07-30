@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
@@ -138,5 +139,57 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
         state.projectMembers.push(...removedMembersForRevert);
     } finally {
         updateUI(['side-panel']);
+    }
+}
+
+export async function handleSyncProjectTags(projectId: string, newTagIds: Set<string>) {
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    const existingTagLinks = state.projectTags.filter(pt => pt.projectId === projectId);
+    const existingTagIds = new Set(existingTagLinks.map(pt => pt.tagId));
+
+    const tagsToAdd = Array.from(newTagIds).filter(id => !existingTagIds.has(id));
+    const tagsToRemove = Array.from(existingTagIds).filter(id => !newTagIds.has(id));
+
+    if (tagsToAdd.length === 0 && tagsToRemove.length === 0) {
+        return; // No changes needed
+    }
+
+    const addPromises: Promise<any>[] = [];
+    if (tagsToAdd.length > 0) {
+        const addPayloads = tagsToAdd.map(tagId => ({
+            workspaceId: activeWorkspaceId,
+            projectId,
+            tagId,
+        }));
+        addPromises.push(apiPost('project_tags', addPayloads));
+    }
+
+    const removePromises: Promise<any>[] = [];
+    for (const tagId of tagsToRemove) {
+        removePromises.push(
+            apiFetch('/api?action=data&resource=project_tags', {
+                method: 'DELETE',
+                body: JSON.stringify({ projectId, tagId }),
+            })
+        );
+    }
+
+    try {
+        const [addResults] = await Promise.all([
+            Promise.all(addPromises),
+            Promise.all(removePromises),
+        ]);
+
+        // Update state after successful API calls
+        state.projectTags = state.projectTags.filter(pt => !(pt.projectId === projectId && tagsToRemove.includes(pt.tagId)));
+        if (addResults && addResults.length > 0) {
+            const newLinks = addResults.flat().filter(Boolean);
+            state.projectTags.push(...newLinks);
+        }
+    } catch (error) {
+        console.error("Failed to sync project tags:", error);
+        alert("Could not update project tags. The data may be out of sync, please refresh.");
     }
 }

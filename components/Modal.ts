@@ -1,8 +1,4 @@
 
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -118,6 +114,9 @@ export function Modal() {
         
         const existingMemberIds = isEdit ? new Set(state.projectMembers.filter(pm => pm.projectId === project!.id).map(pm => pm.userId)) : new Set([state.currentUser?.id]);
         const projectNameFromDeal = modalData.projectName;
+        const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
+        const projectTagIds = isEdit ? new Set(state.projectTags.filter(pt => pt.projectId === project!.id).map(pt => pt.tagId)) : new Set();
+
 
         body = `
             <form id="projectForm" class="space-y-4">
@@ -158,7 +157,24 @@ export function Modal() {
                         <input type="text" id="projectCategory" class="${formControlClasses}" placeholder="e.g. Marketing" value="${project?.category || ''}">
                     </div>
                 </div>
-                
+                 <div class="${formGroupClasses}">
+                    <label class="${labelClasses}">${t('modals.tags')}</label>
+                    <div id="projectTagsSelector" class="multiselect-container" data-type="tag">
+                        <div class="multiselect-display">
+                            <span class="subtle-text">Select tags...</span>
+                        </div>
+                        <div class="multiselect-dropdown hidden">
+                            <div class="multiselect-list">
+                                ${workspaceTags.map(tag => `
+                                    <label class="multiselect-list-item">
+                                        <input type="checkbox" name="project_tags" value="${tag.id}" ${projectTagIds.has(tag.id) ? 'checked' : ''}>
+                                        <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="${formGroupClasses}">
                     <label class="${labelClasses}">${t('modals.privacy')}</label>
                     <div class="grid grid-cols-2 gap-4">

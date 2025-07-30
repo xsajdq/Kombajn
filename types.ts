@@ -688,6 +688,7 @@ export interface AppState {
         };
         tasks: {
             viewMode: 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
+            ganttViewMode: 'Day' | 'Week' | 'Month';
             isFilterOpen: boolean;
             filters: TaskFilters;
             activeFilterViewId: string | null;

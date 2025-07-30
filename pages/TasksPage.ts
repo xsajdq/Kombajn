@@ -1,5 +1,6 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -503,8 +504,11 @@ export function initTasksPage() {
         return;
     }
 
-    const container = document.getElementById('gantt-chart-container');
+    const container = document.getElementById('gantt-chart');
     if (!container) return;
+
+    // Clear previous chart content, important for re-renders
+    container.innerHTML = '';
 
     const filteredTasks = getFilteredTasks();
     const tasksForGantt = filteredTasks
@@ -531,9 +535,10 @@ export function initTasksPage() {
                 openTaskDetail(task.id);
             },
             language: state.settings.language,
+            view_mode: state.ui.tasks.ganttViewMode, // Use state for view mode
         });
     } else {
-        container.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-text-subtle">${t('tasks.no_tasks_match_filters')}</p></div>`;
+        container.closest('#gantt-chart-container')!.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-text-subtle">${t('tasks.no_tasks_match_filters')}</p></div>`;
     }
 }
 
@@ -582,6 +587,13 @@ export function TasksPage() {
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">analytics</span></button>
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'workload' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="workload" aria-label="${t('tasks.workload_view')}"><span class="material-icons-sharp text-xl">person</span></button>
                     </div>
+                    ${state.ui.tasks.viewMode === 'gantt' ? `
+                        <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
+                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Day">${t('calendar.day_view')}</button>
+                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Week' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Week">${t('calendar.week_view')}</button>
+                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Month' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Month">${t('calendar.month_view')}</button>
+                        </div>
+                    ` : ''}
                     ${state.ui.tasks.viewMode === 'board' ? `
                         <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-kanban-view title="Toggle card details">
                             <span class="material-icons-sharp text-base">${kanbanViewMode === 'simple' ? 'view_agenda' : 'view_day'}</span>
