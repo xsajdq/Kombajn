@@ -2,6 +2,7 @@
 
 
 
+
 import { state, saveState } from '../state.ts';
 import { updateUI, renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
@@ -10,7 +11,7 @@ import { can } from '../permissions.ts';
 import { showModal, toggleCommandPalette, updateUrlAndShowDetail } from './ui.ts';
 import { toggleNotificationsPopover } from './notifications.ts';
 import { apiFetch } from '../services/api.ts';
-import { CommandPalette } from '../components/CommandPalette.ts';
+import { renderCommandPaletteList } from '../components/CommandPalette.ts';
 
 function navigate(path: string) {
     history.pushState({}, '', path);
@@ -30,12 +31,12 @@ export function handleCommandSearch(query: string) {
 
     clearTimeout(searchTimeout);
 
-    const commandPaletteContainer = document.getElementById('command-palette-container');
-    if (!commandPaletteContainer) return;
+    const listContainer = document.querySelector('.command-palette-list');
+    if (!listContainer) return;
 
-    // Update with command results immediately if query is empty
+    // If query is empty, restore default commands immediately without API call
     if (!query) {
-        commandPaletteContainer.innerHTML = CommandPalette();
+        listContainer.innerHTML = renderCommandPaletteList();
         return;
     }
     
@@ -43,18 +44,20 @@ export function handleCommandSearch(query: string) {
         try {
             const results = await apiFetch(`/api?action=global-search&workspaceId=${state.activeWorkspaceId}&query=${encodeURIComponent(query)}`);
             const groupedResults = {
-                projects: results.filter((r: any) => r.type === 'project'),
-                tasks: results.filter((r: any) => r.type === 'task'),
-                clients: results.filter((r: any) => r.type === 'client'),
+                projects: results?.filter((r: any) => r.type === 'project') || [],
+                tasks: results?.filter((r: any) => r.type === 'task') || [],
+                clients: results?.filter((r: any) => r.type === 'client') || [],
             };
-            if (commandPaletteContainer && state.ui.isCommandPaletteOpen) {
-                 commandPaletteContainer.innerHTML = CommandPalette(groupedResults);
-                 const input = document.getElementById('command-palette-input') as HTMLInputElement;
-                 input.focus();
-                 input.selectionStart = input.selectionEnd = input.value.length; // Move cursor to end
+            
+            // Only update the list, not the whole component
+            if (listContainer && state.ui.isCommandPaletteOpen) {
+                 listContainer.innerHTML = renderCommandPaletteList(groupedResults);
             }
         } catch (error) {
             console.error("Command palette search failed:", error);
+            if (listContainer && state.ui.isCommandPaletteOpen) {
+                listContainer.innerHTML = `<div class="empty-command-list">${t('command_palette.no_results')}</div>`;
+            }
         }
     }, 250); // Debounce for 250ms
 }

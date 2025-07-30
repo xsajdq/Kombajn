@@ -3,7 +3,8 @@ import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getCommands } from '../handlers/commands.ts';
 
-export function CommandPalette(results?: any) {
+// This function is now responsible ONLY for rendering the list of items.
+export function renderCommandPaletteList(results?: any) {
     const query = state.ui.commandPaletteQuery;
     const activeIndex = state.ui.commandPaletteActiveIndex;
 
@@ -13,15 +14,15 @@ export function CommandPalette(results?: any) {
     
     let searchResults = results || { projects: [], tasks: [], clients: [] };
     
-    let totalResults = commandResults.length + searchResults.projects.length + searchResults.tasks.length + searchResults.clients.length;
     if (!query) {
         searchResults = { projects: [], tasks: [], clients: [] };
-        totalResults = commandResults.length;
     }
+    
+    const totalResults = commandResults.length + (searchResults.projects?.length || 0) + (searchResults.tasks?.length || 0) + (searchResults.clients?.length || 0);
 
     let currentIndex = 0;
     const renderGroup = (title: string, items: any[], type: string) => {
-        if (items.length === 0) return '';
+        if (!items || items.length === 0) return '';
         
         const itemsHtml = items.map(item => {
             const isItemActive = currentIndex === activeIndex;
@@ -74,6 +75,12 @@ export function CommandPalette(results?: any) {
         ${renderGroup('Clients', searchResults.clients, 'client')}
     `;
     
+    return totalResults > 0 ? resultsHtml : `<div class="empty-command-list">${t('command_palette.no_results')}</div>`;
+}
+
+
+// This function renders the main shell and the initial list content.
+export function CommandPalette() {
     return `
         <div class="command-palette-overlay">
             <div class="command-palette">
@@ -82,7 +89,7 @@ export function CommandPalette(results?: any) {
                     <input type="text" id="command-palette-input" class="form-control" placeholder="${t('command_palette.placeholder')}" value="${state.ui.commandPaletteQuery}" autofocus>
                 </div>
                 <div class="command-palette-list">
-                    ${totalResults > 0 ? resultsHtml : `<div class="empty-command-list">${t('command_palette.no_results')}</div>`}
+                    ${renderCommandPaletteList()}
                 </div>
             </div>
         </div>
