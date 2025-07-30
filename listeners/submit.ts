@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
@@ -12,7 +11,7 @@ import * as automationHandlers from '../handlers/automations.ts';
 import * as mainHandlers from '../handlers/main.ts';
 import * as dealHandlers from '../handlers/deals.ts';
 import * as okrHandlers from '../handlers/okr.ts';
-import { parseMentionContent } from './mentions.ts';
+import { getStorableHtmlFromContentEditable } from '../handlers/editor.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
 
 
@@ -159,7 +158,7 @@ export async function handleSubmit(e: SubmitEvent) {
     } else if (target.id === 'chat-form') {
         const inputDiv = document.getElementById('chat-message-input') as HTMLElement;
         if (inputDiv && state.ui.activeChannelId) {
-            const content = parseMentionContent(inputDiv);
+            const content = getStorableHtmlFromContentEditable(inputDiv);
             if (content.trim()) {
                 mainHandlers.handleSendMessage(state.ui.activeChannelId, content.trim());
                 inputDiv.innerHTML = ''; // Clear input on send
@@ -173,7 +172,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const inputDiv = form.querySelector<HTMLElement>('.rich-text-input');
         
         if (taskId && inputDiv) {
-            const content = parseMentionContent(inputDiv);
+            const content = getStorableHtmlFromContentEditable(inputDiv);
             if (content.trim()) {
                 await taskHandlers.handleAddTaskComment(taskId, content.trim(), parentId, () => {
                     if (isReply) {

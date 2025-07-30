@@ -16,8 +16,7 @@ function formatBytes(bytes: number, decimals = 2) {
 
 function renderCommentBody(content: string) {
     const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-    const html = content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
-    return `<p>${html}</p>`;
+    return content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
 };
 
 function renderComment(comment: Comment) {
@@ -65,7 +64,7 @@ function renderComment(comment: Comment) {
                         ${isEdited ? `<em class="text-xs ml-1">(edited)</em>` : ''}
                     </span>
                 </div>
-                <div class="activity-body" id="comment-body-${comment.id}">
+                <div class="activity-body prose prose-sm dark:prose-invert max-w-none" id="comment-body-${comment.id}">
                     ${renderCommentBody(comment.content)}
                 </div>
                 <div class="comment-actions" id="comment-actions-${comment.id}">

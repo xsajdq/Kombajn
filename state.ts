@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -102,6 +97,7 @@ export function getInitialState(): AppState {
             commandPaletteQuery: '',
             commandPaletteActiveIndex: 0,
             mention: { query: null, target: null, activeIndex: 0, rect: null },
+            slashCommand: { query: null, target: null, activeIndex: 0, rect: null },
             tasks: {
                 viewMode: 'board',
                 ganttViewMode: 'Week',
@@ -152,6 +148,7 @@ export function getInitialState(): AppState {
                 isRunning: false,
                 startTime: null,
             },
+            gKeyPressed: false,
         },
     };
 }

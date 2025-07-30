@@ -695,6 +695,12 @@ export interface AppState {
             activeIndex: number;
             rect: DOMRect | null;
         };
+        slashCommand: {
+            query: string | null;
+            target: HTMLElement | null;
+            activeIndex: number;
+            rect: DOMRect | null;
+        };
         tasks: {
             viewMode: 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
             ganttViewMode: 'Day' | 'Week' | 'Month';
@@ -726,7 +732,7 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | 'setBudgets' | 'dealWon' | 'sendInvoiceEmail' | null;
+            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | 'setBudgets' | 'dealWon' | 'sendInvoiceEmail' | 'keyboardShortcuts' | null;
             data?: any;
             justOpened?: boolean;
         };
@@ -793,5 +799,6 @@ export interface AppState {
             isRunning: boolean;
             startTime: number | null;
         };
+        gKeyPressed: boolean;
     };
 }

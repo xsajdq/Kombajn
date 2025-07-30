@@ -238,6 +238,29 @@
     @apply px-1 py-0.5 bg-primary/10 text-primary rounded-md font-medium;
   }
 
+  /* == Slash Command Popover == */
+  .slash-command-popover {
+    @apply fixed z-[60] bg-content border border-border-color rounded-lg shadow-xl w-72 p-1;
+  }
+  .slash-command-item {
+    @apply flex items-center gap-3 p-2 rounded-md cursor-pointer;
+  }
+  .slash-command-item.active {
+    @apply bg-primary/10;
+  }
+  .slash-command-icon {
+    @apply w-8 h-8 rounded-md bg-background border border-border-color flex items-center justify-center shrink-0;
+  }
+  .slash-command-info h5 {
+    @apply font-semibold text-sm;
+  }
+  .slash-command-info p {
+    @apply text-xs text-text-subtle;
+  }
+  .slash-command-item-empty {
+    @apply text-center text-sm text-text-subtle py-4;
+  }
+
   .dependency-item {
       @apply flex justify-between items-center bg-background p-2 rounded-md text-sm;
   }

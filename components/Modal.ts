@@ -56,6 +56,53 @@ export function Modal() {
     footer = defaultFooter;
 
 
+    if (state.ui.modal.type === 'keyboardShortcuts') {
+        title = t('shortcuts.title');
+        maxWidth = 'max-w-lg';
+        footer = `<button class="btn btn-primary btn-close-modal">Got it</button>`;
+
+        const renderShortcutRow = (keys: string, description: string) => `
+            <div class="flex justify-between items-center py-2">
+                <p class="text-sm">${description}</p>
+                <div class="flex gap-1">
+                    ${keys.split('+').map(key => `<kbd class="px-2 py-1 text-xs font-semibold bg-background border border-border-color rounded-md">${key.trim()}</kbd>`).join('')}
+                </div>
+            </div>
+        `;
+
+        body = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-semibold mb-2">${t('shortcuts.global_title')}</h4>
+                    <div class="divide-y divide-border-color">
+                        ${renderShortcutRow('Ctrl + K', t('shortcuts.global_desc_palette'))}
+                        ${renderShortcutRow('n', t('shortcuts.global_desc_new_task'))}
+                        ${renderShortcutRow('?', t('shortcuts.global_desc_help'))}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">${t('shortcuts.nav_title')}</h4>
+                    <p class="text-xs text-text-subtle mb-2">${t('shortcuts.nav_desc_prefix')}</p>
+                    <div class="divide-y divide-border-color">
+                        ${renderShortcutRow('g + d', t('shortcuts.nav_desc_dashboard'))}
+                        ${renderShortcutRow('g + p', t('shortcuts.nav_desc_projects'))}
+                        ${renderShortcutRow('g + t', t('shortcuts.nav_desc_tasks'))}
+                        ${renderShortcutRow('g + h', t('shortcuts.nav_desc_hr'))}
+                        ${renderShortcutRow('g + s', t('shortcuts.nav_desc_settings'))}
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">${t('shortcuts.context_title')}</h4>
+                    <div class="divide-y divide-border-color">
+                        ${renderShortcutRow('e', t('shortcuts.context_desc_edit'))}
+                        ${renderShortcutRow('m', t('shortcuts.context_desc_assign'))}
+                        ${renderShortcutRow('Ctrl + Enter', t('shortcuts.context_desc_comment'))}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     if (state.ui.modal.type === 'addClient') {
         const isEdit = !!modalData.clientId;
         const client = isEdit ? workspaceClients.find(c => c.id === modalData.clientId) : null;
@@ -955,13 +1002,14 @@ export function Modal() {
                         <label for="goalValueUnit" class="${labelClasses}">${t('modals.goal_value_unit')}</label>
                         <input type="text" id="goalValueUnit" class="${formControlClasses}" placeholder="e.g., $, %, projects, milestones">
                     </div>
-                </div>
-                <div class="pt-4 border-t border-border-color">
-                    <h4 class="font-semibold text-md mb-2">${t('goals.milestones')}</h4>
-                    <div id="milestones-container" class="space-y-2"></div>
-                    <div class="flex items-center gap-2">
-                        <input type="text" id="new-milestone-input" class="${formControlClasses}" placeholder="${t('modals.add_milestone')}">
-                        <button type="button" id="add-milestone-btn" class="btn btn-secondary">Add</button>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-medium text-text-subtle">${t('goals.milestones')}</label>
+                        <div id="milestones-container" class="space-y-2 mt-1">
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <input type="text" id="new-milestone-input" class="form-control" placeholder="${t('modals.add_milestone')}">
+                            <button type="button" id="add-milestone-btn" class="btn btn-secondary">Add</button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -977,7 +1025,7 @@ export function Modal() {
                 <div class="${modalFormGridClasses}">
                     <div class="${formGroupClasses} sm:col-span-2">
                         <label for="itemName" class="${labelClasses}">${t('inventory.item_name')}</label>
-                        <input type="text" id="itemName" class="${formControlClasses}" value="${item?.name || ''}" required>
+                        <input type="text" id="itemName" class="${formControlClasses}" required value="${item?.name || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="itemCategory" class="${labelClasses}">${t('inventory.item_category')}</label>
@@ -993,19 +1041,19 @@ export function Modal() {
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="itemCurrentStock" class="${labelClasses}">${t('inventory.item_current_stock')}</label>
-                        <input type="number" id="itemCurrentStock" class="${formControlClasses}" value="${item?.currentStock ?? ''}" required>
+                        <input type="number" id="itemCurrentStock" class="${formControlClasses}" required value="${item?.currentStock ?? ''}" min="0">
                     </div>
                      <div class="${formGroupClasses}">
                         <label for="itemTargetStock" class="${labelClasses}">${t('inventory.item_target_stock')}</label>
-                        <input type="number" id="itemTargetStock" class="${formControlClasses}" value="${item?.targetStock ?? ''}" required>
+                        <input type="number" id="itemTargetStock" class="${formControlClasses}" required value="${item?.targetStock ?? ''}" min="0">
                     </div>
                      <div class="${formGroupClasses}">
                         <label for="itemLowStockThreshold" class="${labelClasses}">${t('inventory.item_low_stock_threshold')}</label>
-                        <input type="number" id="itemLowStockThreshold" class="${formControlClasses}" value="${item?.lowStockThreshold ?? ''}" required>
+                        <input type="number" id="itemLowStockThreshold" class="${formControlClasses}" required value="${item?.lowStockThreshold ?? ''}" min="0">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="itemUnitPrice" class="${labelClasses}">${t('inventory.item_unit_price')}</label>
-                        <input type="number" id="itemUnitPrice" class="${formControlClasses}" value="${item?.unitPrice ?? ''}" required step="0.01">
+                        <input type="number" id="itemUnitPrice" class="${formControlClasses}" required value="${item?.unitPrice ?? ''}" min="0" step="0.01">
                     </div>
                 </div>
             </form>
@@ -1013,11 +1061,11 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'assignInventoryItem') {
-        const item = state.inventoryItems.find(i => i.id === modalData.itemId);
-        title = t('inventory.assign_item_title');
-        body = item ? `
-            <form id="assignInventoryItemForm" class="space-y-4" data-item-id="${item.id}">
-                <p>${t('inventory.col_item')}: <strong>${item.name}</strong></p>
+        const itemId = modalData.itemId;
+        const item = state.inventoryItems.find(i => i.id === itemId);
+        title = `${t('inventory.assign_item_title')}: ${item?.name}`;
+        body = `
+            <form id="assignInventoryItemForm" class="space-y-4" data-item-id="${itemId}">
                 <div class="${formGroupClasses}">
                     <label for="employeeId" class="${labelClasses}">${t('inventory.assign_to_employee')}</label>
                     <select id="employeeId" class="${formControlClasses}" required>
@@ -1027,7 +1075,7 @@ export function Modal() {
                 </div>
                 <div class="${formGroupClasses}">
                     <label for="assignmentDate" class="${labelClasses}">${t('inventory.assignment_date')}</label>
-                    <input type="date" id="assignmentDate" class="${formControlClasses}" value="${new Date().toISOString().slice(0,10)}" required>
+                    <input type="date" id="assignmentDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
                 </div>
                 <div class="${formGroupClasses}">
                     <label for="serialNumber" class="${labelClasses}">${t('inventory.serial_number')}</label>
@@ -1038,73 +1086,86 @@ export function Modal() {
                     <textarea id="notes" class="${formControlClasses}" rows="3"></textarea>
                 </div>
             </form>
-        ` : 'Item not found.';
+        `;
     }
 
     if (state.ui.modal.type === 'employeeDetail') {
-        const userId = modalData.userId as string;
-        const user = state.users.find(u => u.id === userId);
-        const managers = state.workspaceMembers
-            .filter(m => m.workspaceId === state.activeWorkspaceId && m.userId !== userId) // Cannot be their own manager
-            .map(m => state.users.find(u => u.id === m.userId))
-            .filter(Boolean);
-    
-        title = t('modals.employee_detail_title');
+        const user = state.users.find(u => u.id === modalData.userId);
         if (user) {
+            title = t('modals.employee_detail_title');
             body = `
-                <form id="employeeDetailForm" class="space-y-4" data-user-id="${user.id}">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-lg font-semibold">${user.initials}</div>
+                <form id="employeeDetailForm" data-user-id="${user.id}" class="space-y-4">
+                     <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center text-2xl font-semibold">${user.initials}</div>
                         <div>
-                            <h4 class="font-semibold">${user.name || user.email}</h4>
+                            <h4 class="text-lg font-bold">${user.name}</h4>
                             <p class="text-sm text-text-subtle">${user.email}</p>
                         </div>
-                    </div>
-                    <div class="${formGroupClasses}">
+                     </div>
+                     <div class="${formGroupClasses}">
                         <label for="employeeManager" class="${labelClasses}">${t('modals.manager')}</label>
                         <select id="employeeManager" class="${formControlClasses}" data-change-employee-manager="${user.id}">
-                            <option value="">-- No Manager --</option>
-                            ${managers.map(m => `<option value="${m!.id}" ${user.managerId === m!.id ? 'selected' : ''}>${m!.name || m!.initials}</option>`).join('')}
+                            <option value="">-- Unassigned --</option>
+                            ${workspaceMembers.filter(u => u!.id !== user.id).map(u => `<option value="${u!.id}" ${user.managerId === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="contractInfoNotes" class="${labelClasses}">${t('modals.contract_notes')}</label>
                         <textarea id="contractInfoNotes" class="${formControlClasses}" rows="4">${user.contractInfoNotes || ''}</textarea>
                     </div>
-                    <div class="${formGroupClasses}">
+                     <div class="${formGroupClasses}">
                         <label for="employmentInfoNotes" class="${labelClasses}">${t('modals.employment_notes')}</label>
                         <textarea id="employmentInfoNotes" class="${formControlClasses}" rows="4">${user.employmentInfoNotes || ''}</textarea>
                     </div>
                 </form>
             `;
-        } else {
-            body = '<p>User not found.</p>';
         }
     }
 
     if (state.ui.modal.type === 'rejectTimeOffRequest') {
-        const requestId = modalData.requestId as string;
         title = t('modals.reject_request_title');
         body = `
-            <form id="rejectTimeOffForm" class="space-y-4" data-request-id="${requestId}">
+            <form id="rejectTimeOffForm" data-request-id="${modalData.requestId}">
                 <div class="${formGroupClasses}">
                     <label for="rejectionReason" class="${labelClasses}">${t('modals.rejection_reason')}</label>
-                    <textarea id="rejectionReason" class="${formControlClasses}" rows="4" required></textarea>
+                    <textarea id="rejectionReason" class="${formControlClasses}" rows="3" required></textarea>
+                </div>
+            </form>
+        `;
+    }
+    
+    if (state.ui.modal.type === 'confirmPlanChange') {
+        title = t('billing.confirm_plan_change_title');
+        body = `<p>${t('billing.confirm_plan_change_message').replace('{planName}', t(`billing.plan_${modalData.planId}`))}</p>`;
+        footer = `
+            <button class="btn-close-modal">${t('modals.cancel')}</button>
+            <button class="btn btn-primary" id="confirm-plan-change-btn">${t('billing.btn_change_plan')}</button>
+        `;
+    }
+
+    if (state.ui.modal.type === 'adjustVacationAllowance') {
+        title = t('modals.adjust_vacation_title');
+        body = `
+            <form id="adjustVacationForm" data-user-id="${modalData.userId}">
+                <div class="form-group">
+                    <label for="vacation-allowance-hours" class="text-sm font-medium text-text-subtle">${t('modals.total_allowance_hours')}</label>
+                    <input type="number" id="vacation-allowance-hours" class="form-control" value="${modalData.currentAllowance}" min="0">
                 </div>
             </form>
         `;
     }
 
-
     return `
-        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div class="bg-content rounded-lg shadow-xl w-full flex flex-col max-h-[90vh] ${maxWidth}">
-                <div class="flex justify-between items-center p-4 border-b border-border-color shrink-0">
+        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="bg-content rounded-lg shadow-xl w-full ${maxWidth} transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+                <div class="flex justify-between items-center p-4 border-b border-border-color">
                     <h3 id="modal-title" class="text-lg font-semibold">${title}</h3>
-                    <button class="p-1 rounded-full text-text-subtle hover:bg-background btn-close-modal" aria-label="${t('panels.close')}"><span class="material-icons-sharp">close</span></button>
+                    <button class="p-1 rounded-full text-text-subtle hover:bg-background btn-close-modal" aria-label="${t('panels.close')}">
+                        <span class="material-icons-sharp">close</span>
+                    </button>
                 </div>
-                <div class="p-4 sm:p-6 overflow-y-auto">${body}</div>
-                <div class="flex justify-end items-center gap-3 p-4 border-t border-border-color bg-background/50 rounded-b-lg shrink-0">${footer}</div>
+                <div class="p-4 sm:p-6">${body}</div>
+                <div class="flex justify-end gap-2 p-4 bg-background/50 rounded-b-lg">${footer}</div>
             </div>
         </div>
     `;

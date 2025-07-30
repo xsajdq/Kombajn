@@ -4,6 +4,7 @@ import { handleMentionInput } from './mentions.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
 import { handleCommandSearch } from '../handlers/commands.ts';
+import { handleSlashCommandInput, handleLiveMarkdown } from '../handlers/editor.ts';
 
 declare const marked: any;
 declare const DOMPurify: any;
@@ -60,9 +61,11 @@ export async function handleInput(e: Event) {
         }
     }
 
-    // Handle mention input on designated rich text fields
-    if (target.matches('#chat-message-input, #task-comment-input')) {
+    // Handle rich text editor features
+    if (target.matches('.rich-text-input')) {
         handleMentionInput(target);
+        handleSlashCommandInput(target);
+        handleLiveMarkdown(target);
     }
 
     // Live Markdown preview for Wiki editor

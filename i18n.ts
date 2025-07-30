@@ -351,6 +351,32 @@ const translations = {
             next: "Next",
             skip: "Skip",
             finish: "Finish"
+        },
+        shortcuts: {
+            title: "Keyboard Shortcuts",
+            global_title: "Global",
+            global_desc_palette: "Open command palette",
+            global_desc_new_task: "Create new task",
+            global_desc_help: "Open this help menu",
+            nav_title: "Navigation",
+            nav_desc_prefix: "Press 'g' then...",
+            nav_desc_dashboard: "'d' to go to Dashboard",
+            nav_desc_projects: "'p' to go to Projects",
+            nav_desc_tasks: "'t' to go to Tasks",
+            nav_desc_hr: "'h' to go to HR",
+            nav_desc_settings: "'s' to go to Settings",
+            context_title: "Contextual (in Task View)",
+            context_desc_edit: "Edit task description",
+            context_desc_assign: "Assign member",
+            context_desc_comment: "Submit comment"
+        },
+        slash_commands: {
+            heading1: 'Heading 1',
+            heading1_desc: 'Large section heading.',
+            bulleted_list: 'Bulleted List',
+            bulleted_list_desc: 'Create a simple bulleted list.',
+            checklist: 'Checklist',
+            checklist_desc: 'Track tasks with a checklist.'
         }
     },
     pl: {
@@ -703,6 +729,32 @@ const translations = {
             next: "Dalej",
             skip: "Pomiń",
             finish: "Zakończ"
+        },
+        shortcuts: {
+            title: "Skróty Klawiaturowe",
+            global_title: "Globalne",
+            global_desc_palette: "Otwórz paletę komend",
+            global_desc_new_task: "Utwórz nowe zadanie",
+            global_desc_help: "Otwórz to menu pomocy",
+            nav_title: "Nawigacja",
+            nav_desc_prefix: "Naciśnij 'g' a następnie...",
+            nav_desc_dashboard: "'d' aby przejść do Pulpitu",
+            nav_desc_projects: "'p' aby przejść do Projektów",
+            nav_desc_tasks: "'t' aby przejść do Zadań",
+            nav_desc_hr: "'h' aby przejść do Kadr",
+            nav_desc_settings: "'s' aby przejść do Ustawień",
+            context_title: "Kontekstowe (w widoku zadania)",
+            context_desc_edit: "Edytuj opis zadania",
+            context_desc_assign: "Przypisz członka",
+            context_desc_comment: "Wyślij komentarz"
+        },
+        slash_commands: {
+            heading1: 'Nagłówek 1',
+            heading1_desc: 'Duży nagłówek sekcji.',
+            bulleted_list: 'Lista punktowana',
+            bulleted_list_desc: 'Utwórz prostą listę punktowaną.',
+            checklist: 'Lista zadań',
+            checklist_desc: 'Śledź zadania za pomocą listy kontrolnej.'
         }
     }
 };

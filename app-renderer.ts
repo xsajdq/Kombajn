@@ -14,8 +14,9 @@ import { initTasksPage } from './pages/TasksPage.ts';
 import { initDashboardCharts } from './pages/DashboardPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
+import { SlashCommandPopover } from './components/SlashCommandPopover.ts';
 
-type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'all';
+type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'all';
 
 async function AppLayout() {
     if (!state.currentUser) {
@@ -49,6 +50,7 @@ async function AppLayout() {
         <div id="fab-container" class="fab-container">${FloatingActionButton()}</div>
         <div id="onboarding-container">${state.ui.onboarding.isActive ? OnboardingGuide() : ''}</div>
         <div id="mention-popover-container"></div>
+        <div id="slash-command-popover-container"></div>
     </div>
     `;
 }
@@ -153,6 +155,10 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
             case 'mention-popover':
                  const mentionContainer = document.getElementById('mention-popover-container');
                 if (mentionContainer) mentionContainer.innerHTML = MentionPopover();
+                break;
+            case 'slash-command-popover':
+                const slashContainer = document.getElementById('slash-command-popover-container');
+                if (slashContainer) slashContainer.innerHTML = SlashCommandPopover();
                 break;
         }
     }

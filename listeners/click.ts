@@ -349,6 +349,11 @@ export async function handleClick(e: MouseEvent) {
         }
     }
 
+    if (target.closest('#help-btn')) {
+        uiHandlers.showModal('keyboardShortcuts');
+        return;
+    }
+
     const modalTarget = target.closest<HTMLElement>('[data-modal-target]');
     if (modalTarget) {
         if (target.closest('.fab-option')) {

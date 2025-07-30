@@ -39,6 +39,10 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                     </button>
                 </div>
 
+                <button id="help-btn" class="p-2 rounded-full hover:bg-background transition-colors" title="${t('shortcuts.title')}">
+                    <span class="material-icons-sharp">help_outline</span>
+                </button>
+
                 <div class="relative">
                     <button id="notification-bell" class="p-2 rounded-full hover:bg-background transition-colors" aria-label="${t('notifications.title')}">
                         <span class="material-icons-sharp">notifications</span>
