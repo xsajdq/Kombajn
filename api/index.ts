@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -267,9 +267,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             const { taskId, userId } = req.body;
                             const { error } = await supabase.from('task_assignees').delete().match({ task_id: taskId, user_id: userId });
                             if (error) throw error;
-                        } else if (resource === 'task_tags') {
-                            const { taskId, tagId } = req.body;
-                            const { error } = await supabase.from('task_tags').delete().match({ task_id: taskId, tag_id: tagId });
+                        } else if (resource === 'task_tags' || resource === 'project_tags' || resource === 'client_tags') {
+                            const idKey = `${resource.split('_')[0]}_id`;
+                            const tagIdKey = 'tag_id';
+                            const matchObject = { [idKey]: req.body[camelToSnake(idKey)], [tagIdKey]: req.body.tagId };
+                            const { error } = await supabase.from(resource).delete().match(matchObject);
                             if (error) throw error;
                         } else {
                             const { id } = req.body;
@@ -308,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
-                    automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
+                    automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
                     budgetsRes, reviewsRes, pipelineStagesRes
                 ] = await Promise.all([
@@ -333,6 +335,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('automations').select('*').eq('workspace_id', workspaceId),
                     supabase.from('tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('project_tags').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('client_tags').select('*').eq('workspace_id', workspaceId),
                     supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId),
                     supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId),
                     supabase.from('project_templates').select('*').eq('workspace_id', workspaceId),
@@ -350,7 +354,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
                     taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
-                    automationsRes, tagsRes, taskTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
+                    automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
                     budgetsRes, reviewsRes, pipelineStagesRes
                 ];
@@ -411,6 +415,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     automations: automationsRes.data,
                     tags: tagsRes.data,
                     taskTags: taskTagsRes.data,
+                    projectTags: projectTagsRes.data,
+                    clientTags: clientTagsRes.data,
                     customFieldDefinitions: customFieldDefinitionsRes.data,
                     customFieldValues: customFieldValuesRes.data,
                     projectTemplates: projectTemplatesRes.data,

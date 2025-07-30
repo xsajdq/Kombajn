@@ -47,6 +47,8 @@ export function getInitialState(): AppState {
         taskAssignees: [],
         tags: [],
         taskTags: [],
+        projectTags: [],
+        clientTags: [],
         dependencies: [],
         timeLogs: [],
         comments: [],
@@ -105,7 +107,6 @@ export function getInitialState(): AppState {
                 sortBy: 'manual',
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
-            clientFilters: { text: '', status: 'all' },
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',
             teamCalendarDate: now.toISOString().slice(0, 10),
@@ -127,13 +128,18 @@ export function getInitialState(): AppState {
             clients: { 
                 isLoading: false, 
                 loadedWorkspaceId: null,
-                filters: { text: '', status: 'all' },
+                filters: { text: '', status: 'all', tagIds: [] },
             },
             invoices: { 
                 isLoading: false, 
                 loadedWorkspaceId: null,
             },
-            projects: { isLoading: false, loadedWorkspaceId: null, viewMode: 'grid' },
+            projects: { 
+                isLoading: false, 
+                loadedWorkspaceId: null, 
+                viewMode: 'grid',
+                filters: { text: '', tagIds: [] }
+            },
             globalTimer: {
                 isRunning: false,
                 startTime: null,

@@ -18,7 +18,7 @@ export async function createNotification(
     }
 ) {
     const task = data.taskId ? state.tasks.find(t => t.id === data.taskId) : null;
-    if (type !== 'join_request' && !task) return;
+    if (type !== 'join_request' && type !== 'time_off_request' && !task) return;
 
     if (data.userIdToNotify === data.actorId) return;
 
@@ -26,27 +26,38 @@ export async function createNotification(
     const actor = state.users.find(u => u.id === data.actorId);
     const actorName = actor?.name || actor?.initials || 'System';
 
-    let action: Notification['action'] = { type: 'viewTask', taskId: data.taskId };
-    let targetWorkspaceId = task?.workspaceId;
+    let action: Notification['action'] = null;
+    let targetWorkspaceId = data.workspaceId;
 
     switch (type) {
         case 'new_comment':
             text = t('notifications.comment_added').replace('{user}', actorName).replace('{taskName}', `"${task!.name}"`);
+            action = { type: 'viewTask', taskId: data.taskId };
+            targetWorkspaceId = task!.workspaceId;
             break;
         case 'new_assignment':
             text = t('notifications.task_assigned').replace('{taskName}', `"${task!.name}"`);
+            action = { type: 'viewTask', taskId: data.taskId };
+            targetWorkspaceId = task!.workspaceId;
             break;
         case 'status_change':
              const statusText = t(`tasks.${data.newStatus}`);
              text = t('notifications.status_changed').replace('{taskName}', `"${task!.name}"`).replace('{status}', statusText);
+             action = { type: 'viewTask', taskId: data.taskId };
+             targetWorkspaceId = task!.workspaceId;
             break;
         case 'mention':
             text = t('notifications.user_mentioned').replace('{user}', actorName).replace('{taskName}', `"${task!.name}"`);
+            action = { type: 'viewTask', taskId: data.taskId };
+            targetWorkspaceId = task!.workspaceId;
             break;
         case 'join_request':
             text = t('notifications.join_request').replace('{user}', actorName).replace('{workspaceName}', data.workspaceName || '');
             action = { type: 'viewJoinRequests' };
-            targetWorkspaceId = data.workspaceId;
+            break;
+        case 'time_off_request':
+            text = t('notifications.time_off_request').replace('{user}', actorName);
+            action = { type: 'viewHrRequests' };
             break;
     }
     
@@ -99,10 +110,10 @@ export async function handleNotificationClick(notificationId: string) {
 
     if (notification.action?.type === 'viewTask' && notification.action.taskId) {
         openTaskDetail(notification.action.taskId);
-    } else if (notification.action?.type === 'viewJoinRequests') {
+    } else if (notification.action?.type === 'viewJoinRequests' || notification.action?.type === 'viewHrRequests') {
         state.ui.hr.activeTab = 'requests';
         history.pushState({}, '', '/hr');
-        updateUI(['page']);
+        updateUI(['page', 'header', 'sidebar']);
     }
     else {
         updateUI(['header']);

@@ -9,6 +9,7 @@ export interface User {
     slackUserId?: string;
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
+    managerId?: string; // The user ID of the employee's direct manager
 
     vacationAllowanceHours?: number; // Total vacation hours for the year
     kanbanViewMode?: 'simple' | 'detailed';
@@ -196,6 +197,18 @@ export interface TaskTag {
     workspaceId: string;
 }
 
+export interface ProjectTag {
+    projectId: string;
+    tagId: string;
+    workspaceId: string;
+}
+
+export interface ClientTag {
+    clientId: string;
+    tagId: string;
+    workspaceId: string;
+}
+
 export interface Attachment {
     id: string;
     workspaceId: string;
@@ -240,11 +253,11 @@ export interface Comment {
 }
 
 export interface NotificationAction {
-    type: 'viewTask' | 'viewJoinRequests';
+    type: 'viewTask' | 'viewJoinRequests' | 'viewHrRequests';
     taskId?: string;
 }
 
-export type NotificationType = 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request';
+export type NotificationType = 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request' | 'time_off_request';
 
 export interface Notification {
     id: string;
@@ -614,6 +627,8 @@ export interface AppState {
     taskAssignees: TaskAssignee[];
     tags: Tag[];
     taskTags: TaskTag[];
+    projectTags: ProjectTag[];
+    clientTags: ClientTag[];
     dependencies: TaskDependency[];
     timeLogs: TimeLog[];
     comments: Comment[];
@@ -684,10 +699,6 @@ export interface AppState {
             dateStart: string;
             dateEnd: string;
         };
-        clientFilters: {
-            text: string;
-            status: 'all' | 'active' | 'archived';
-        };
         calendarDate: string; // YYYY-MM for the calendar view
         teamCalendarView: 'month' | 'week' | 'day';
         teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
@@ -743,6 +754,7 @@ export interface AppState {
             filters: {
                 text: string;
                 status: 'all' | 'active' | 'archived';
+                tagIds: string[];
             };
         };
         invoices: {
@@ -753,6 +765,10 @@ export interface AppState {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
             viewMode: 'grid' | 'portfolio';
+            filters: {
+                text: string;
+                tagIds: string[];
+            };
         };
         globalTimer: {
             isRunning: boolean;

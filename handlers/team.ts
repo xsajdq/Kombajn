@@ -10,6 +10,7 @@ import { switchWorkspaceChannel, supabase } from '../services/supabase.ts';
 import { startOnboarding } from './onboarding.ts';
 import { renderApp } from '../app-renderer.ts';
 import { fetchWorkspaceData } from './main.ts';
+import { handleCreateDefaultStages } from './pipeline.ts';
 
 export async function handleWorkspaceSwitch(workspaceId: string) {
     if (state.activeWorkspaceId !== workspaceId) {
@@ -81,6 +82,9 @@ export async function handleCreateWorkspace(name: string) {
         
         const memberPayload = { workspaceId: newWorkspaceRaw.id, userId: state.currentUser.id, role: 'owner' as Role };
         const [newMember] = await apiPost('workspace_members', memberPayload);
+
+        // Create default pipeline stages for the new workspace
+        await handleCreateDefaultStages(newWorkspaceRaw.id);
 
         const newWorkspace: Workspace = {
             ...newWorkspaceRaw,
@@ -336,6 +340,23 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
     }
 }
 
+export async function handleUpdateEmployeeManager(userId: string, managerId: string) {
+    const user = state.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const originalManagerId = user.managerId;
+    user.managerId = managerId || undefined;
+    updateUI(['page']);
+
+    try {
+        await apiPut('profiles', { id: userId, managerId: managerId || null });
+    } catch (error) {
+        console.error("Failed to update employee manager:", error);
+        alert((error as Error).message);
+        user.managerId = originalManagerId;
+        updateUI(['page']);
+    }
+}
 
 export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
     if (!state.currentUser || !state.activeWorkspaceId) return;

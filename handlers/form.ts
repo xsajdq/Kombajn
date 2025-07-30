@@ -718,7 +718,7 @@ export async function handleFormSubmit() {
             const startValue = parseFloat((document.getElementById('krStartValue') as HTMLInputElement).value);
             const targetValue = parseFloat((document.getElementById('krTargetValue') as HTMLInputElement).value);
             if (objectiveId && title && !isNaN(startValue) && !isNaN(targetValue)) {
-                await okrHandlers.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
+                await okrHandler.handleAddKeyResult(objectiveId, title, krType, startValue, targetValue);
             }
             return; // Handler manages its own state
         }

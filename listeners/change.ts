@@ -1,3 +1,5 @@
+
+
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -18,6 +20,14 @@ export function handleChange(e: Event) {
         const memberId = projectRoleSelect.dataset.projectMemberId!;
         const newRole = projectRoleSelect.value as ProjectRole;
         teamHandlers.handleChangeProjectMemberRole(memberId, newRole);
+        return;
+    }
+
+    const managerSelect = target.closest<HTMLSelectElement>('[data-change-employee-manager]');
+    if (managerSelect) {
+        const userId = managerSelect.dataset.changeEmployeeManager!;
+        const managerId = managerSelect.value;
+        teamHandlers.handleUpdateEmployeeManager(userId, managerId);
         return;
     }
 
@@ -59,9 +69,9 @@ export function handleChange(e: Event) {
         return;
     }
 
-    const tagCheckbox = target.closest<HTMLInputElement>('#taskTagsSelector input[type="checkbox"]');
+    const tagCheckbox = target.closest<HTMLInputElement>('.multiselect-container input[type="checkbox"]:not([data-filter-key])');
     if (tagCheckbox) {
-        const container = document.getElementById('taskTagsSelector');
+        const container = tagCheckbox.closest('.multiselect-container');
         const display = container?.querySelector('.multiselect-display');
         if (container && display) {
             const checkedBoxes = container.querySelectorAll<HTMLInputElement>('input:checked');

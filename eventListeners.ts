@@ -6,7 +6,7 @@ import { handleInput } from './listeners/input.ts';
 import { handleSubmit } from './listeners/submit.ts';
 import { handleClick } from './listeners/click.ts';
 import { handleChange } from './listeners/change.ts';
-import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './listeners/dnd.ts';
+import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './handlers/dnd.ts';
 
 export function setupEventListeners() {
     // By attaching to document, we can catch events on dynamically created elements

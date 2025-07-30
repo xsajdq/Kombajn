@@ -35,6 +35,7 @@ import * as taskViewHandlers from '../handlers/taskViews.ts';
 import * as goalHandlers from '../handlers/goals.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
+import * as tagHandlers from '../handlers/tags.ts';
 
 function closeAllTaskMenus() {
     document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
@@ -210,22 +211,26 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display');
+    const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display, #task-filter-tags-toggle');
     if (multiSelectDisplay) {
-        const container = multiSelectDisplay.closest<HTMLElement>('.multiselect-container');
+        const container = multiSelectDisplay.closest<HTMLElement>('.multiselect-container, [id*="-filter-tags-container"]');
         const dropdown = container?.querySelector<HTMLElement>('.multiselect-dropdown');
         if (dropdown) {
             const isHidden = dropdown.classList.contains('hidden');
             // Close all other multiselects to avoid overlap
-            document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
+            document.querySelectorAll('.multiselect-dropdown').forEach(d => {
+                if(d !== dropdown) d.classList.add('hidden');
+            });
             if (isHidden) {
                 dropdown.classList.remove('hidden');
+            } else {
+                dropdown.classList.add('hidden');
             }
         }
         return; // Prevent other click handlers from firing
     }
     
-    if (!target.closest('.multiselect-container')) {
+    if (!target.closest('.multiselect-container, [id*="-filter-tags-container"]')) {
         document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
     }
 
@@ -275,13 +280,13 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('.btn-close-panel, #side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
     
     const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id]');
-    if (projectCard && !target.closest('button, a')) {
+    if (projectCard && !target.closest('button, a, .multiselect-container')) {
         uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!);
         return;
     }
 
     const clientCard = target.closest<HTMLElement>('[data-client-id]:not([data-modal-target])');
-    if (clientCard && !target.closest('button, a')) {
+    if (clientCard && !target.closest('button, a, .multiselect-container')) {
         uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!);
         return;
     }
@@ -551,5 +556,20 @@ export async function handleClick(e: MouseEvent) {
             });
         }
         return;
+    }
+
+    // --- New Tag Handlers ---
+    const tagCheckbox = target.closest<HTMLInputElement>('.multiselect-list-item input[type="checkbox"]');
+    if(tagCheckbox) {
+        const multiselect = tagCheckbox.closest<HTMLElement>('.multiselect-container');
+        if(multiselect) {
+            const entityType = multiselect.dataset.entityType as 'project' | 'client';
+            const entityId = multiselect.dataset.entityId;
+            const tagId = tagCheckbox.value;
+            if(entityId && entityType && tagId) {
+                tagHandlers.handleToggleTag(entityType, entityId, tagId);
+                // Don't return, let the checkbox state change
+            }
+        }
     }
 }

@@ -66,6 +66,8 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.automations = data.automations || [];
         state.tags = data.tags || [];
         state.taskTags = data.taskTags || [];
+        state.projectTags = data.projectTags || [];
+        state.clientTags = data.clientTags || [];
         state.customFieldDefinitions = data.customFieldDefinitions || [];
         state.customFieldValues = data.customFieldValues || [];
         state.projectTemplates = data.projectTemplates || [];
