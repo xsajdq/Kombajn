@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
@@ -374,6 +375,39 @@ export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave'
         const [savedRequest] = await apiPost('time_off_requests', newRequestPayload);
         state.timeOffRequests.push(savedRequest);
         closeModal();
+        updateUI(['page']);
+
+        const requester = state.currentUser;
+        const managerId = requester.managerId;
+        
+        let userIdsToNotify: string[] = [];
+
+        if (managerId) {
+            const managerExists = state.workspaceMembers.some(m => m.workspaceId === state.activeWorkspaceId && m.userId === managerId);
+            if (managerExists) {
+                userIdsToNotify.push(managerId);
+            }
+        }
+        
+        if (userIdsToNotify.length === 0) {
+            const adminsAndOwners = state.workspaceMembers
+                .filter(m => m.workspaceId === state.activeWorkspaceId && (m.role === 'admin' || m.role === 'owner'))
+                .map(m => m.userId);
+            userIdsToNotify.push(...adminsAndOwners);
+        }
+
+        const notificationPromises = userIdsToNotify
+            .filter(id => id !== requester.id) // Don't notify the user about their own request
+            .map(userId => 
+                createNotification('time_off_request', {
+                    userIdToNotify: userId,
+                    actorId: requester.id,
+                    workspaceId: state.activeWorkspaceId!
+                })
+            );
+        
+        await Promise.all(notificationPromises);
+
     } catch(error) {
         alert("Failed to submit time off request.");
     }
