@@ -2,7 +2,7 @@ import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
 import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task } from '../types.ts';
-import { t } from '../i1n.ts';
+import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
 import * as commandHandlers from '../handlers/commands.ts';
