@@ -79,14 +79,12 @@ const commonChartOptions = {
 };
 
 const renderKpiCard = (title: string, value: string, icon: string, colorClass: string) => `
-    <div class="bg-content p-4 rounded-lg flex items-center gap-4">
-        <div class="p-3 rounded-full ${colorClass}">
+    <div class="kpi-card">
+        <div class="kpi-icon ${colorClass}">
             <span class="material-icons-sharp">${icon}</span>
         </div>
-        <div>
-            <p class="text-sm text-text-subtle">${title}</p>
-            <strong class="text-xl font-semibold">${value}</strong>
-        </div>
+        <p class="kpi-title">${title}</p>
+        <strong class="kpi-value">${value}</strong>
     </div>
 `;
 

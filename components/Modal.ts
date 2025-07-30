@@ -826,6 +826,10 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addExpense') {
+        const expenseCategories = [...new Set(state.expenses.map(e => e.category).filter(Boolean))];
+        const budgetCategories = [...new Set(state.budgets.map(b => b.category).filter(Boolean))];
+        const allCategories = [...new Set([...expenseCategories, ...budgetCategories])];
+
         title = t('modals.add_expense_title');
         body = `
             <form id="addExpenseForm" class="space-y-4">
@@ -845,7 +849,7 @@ export function Modal() {
                         <label for="expenseCategory" class="${labelClasses}">${t('budget.modal_expense_category')}</label>
                         <input type="text" id="expenseCategory" class="${formControlClasses}" required list="expense-categories">
                         <datalist id="expense-categories">
-                            ${[...new Set(state.expenses.map(e => e.category).filter(Boolean))].map(c => `<option value="${c}"></option>`).join('')}
+                            ${allCategories.map(c => `<option value="${c}"></option>`).join('')}
                         </datalist>
                     </div>
                     <div class="${formGroupClasses}">
@@ -1034,6 +1038,47 @@ export function Modal() {
                 </div>
             </form>
         ` : 'Item not found.';
+    }
+
+    if (state.ui.modal.type === 'employeeDetail') {
+        const userId = modalData.userId as string;
+        const user = state.users.find(u => u.id === userId);
+        const managers = state.workspaceMembers
+            .filter(m => m.workspaceId === state.activeWorkspaceId && m.userId !== userId) // Cannot be their own manager
+            .map(m => state.users.find(u => u.id === m.userId))
+            .filter(Boolean);
+    
+        title = t('modals.employee_detail_title');
+        if (user) {
+            body = `
+                <form id="employeeDetailForm" class="space-y-4" data-user-id="${user.id}">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-lg font-semibold">${user.initials}</div>
+                        <div>
+                            <h4 class="font-semibold">${user.name}</h4>
+                            <p class="text-sm text-text-subtle">${user.email}</p>
+                        </div>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="employeeManager" class="${labelClasses}">${t('modals.manager')}</label>
+                        <select id="employeeManager" class="${formControlClasses}" data-change-employee-manager="${user.id}">
+                            <option value="">-- No Manager --</option>
+                            ${managers.map(m => `<option value="${m!.id}" ${user.managerId === m!.id ? 'selected' : ''}>${m!.name || m!.initials}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="contractInfoNotes" class="${labelClasses}">${t('modals.contract_notes')}</label>
+                        <textarea id="contractInfoNotes" class="${formControlClasses}" rows="4">${user.contractInfoNotes || ''}</textarea>
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="employmentInfoNotes" class="${labelClasses}">${t('modals.employment_notes')}</label>
+                        <textarea id="employmentInfoNotes" class="${formControlClasses}" rows="4">${user.employmentInfoNotes || ''}</textarea>
+                    </div>
+                </form>
+            `;
+        } else {
+            body = '<p>User not found.</p>';
+        }
     }
 
 

@@ -738,38 +738,22 @@
   }
 
   /* Workload View Styles */
-  .workload-grid-container {
-    @apply grid relative;
-  }
-  .workload-header, .workload-user-cell, .workload-day-cell {
-      @apply p-2 border-b border-r border-border-color;
-  }
-  .workload-header {
-      @apply font-semibold text-sm text-center sticky top-0 bg-content z-10;
-  }
-  .workload-user-cell {
-      @apply font-semibold text-sm sticky left-0 bg-content z-10;
-  }
-  .workload-day-cell {
-      @apply relative min-h-[40px];
-  }
-  .workload-day-capacity {
-      @apply text-xs font-mono text-text-subtle;
-  }
-  .capacity-over { @apply bg-danger/20; }
-  .capacity-good { @apply bg-success/10; }
-  .capacity-under { @apply bg-background/50; }
+  .workload-container { @apply overflow-x-auto; }
+  .workload-grid { @apply inline-grid; grid-template-columns: 150px repeat(14, 1fr); }
+  .workload-header-row { @apply contents; }
+  .workload-body { @apply contents; }
+  .workload-header-user, .workload-header-date { @apply sticky top-0 bg-content p-2 border-b border-r border-border-color z-10; }
+  .workload-header-date { @apply text-center; }
+  .workload-user-cell { @apply sticky left-0 bg-content p-2 border-b border-r border-border-color z-10 flex items-center gap-2; }
+  .workload-day-cell-container { @apply contents; }
+  .workload-day-cell { @apply border-b border-r border-border-color relative; }
+  .workload-task-bars { @apply contents; }
+  .workload-task-bar { @apply absolute h-6 text-white text-xs font-medium rounded cursor-pointer overflow-hidden flex items-center px-2 z-20 m-px; }
+  .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.1); }
+  .capacity-good { background-color: rgba(var(--success-color-rgb), 0.05); }
 
-  .workload-task-bar {
-    @apply absolute h-6 text-white text-xs font-medium rounded cursor-pointer overflow-hidden flex items-center px-2 z-20;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  }
-  .workload-task-bar:hover {
-      @apply shadow-lg;
-      transform: translateY(-1px);
-  }
   
-    /* === NEW: Portfolio View === */
+  /* === NEW: Portfolio View === */
   .portfolio-table { @apply w-full text-sm; }
   .portfolio-table th { @apply px-4 py-3 text-left text-xs font-semibold text-text-subtle uppercase tracking-wider; }
   .portfolio-table tbody tr { @apply border-b border-border-color hover:bg-background cursor-pointer; }
@@ -799,13 +783,14 @@
   .indicator-dot { @apply w-2 h-2 rounded-full; }
   
   /* Gantt Chart Custom Styles */
-  .gantt .bar-wrapper.gantt-priority-high .bar { fill: rgba(var(--danger-color-rgb), 0.6); }
-  .gantt .bar-wrapper.gantt-priority-high .bar-progress { fill: rgba(var(--danger-color-rgb), 1); }
-  .gantt .bar-wrapper.gantt-priority-medium .bar { fill: rgba(var(--warning-color-rgb), 0.6); }
-  .gantt .bar-wrapper.gantt-priority-medium .bar-progress { fill: rgba(var(--warning-color-rgb), 1); }
-  .gantt .bar-wrapper.gantt-priority-low .bar { fill: rgba(var(--primary-color-rgb), 0.6); }
-  .gantt .bar-wrapper.gantt-priority-low .bar-progress { fill: rgba(var(--primary-color-rgb), 1); }
-  .gantt .bar-label { fill: #fff; font-weight: 500; }
+  .gantt .bar-wrapper.gantt-priority-high .bar { fill: rgba(var(--danger-color-rgb), 0.8); }
+  .gantt .bar-wrapper.gantt-priority-high .bar-progress { fill: rgb(var(--danger-color-rgb)); }
+  .gantt .bar-wrapper.gantt-priority-medium .bar { fill: rgba(var(--warning-color-rgb), 0.8); }
+  .gantt .bar-wrapper.gantt-priority-medium .bar-progress { fill: rgb(var(--warning-color-rgb)); }
+  .gantt .bar-wrapper.gantt-priority-low .bar { fill: rgba(var(--primary-color-rgb), 0.8); }
+  .gantt .bar-wrapper.gantt-priority-low .bar-progress { fill: rgb(var(--primary-color-rgb)); }
+  .gantt .bar-label { fill: #fff; font-weight: 500; font-size: 11px; }
+  html.dark .gantt .bar-label { fill: #000; }
   .gantt .grid-header, .gantt .grid-body { fill: rgba(var(--content-bg-rgb), 1); }
   .gantt .grid-row { fill: rgba(var(--content-bg-rgb), 1); }
   .gantt .grid-row:nth-child(odd) { fill: rgba(var(--background-color-rgb), 1); }
@@ -814,6 +799,20 @@
   .gantt .arrow { fill: rgba(var(--primary-color-rgb), 1); }
   .gantt-container .popup-wrapper { background-color: rgba(var(--background-color-rgb), 1); border: 1px solid rgba(var(--border-color-rgb), 1); color: rgba(var(--text-color-rgb), 1); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
   .gantt-container .popup-wrapper .pointer { border-top-color: rgba(var(--border-color-rgb), 1); }
+
+  /* NEW: Reports KPI Card Styles */
+  .kpi-card {
+    @apply bg-content p-4 rounded-lg flex flex-col items-start gap-1 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+  }
+  .kpi-icon {
+      @apply w-10 h-10 rounded-lg flex items-center justify-center mb-2;
+  }
+  .kpi-title {
+      @apply text-sm text-text-subtle;
+  }
+  .kpi-value {
+      @apply text-2xl font-semibold;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

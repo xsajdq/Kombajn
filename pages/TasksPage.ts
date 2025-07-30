@@ -1,6 +1,3 @@
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -394,7 +391,7 @@ function renderWorkloadView(filteredTasks: Task[]) {
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => state.users.find(u => u.id === m.userId))
         .filter((u): u is User => !!u)
-        .sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     const dates: Date[] = Array.from({ length: 14 }, (_, i) => {
         const date = new Date();
@@ -404,23 +401,19 @@ function renderWorkloadView(filteredTasks: Task[]) {
 
     const tasksWithData = filteredTasks.filter(t => t.startDate && t.dueDate && t.estimatedHours);
 
-    // Render grid structure and capacity
-    let headerHtml = `<div class="workload-header"></div>`;
-    dates.forEach(d => {
-        headerHtml += `<div class="workload-header">
+    const headerHtml = dates.map(d => `
+        <div class="workload-header-date">
             <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
             <div class="font-bold">${d.getDate()}</div>
-        </div>`;
-    });
-    
-    let gridHtml = headerHtml;
-    let taskBarsHtml = '';
+        </div>
+    `).join('');
 
-    users.forEach((user, userIndex) => {
-        gridHtml += `<div class="workload-user-cell">${user.name}</div>`;
-        const userTasks = tasksWithData.filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id));
-        
-        dates.forEach((date) => {
+    const rowsHtml = users.map(user => {
+        const userTasks = tasksWithData
+            .filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id))
+            .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
+
+        const dayCellsHtml = dates.map(date => {
             const dateStr = date.toISOString().slice(0, 10);
             let dailyHours = 0;
             userTasks.forEach(task => {
@@ -437,65 +430,59 @@ function renderWorkloadView(filteredTasks: Task[]) {
             if (dailyHours > 8) capacityClass = 'capacity-over';
             else if (dailyHours > 6) capacityClass = 'capacity-good';
             
-            gridHtml += `<div class="workload-day-cell ${capacityClass}">
-                <span class="workload-day-capacity">${dailyHours > 0 ? `${dailyHours.toFixed(1)}h` : ''}</span>
-            </div>`;
-        });
+            return `<div class="workload-day-cell ${capacityClass}"></div>`;
+        }).join('');
 
-        // Task bar layout algorithm for this user
-        const tracks: { task: Task, end: Date }[][] = [];
-        userTasks.sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
-
-        userTasks.forEach(task => {
+        const tracks: { end: Date }[][] = [];
+        const taskBarsHtml = userTasks.map(task => {
             const taskStart = new Date(task.startDate!);
             const taskEnd = new Date(task.dueDate!);
-            let placed = false;
-            for (let i = 0; i < tracks.length; i++) {
-                const track = tracks[i];
-                const hasOverlap = track.some(placed => new Date(placed.task.startDate!) < taskEnd && new Date(placed.task.dueDate!) > taskStart);
-                if (!hasOverlap) {
-                    track.push({ task, end: taskEnd });
-                    taskBarsHtml += renderTaskBar(task, userIndex, dates, i);
-                    placed = true;
-                    break;
-                }
+
+            let laneIndex = tracks.findIndex(track => !track.some(placed => placed.end >= taskStart));
+
+            if (laneIndex === -1) {
+                laneIndex = tracks.length;
+                tracks.push([]);
             }
-            if (!placed) {
-                tracks.push([{ task, end: taskEnd }]);
-                taskBarsHtml += renderTaskBar(task, userIndex, dates, tracks.length - 1);
-            }
-        });
-    });
-    
-    return `<div class="overflow-x-auto"><div class="workload-grid-container" style="grid-template-rows: auto repeat(${users.length}, minmax(80px, auto));">${gridHtml}${taskBarsHtml}</div></div>`;
-}
+            tracks[laneIndex].push({ end: taskEnd });
 
-function renderTaskBar(task: Task, userIndex: number, dates: Date[], trackIndex: number) {
-    const viewStart = dates[0];
-    const viewEnd = dates[dates.length - 1];
-    const taskStart = new Date(task.startDate!);
-    const taskEnd = new Date(task.dueDate!);
+            const startDayIndex = Math.floor((taskStart.getTime() - dates[0].getTime()) / (1000 * 3600 * 24));
+            const durationDays = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 3600 * 24)) + 1;
+            
+            const gridColumnStart = Math.max(1, startDayIndex + 1);
+            const gridColumnEnd = Math.min(dates.length + 1, gridColumnStart + durationDays);
 
-    const start = taskStart < viewStart ? viewStart : taskStart;
-    const end = taskEnd > viewEnd ? viewEnd : taskEnd;
+            const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
+            const colorClass = priorityColors[task.priority || 'low'];
 
-    const startDayIndex = Math.floor((start.getTime() - viewStart.getTime()) / (1000 * 3600 * 24));
-    const endDayIndex = Math.floor((end.getTime() - viewStart.getTime()) / (1000 * 3600 * 24));
-    const duration = endDayIndex - startDayIndex + 1;
+            return `
+                <div class="workload-task-bar ${colorClass}" 
+                     style="grid-column: ${gridColumnStart} / ${gridColumnEnd}; top: ${2 + laneIndex * 28}px;"
+                     data-task-id="${task.id}"
+                     title="${task.name}">
+                     ${task.name}
+                </div>`;
+        }).join('');
+        
+        return `
+            <div class="workload-user-cell">
+                <div class="avatar-small">${user.initials}</div>
+                <span class="text-sm font-medium">${user.name}</span>
+            </div>
+            <div class="workload-day-cell-container">${dayCellsHtml}</div>
+            <div class="workload-task-bars">${taskBarsHtml}</div>
+        `;
+    }).join('');
 
-    if (duration <= 0) return '';
-    
-    const priorityColors: Record<string, string> = {
-        high: 'bg-red-500', medium: 'bg-yellow-500', low: 'bg-blue-500'
-    };
-    const colorClass = priorityColors[task.priority || 'low'];
-
-    return `<div class="workload-task-bar ${colorClass}" 
-                 style="grid-row: ${userIndex + 2}; grid-column: ${startDayIndex + 2} / span ${duration}; top: ${2 + trackIndex * 28}px"
-                 data-task-id="${task.id}"
-                 title="${task.name}">
-                 ${task.name}
-            </div>`;
+    return `
+        <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
+            <div class="workload-grid" style="grid-template-columns: 150px repeat(${dates.length}, 1fr);">
+                <div class="workload-header-user"></div>
+                ${headerHtml}
+                ${rowsHtml}
+            </div>
+        </div>
+    `;
 }
 
 export function initTasksPage() {
