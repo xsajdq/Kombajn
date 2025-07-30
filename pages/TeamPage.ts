@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
@@ -24,7 +25,6 @@ async function renderEmployeesTab() {
         })
         .sort((a, b) => (a.user.name || '').localeCompare(b.user.name || ''));
 
-    const ALL_ROLES: Role[] = ['owner', 'admin', 'manager', 'member', 'finance', 'client'];
     const canManageRoles = can('manage_roles');
     const canInviteUsers = can('invite_users');
     const canRemoveUsers = can('remove_users');
@@ -107,7 +107,7 @@ async function renderEmployeesTab() {
                     <div class="flex flex-col gap-1.5">
                         <label for="invite-role" class="text-sm font-medium text-text-subtle">${t('hr.select_role')}</label>
                         <select id="invite-role" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                            ${ALL_ROLES.filter(r => r !== 'owner').map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
+                            ${['owner', 'admin', 'manager', 'member', 'finance', 'client'].filter(r => r !== 'owner').map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
                         </select>
                     </div>
                 </div>
