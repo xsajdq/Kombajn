@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -36,6 +37,7 @@ import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
 import * as tagHandlers from '../handlers/tags.ts';
 import * as kanbanHandlers from '../handlers/kanban.ts';
+import { handleInsertSlashCommand } from '../handlers/editor.ts';
 
 function closeDynamicMenus() {
     document.querySelectorAll('#dynamic-role-menu, .task-card-menu').forEach(menu => menu.remove());
@@ -167,6 +169,15 @@ export async function handleClick(e: MouseEvent) {
     
     // --- START: New Handlers for Comments & Reactions ---
 
+    const slashCommandItem = target.closest<HTMLElement>('.slash-command-item');
+    if (slashCommandItem) {
+        const command = slashCommandItem.dataset.command as string;
+        if (command && state.ui.slashCommand.target) {
+            handleInsertSlashCommand(command, state.ui.slashCommand.target);
+        }
+        return;
+    }
+    
     // Reply button
     const replyBtn = target.closest<HTMLElement>('[data-reply-to-comment-id]');
     if (replyBtn) {

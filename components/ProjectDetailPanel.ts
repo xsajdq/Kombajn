@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
@@ -472,7 +473,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         { id: 'tasks', text: t('panels.tasks'), content: renderTasksTab() },
         { id: 'wiki', text: t('panels.tab_wiki'), content: renderWikiTab() },
         { id: 'files', text: t('panels.tab_files'), content: renderFilesTab() },
-        { id: 'tags', text: t('modals.tags'), content: renderTagsTab() },
+        { id: 'tags', text: t('panels.tab_tags'), content: renderTagsTab() },
         { id: 'expenses', text: t('panels.tab_expenses'), content: renderExpensesTab() },
         { id: 'okrs', text: t('panels.tab_okrs'), content: renderOkrsTab() },
         { id: 'access', text: t('panels.tab_access'), content: renderAccessTab() },
