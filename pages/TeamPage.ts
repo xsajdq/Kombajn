@@ -70,19 +70,10 @@ async function renderEmployeesTab() {
                             </div>
                             <div>
                                 ${canManageRoles && !isOwner && !isSelf ? `
-                                    <div class="relative">
-                                        <button class="role-tag" data-menu-toggle="role-menu-${member.id}" aria-haspopup="true" aria-expanded="false">
-                                            <span>${t(`hr.role_${member.role}`)}</span>
-                                            <span class="material-icons-sharp text-base">expand_more</span>
-                                        </button>
-                                        <div id="role-menu-${member.id}" class="dropdown-menu role-menu">
-                                            ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
-                                                <button class="role-menu-item ${member.role === role ? 'active' : ''}" data-new-role-for-member-id="${member.id}" data-role="${role}">
-                                                    ${t(`hr.role_${role}`)}
-                                                </button>
-                                            `).join('')}
-                                        </div>
-                                    </div>
+                                    <button class="role-tag" data-role-menu-for-member-id="${member.id}" aria-haspopup="true" aria-expanded="false">
+                                        <span>${t(`hr.role_${member.role}`)}</span>
+                                        <span class="material-icons-sharp text-base">expand_more</span>
+                                    </button>
                                 ` : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
                             </div>
                             <div>

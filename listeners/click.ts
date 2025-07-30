@@ -2,7 +2,7 @@ import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
 import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task } from '../types.ts';
-import { t } from '../i18n.ts';
+import { t } from '../i1n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
 import * as commandHandlers from '../handlers/commands.ts';
@@ -36,12 +36,13 @@ import * as pipelineHandlers from '../handlers/pipeline.ts';
 import * as tagHandlers from '../handlers/tags.ts';
 import * as kanbanHandlers from '../handlers/kanban.ts';
 
-function closeAllTaskMenus() {
-    document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
+function closeDynamicMenus() {
+    document.querySelectorAll('#dynamic-role-menu, .task-card-menu').forEach(menu => menu.remove());
 }
 
+
 function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
-    closeAllTaskMenus();
+    closeDynamicMenus();
 
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -190,13 +191,61 @@ export async function handleClick(e: MouseEvent) {
 
     // --- END: New Handlers for Comments & Reactions ---
 
+    // Handle clicks outside of dynamic menus FIRST
+    if (!target.closest('[data-role-menu-for-member-id]') && !target.closest('#dynamic-role-menu')) {
+        closeDynamicMenus();
+    }
+    
+    // --- START: Dynamic Role Menu Handler ---
+    const roleMenuToggle = target.closest<HTMLElement>('[data-role-menu-for-member-id]');
+    if (roleMenuToggle) {
+        e.stopPropagation(); // Prevent immediate closing
+        const memberId = roleMenuToggle.dataset.roleMenuForMemberId!;
+        const member = state.workspaceMembers.find(m => m.id === memberId);
+        
+        closeDynamicMenus(); // Close any existing menu
+
+        if (!member) return;
+
+        const menu = document.createElement('div');
+        menu.id = 'dynamic-role-menu';
+        // Use existing classes for styling consistency
+        menu.className = 'dropdown-menu role-menu'; 
+        
+        const ALL_ROLES: Role[] = ['owner', 'admin', 'manager', 'member', 'finance', 'client'];
+        menu.innerHTML = ALL_ROLES.filter(r => r !== 'owner').map(role => `
+            <button class="role-menu-item ${member.role === role ? 'active' : ''}" data-new-role-for-member-id="${member.id}" data-role="${role}">
+                ${t(`hr.role_${role}`)}
+            </button>
+        `).join('');
+
+        document.body.appendChild(menu);
+
+        const btnRect = roleMenuToggle.getBoundingClientRect();
+        menu.style.position = 'absolute';
+        menu.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
+        menu.style.left = `${btnRect.left + window.scrollX}px`;
+        menu.style.zIndex = '100'; // High z-index to ensure it's on top
+        
+        return; // Stop further processing for this click
+    }
+
+    // Handle clicking a role item from the dynamic menu
+    const roleMenuItem = target.closest<HTMLElement>('[data-new-role-for-member-id]');
+    if (roleMenuItem) {
+        const memberId = roleMenuItem.dataset.newRoleForMemberId!;
+        const newRole = roleMenuItem.dataset.role as Role;
+        teamHandlers.handleChangeUserRole(memberId, newRole);
+        closeDynamicMenus();
+        return;
+    }
+    // --- END: Dynamic Role Menu Handler ---
+
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
-    // --- Unified Dropdown Menu Logic ---
     const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
 
-    // Close all menus that are NOT the one we're currently interacting with
     document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if (menu !== associatedMenu) {
+        if (menu !== associatedMenu && menu.id !== 'dynamic-role-menu') {
             menu.classList.add('hidden');
             const correspondingToggle = document.querySelector(`[data-menu-toggle="${menu.id}"]`);
             if (correspondingToggle) correspondingToggle.setAttribute('aria-expanded', 'false');
@@ -207,11 +256,11 @@ export async function handleClick(e: MouseEvent) {
          document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
     }
 
-    // If we clicked a toggle, handle its menu
     if (menuToggle && associatedMenu) {
+        closeDynamicMenus();
         const isHidden = associatedMenu.classList.toggle('hidden');
         menuToggle.setAttribute('aria-expanded', String(!isHidden));
-        return; // Prevent other handlers
+        return;
     }
     
     const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display, #task-filter-tags-toggle, #client-filter-tags-toggle, #project-filter-tags-toggle');
@@ -220,7 +269,6 @@ export async function handleClick(e: MouseEvent) {
         const dropdown = container?.querySelector<HTMLElement>('.multiselect-dropdown');
         if (dropdown) {
             const isHidden = dropdown.classList.contains('hidden');
-            // Close all other multiselects to avoid overlap
             document.querySelectorAll('.multiselect-dropdown').forEach(d => {
                 if(d !== dropdown) d.classList.add('hidden');
             });
@@ -230,21 +278,20 @@ export async function handleClick(e: MouseEvent) {
                 dropdown.classList.add('hidden');
             }
         }
-        return; // Prevent other click handlers from firing
+        return;
     }
     
     if (!target.closest('.multiselect-container, [id*="-filter-tags-container"]')) {
         document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
     }
 
-    if (!target.closest('.task-card-menu')) closeAllTaskMenus();
+    if (!target.closest('.task-card-menu-btn')) closeDynamicMenus();
     if (!target.closest('#notification-bell') && !target.closest('.absolute.top-full.right-0')) {
         if(state.ui.isNotificationsOpen) notificationHandlers.toggleNotificationsPopover(false);
     }
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) uiHandlers.toggleCommandPalette(false);
     if (state.ui.onboarding.isActive && !target.closest('.absolute.bg-content')) onboardingHandlers.finishOnboarding();
 
-    // --- Element-specific Click Handlers ---
     const navLink = target.closest('a');
     if (navLink && navLink.hostname === window.location.hostname && !navLink.href.startsWith('mailto:')) {
         const isPlaceholder = navLink.getAttribute('href') === '#';
@@ -479,14 +526,7 @@ export async function handleClick(e: MouseEvent) {
         teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
         return;
     }
-    const roleMenuItem = target.closest<HTMLElement>('[data-new-role-for-member-id]');
-    if (roleMenuItem) {
-        const memberId = roleMenuItem.dataset.newRoleForMemberId!;
-        const newRole = roleMenuItem.dataset.role as Role;
-        teamHandlers.handleChangeUserRole(memberId, newRole);
-        roleMenuItem.closest('[aria-haspopup="true"] + div')?.classList.add('hidden');
-        return;
-    }
+
     if (target.closest('#hr-invite-member-btn')) { document.getElementById('hr-invite-flyout')?.classList.add('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.add('is-open'); return; }
     if (target.closest('#hr-invite-cancel-btn, #hr-invite-flyout-backdrop')) { document.getElementById('hr-invite-flyout')?.classList.remove('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.remove('is-open'); return; }
     if (target.closest('[data-remove-member-id]')) { teamHandlers.handleRemoveUserFromWorkspace(target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!); return; }

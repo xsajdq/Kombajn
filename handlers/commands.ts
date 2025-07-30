@@ -1,8 +1,3 @@
-
-
-
-
-
 import { state, saveState } from '../state.ts';
 import { updateUI, renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
@@ -34,32 +29,53 @@ export function handleCommandSearch(query: string) {
     const listContainer = document.querySelector('.command-palette-list');
     if (!listContainer) return;
 
-    // If query is empty, restore default commands immediately without API call
+    // If query is empty, restore default commands immediately
     if (!query) {
         listContainer.innerHTML = renderCommandPaletteList();
         return;
     }
     
-    searchTimeout = window.setTimeout(async () => {
-        try {
-            const results = await apiFetch(`/api?action=global-search&workspaceId=${state.activeWorkspaceId}&query=${encodeURIComponent(query)}`);
-            const groupedResults = {
-                projects: results?.filter((r: any) => r.type === 'project') || [],
-                tasks: results?.filter((r: any) => r.type === 'task') || [],
-                clients: results?.filter((r: any) => r.type === 'client') || [],
-            };
+    // Use a short debounce for responsiveness as filtering large arrays can be slow
+    searchTimeout = window.setTimeout(() => {
+        const lowerCaseQuery = query.toLowerCase();
+
+        const projectResults = state.projects
+            .filter(p => p.workspaceId === state.activeWorkspaceId && p.name.toLowerCase().includes(lowerCaseQuery))
+            .map(p => ({
+                id: p.id,
+                name: p.name,
+                type: 'project',
+                context: state.clients.find(c => c.id === p.clientId)?.name || ''
+            }));
+
+        const taskResults = state.tasks
+            .filter(t => t.workspaceId === state.activeWorkspaceId && t.name.toLowerCase().includes(lowerCaseQuery))
+            .map(t => ({
+                id: t.id,
+                name: t.name,
+                type: 'task',
+                context: state.projects.find(p => p.id === t.projectId)?.name || ''
+            }));
             
-            // Only update the list, not the whole component
-            if (listContainer && state.ui.isCommandPaletteOpen) {
-                 listContainer.innerHTML = renderCommandPaletteList(groupedResults);
-            }
-        } catch (error) {
-            console.error("Command palette search failed:", error);
-            if (listContainer && state.ui.isCommandPaletteOpen) {
-                listContainer.innerHTML = `<div class="empty-command-list">${t('command_palette.no_results')}</div>`;
-            }
+        const clientResults = state.clients
+            .filter(c => c.workspaceId === state.activeWorkspaceId && c.name.toLowerCase().includes(lowerCaseQuery))
+            .map(c => ({
+                id: c.id,
+                name: c.name,
+                type: 'client',
+                context: '' // Clients don't have a parent context
+            }));
+
+        const groupedResults = {
+            projects: projectResults,
+            tasks: taskResults,
+            clients: clientResults,
+        };
+        
+        if (listContainer && state.ui.isCommandPaletteOpen) {
+            listContainer.innerHTML = renderCommandPaletteList(groupedResults);
         }
-    }, 250); // Debounce for 250ms
+    }, 100);
 }
 
 
