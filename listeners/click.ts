@@ -95,6 +95,53 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as Element;
 
+    // --- Dynamic Role Menu Handler ---
+    const roleMenuButton = target.closest<HTMLElement>('[data-role-menu-for-member-id]');
+    if (roleMenuButton) {
+        e.stopPropagation();
+        const existingMenu = document.getElementById('dynamic-role-menu');
+        // If menu is already open for THIS button, close it. Otherwise, open a new one.
+        if (existingMenu && existingMenu.dataset.ownerId === roleMenuButton.dataset.roleMenuForMemberId) {
+            closeDynamicMenus();
+            return;
+        }
+
+        closeDynamicMenus(); // Close any other open menu
+        const memberId = roleMenuButton.dataset.roleMenuForMemberId!;
+        const member = state.workspaceMembers.find(m => m.id === memberId);
+        if (!member) return;
+
+        const menu = document.createElement('div');
+        menu.id = 'dynamic-role-menu';
+        menu.dataset.ownerId = memberId;
+        menu.className = 'absolute z-50 w-40 bg-content rounded-md shadow-lg border border-border-color py-1';
+        const ALL_ROLES: Role[] = ['admin', 'manager', 'member', 'finance', 'client'];
+        menu.innerHTML = ALL_ROLES.map(role => `
+            <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background role-menu-item ${member.role === role ? 'bg-primary/10' : ''}" data-member-id="${memberId}" data-new-role="${role}">
+                <span>${t(`hr.role_${role}`)}</span>
+            </button>
+        `).join('');
+        document.body.appendChild(menu);
+        const btnRect = roleMenuButton.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        menu.style.top = `${btnRect.bottom + window.scrollY + 5}px`;
+        let left = btnRect.right - menuRect.width;
+        if (left < 10) left = btnRect.left;
+        menu.style.left = `${left}px`;
+        return;
+    }
+
+    const roleMenuItem = target.closest<HTMLElement>('#dynamic-role-menu .role-menu-item');
+    if (roleMenuItem) {
+        const memberId = roleMenuItem.dataset.memberId!;
+        const newRole = roleMenuItem.dataset.newRole as Role;
+        await teamHandlers.handleChangeUserRole(memberId, newRole);
+        closeDynamicMenus();
+        return;
+    }
+    // --- End Dynamic Role Menu Handler ---
+
+
     // --- Global Click Handlers ---
     const fabContainer = document.getElementById('fab-container');
     const mainFabButton = target.closest('#fab-main-btn');
@@ -192,11 +239,6 @@ export async function handleClick(e: MouseEvent) {
 
     // --- END: New Handlers for Comments & Reactions ---
 
-    // Handle clicks outside of dynamic menus FIRST
-    if (!target.closest('[data-role-menu-for-member-id]') && !target.closest('#dynamic-role-menu')) {
-        closeDynamicMenus();
-    }
-    
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
 
@@ -208,8 +250,9 @@ export async function handleClick(e: MouseEvent) {
         }
     });
 
-    if (!menuToggle && !target.closest('.dropdown-menu')) {
+    if (!menuToggle && !target.closest('.dropdown-menu') && !target.closest('#dynamic-role-menu')) {
          document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+         closeDynamicMenus();
     }
 
     if (menuToggle && associatedMenu) {
