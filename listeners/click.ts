@@ -1,5 +1,3 @@
-
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -303,7 +301,7 @@ export async function handleClick(e: MouseEvent) {
     }
     
     const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, [data-task-id]');
-    if (taskCardOrRow && !target.closest('button, a, input, .timer-controls, .task-card-menu-btn')) {
+    if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) {
             uiHandlers.updateUrlAndShowDetail('task', taskId);

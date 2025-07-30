@@ -8,56 +8,47 @@ import { handleCommandSearch } from '../handlers/commands.ts';
 declare const marked: any;
 declare const DOMPurify: any;
 
-export function handleInput(e: Event) {
+export async function handleInput(e: Event) {
     const target = e.target as HTMLElement;
+
+    // Map of live search input IDs to the state update function
+    const liveSearchInputs: { [key: string]: (value: string) => void } = {
+        'project-search-input': (value) => state.ui.projects.filters.text = value,
+        'task-filter-text': (value) => {
+            state.ui.tasks.filters.text = value;
+            state.ui.tasks.activeFilterViewId = null;
+        },
+        'client-search-input': (value) => state.ui.clients.filters.text = value,
+        'employee-search': (value) => state.ui.hr.filters.text = value,
+        'goal-search-input': (value) => state.ui.goals.filters.text = value,
+        'inventory-search-input': (value) => state.ui.inventory.filters.text = value,
+    };
+
+    // Handle live search with focus preservation
+    if (target.id in liveSearchInputs && target instanceof HTMLInputElement) {
+        const inputElement = target;
+        const activeElementId = inputElement.id;
+        const selectionStart = inputElement.selectionStart;
+        const selectionEnd = inputElement.selectionEnd;
+
+        liveSearchInputs[inputElement.id](inputElement.value);
+
+        await updateUI(['page']);
+
+        const restoredInput = document.getElementById(activeElementId) as HTMLInputElement | null;
+        if (restoredInput) {
+            restoredInput.focus();
+            if (selectionStart !== null && selectionEnd !== null) {
+                restoredInput.setSelectionRange(selectionStart, selectionEnd);
+            }
+        }
+        return;
+    }
 
     // Command Palette live search
     if (target.id === 'command-palette-input') {
         const query = (target as HTMLInputElement).value;
         handleCommandSearch(query);
-        return;
-    }
-
-    // Projects Page Search
-    if (target.id === 'project-search-input') {
-        state.ui.projects.filters.text = (target as HTMLInputElement).value;
-        updateUI(['page']);
-        return;
-    }
-
-    // Tasks Page Search
-    if (target.id === 'task-filter-text') {
-        state.ui.tasks.filters.text = (target as HTMLInputElement).value;
-        state.ui.tasks.activeFilterViewId = null; // Typing in search box de-selects a saved view
-        updateUI(['page']);
-        return;
-    }
-
-    // Clients Page Search
-    if (target.id === 'client-search-input') {
-        state.ui.clients.filters.text = (target as HTMLInputElement).value;
-        updateUI(['page']);
-        return;
-    }
-
-    // HR (Employees) Page Search
-    if (target.id === 'employee-search') {
-        state.ui.hr.filters.text = (target as HTMLInputElement).value;
-        updateUI(['page']);
-        return;
-    }
-    
-    // Goals Page Search
-    if (target.id === 'goal-search-input') {
-        state.ui.goals.filters.text = (target as HTMLInputElement).value;
-        updateUI(['page']);
-        return;
-    }
-
-    // Inventory Page Search
-    if (target.id === 'inventory-search-input') {
-        state.ui.inventory.filters.text = (target as HTMLInputElement).value;
-        updateUI(['page']);
         return;
     }
 
