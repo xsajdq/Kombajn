@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages', 'kanban_stages'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -312,7 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
                     automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes, pipelineStagesRes
+                    budgetsRes, reviewsRes, pipelineStagesRes, kanbanStagesRes
                 ] = await Promise.all([
                     supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
                     supabase.from('projects').select('*').eq('workspace_id', workspaceId),
@@ -348,6 +348,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
                     supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
                     supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId),
+                    supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId),
                 ]);
             
                 const allResults = [
@@ -356,7 +357,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
                     automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
                     projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes, pipelineStagesRes
+                    budgetsRes, reviewsRes, pipelineStagesRes, kanbanStagesRes
                 ];
                 for (const r of allResults) {
                     if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
@@ -412,6 +413,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     deals: dealsRes.data,
                     dealActivities: dealActivitiesRes.data,
                     pipelineStages: pipelineStagesRes.data,
+                    kanbanStages: kanbanStagesRes.data,
                     automations: automationsRes.data,
                     tags: tagsRes.data,
                     taskTags: taskTagsRes.data,

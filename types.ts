@@ -487,6 +487,15 @@ export interface PipelineStage {
     category: 'open' | 'won' | 'lost';
 }
 
+export interface KanbanStage {
+    id: string;
+    workspaceId: string;
+    name: string;
+    status: Task['status'];
+    sortOrder: number;
+}
+
+
 export interface Deal {
     id: string;
     workspaceId: string;
@@ -663,6 +672,7 @@ export interface AppState {
     userTaskSortOrders: UserTaskSortOrder[];
     budgets: Budget[];
     pipelineStages: PipelineStage[];
+    kanbanStages: KanbanStage[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -733,7 +743,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline' | 'kanban';
         };
         dashboard: {
             isEditing: boolean;

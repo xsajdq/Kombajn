@@ -1,6 +1,7 @@
 
 
 
+
 import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
@@ -9,9 +10,10 @@ import { runAutomations } from './automations.ts';
 import { apiPut, apiPost } from '../services/api.ts';
 import { showModal } from './ui.ts';
 import { handleReorderStages } from './pipeline.ts';
+import { handleReorderKanbanStages } from './kanban.ts';
 
 let draggedItemId: string | null = null;
-let draggedItemType: 'task' | 'deal' | 'widget' | 'pipeline-stage' | null = null;
+let draggedItemType: 'task' | 'deal' | 'widget' | 'pipeline-stage' | 'kanban-stage' | null = null;
 
 export function handleDragStart(e: DragEvent) {
     const target = e.target as HTMLElement;
@@ -19,6 +21,7 @@ export function handleDragStart(e: DragEvent) {
     const dealCard = target.closest<HTMLElement>('.deal-card');
     const widget = target.closest<HTMLElement>('[data-widget-id]');
     const stageRow = target.closest<HTMLElement>('.pipeline-stage-row');
+    const kanbanStageRow = target.closest<HTMLElement>('.kanban-stage-row');
 
     let itemCard: HTMLElement | null = null;
     let id: string | undefined;
@@ -43,6 +46,10 @@ export function handleDragStart(e: DragEvent) {
         itemCard = stageRow;
         draggedItemType = 'pipeline-stage';
         id = itemCard.dataset.stageId;
+    } else if (kanbanStageRow) {
+        itemCard = kanbanStageRow;
+        draggedItemType = 'kanban-stage';
+        id = itemCard.dataset.stageId;
     }
 
     if (itemCard && id && e.dataTransfer) {
@@ -64,8 +71,12 @@ export function handleDragEnd(e: DragEvent) {
 export function handleDragOver(e: DragEvent) {
     e.preventDefault();
     
-    if (draggedItemType === 'widget' || draggedItemType === 'pipeline-stage') {
-        const dropTargetSelector = draggedItemType === 'widget' ? '[data-widget-id]' : '.pipeline-stage-row';
+    if (draggedItemType === 'widget' || draggedItemType === 'pipeline-stage' || draggedItemType === 'kanban-stage') {
+        let dropTargetSelector = '';
+        if (draggedItemType === 'widget') dropTargetSelector = '[data-widget-id]';
+        if (draggedItemType === 'pipeline-stage') dropTargetSelector = '.pipeline-stage-row';
+        if (draggedItemType === 'kanban-stage') dropTargetSelector = '.kanban-stage-row';
+
         const dropTargetElement = (e.target as HTMLElement).closest(dropTargetSelector);
         document.querySelectorAll(`${dropTargetSelector}.drag-over`).forEach(el => el.classList.remove('drag-over'));
         
@@ -270,5 +281,28 @@ export async function handleDrop(e: DragEvent) {
         
         const orderedIds = Array.from(stageList.querySelectorAll<HTMLElement>('.pipeline-stage-row')).map(row => row.dataset.stageId!);
         handleReorderStages(orderedIds);
+    }
+
+    // Handle Kanban Stage Drop (in settings)
+    const dropTargetKanbanStageRow = (e.target as HTMLElement).closest('.kanban-stage-row');
+    if (draggedItemType === 'kanban-stage' && dropTargetKanbanStageRow) {
+        document.querySelectorAll('.kanban-stage-row').forEach(el => el.classList.remove('drag-over'));
+        const dropTargetId = (dropTargetKanbanStageRow as HTMLElement).dataset.stageId!;
+        if (draggedItemId === dropTargetId) return;
+
+        const stageList = dropTargetKanbanStageRow.parentElement!;
+        const draggedElement = stageList.querySelector(`[data-stage-id="${draggedItemId}"]`);
+        
+        if (draggedElement) {
+            const isDraggingDown = (draggedElement.getBoundingClientRect().top - dropTargetKanbanStageRow.getBoundingClientRect().top) < 0;
+            if (isDraggingDown) {
+                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow.nextSibling);
+            } else {
+                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow);
+            }
+        }
+        
+        const orderedIds = Array.from(stageList.querySelectorAll<HTMLElement>('.kanban-stage-row')).map(row => row.dataset.stageId!);
+        handleReorderKanbanStages(orderedIds);
     }
 }

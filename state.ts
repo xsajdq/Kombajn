@@ -1,6 +1,7 @@
 
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -81,6 +82,7 @@ export function getInitialState(): AppState {
         userTaskSortOrders: [],
         budgets: [],
         pipelineStages: [],
+        kanbanStages: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,

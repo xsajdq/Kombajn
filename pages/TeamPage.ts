@@ -53,7 +53,7 @@ async function renderEmployeesTab() {
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
-                        const displayName = (user.name && user.name.toLowerCase() !== 'null') ? user.name : user.initials;
+                        const displayName = user.name || user.email || user.initials;
                         return `
                         <div class="modern-list-row hr-list-grid group" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
                             <div class="flex items-center gap-3">
@@ -69,7 +69,7 @@ async function renderEmployeesTab() {
                                             <span>${t(`hr.role_${member.role}`)}</span>
                                             <span class="material-icons-sharp text-base">expand_more</span>
                                         </button>
-                                        <div id="role-menu-${member.id}" class="role-menu">
+                                        <div id="role-menu-${member.id}" class="dropdown-menu role-menu">
                                             ${ALL_ROLES.filter(r => r !== 'owner').map(role => `
                                                 <button class="role-menu-item ${member.role === role ? 'active' : ''}" data-new-role-for-member-id="${member.id}" data-role="${role}">
                                                     ${t(`hr.role_${role}`)}

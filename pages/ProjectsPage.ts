@@ -78,7 +78,7 @@ function renderGridView() {
                                     <button class="p-1 text-text-subtle rounded-full hover:bg-background" data-menu-toggle="project-menu-${project.id}" aria-haspopup="true" aria-expanded="false" aria-label="Project actions menu">
                                         <span class="material-icons-sharp text-lg">more_horiz</span>
                                     </button>
-                                    <div id="project-menu-${project.id}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                    <div id="project-menu-${project.id}" class="dropdown-menu absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
                                         <div class="py-1">
                                             <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-modal-target="addProject" data-project-id="${project.id}">
                                                 <span class="material-icons-sharp text-base">edit</span>

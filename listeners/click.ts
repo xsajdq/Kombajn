@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -35,6 +36,7 @@ import * as goalHandlers from '../handlers/goals.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
 import * as tagHandlers from '../handlers/tags.ts';
+import * as kanbanHandlers from '../handlers/kanban.ts';
 
 function closeAllTaskMenus() {
     document.querySelectorAll('.task-card-menu').forEach(menu => menu.remove());
@@ -47,7 +49,7 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
     if (!task) return;
 
     const menu = document.createElement('div');
-    menu.className = 'task-card-menu';
+    menu.className = 'task-card-menu dropdown-menu';
     menu.innerHTML = `
         <button class="task-menu-item" data-edit-task-id="${taskId}">
             <span class="material-icons-sharp">edit</span>
@@ -191,23 +193,27 @@ export async function handleClick(e: MouseEvent) {
     // --- END: New Handlers for Comments & Reactions ---
 
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
-    if (!menuToggle && !target.closest('[aria-haspopup="true"] + div')) {
-        document.querySelectorAll('[aria-haspopup="true"] + div').forEach(menu => menu.classList.add('hidden'));
-        document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-    }
-    if (menuToggle) {
-        const menuId = menuToggle.dataset.menuToggle!;
-        const menu = document.getElementById(menuId);
-        if (menu) {
-            const isHidden = menu.classList.contains('hidden');
-            document.querySelectorAll('[aria-haspopup="true"] + div').forEach(m => m.classList.add('hidden'));
-            document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-            if (isHidden) {
-                menu.classList.remove('hidden');
-                menuToggle.setAttribute('aria-expanded', 'true');
-            }
+    // --- Unified Dropdown Menu Logic ---
+    const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
+
+    // Close all menus that are NOT the one we're currently interacting with
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        if (menu !== associatedMenu) {
+            menu.classList.add('hidden');
+            const correspondingToggle = document.querySelector(`[data-menu-toggle="${menu.id}"]`);
+            if (correspondingToggle) correspondingToggle.setAttribute('aria-expanded', 'false');
         }
-        return;
+    });
+
+    if (!menuToggle && !target.closest('.dropdown-menu')) {
+         document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+    }
+
+    // If we clicked a toggle, handle its menu
+    if (menuToggle && associatedMenu) {
+        const isHidden = associatedMenu.classList.toggle('hidden');
+        menuToggle.setAttribute('aria-expanded', String(!isHidden));
+        return; // Prevent other handlers
     }
     
     const multiSelectDisplay = target.closest<HTMLElement>('.multiselect-display, #task-filter-tags-toggle, #client-filter-tags-toggle, #project-filter-tags-toggle');
@@ -468,6 +474,7 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#add-task-view-btn')) { const name = document.getElementById('new-task-view-name') as HTMLInputElement; const icon = document.getElementById('new-task-view-icon') as HTMLInputElement; if (name.value) { taskViewHandlers.handleCreateTaskView(name.value, icon.value); name.value = ''; icon.value = 'checklist'; } return; }
     if (target.closest('[data-delete-pipeline-stage]')) { pipelineHandlers.handleDeleteStage(target.closest<HTMLElement>('[data-delete-pipeline-stage]')!.dataset.deletePipelineStage!); return; }
     if (target.closest('[data-save-pipeline-stage]')) { const stageId = target.closest<HTMLElement>('[data-save-pipeline-stage]')!.dataset.savePipelineStage!; const input = document.querySelector(`input[data-stage-name-id="${stageId}"]`) as HTMLInputElement; pipelineHandlers.handleUpdateStage(stageId, input.value); return; }
+    if (target.closest('[data-save-kanban-stage]')) { const stageId = target.closest<HTMLElement>('[data-save-kanban-stage]')!.dataset.saveKanbanStage!; const input = document.querySelector(`input[data-stage-name-id="${stageId}"]`) as HTMLInputElement; kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value); return; }
 
     const hrTab = target.closest<HTMLElement>('a[data-hr-tab]');
     if (hrTab) {

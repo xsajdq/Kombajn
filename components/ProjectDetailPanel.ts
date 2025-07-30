@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
@@ -492,7 +493,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                         <button class="btn-icon" data-menu-toggle="project-actions-${project.id}" aria-haspopup="true" aria-expanded="false" title="Project Actions">
                             <span class="material-icons-sharp">more_vert</span>
                         </button>
-                        <div id="project-actions-${project.id}" class="absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                        <div id="project-actions-${project.id}" class="dropdown-menu absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
                             <div class="py-1">
                                 <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-modal-target="addProject" data-project-id="${project.id}">
                                     <span class="material-icons-sharp text-base">edit</span>

@@ -1,5 +1,7 @@
 
 
+
+
 import { state } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -63,6 +65,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
         state.deals = data.deals || [];
         state.dealActivities = data.dealActivities || [];
         state.pipelineStages = data.pipelineStages || [];
+        state.kanbanStages = data.kanbanStages || [];
         state.automations = data.automations || [];
         state.tags = data.tags || [];
         state.taskTags = data.taskTags || [];

@@ -1055,7 +1055,7 @@ export function Modal() {
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center text-lg font-semibold">${user.initials}</div>
                         <div>
-                            <h4 class="font-semibold">${user.name}</h4>
+                            <h4 class="font-semibold">${user.name || user.email}</h4>
                             <p class="text-sm text-text-subtle">${user.email}</p>
                         </div>
                     </div>
