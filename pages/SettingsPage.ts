@@ -1,11 +1,12 @@
 
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
 import { can } from '../permissions.ts';
-import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
 export function SettingsPage() {
     const { activeTab } = state.ui.settings;
@@ -128,7 +129,6 @@ export function SettingsPage() {
     const renderWorkspaceSettings = () => {
         const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         if (!workspace) return '';
-        const currentWorkflow = getWorkspaceKanbanWorkflow(workspace.id);
         
         return `
             <form id="workspace-settings-form">
@@ -182,19 +182,6 @@ export function SettingsPage() {
                             <label for="companyBankAccount" class="text-sm font-medium text-text-subtle">${t('settings.bank_account')}</label>
                             <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyBankAccount || ''}">
                         </div>
-                    </div>
-                </div>
-                <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
-                    <h4 class="font-semibold text-lg mb-4">Workspace Preferences</h4>
-                    <div class="flex justify-between items-center py-4 border-t border-border-color">
-                        <div>
-                            <h4 class="font-semibold">${t('settings.default_workflow')}</h4>
-                            <p class="text-sm text-text-subtle">${t('settings.workflow_desc')}</p>
-                        </div>
-                        <select id="workspace-kanban-workflow" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                            <option value="simple" ${currentWorkflow !== 'advanced' ? 'selected' : ''}>${t('settings.workflow_simple')}</option>
-                            <option value="advanced" ${currentWorkflow === 'advanced' ? 'selected' : ''}>${t('settings.workflow_advanced')}</option>
-                        </select>
                     </div>
                 </div>
                 <div class="flex justify-end items-center gap-3 mt-8 pt-4 border-t border-border-color">
@@ -362,6 +349,34 @@ export function SettingsPage() {
         `;
     };
 
+    const renderKanbanSettings = () => {
+        const stages = state.kanbanStages
+            .filter(s => s.workspaceId === state.activeWorkspaceId)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+        
+        return `
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_kanban')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Customize the name and order of your task board columns.</p>
+            </div>
+            <div class="bg-content p-5 rounded-lg shadow-sm">
+                <h5 class="font-semibold mb-2">Kanban Columns</h5>
+                <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
+                <div id="kanban-stages-list" class="space-y-2">
+                    ${stages.map(stage => `
+                        <div class="flex items-center gap-3 p-3 bg-background rounded-md kanban-stage-row" data-stage-id="${stage.id}" draggable="true">
+                            <span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>
+                            <input type="text" class="form-control" value="${stage.name}" data-stage-name-id="${stage.id}">
+                            <div class="flex items-center gap-1">
+                                <button class="btn-icon" data-save-kanban-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    };
+
     let tabContent = '';
     switch (activeTab) {
         case 'general': tabContent = renderGeneralSettings(); break;
@@ -371,6 +386,7 @@ export function SettingsPage() {
         case 'integrations': if (canManage) tabContent = renderIntegrationsSettings(); break;
         case 'taskViews': if (canManage) tabContent = renderTaskViewsSettings(); break;
         case 'pipeline': if (canManage) tabContent = renderPipelineSettings(); break;
+        case 'kanban': if (canManage) tabContent = renderKanbanSettings(); break;
     }
 
     const navItems = [
@@ -379,6 +395,7 @@ export function SettingsPage() {
         { id: 'workspace', icon: 'corporate_fare', text: t('settings.tab_workspace'), permission: 'manage_workspace_settings' },
         { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), permission: 'manage_workspace_settings' },
         { id: 'pipeline', icon: 'view_kanban', text: t('settings.tab_pipeline'), permission: 'manage_workspace_settings' },
+        { id: 'kanban', icon: 'view_week', text: t('settings.tab_kanban'), permission: 'manage_workspace_settings' },
         { id: 'customFields', icon: 'ballot', text: t('settings.tab_custom_fields'), permission: 'manage_workspace_settings' },
         { id: 'taskViews', icon: 'view_list', text: t('settings.tab_task_views'), permission: 'manage_workspace_settings' },
     ];

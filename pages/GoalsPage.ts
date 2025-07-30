@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -105,7 +106,16 @@ function renderGoalCard(goal: Objective) {
 }
 
 export function GoalsPage() {
-    const goals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');
+    const filterText = state.ui.goals.filters.text.toLowerCase();
+    let goals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');
+    
+    if (filterText) {
+        goals = goals.filter(g => 
+            g.title.toLowerCase().includes(filterText) ||
+            (g.description || '').toLowerCase().includes(filterText)
+        );
+    }
+
     const canManage = can('manage_goals');
 
     const content = goals.length > 0 ? `
@@ -114,7 +124,7 @@ export function GoalsPage() {
             <div class="flex items-center gap-4">
                  <div class="relative flex-grow">
                     <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                    <input type="text" id="goal-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" placeholder="${t('goals.search_goals')}">
+                    <input type="text" id="goal-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" placeholder="${t('goals.search_goals')}" value="${state.ui.goals.filters.text}">
                 </div>
                 <button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background">
                     <span class="material-icons-sharp text-base">filter_list</span>

@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -19,6 +18,57 @@ export function handleInput(e: Event) {
         return;
     }
 
+    // Projects Page Search
+    if (target.id === 'project-search-input') {
+        state.ui.projects.filters.text = (target as HTMLInputElement).value;
+        updateUI(['page']);
+        return;
+    }
+
+    // Tasks Page Search
+    if (target.id === 'task-filter-text') {
+        state.ui.tasks.filters.text = (target as HTMLInputElement).value;
+        state.ui.tasks.activeFilterViewId = null; // Typing in search box de-selects a saved view
+        updateUI(['page']);
+        return;
+    }
+
+    // Clients Page Search
+    if (target.id === 'client-search-input') {
+        state.ui.clients.filters.text = (target as HTMLInputElement).value;
+        updateUI(['page']);
+        return;
+    }
+
+    // HR (Employees) Page Search
+    if (target.id === 'employee-search') {
+        state.ui.hr.filters.text = (target as HTMLInputElement).value;
+        updateUI(['page']);
+        return;
+    }
+    
+    // Goals Page Search
+    if (target.id === 'goal-search-input') {
+        state.ui.goals.filters.text = (target as HTMLInputElement).value;
+        updateUI(['page']);
+        return;
+    }
+
+    // Inventory Page Search
+    if (target.id === 'inventory-search-input') {
+        state.ui.inventory.filters.text = (target as HTMLInputElement).value;
+        updateUI(['page']);
+        return;
+    }
+
+    // Task comment draft saving
+    if (target.id === 'task-comment-input' && state.ui.modal.type === 'taskDetail') {
+        const taskId = state.ui.modal.data?.taskId;
+        if (taskId) {
+            localStorage.setItem(`comment-draft-${taskId}`, target.innerHTML);
+        }
+    }
+
     // Handle mention input on designated rich text fields
     if (target.matches('#chat-message-input, #task-comment-input')) {
         handleMentionInput(target);
@@ -34,28 +84,7 @@ export function handleInput(e: Event) {
         }
         return;
     }
-
-    const employeeSearch = target.closest<HTMLInputElement>('#employee-search');
-    if (employeeSearch) {
-        const query = employeeSearch.value.toLowerCase();
-        const rows = document.querySelectorAll<HTMLElement>('.hr-table-body .hr-table-row');
-        rows.forEach(row => {
-            const name = row.dataset.userName || '';
-            const email = row.dataset.userEmail || '';
-            const isVisible = name.includes(query) || email.includes(query);
-            row.classList.toggle('hidden', !isVisible);
-        });
-        return;
-    }
     
-    // Client page search
-    const clientSearchInput = target.closest<HTMLInputElement>('#client-search-input');
-    if (clientSearchInput) {
-        state.ui.clients.filters.text = clientSearchInput.value;
-        updateUI(['page']);
-        return;
-    }
-
     // Invoice item row input
     const invoiceItemRow = target.closest<HTMLElement>('.invoice-item-row');
     if (invoiceItemRow) {

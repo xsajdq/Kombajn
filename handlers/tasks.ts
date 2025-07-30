@@ -30,6 +30,10 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
     try {
         const [savedComment] = await apiPost('comments', newCommentPayload);
         state.comments.push(savedComment);
+
+        if (!parentId) { // Only clear the main draft, not for replies
+            localStorage.removeItem(`comment-draft-${taskId}`);
+        }
         
         successCallback();
         updateUI(['modal']);

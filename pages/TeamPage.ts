@@ -1,5 +1,7 @@
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo } from '../utils.ts';
@@ -12,10 +14,18 @@ async function renderEmployeesTab() {
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return 'Error: Active workspace not found.';
 
+    const filterText = state.ui.hr.filters.text.toLowerCase();
+
     const members: { member: WorkspaceMember, user: User }[] = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => ({ member: m, user: state.users.find(u => u.id === m.userId)! }))
-        .filter(item => item.user)
+        .filter(item => {
+            if (!item.user) return false;
+            if (!filterText) return true;
+            const nameMatch = (item.user.name || '').toLowerCase().includes(filterText);
+            const emailMatch = (item.user.email || '').toLowerCase().includes(filterText);
+            return nameMatch || emailMatch;
+        })
         .sort((a, b) => (a.user.name || '').localeCompare(b.user.name || ''));
 
     const ALL_ROLES: Role[] = ['owner', 'admin', 'manager', 'member', 'finance', 'client'];
@@ -32,7 +42,7 @@ async function renderEmployeesTab() {
             <div class="flex items-center gap-2">
                 <div class="relative">
                      <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Search by name or email...">
+                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Search by name or email..." value="${state.ui.hr.filters.text}">
                 </div>
                 ${canInviteUsers ? `
                 <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" id="hr-invite-member-btn" ${userLimitReached ? 'disabled' : ''} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">

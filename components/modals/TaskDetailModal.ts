@@ -128,6 +128,7 @@ function renderActivityTab(task: Task) {
     };
     
     const topLevelActivity = allActivity.filter(item => !('parentId' in item && item.parentId));
+    const savedDraft = localStorage.getItem(`comment-draft-${task.id}`) || '';
 
     return `
         <div class="flex justify-end mb-4">
@@ -154,7 +155,7 @@ function renderActivityTab(task: Task) {
                     role="textbox"
                     aria-multiline="true"
                     data-placeholder="${t('modals.add_comment')}"
-                ></div>
+                >${savedDraft}</div>
             </div>
             <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
         </form>

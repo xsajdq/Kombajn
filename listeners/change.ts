@@ -1,5 +1,7 @@
 
 
+
+
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -165,42 +167,6 @@ export function handleChange(e: Event) {
         return;
     }
     
-    if (target.id === 'workspace-kanban-workflow') {
-        const newWorkflow = (target as HTMLSelectElement).value as 'simple' | 'advanced';
-        const workspaceId = state.activeWorkspaceId;
-        if (workspaceId) {
-            let integration = state.integrations.find(i => i.provider === 'internal_settings' && i.workspaceId === workspaceId);
-            const originalWorkflow = integration?.settings?.defaultKanbanWorkflow || 'simple';
-
-            if (integration) {
-                integration.settings.defaultKanbanWorkflow = newWorkflow;
-            } else {
-                integration = {
-                    id: `temp-${Date.now()}`,
-                    workspaceId,
-                    provider: 'internal_settings' as const,
-                    isActive: true,
-                    settings: { defaultKanbanWorkflow: newWorkflow }
-                };
-                state.integrations.push(integration);
-            }
-            updateUI(['page']);
-
-            apiFetch('/api?action=save-workspace-prefs', {
-                method: 'POST',
-                body: JSON.stringify({ workspaceId, workflow: newWorkflow }),
-            }).catch(err => {
-                console.error("Failed to save kanban workflow preference:", err);
-                alert("Failed to save your view preference. Please try again.");
-                if (integration) {
-                    integration.settings.defaultKanbanWorkflow = originalWorkflow;
-                }
-                updateUI(['page']);
-            });
-        }
-        return;
-    }
-
     const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
     if (taskFilterInput) {
         if (taskFilterInput.matches('input[type="checkbox"][data-filter-key="tagIds"]')) {

@@ -1,5 +1,7 @@
 
 
+
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -34,7 +36,17 @@ export function InventoryPage() {
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
 
-    const inventoryItems = state.inventoryItems.filter(item => item.workspaceId === activeWorkspaceId);
+    const filterText = state.ui.inventory.filters.text.toLowerCase();
+    let inventoryItems = state.inventoryItems.filter(item => item.workspaceId === activeWorkspaceId);
+
+    if (filterText) {
+        inventoryItems = inventoryItems.filter(item =>
+            item.name.toLowerCase().includes(filterText) ||
+            (item.category || '').toLowerCase().includes(filterText) ||
+            (item.sku || '').toLowerCase().includes(filterText)
+        );
+    }
+
     const canManage = can('manage_inventory');
 
     const kpis = getInventoryKpis(inventoryItems);
@@ -121,7 +133,7 @@ export function InventoryPage() {
 
             <div class="bg-content rounded-lg shadow-sm">
                  <div class="p-4">
-                    <input type="text" id="inventory-search-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" placeholder="${t('inventory.search_inventory')}">
+                    <input type="text" id="inventory-search-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" placeholder="${t('inventory.search_inventory')}" value="${state.ui.inventory.filters.text}">
                  </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm responsive-table">

@@ -2,6 +2,8 @@
 
 
 
+
+
 export interface User {
     id: string;
     name?: string;
@@ -753,6 +755,13 @@ export interface AppState {
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';
+             filters: { text: string; };
+        };
+        goals: {
+            filters: { text: string; };
+        };
+        inventory: {
+            filters: { text: string; };
         };
         onboarding: {
             isActive: boolean;

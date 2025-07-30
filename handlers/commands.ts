@@ -1,5 +1,7 @@
 
 
+
+
 import { state, saveState } from '../state.ts';
 import { updateUI, renderApp } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
@@ -28,12 +30,12 @@ export function handleCommandSearch(query: string) {
 
     clearTimeout(searchTimeout);
 
-    const commandPaletteList = document.querySelector('.command-palette-list');
-    if (!commandPaletteList) return;
+    const commandPaletteContainer = document.getElementById('command-palette-container');
+    if (!commandPaletteContainer) return;
 
     // Update with command results immediately if query is empty
     if (!query) {
-        commandPaletteList.innerHTML = CommandPalette();
+        commandPaletteContainer.innerHTML = CommandPalette();
         return;
     }
     
@@ -45,7 +47,6 @@ export function handleCommandSearch(query: string) {
                 tasks: results.filter((r: any) => r.type === 'task'),
                 clients: results.filter((r: any) => r.type === 'client'),
             };
-            const commandPaletteContainer = document.getElementById('command-palette-container');
             if (commandPaletteContainer && state.ui.isCommandPaletteOpen) {
                  commandPaletteContainer.innerHTML = CommandPalette(groupedResults);
                  const input = document.getElementById('command-palette-input') as HTMLInputElement;
