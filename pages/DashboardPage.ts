@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
@@ -203,6 +204,88 @@ function renderQuickActionsWidget(widget: DashboardWidget, isEditing: boolean) {
     `;
 }
 
+function renderTimeTrackingSummaryWidget(widget: DashboardWidget, isEditing: boolean) {
+    const today = new Date().toISOString().slice(0, 10);
+    const timeLogsToday = state.timeLogs.filter(log => log.workspaceId === state.activeWorkspaceId && log.createdAt.startsWith(today));
+    const totalSecondsToday = timeLogsToday.reduce((sum, log) => sum + log.trackedSeconds, 0);
+
+    return `
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_time_tracking_summary_title')}</h4>
+                <span class="material-icons-sharp text-lg text-blue-500">timer</span>
+            </div>
+            <div>
+                <p class="text-xs text-text-subtle">${t('dashboard.time_today')}</p>
+                <p class="text-2xl font-bold">${formatDuration(totalSecondsToday)}</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderInvoiceSummaryWidget(widget: DashboardWidget, isEditing: boolean) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pendingInvoices = state.invoices.filter(i => i.workspaceId === state.activeWorkspaceId && i.status === 'pending' && new Date(i.dueDate) >= today);
+    const overdueInvoices = state.invoices.filter(i => i.workspaceId === state.activeWorkspaceId && i.status === 'pending' && new Date(i.dueDate) < today);
+
+    const pendingAmount = pendingInvoices.reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
+    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
+
+    return `
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_invoice_summary_title')}</h4>
+                 <span class="material-icons-sharp text-lg text-green-500">receipt_long</span>
+            </div>
+            <div class="space-y-2">
+                <div>
+                    <p class="text-xs text-text-subtle">${t('dashboard.invoices_pending')}</p>
+                    <p class="text-lg font-bold">${formatCurrency(pendingAmount, 'PLN')}</p>
+                </div>
+                 <div>
+                    <p class="text-xs text-text-subtle">${t('dashboard.invoices_overdue')}</p>
+                    <p class="text-lg font-bold text-danger">${formatCurrency(overdueAmount, 'PLN')}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderGoalProgressWidget(widget: DashboardWidget, isEditing: boolean) {
+    const goals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status === 'in_progress');
+    const totalProgress = goals.reduce((sum, goal) => {
+        const target = goal.targetValue ?? 1;
+        const current = goal.currentValue ?? 0;
+        if (target > 0) {
+            return sum + Math.min(100, Math.max(0, (current / target) * 100));
+        }
+        return sum;
+    }, 0);
+    const avgProgress = goals.length > 0 ? Math.round(totalProgress / goals.length) : 0;
+
+    return `
+        <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+             ${isEditing ? `<button class="remove-widget-btn" data-remove-widget-id="${widget.id}" title="Remove widget"><span class="material-icons-sharp text-base">close</span></button>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-md">${t('dashboard.widget_goal_progress_title')}</h4>
+                <span class="material-icons-sharp text-lg text-purple-500">track_changes</span>
+            </div>
+             <div>
+                <div class="flex justify-between items-center text-sm mb-1">
+                    <span class="font-medium">${t('goals.avg_progress')}</span>
+                    <span class="text-text-subtle">${avgProgress}%</span>
+                </div>
+                <div class="w-full bg-background rounded-full h-1.5">
+                    <div class="bg-primary h-1.5 rounded-full" style="width: ${avgProgress}%;"></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function renderOverviewTab() {
     const { currentUser, activeWorkspaceId } = state;
     if (!currentUser || !activeWorkspaceId) return '';
@@ -235,7 +318,9 @@ function renderOverviewTab() {
             case 'todaysTasks': return renderTodaysTasksWidget(widget, isEditing);
             case 'activityFeed': return renderActivityFeedWidget(widget, isEditing);
             case 'quickActions': return renderQuickActionsWidget(widget, isEditing);
-            // Default case for any other widget types that might not have a renderer yet
+            case 'timeTrackingSummary': return renderTimeTrackingSummaryWidget(widget, isEditing);
+            case 'invoiceSummary': return renderInvoiceSummaryWidget(widget, isEditing);
+            case 'goalProgress': return renderGoalProgressWidget(widget, isEditing);
             default: return `<div class="bg-content p-4 rounded-lg shadow-sm relative" data-widget-id="${widget.id}" draggable="${isEditing}">${isEditing ? `<button class="remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>`: ''}Widget type "${widget.type}" not found.</div>`;
         }
     };

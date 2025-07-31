@@ -227,13 +227,13 @@ export function Modal() {
                     <label class="${labelClasses}">${t('modals.privacy')}</label>
                     <div class="grid grid-cols-2 gap-4">
                         <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
-                        <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border border-border-color rounded-lg cursor-pointer transition-all has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all ${project?.privacy === 'public' || !isEdit ? 'bg-primary/10 border-primary ring-2 ring-primary' : 'border-border-color'}">
                             <span class="material-icons-sharp text-3xl mb-2">public</span>
                             <strong>${t('modals.privacy_public')}</strong>
                             <p class="text-xs text-text-subtle text-center">${t('modals.privacy_public_desc')}</p>
                         </label>
                         <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only" ${project?.privacy === 'private' ? 'checked' : ''}>
-                        <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border border-border-color rounded-lg cursor-pointer transition-all has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
+                        <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all ${project?.privacy === 'private' ? 'bg-primary/10 border-primary ring-2 ring-primary' : 'border-border-color'}">
                             <span class="material-icons-sharp text-3xl mb-2">lock</span>
                             <strong>${t('modals.privacy_private')}</strong>
                             <p class="text-xs text-text-subtle text-center">${t('modals.privacy_private_desc')}</p>
@@ -526,7 +526,7 @@ export function Modal() {
 
     if (state.ui.modal.type === 'addWidget') {
         title = t('modals.add_widget');
-        footer = `<button class="btn-close-modal">${t('modals.cancel')}</button>`;
+        footer = `<button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">${t('modals.cancel')}</button>`;
         const widgetTypes: { type: DashboardWidgetType, icon: string, name: string, metric?: string }[] = [
             { type: 'kpiMetric', icon: 'payments', name: t('dashboard.kpi_total_revenue'), metric: 'totalRevenue' },
             { type: 'kpiMetric', icon: 'folder_special', name: t('dashboard.kpi_active_projects'), metric: 'activeProjects' },

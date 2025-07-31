@@ -231,6 +231,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             if (error) throw error;
                             return res.status(200).json(keysToCamel(data));
                         }
+                        if (resource.endsWith('_tags')) {
+                            const entityIdColumn = `${resource.split('_')[0]}_id`;
+                            const { data, error } = await (supabase.from(resource) as any)
+                                .upsert(bodyInSnakeCase, { onConflict: `${entityIdColumn}, tag_id`, ignoreDuplicates: true })
+                                .select();
+                            if (error) throw error;
+                            return res.status(201).json(keysToCamel(data));
+                        }
                         const { data, error } = await (supabase.from(resource) as any).insert(bodyInSnakeCase).select();
                         if (error) throw error;
                         return res.status(201).json(keysToCamel(data));
