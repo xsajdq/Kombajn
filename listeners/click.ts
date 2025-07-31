@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -111,7 +110,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const switchEntityBtn = target.closest('[data-switch-entity-id]');
+    const switchEntityBtn = target.closest<HTMLElement>('[data-switch-entity-id]');
     if (switchEntityBtn) {
         const entityType = switchEntityBtn.dataset.entityType as 'project' | 'client' | 'deal';
         const entityId = switchEntityBtn.dataset.switchEntityId!;
