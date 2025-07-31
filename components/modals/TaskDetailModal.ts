@@ -402,7 +402,7 @@ function renderSidebar(task: Task) {
                         </div>
                          ${assignees.length > 0 ? `<span class="text-sm text-text-subtle">${assignees.length} assigned</span>` : ''}
                     </button>
-                    <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu">
+                    <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu hidden">
                         ${workspaceMembers.map(user => {
                             const isAssigned = assigneeIds.has(user.id);
                             return `
