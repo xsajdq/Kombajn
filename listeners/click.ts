@@ -96,7 +96,7 @@ export async function handleClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
 
     // --- Dynamic Breadcrumb Switcher Handler ---
-    const breadcrumbSwitcher = target.closest('[data-breadcrumb-switcher]');
+    const breadcrumbSwitcher = target.closest<HTMLElement>('[data-breadcrumb-switcher]');
     if (breadcrumbSwitcher) {
         e.stopPropagation();
         const menu = breadcrumbSwitcher.nextElementSibling as HTMLElement;

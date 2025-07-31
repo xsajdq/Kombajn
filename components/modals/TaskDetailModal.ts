@@ -329,10 +329,14 @@ function renderSidebar(task: Task) {
         .map(a => state.users.find(u => u.id === a.userId))
         .filter((u): u is User => !!u);
         
+    const assigneeIds = new Set(assignees.map(u => u.id));
+
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === task.workspaceId)
         .map(m => state.users.find(u => u.id === m.userId))
         .filter((u): u is User => !!u);
+    
+    const unassignedMembers = workspaceMembers.filter(u => !assigneeIds.has(u.id));
     
     const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
     const taskTags = state.taskTags.filter(tt => tt.taskId === task.id).map(tt => state.tags.find(t => t.id === tt.tagId)).filter(Boolean);
@@ -392,22 +396,26 @@ function renderSidebar(task: Task) {
              <div class="sidebar-item">
                 <label>${t('modals.assignees')}</label>
                 <div class="assignee-list">
-                    ${assignees.map(user => `
+                    ${assignees.length > 0 ? assignees.map(user => `
                         <div class="assignee-item group">
                             <div class="avatar">${user.initials}</div>
-                            <span>${user.name}</span>
+                            <span>${user.name || user.initials}</span>
                             <button class="btn-icon remove-assignee" data-user-id="${user.id}"><span class="material-icons-sharp text-base">close</span></button>
                         </div>
-                    `).join('')}
+                    `).join('') : ''}
                     <div class="relative">
-                        <button class="add-assignee-btn" data-menu-toggle="assignee-dropdown">${t('modals.assignees')}</button>
+                        <button class="add-assignee-btn" data-menu-toggle="assignee-dropdown">${assignees.length > 0 ? 'Add/Remove' : 'Assign'}</button>
                         <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu">
-                            ${workspaceMembers.map(user => `
-                                <div class="assignee-dropdown-item" data-user-id="${user!.id}">
-                                    <div class="avatar">${user!.initials}</div>
-                                    <span>${user!.name}</span>
-                                </div>
-                            `).join('')}
+                            ${workspaceMembers.map(user => {
+                                const isAssigned = assigneeIds.has(user!.id);
+                                return `
+                                    <div class="assignee-dropdown-item" data-user-id="${user!.id}">
+                                        <div class="avatar">${user!.initials}</div>
+                                        <span>${user!.name || user!.initials}</span>
+                                        ${isAssigned ? `<span class="material-icons-sharp text-primary ml-auto">check</span>` : ''}
+                                    </div>
+                                `
+                            }).join('')}
                         </div>
                     </div>
                 </div>
