@@ -1,4 +1,5 @@
 
+
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -16,8 +17,9 @@ import { initDashboardCharts } from './pages/DashboardPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
 import { SlashCommandPopover } from './components/SlashCommandPopover.ts';
+import { TextSelectionPopover } from './components/TextSelectionPopover.ts';
 
-type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'all';
+type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'text-selection-popover' | 'all';
 
 async function AppLayout() {
     if (!state.currentUser) {
@@ -52,6 +54,7 @@ async function AppLayout() {
         <div id="onboarding-container">${state.ui.onboarding.isActive ? OnboardingGuide() : ''}</div>
         <div id="mention-popover-container"></div>
         <div id="slash-command-popover-container"></div>
+        <div id="text-selection-popover-container"></div>
     </div>
     `;
 }
@@ -169,6 +172,10 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
             case 'slash-command-popover':
                 const slashContainer = document.getElementById('slash-command-popover-container');
                 if (slashContainer) slashContainer.innerHTML = SlashCommandPopover();
+                break;
+            case 'text-selection-popover':
+                const popoverContainer = document.getElementById('text-selection-popover-container');
+                if (popoverContainer) popoverContainer.innerHTML = TextSelectionPopover();
                 break;
         }
     }

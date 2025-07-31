@@ -99,6 +99,7 @@ export function getInitialState(): AppState {
             commandPaletteActiveIndex: 0,
             mention: { query: null, target: null, activeIndex: 0, rect: null },
             slashCommand: { query: null, target: null, activeIndex: 0, rect: null },
+            textSelectionPopover: { isOpen: false, top: 0, left: 0, selectedText: '', context: null },
             tasks: {
                 viewMode: 'board',
                 ganttViewMode: 'Week',

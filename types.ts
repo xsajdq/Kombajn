@@ -702,6 +702,13 @@ export interface AppState {
             activeIndex: number;
             rect: DOMRect | null;
         };
+        textSelectionPopover: {
+            isOpen: boolean;
+            top: number;
+            left: number;
+            selectedText: string;
+            context: { type: 'project' | 'task', id: string } | null;
+        };
         tasks: {
             viewMode: 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
             ganttViewMode: 'Day' | 'Week' | 'Month';

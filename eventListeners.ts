@@ -7,12 +7,14 @@ import { handleSubmit } from './listeners/submit.ts';
 import { handleClick } from './listeners/click.ts';
 import { handleChange } from './listeners/change.ts';
 import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './handlers/dnd.ts';
+import { handleMouseUp } from './listeners/selection.ts';
 
 export function setupEventListeners() {
     // By attaching to document, we can catch events on dynamically created elements
     // like modals and context menus which are appended to the body.
     document.addEventListener('mousedown', (e) => handleMouseDown(e as MouseEvent));
     document.addEventListener('click', (e) => handleClick(e as MouseEvent));
+    document.addEventListener('mouseup', handleMouseUp);
     
     // Keydown should be global anyway.
     window.addEventListener('keydown', (e) => handleKeydown(e as KeyboardEvent));

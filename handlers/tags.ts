@@ -35,7 +35,7 @@ export async function handleToggleTag(entityType: TaggableEntity, entityId: stri
 
         if (existingLinkIndex > -1) {
             const [removedLink] = (state[joinStateKey] as any[]).splice(existingLinkIndex, 1);
-            updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel', 'page']);
+            updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel']);
             await apiFetch(`/api?action=data&resource=${joinTable}`, {
                 method: 'DELETE',
                 body: JSON.stringify({ [entityIdKey]: entityId, tagId: finalTagId }),
@@ -44,7 +44,7 @@ export async function handleToggleTag(entityType: TaggableEntity, entityId: stri
             const newLink = { [entityIdKey]: entityId, tagId: finalTagId, workspaceId: activeWorkspaceId };
             const [savedLink] = await apiPost(joinTable, newLink);
             (state[joinStateKey] as any[]).push(savedLink);
-            updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel', 'page']);
+            updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel']);
         }
     } catch (error) {
         console.error(`Failed to toggle ${entityType} tag:`, error);

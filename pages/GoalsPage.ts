@@ -75,7 +75,7 @@ function renderGoalCard(goal: Objective) {
     };
 
     return `
-        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-3">
+        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow" data-goal-id="${goal.id}">
             <h4 class="font-bold">${goal.title}</h4>
             <p class="text-sm text-text-subtle flex-grow">${goal.description || ''}</p>
             <div class="flex flex-wrap items-center gap-2">
@@ -154,7 +154,7 @@ export function GoalsPage() {
                     <p class="text-text-subtle">${t('goals.subtitle')}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background">
+                    <button id="goals-analytics-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background">
                         <span class="material-icons-sharp text-base">analytics</span>
                         ${t('goals.analytics')}
                     </button>

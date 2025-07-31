@@ -840,6 +840,14 @@
   .kpi-value {
       @apply text-2xl font-semibold;
   }
+
+  .text-selection-popover {
+    @apply absolute z-50 transform -translate-x-1/2;
+  }
+
+  .text-selection-popover button {
+    @apply bg-content shadow-lg border border-border-color;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

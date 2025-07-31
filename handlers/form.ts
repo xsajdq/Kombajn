@@ -191,6 +191,9 @@ export async function handleFormSubmit() {
 
         if (type === 'addGoal') {
             const form = document.getElementById('addGoalForm') as HTMLFormElement;
+            const goalId = form.dataset.goalId;
+            const isEdit = !!goalId;
+
             const title = (form.querySelector('#goalTitle') as HTMLInputElement).value;
             if (!title) return;
 
@@ -208,25 +211,54 @@ export async function handleFormSubmit() {
                 valueUnit: (form.querySelector('#goalValueUnit') as HTMLInputElement).value || undefined,
             };
 
-            const [newObjective] = await apiPost('objectives', objectivePayload);
-            state.objectives.push(newObjective);
-            
-            const milestoneInputs = form.querySelectorAll<HTMLInputElement>('.milestone-input');
-            const milestonePayloads: Omit<KeyResult, 'id'>[] = Array.from(milestoneInputs)
-                .filter(input => input.value.trim() !== '')
-                .map(input => ({
-                    objectiveId: newObjective.id,
-                    title: input.value.trim(),
-                    completed: false,
-                    type: 'number', // Default values to satisfy schema, ignored by UI
-                    startValue: 0,
-                    targetValue: 1,
-                    currentValue: 0
-                }));
+            let savedObjective: Objective;
 
-            if (milestonePayloads.length > 0) {
-                const newMilestones = await apiPost('key_results', milestonePayloads);
-                state.keyResults.push(...newMilestones);
+            if (isEdit) {
+                [savedObjective] = await apiPut('objectives', { ...objectivePayload, id: goalId });
+                const index = state.objectives.findIndex(o => o.id === goalId);
+                if (index > -1) {
+                    state.objectives[index] = { ...state.objectives[index], ...savedObjective };
+                }
+            } else {
+                [savedObjective] = await apiPost('objectives', objectivePayload);
+                state.objectives.push(savedObjective);
+            }
+            
+            // Sync milestones
+            const milestoneItems = form.querySelectorAll<HTMLElement>('.milestone-item');
+            const currentMilestoneIds = new Set<string>();
+            const milestonePromises: Promise<any>[] = [];
+
+            milestoneItems.forEach(item => {
+                const milestoneId = item.dataset.id!;
+                const milestoneText = item.querySelector<HTMLInputElement>('.milestone-input')!.value;
+                currentMilestoneIds.add(milestoneId);
+
+                if (milestoneId.startsWith('new-')) {
+                    const milestonePayload: Omit<KeyResult, 'id'> = {
+                        objectiveId: savedObjective.id,
+                        title: milestoneText,
+                        completed: false,
+                        type: 'number', startValue: 0, targetValue: 1, currentValue: 0
+                    };
+                    milestonePromises.push(apiPost('key_results', milestonePayload));
+                }
+            });
+
+            if (isEdit) {
+                const initialMilestones = state.keyResults.filter(kr => kr.objectiveId === goalId);
+                const milestonesToDelete = initialMilestones.filter(ms => !currentMilestoneIds.has(ms.id));
+                milestonesToDelete.forEach(ms => {
+                    milestonePromises.push(apiFetch('/api?action=data&resource=key_results', { method: 'DELETE', body: JSON.stringify({ id: ms.id }) }));
+                });
+            }
+            
+            await Promise.all(milestonePromises);
+            
+            const allMilestonesForGoal = await apiFetch(`/api?action=data&resource=key_results&objectiveId=${savedObjective.id}`);
+            state.keyResults = state.keyResults.filter(kr => kr.objectiveId !== savedObjective.id);
+            if (allMilestonesForGoal) {
+                state.keyResults.push(...allMilestonesForGoal);
             }
         }
 

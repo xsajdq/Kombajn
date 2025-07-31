@@ -169,6 +169,38 @@ export async function handleClick(e: MouseEvent) {
     
     // --- START: New Handlers for Comments & Reactions ---
 
+    const createTaskFromSelectionBtn = target.closest('#create-task-from-selection-btn');
+    if (createTaskFromSelectionBtn) {
+        const { selectedText, context } = state.ui.textSelectionPopover;
+        if (selectedText && context) {
+            const modalData: {
+                taskName: string;
+                projectId?: string;
+                taskDescription?: string;
+            } = {
+                taskName: selectedText
+            };
+    
+            if (context.type === 'project') {
+                modalData.projectId = context.id;
+            } else if (context.type === 'task') {
+                const sourceTask = state.tasks.find(t => t.id === context.id);
+                if (sourceTask) {
+                    modalData.projectId = sourceTask.projectId;
+                    modalData.taskDescription = `From task: [${sourceTask.name}](#/tasks/${sourceTask.id})`;
+                }
+            }
+            
+            // Hide popover first
+            state.ui.textSelectionPopover.isOpen = false;
+            updateUI(['text-selection-popover']);
+    
+            // Then show modal
+            uiHandlers.showModal('addTask', modalData);
+        }
+        return;
+    }
+
     const slashCommandItem = target.closest<HTMLElement>('.slash-command-item');
     if (slashCommandItem) {
         const command = slashCommandItem.dataset.command as string;
@@ -553,6 +585,24 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('[data-remove-dependency-id]')) { taskHandlers.handleRemoveDependency(target.closest<HTMLElement>('[data-remove-dependency-id]')!.dataset.removeDependencyId!); return; }
     if (target.closest('.delete-attachment-btn')) { taskHandlers.handleRemoveAttachment(target.closest<HTMLElement>('[data-attachment-id]')!.dataset.attachmentId!); return; }
 
+    const assigneeDropdownItem = target.closest<HTMLElement>('.assignee-dropdown-item');
+    if (assigneeDropdownItem) {
+        const taskId = state.ui.modal.data?.taskId;
+        const userId = assigneeDropdownItem.dataset.userId!;
+        if (taskId && userId) {
+            taskHandlers.handleToggleAssignee(taskId, userId);
+        }
+        return;
+    }
+    const removeAssigneeBtn = target.closest<HTMLElement>('.remove-assignee');
+    if (removeAssigneeBtn) {
+        const taskId = state.ui.modal.data?.taskId;
+        const userId = removeAssigneeBtn.dataset.userId!;
+        if (taskId && userId) {
+            taskHandlers.handleToggleAssignee(taskId, userId);
+        }
+        return;
+    }
     if (target.closest('#add-project-section-btn')) { uiHandlers.showModal('addProjectSection', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId }); return; }
     if (target.closest<HTMLElement>('[data-rename-project-section-id]')) { const sectionId = target.closest<HTMLElement>('[data-rename-project-section-id]')!.dataset.renameProjectSectionId!; const section = state.projectSections.find(ps => ps.id === sectionId); if (section) { const newName = prompt(t('modals.rename'), section.name); if (newName) await projectSectionHandlers.handleRenameProjectSection(sectionId, newName); } return; }
     if (target.closest<HTMLElement>('[data-delete-project-section-id]')) { await projectSectionHandlers.handleDeleteProjectSection(target.closest<HTMLElement>('[data-delete-project-section-id]')!.dataset.deleteProjectSectionId!); return; }
@@ -708,6 +758,20 @@ export async function handleClick(e: MouseEvent) {
                 tagHandlers.handleToggleTag(entityType, entityId, tagId);
             }
         }
+        return;
+    }
+
+    const goalCard = target.closest<HTMLElement>('[data-goal-id]');
+    if (goalCard) {
+        uiHandlers.showModal('addGoal', { goalId: goalCard.dataset.goalId! });
+        return;
+    }
+
+    if (target.closest('#goals-analytics-btn')) {
+        state.currentPage = 'reports';
+        state.ui.reports.activeTab = 'goals';
+        history.pushState({}, '', '/reports');
+        updateUI(['page', 'sidebar']);
         return;
     }
 }

@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -226,14 +225,14 @@ export function Modal() {
                 <div class="${formGroupClasses}">
                     <label class="${labelClasses}">${t('modals.privacy')}</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
-                        <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all ${project?.privacy === 'public' || !isEdit ? 'bg-primary/10 border-primary ring-2 ring-primary' : 'border-border-color'}">
+                        <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only peer" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
+                        <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
                             <span class="material-icons-sharp text-3xl mb-2">public</span>
                             <strong>${t('modals.privacy_public')}</strong>
                             <p class="text-xs text-text-subtle text-center">${t('modals.privacy_public_desc')}</p>
                         </label>
-                        <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only" ${project?.privacy === 'private' ? 'checked' : ''}>
-                        <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all ${project?.privacy === 'private' ? 'bg-primary/10 border-primary ring-2 ring-primary' : 'border-border-color'}">
+                        <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only peer" ${project?.privacy === 'private' ? 'checked' : ''}>
+                        <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
                             <span class="material-icons-sharp text-3xl mb-2">lock</span>
                             <strong>${t('modals.privacy_private')}</strong>
                             <p class="text-xs text-text-subtle text-center">${t('modals.privacy_private_desc')}</p>
@@ -943,33 +942,37 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addGoal') {
-        title = t('modals.add_goal_title');
+        const isEdit = !!modalData.goalId;
+        const goal = isEdit ? state.objectives.find(o => o.id === modalData.goalId) : null;
+        const milestones = isEdit ? state.keyResults.filter(kr => kr.objectiveId === goal!.id) : [];
+
+        title = isEdit ? 'Edit Goal' : t('modals.add_goal_title');
         maxWidth = 'max-w-3xl';
         body = `
-            <form id="addGoalForm" class="space-y-4">
+            <form id="addGoalForm" class="space-y-4" data-goal-id="${goal?.id || ''}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="${formGroupClasses} md:col-span-2">
                         <label for="goalTitle" class="${labelClasses}">${t('modals.goal_title')}</label>
-                        <input type="text" id="goalTitle" class="${formControlClasses}" required>
+                        <input type="text" id="goalTitle" class="${formControlClasses}" required value="${goal?.title || ''}">
                     </div>
                     <div class="${formGroupClasses} md:col-span-2">
                         <label for="goalDescription" class="${labelClasses}">${t('modals.goal_description')}</label>
-                        <textarea id="goalDescription" rows="2" class="${formControlClasses}"></textarea>
+                        <textarea id="goalDescription" rows="2" class="${formControlClasses}">${goal?.description || ''}</textarea>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalOwner" class="${labelClasses}">${t('modals.goal_owner')}</label>
                         <select id="goalOwner" class="${formControlClasses}">
                             <option value="">${t('modals.unassigned')}</option>
-                            ${workspaceMembers.map(u => `<option value="${u!.id}">${u!.name}</option>`).join('')}
+                            ${workspaceMembers.map(u => `<option value="${u!.id}" ${goal?.ownerId === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalDueDate" class="${labelClasses}">${t('modals.goal_due_date')}</label>
-                        <input type="date" id="goalDueDate" class="${formControlClasses}">
+                        <input type="date" id="goalDueDate" class="${formControlClasses}" value="${goal?.dueDate || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalCategory" class="${labelClasses}">${t('modals.goal_category')}</label>
-                        <input type="text" id="goalCategory" class="${formControlClasses}" list="goal-categories">
+                        <input type="text" id="goalCategory" class="${formControlClasses}" list="goal-categories" value="${goal?.category || ''}">
                         <datalist id="goal-categories">
                              ${[...new Set(state.objectives.map(o => o.category).filter(Boolean))].map(c => `<option value="${c}"></option>`).join('')}
                         </datalist>
@@ -977,34 +980,40 @@ export function Modal() {
                     <div class="${formGroupClasses}">
                         <label for="goalPriority" class="${labelClasses}">${t('modals.goal_priority')}</label>
                         <select id="goalPriority" class="${formControlClasses}">
-                             <option value="medium">${t('modals.priority_medium')}</option>
-                             <option value="high">${t('modals.priority_high')}</option>
-                             <option value="low">${t('modals.priority_low')}</option>
+                             <option value="medium" ${goal?.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
+                             <option value="high" ${goal?.priority === 'high' ? 'selected' : ''}>${t('modals.priority_high')}</option>
+                             <option value="low" ${goal?.priority === 'low' ? 'selected' : ''}>${t('modals.priority_low')}</option>
                         </select>
                     </div>
                      <div class="${formGroupClasses}">
                         <label for="goalStatus" class="${labelClasses}">${t('modals.goal_status')}</label>
                         <select id="goalStatus" class="${formControlClasses}">
-                             <option value="in_progress">${t('goals.status_in_progress')}</option>
-                             <option value="completed">${t('goals.status_completed')}</option>
-                             <option value="on_hold">${t('goals.status_on_hold')}</option>
+                             <option value="in_progress" ${(!goal || goal.status === 'in_progress') ? 'selected' : ''}>${t('goals.status_in_progress')}</option>
+                             <option value="completed" ${goal?.status === 'completed' ? 'selected' : ''}>${t('goals.status_completed')}</option>
+                             <option value="on_hold" ${goal?.status === 'on_hold' ? 'selected' : ''}>${t('goals.status_on_hold')}</option>
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalTargetValue" class="${labelClasses}">${t('modals.goal_target_value')}</label>
-                        <input type="number" id="goalTargetValue" class="${formControlClasses}" min="0">
+                        <input type="number" id="goalTargetValue" class="${formControlClasses}" min="0" value="${goal?.targetValue || ''}">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalCurrentValue" class="${labelClasses}">${t('modals.goal_current_value')}</label>
-                        <input type="number" id="goalCurrentValue" class="${formControlClasses}" value="0" min="0">
+                        <input type="number" id="goalCurrentValue" class="${formControlClasses}" value="${goal?.currentValue || 0}" min="0">
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="goalValueUnit" class="${labelClasses}">${t('modals.goal_value_unit')}</label>
-                        <input type="text" id="goalValueUnit" class="${formControlClasses}" placeholder="e.g., $, %, projects, milestones">
+                        <input type="text" id="goalValueUnit" class="${formControlClasses}" placeholder="e.g., $, %, projects, milestones" value="${goal?.valueUnit || ''}">
                     </div>
                     <div class="md:col-span-2">
                         <label class="text-sm font-medium text-text-subtle">${t('goals.milestones')}</label>
                         <div id="milestones-container" class="space-y-2 mt-1">
+                            ${milestones.map(ms => `
+                                <div class="flex items-center gap-2 milestone-item" data-id="${ms.id}">
+                                    <input type="text" class="form-control milestone-input" value="${ms.title}" readonly>
+                                    <button type="button" class="btn-icon remove-milestone-btn"><span class="material-icons-sharp text-base">delete</span></button>
+                                </div>
+                            `).join('')}
                         </div>
                         <div class="flex items-center gap-2 mt-2">
                             <input type="text" id="new-milestone-input" class="form-control" placeholder="${t('modals.add_milestone')}">

@@ -390,7 +390,7 @@ function renderSidebar(task: Task) {
                     `).join('')}
                     <div class="relative">
                         <button class="add-assignee-btn" data-menu-toggle="assignee-dropdown">${t('modals.assignees')}</button>
-                        <div id="assignee-dropdown" class="assignee-dropdown">
+                        <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu">
                             ${workspaceMembers.map(user => `
                                 <div class="assignee-dropdown-item" data-user-id="${user!.id}">
                                     <div class="avatar">${user!.initials}</div>
