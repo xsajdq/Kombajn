@@ -22,6 +22,12 @@ export async function handleFormSubmit() {
     const activeWorkspaceId = state.activeWorkspaceId;
     if (!activeWorkspaceId || !state.currentUser) return;
 
+    // The task detail modal has its own internal forms (like comments)
+    // which are handled by specific submit listeners, not this generic one.
+    if (type === 'taskDetail') {
+        return;
+    }
+
     const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!workspace) return;
     const usage = getUsage(activeWorkspaceId);

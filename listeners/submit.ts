@@ -13,6 +13,7 @@ import * as dealHandlers from '../handlers/deals.ts';
 import * as okrHandlers from '../handlers/okr.ts';
 import { getStorableHtmlFromContentEditable } from '../handlers/editor.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
+import * as tagHandlers from '../handlers/tags.ts';
 
 
 export async function handleSubmit(e: SubmitEvent) {
@@ -208,7 +209,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const input = target.querySelector('input')!;
         const tagName = input.value.trim();
         if (taskId && tagName) {
-            taskHandlers.handleToggleTag(taskId, '', tagName);
+            tagHandlers.handleToggleTag('task', taskId, '', tagName);
             input.value = ''; // Clear input
         }
         return;

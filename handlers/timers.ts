@@ -1,10 +1,11 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { TimeLog } from '../types.ts';
 import { parseDurationStringToSeconds } from '../utils.ts';
-import { apiPost } from '../services/api.ts';
+import { apiPost, apiPut } from '../services/api.ts';
 
 export function startTimer(taskId: string) {
     if (!state.activeTimers[taskId]) {
@@ -38,6 +39,10 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
     try {
         const [savedLog] = await apiPost('time_logs', timeLogPayload);
         state.timeLogs.push(savedLog);
+        
+        task.lastActivityAt = new Date().toISOString();
+        await apiPut('tasks', { id: taskId, lastActivityAt: task.lastActivityAt });
+
         closeModal(false);
         updateUI(['modal', 'page']);
     } catch(error) {

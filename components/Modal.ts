@@ -225,18 +225,22 @@ export function Modal() {
                 <div class="${formGroupClasses}">
                     <label class="${labelClasses}">${t('modals.privacy')}</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only peer" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
-                        <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
-                            <span class="material-icons-sharp text-3xl mb-2">public</span>
-                            <strong>${t('modals.privacy_public')}</strong>
-                            <p class="text-xs text-text-subtle text-center">${t('modals.privacy_public_desc')}</p>
-                        </label>
-                        <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only peer" ${project?.privacy === 'private' ? 'checked' : ''}>
-                        <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
-                            <span class="material-icons-sharp text-3xl mb-2">lock</span>
-                            <strong>${t('modals.privacy_private')}</strong>
-                            <p class="text-xs text-text-subtle text-center">${t('modals.privacy_private_desc')}</p>
-                        </label>
+                        <div>
+                            <input type="radio" id="privacy-public" name="privacy" value="public" class="sr-only peer" ${project?.privacy === 'public' || !isEdit ? 'checked' : ''}>
+                            <label for="privacy-public" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all h-full border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
+                                <span class="material-icons-sharp text-3xl mb-2">public</span>
+                                <strong>${t('modals.privacy_public')}</strong>
+                                <p class="text-xs text-text-subtle text-center">${t('modals.privacy_public_desc')}</p>
+                            </label>
+                        </div>
+                        <div>
+                            <input type="radio" id="privacy-private" name="privacy" value="private" class="sr-only peer" ${project?.privacy === 'private' ? 'checked' : ''}>
+                            <label for="privacy-private" class="flex flex-col items-center justify-center p-4 border rounded-lg cursor-pointer transition-all h-full border-border-color peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:ring-2 peer-checked:ring-primary">
+                                <span class="material-icons-sharp text-3xl mb-2">lock</span>
+                                <strong>${t('modals.privacy_private')}</strong>
+                                <p class="text-xs text-text-subtle text-center">${t('modals.privacy_private_desc')}</p>
+                            </label>
+                        </div>
                     </div>
                 </div>
 

@@ -1,8 +1,9 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
-import type { Task, User, ProjectSection, SortByOption } from '../types.ts';
+import type { Task, User, ProjectSection, SortByOption, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
 import { openTaskDetail } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
@@ -116,47 +117,52 @@ function getFilteredTasks(): Task[] {
 
 
 function renderBoardView(filteredTasks: Task[]) {
-    const isWorkflowAdvanced = getWorkspaceKanbanWorkflow(state.activeWorkspaceId) === 'advanced';
-    
-    const tasksByStatus: { [key in Task['status']]: Task[] } = {
-        backlog: [], todo: [], inprogress: [], inreview: [], done: [],
-    };
+    const kanbanStages = state.kanbanStages
+        .filter(s => s.workspaceId === state.activeWorkspaceId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (kanbanStages.length === 0) {
+        return `<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
+            <span class="material-icons-sharp text-5xl text-text-subtle">view_week</span>
+            <h3 class="text-lg font-medium mt-4">No Kanban Board Columns</h3>
+            <p class="text-sm text-text-subtle mt-1">Please configure your Kanban board columns in Settings.</p>
+        </div>`;
+    }
+
+    const tasksByStatus: { [key in Task['status']]?: Task[] } = {};
 
     filteredTasks.forEach(task => {
-        if (tasksByStatus[task.status]) {
-            tasksByStatus[task.status].push(task);
+        if (!tasksByStatus[task.status]) {
+            tasksByStatus[task.status] = [];
         }
+        tasksByStatus[task.status]!.push(task);
     });
 
-    const columnsToRender: Task['status'][] = isWorkflowAdvanced
-        ? ['backlog', 'todo', 'inprogress', 'inreview', 'done']
-        : ['todo', 'inprogress', 'done'];
-        
-    const renderColumn = (status: Task['status']) => {
-        const columnTasks = tasksByStatus[status];
+    const renderColumn = (stage: KanbanStage) => {
+        const columnTasks = tasksByStatus[stage.status] || [];
         const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
         return `
-            <div class="tasks-board-column" data-status="${status}">
+            <div class="tasks-board-column" data-status="${stage.status}">
                 <div class="tasks-board-column-header">
-                    <span>${t('tasks.' + status)} <span class="text-sm font-normal text-text-subtle">${columnTasks.length}</span></span>
+                    <span>${stage.name} <span class="text-sm font-normal text-text-subtle">${columnTasks.length}</span></span>
                     ${totalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(totalSeconds)}</span>` : ''}
                 </div>
                 <div class="tasks-board-column-body">
                     ${columnTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
                 </div>
             </div>
-            `;
+        `;
     };
 
-    const boardHtml = columnsToRender.map(renderColumn).join('');
+    const boardHtml = kanbanStages.map(renderColumn).join('');
         
     return `
-    <div class="flex-1 overflow-y-auto overflow-x-hidden">
-        <div class="tasks-board-container">
-            ${boardHtml}
+        <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <div class="tasks-board-container" style="grid-template-columns: repeat(${kanbanStages.length}, minmax(0, 1fr));">
+                ${boardHtml}
+            </div>
         </div>
-    </div>
     `;
 }
 

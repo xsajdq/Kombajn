@@ -1,7 +1,3 @@
-
-
-
-
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -16,6 +12,14 @@ import { t } from '../i18n.ts';
 
 export function handleChange(e: Event) {
     const target = e.target as HTMLElement;
+
+    const followUpToggle = target.closest<HTMLInputElement>('[data-toggle-follow-up]');
+    if (followUpToggle) {
+        const taskId = followUpToggle.dataset.taskId!;
+        const type = followUpToggle.dataset.toggleFollowUp as 'onInactivity' | 'onUnansweredQuestion';
+        taskHandlers.handleToggleFollowUp(taskId, type);
+        return;
+    }
 
     const projectRoleSelect = target.closest<HTMLSelectElement>('[data-project-member-id]');
     if (projectRoleSelect) {

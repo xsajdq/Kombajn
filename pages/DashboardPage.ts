@@ -1,8 +1,9 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { DashboardWidget, Task, TimeLog, Comment } from '../types.ts';
+import type { DashboardWidget, Task, TimeLog, Comment, CalendarEvent, TimeOffRequest, PublicHoliday } from '../types.ts';
 import { formatDuration, formatDate, formatCurrency } from '../utils.ts';
 import { apiFetch } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
@@ -332,6 +333,144 @@ function renderOverviewTab() {
     `;
 }
 
+function renderMyDayTab() {
+    const { currentUser, activeWorkspaceId } = state;
+    if (!currentUser || !activeWorkspaceId) return '';
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    // --- 1. Get Tasks ---
+    const userTasks = state.tasks.filter(task => 
+        task.workspaceId === activeWorkspaceId &&
+        !task.isArchived &&
+        state.taskAssignees.some(a => a.taskId === task.id && a.userId === currentUser.id)
+    );
+
+    const overdueTasks = userTasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done');
+    const todayTasks = userTasks.filter(t => t.dueDate === todayStr && t.status !== 'done');
+    const tomorrowTasks = userTasks.filter(t => t.dueDate === tomorrowStr && t.status !== 'done');
+
+    const renderTaskGroup = (title: string, tasks: Task[]) => {
+        if (tasks.length === 0) {
+            return '';
+        }
+        return `
+            <div>
+                <h4 class="text-sm font-semibold mb-2 text-text-subtle uppercase tracking-wider">${title}</h4>
+                <div class="space-y-2">
+                    ${tasks.map(task => {
+                        const project = state.projects.find(p => p.id === task.projectId);
+                        return `
+                            <div class="bg-content p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-background" data-task-id="${task.id}">
+                                <span class="material-icons-sharp text-primary">radio_button_unchecked</span>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">${task.name}</p>
+                                    <p class="text-xs text-text-subtle">${project?.name || ''}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    };
+
+    // --- 2. Get Schedule ---
+    const todayDate = new Date(todayStr + 'T12:00:00Z');
+    const scheduleItems: (CalendarEvent | TimeOffRequest | PublicHoliday)[] = [
+        ...state.calendarEvents.filter(e => {
+            if (e.workspaceId !== activeWorkspaceId) return false;
+            const start = new Date(e.startDate + 'T00:00:00Z');
+            const end = new Date(e.endDate + 'T23:59:59Z');
+            return todayDate >= start && todayDate <= end;
+        }),
+        ...state.timeOffRequests.filter(to => {
+            if (to.workspaceId !== activeWorkspaceId || to.status !== 'approved') return false;
+            const start = new Date(to.startDate + 'T00:00:00Z');
+            const end = new Date(to.endDate + 'T23:59:59Z');
+            return todayDate >= start && todayDate <= end;
+        }),
+        ...state.publicHolidays.filter(h => h.date === todayStr)
+    ];
+
+    const renderScheduleItem = (item: any) => {
+        let icon = 'event';
+        let text = '';
+        let time = '';
+
+        if ('userId' in item) { // TimeOffRequest
+            const user = state.users.find(u => u.id === item.userId);
+            icon = 'flight_takeoff';
+            text = `${user?.name || 'Someone'} is on ${item.type.replace('_', ' ')}`;
+            time = 'All day';
+        } else if ('title' in item) { // CalendarEvent
+            const event = item as CalendarEvent;
+            icon = event.type === 'on-call' ? 'phone_in_talk' : 'event';
+            text = event.title;
+            time = 'All day';
+        } else { // PublicHoliday
+            icon = 'celebration';
+            text = item.name;
+            time = 'All day';
+        }
+
+        return `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-background flex items-center justify-center text-text-subtle">
+                    <span class="material-icons-sharp text-lg">${icon}</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium">${text}</p>
+                    <p class="text-xs text-text-subtle">${time}</p>
+                </div>
+            </div>
+        `;
+    };
+
+
+    // --- 3. Get Notifications ---
+    const userNotifications = state.notifications.filter(n => 
+        n.userId === currentUser.id && 
+        n.workspaceId === activeWorkspaceId &&
+        !n.isRead
+    ).slice(0, 5);
+
+
+    return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div class="lg:col-span-2 space-y-6">
+                ${renderTaskGroup(t('dashboard.my_day_overdue'), overdueTasks)}
+                ${renderTaskGroup(t('dashboard.my_day_today'), todayTasks)}
+                ${renderTaskGroup(t('dashboard.my_day_tomorrow'), tomorrowTasks)}
+                 ${overdueTasks.length === 0 && todayTasks.length === 0 && tomorrowTasks.length === 0 ? `<div class="bg-content p-8 rounded-lg text-center text-text-subtle">${t('dashboard.my_day_no_tasks')}</div>` : ''}
+            </div>
+            <div class="space-y-6">
+                <div class="bg-content p-4 rounded-lg">
+                    <h4 class="font-semibold mb-3">${t('dashboard.my_day_todays_schedule')}</h4>
+                    <div class="space-y-3">
+                        ${scheduleItems.length > 0 ? scheduleItems.map(renderScheduleItem).join('') : `<p class="text-sm text-text-subtle">${t('dashboard.my_day_no_schedule')}</p>`}
+                    </div>
+                </div>
+                <div class="bg-content p-4 rounded-lg">
+                    <h4 class="font-semibold mb-3">${t('dashboard.my_day_for_you')}</h4>
+                     <div class="space-y-3">
+                        ${userNotifications.length > 0 ? userNotifications.map(n => `
+                            <div class="flex items-start gap-3 cursor-pointer notification-item" data-notification-id="${n.id}">
+                                <div class="mt-1"><span class="material-icons-sharp text-primary text-lg">info</span></div>
+                                <p class="text-sm">${n.text}</p>
+                            </div>
+                        `).join('') : `<p class="text-sm text-text-subtle">${t('dashboard.my_day_no_notifications')}</p>`}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 export function initDashboardCharts() {
     destroyCharts();
 }
@@ -347,6 +486,7 @@ export function DashboardPage() {
 
     let tabContent = '';
     switch (activeTab) {
+        case 'my_day': tabContent = renderMyDayTab(); break;
         case 'overview': tabContent = renderOverviewTab(); break;
         case 'projects': tabContent = '<div class="flex items-center justify-center h-64"><p class="text-text-subtle">Projects dashboard coming soon.</p></div>'; break;
         case 'team': tabContent = '<div class="flex items-center justify-center h-64"><p class="text-text-subtle">Team dashboard coming soon.</p></div>'; break;
@@ -384,10 +524,11 @@ export function DashboardPage() {
 
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="overview">Overview</button>
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'projects' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="projects">Projects</button>
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'team' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="team">Team</button>
-                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="analytics">Analytics</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'my_day' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="my_day">${t('dashboard.tab_my_day')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="overview">${t('dashboard.tab_overview')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'projects' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="projects">${t('dashboard.tab_projects')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'team' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="team">${t('dashboard.tab_team')}</button>
+                    <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-dashboard-tab="analytics">${t('dashboard.tab_analytics')}</button>
                 </nav>
             </div>
             

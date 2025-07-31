@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -95,7 +94,35 @@ function closeMobileMenu() {
 
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
-    const target = e.target as Element;
+    const target = e.target as HTMLElement;
+
+    // --- Dynamic Breadcrumb Switcher Handler ---
+    const breadcrumbSwitcher = target.closest('[data-breadcrumb-switcher]');
+    if (breadcrumbSwitcher) {
+        e.stopPropagation();
+        const menu = breadcrumbSwitcher.nextElementSibling as HTMLElement;
+        if (menu) {
+            const isHidden = menu.classList.toggle('hidden');
+            breadcrumbSwitcher.setAttribute('aria-expanded', String(!isHidden));
+            if (!isHidden) {
+                (menu.querySelector('input') as HTMLInputElement)?.focus();
+            }
+        }
+        return;
+    }
+
+    const switchEntityBtn = target.closest('[data-switch-entity-id]');
+    if (switchEntityBtn) {
+        const entityType = switchEntityBtn.dataset.entityType as 'project' | 'client' | 'deal';
+        const entityId = switchEntityBtn.dataset.switchEntityId!;
+        if (entityType && entityId) {
+            if (entityType === 'project') uiHandlers.updateUrlAndShowDetail('project', entityId);
+            if (entityType === 'client') uiHandlers.updateUrlAndShowDetail('client', entityId);
+            if (entityType === 'deal') uiHandlers.updateUrlAndShowDetail('deal', entityId);
+        }
+        return;
+    }
+    // --- End Breadcrumb Switcher Handler ---
 
     // --- Dynamic Role Menu Handler ---
     const roleMenuButton = target.closest<HTMLElement>('[data-role-menu-for-member-id]');
@@ -320,6 +347,74 @@ export async function handleClick(e: MouseEvent) {
         const emoji = reactionChip.dataset.emoji!;
         taskHandlers.handleToggleReaction(commentId, emoji);
         return;
+    }
+
+    const reminderBtn = target.closest<HTMLElement>('[data-set-reminder-for-task-id]');
+    if (reminderBtn) {
+        e.stopPropagation();
+        const taskId = reminderBtn.dataset.setReminderForTaskId!;
+        const task = state.tasks.find(t => t.id === taskId);
+        if (!task) return;
+    
+        document.getElementById('reminder-popover')?.remove();
+    
+        const popover = document.createElement('div');
+        popover.id = 'reminder-popover';
+        popover.className = 'reminder-popover';
+    
+        popover.innerHTML = `
+            <h5 class="text-sm font-semibold">Set reminder date & time</h5>
+            <input type="datetime-local" class="form-control" id="reminder-datetime-input">
+            <div class="text-xs font-semibold text-text-subtle">Or choose a preset:</div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <button class="btn btn-secondary btn-sm" data-preset="1h">${t('modals.reminder_preset_1h')}</button>
+                <button class="btn btn-secondary btn-sm" data-preset="tomorrow">${t('modals.reminder_preset_tomorrow')}</button>
+                <button class="btn btn-secondary btn-sm col-span-2 ${!task.dueDate ? 'opacity-50' : ''}" data-preset="1d_before" ${!task.dueDate ? 'disabled' : ''}>${t('modals.reminder_preset_1d_before')}</button>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-border-color">
+                <button class="btn-text text-danger" data-preset="clear">Clear Reminder</button>
+                <button class="btn btn-primary btn-sm" id="save-reminder-btn">Save</button>
+            </div>
+        `;
+        document.body.appendChild(popover);
+        const btnRect = reminderBtn.getBoundingClientRect();
+        popover.style.top = `${btnRect.bottom + 5}px`;
+        popover.style.left = `${btnRect.left - popover.offsetWidth + btnRect.width}px`; // Align right
+        
+        popover.addEventListener('click', (popoverEvent) => {
+            popoverEvent.stopPropagation();
+            const popoverTarget = popoverEvent.target as HTMLElement;
+    
+            const presetBtn = popoverTarget.closest<HTMLElement>('[data-preset]');
+            if (presetBtn) {
+                const preset = presetBtn.dataset.preset;
+                let reminderDate: Date | null = new Date();
+                
+                switch(preset) {
+                    case '1h': reminderDate.setHours(reminderDate.getHours() + 1); break;
+                    case 'tomorrow': reminderDate.setDate(reminderDate.getDate() + 1); reminderDate.setHours(9, 0, 0, 0); break;
+                    case '1d_before': if (task.dueDate) { reminderDate = new Date(task.dueDate + 'T00:00:00'); reminderDate.setDate(reminderDate.getDate() - 1); reminderDate.setHours(9, 0, 0, 0); } break;
+                    case 'clear': reminderDate = null; break;
+                }
+    
+                taskHandlers.handleSetTaskReminder(taskId, reminderDate ? reminderDate.toISOString() : null);
+                popover.remove();
+            }
+    
+            if (popoverTarget.id === 'save-reminder-btn') {
+                const datetimeInput = document.getElementById('reminder-datetime-input') as HTMLInputElement;
+                const dateValue = datetimeInput.value;
+                if (dateValue) {
+                    taskHandlers.handleSetTaskReminder(taskId, new Date(dateValue).toISOString());
+                }
+                popover.remove();
+            }
+        });
+        return;
+    }
+    
+    if (!target.closest('#reminder-popover') && !target.closest('[data-set-reminder-for-task-id]')) {
+        document.getElementById('reminder-popover')?.remove();
     }
 
     // --- END: New Handlers for Comments & Reactions ---
@@ -642,8 +737,6 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('#hr-invite-cancel-btn, #hr-invite-flyout-backdrop')) { document.getElementById('hr-invite-flyout')?.classList.remove('is-open'); document.getElementById('hr-invite-flyout-backdrop')?.classList.remove('is-open'); return; }
     if (target.closest('[data-remove-member-id]')) { teamHandlers.handleRemoveUserFromWorkspace(target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!); return; }
     if (target.closest('[data-approve-join-request-id]')) { teamHandlers.handleApproveJoinRequest(target.closest<HTMLElement>('[data-approve-join-request-id]')!.dataset.approveJoinRequestId!); return; }
-    if (target.closest('[data-reject-join-request-id]')) { teamHandlers.handleRejectJoinRequest(target.closest<HTMLElement>('[data-reject-join-request-id]')!.dataset.rejectJoinRequestId!); return; }
-    if (target.closest('[data-approve-request-id]')) { teamHandlers.handleApproveTimeOffRequest(target.closest<HTMLElement>('[data-approve-request-id]')!.dataset.approveRequestId!); return; }
     if (target.closest('[data-reject-request-id]')) { uiHandlers.showModal('rejectTimeOffRequest', { requestId: target.closest<HTMLElement>('[data-reject-request-id]')!.dataset.rejectRequestId! }); return; }
 
     if (target.closest<HTMLElement>('[data-plan-id]')) { billingHandlers.handlePlanChange(target.closest<HTMLElement>('[data-plan-id]')!.dataset.planId as PlanId); return; }
@@ -761,7 +854,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
-    const goalCard = target.closest<HTMLElement>('[data-goal-id]');
+    const goalCard = target.closest<HTMLElement>('.goal-card[data-goal-id]');
     if (goalCard) {
         uiHandlers.showModal('addGoal', { goalId: goalCard.dataset.goalId! });
         return;

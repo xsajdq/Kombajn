@@ -6,6 +6,7 @@ import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { parseDurationStringToHours } from '../utils.ts';
+import { getWorkspaceKanbanWorkflow } from './main.ts';
 
 declare const gapi: any;
 declare const google: any;
@@ -30,6 +31,9 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
     try {
         const [savedComment] = await apiPost('comments', newCommentPayload);
         state.comments.push(savedComment);
+        
+        task.lastActivityAt = new Date().toISOString();
+        await apiPut('tasks', { id: taskId, lastActivityAt: task.lastActivityAt });
 
         if (!parentId) { // Only clear the main draft, not for replies
             localStorage.removeItem(`comment-draft-${taskId}`);
@@ -172,6 +176,51 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
     }
 }
 
+export async function handleTaskProgressUpdate(taskId: string, newProgress: number) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const roundedProgress = Math.round(newProgress);
+    const originalProgress = task.progress;
+    const originalStatus = task.status;
+
+    task.progress = roundedProgress;
+
+    const workflow = getWorkspaceKanbanWorkflow(task.workspaceId);
+    const doneStatus = workflow === 'simple' ? 'done' : 'done'; // Assuming 'done' for both for now
+
+    if (roundedProgress === 100 && task.status !== doneStatus) {
+        task.status = doneStatus;
+    } else if (roundedProgress < 100 && task.status === doneStatus) {
+        task.status = 'inprogress';
+    }
+
+    // Update UI immediately
+    updateUI(['modal', 'page']);
+
+    try {
+        const payload: { id: string, progress: number, status?: Task['status'] } = {
+            id: taskId,
+            progress: roundedProgress,
+        };
+        if (task.status !== originalStatus) {
+            payload.status = task.status;
+        }
+        await apiPut('tasks', payload);
+
+        // If status changed, run automations
+        if (task.status !== originalStatus && state.currentUser) {
+            runAutomations('statusChange', { task, actorId: state.currentUser.id });
+        }
+    } catch (error) {
+        console.error('Failed to update task progress', error);
+        alert('Failed to save progress.');
+        task.progress = originalProgress;
+        task.status = originalStatus;
+        updateUI(['modal', 'page']);
+    }
+}
+
 export async function handleToggleAssignee(taskId: string, userId: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
@@ -188,84 +237,110 @@ export async function handleToggleAssignee(taskId: string, userId: string) {
             });
         } catch (error) {
             console.error('Failed to remove assignee', error);
-            state.taskAssignees.splice(existingIndex, 0, removed);
+            state.taskAssignees.splice(existingIndex, 0, removed); // Revert
             updateUI(['modal', 'page']);
         }
     } else {
-        const newAssignee: TaskAssignee = { taskId, userId, workspaceId: task.workspaceId };
-        state.taskAssignees.push(newAssignee);
+        const newAssignee = { taskId, userId, workspaceId: task.workspaceId };
+        // Optimistic update with a temporary ID
+        const tempId = `temp-${Date.now()}`;
+        state.taskAssignees.push({ ...newAssignee, id: tempId } as any);
         updateUI(['modal', 'page']);
         try {
-            await apiPost('task_assignees', newAssignee);
+            const [saved] = await apiPost('task_assignees', newAssignee);
+            // Replace temporary with real one
+            const tempIndex = state.taskAssignees.findIndex(a => (a as any).id === tempId);
+            if (tempIndex > -1) {
+                state.taskAssignees[tempIndex] = saved;
+            }
             if (userId !== state.currentUser.id) {
                 await createNotification('new_assignment', { taskId, userIdToNotify: userId, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error('Failed to add assignee', error);
-            state.taskAssignees.pop();
+            const tempIndex = state.taskAssignees.findIndex(a => (a as any).id === tempId);
+            if (tempIndex > -1) {
+                state.taskAssignees.splice(tempIndex, 1); // Revert
+            }
             updateUI(['modal', 'page']);
         }
     }
 }
 
-export async function handleAddSubtask(parentTaskId: string, subtaskName: string) {
-    const parentTask = state.tasks.find(t => t.id === parentTaskId);
-    if (!parentTask || !state.activeWorkspaceId) return;
-
-    const subtaskPayload: Partial<Task> = {
-        workspaceId: state.activeWorkspaceId,
-        projectId: parentTask.projectId,
-        name: subtaskName,
-        status: 'todo',
-        parentId: parentTaskId,
-        isArchived: false,
-    };
+export async function handleAddChecklistItem(taskId: string, text: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (!task.checklist) task.checklist = [];
+    
+    const newItem = { id: generateId(), text, completed: false };
+    task.checklist.push(newItem);
+    updateUI(['modal']); // Optimistic update
 
     try {
-        const [newSubtask] = await apiPost('tasks', subtaskPayload);
-        state.tasks.push(newSubtask);
-        updateUI(['modal']);
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
     } catch (error) {
-        console.error("Failed to add subtask:", error);
-        alert("Could not add subtask.");
+        console.error("Failed to add checklist item:", error);
+        task.checklist.pop();
+        updateUI(['modal']);
     }
 }
 
-export async function handleToggleSubtaskStatus(subtaskId: string) {
-    const subtask = state.tasks.find(t => t.id === subtaskId);
-    if (!subtask) return;
+export async function handleDeleteChecklistItem(taskId: string, itemId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.checklist) return;
 
-    const newStatus = subtask.status === 'done' ? 'todo' : 'done';
-    const oldStatus = subtask.status;
-    subtask.status = newStatus;
+    const itemIndex = task.checklist.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) return;
+
+    const [removedItem] = task.checklist.splice(itemIndex, 1);
+    updateUI(['modal']); // Optimistic update
+
+    try {
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+    } catch (error) {
+        console.error("Failed to delete checklist item:", error);
+        task.checklist.splice(itemIndex, 0, removedItem);
+        updateUI(['modal']);
+    }
+}
+
+export async function handleToggleChecklistItem(taskId: string, itemId: string) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.checklist) return;
+
+    const item = task.checklist.find(item => item.id === itemId);
+    if (!item) return;
+
+    item.completed = !item.completed; // Optimistic update
     updateUI(['modal']);
 
     try {
-        await apiPut('tasks', { id: subtaskId, status: newStatus });
+        await apiPut('tasks', { id: taskId, checklist: task.checklist });
     } catch (error) {
-        console.error("Failed to toggle subtask status:", error);
-        subtask.status = oldStatus;
+        console.error("Failed to toggle checklist item:", error);
+        item.completed = !item.completed;
         updateUI(['modal']);
     }
 }
 
-export async function handleToggleProjectTaskStatus(taskId: string) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
+export async function handleAddSubtask(parentId: string, name: string) {
+    const parentTask = state.tasks.find(t => t.id === parentId);
+    if (!parentTask || !state.activeWorkspaceId) return;
 
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
-    const oldStatus = task.status;
-    
-    task.status = newStatus;
-    updateUI(['side-panel']);
-
+    const newSubtaskPayload: Omit<Task, 'id' | 'createdAt'> = {
+        workspaceId: state.activeWorkspaceId,
+        name,
+        projectId: parentTask.projectId,
+        status: 'todo',
+        parentId: parentId,
+        isArchived: false,
+    };
     try {
-        await apiPut('tasks', { id: taskId, status: newStatus });
+        const [savedSubtask] = await apiPost('tasks', newSubtaskPayload);
+        state.tasks.push(savedSubtask);
+        updateUI(['modal']);
     } catch (error) {
-        console.error('Failed to toggle project task status', error);
-        task.status = oldStatus;
-        updateUI(['side-panel']);
-        alert('Could not update task status.');
+        console.error("Failed to add subtask:", error);
     }
 }
 
@@ -277,7 +352,7 @@ export async function handleDeleteSubtask(subtaskId: string) {
     updateUI(['modal']);
 
     try {
-        await apiFetch(`/api?action=data&resource=tasks`, {
+        await apiFetch('/api?action=data&resource=tasks', {
             method: 'DELETE',
             body: JSON.stringify({ id: subtaskId }),
         });
@@ -288,23 +363,40 @@ export async function handleDeleteSubtask(subtaskId: string) {
     }
 }
 
-export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string) {
-    const task = state.tasks.find(t => t.id === blockedTaskId);
-    if (!task) return;
+export async function handleToggleSubtaskStatus(subtaskId: string) {
+    const subtask = state.tasks.find(t => t.id === subtaskId);
+    if (!subtask) return;
 
-    const dependencyPayload: Omit<TaskDependency, 'id'> = {
-        workspaceId: task.workspaceId,
+    const newStatus = subtask.status === 'done' ? 'todo' : 'done';
+    const originalStatus = subtask.status;
+    subtask.status = newStatus;
+    updateUI(['modal']);
+
+    try {
+        await apiPut('tasks', { id: subtaskId, status: newStatus });
+    } catch (error) {
+        console.error("Failed to toggle subtask status:", error);
+        subtask.status = originalStatus;
+        updateUI(['modal']);
+    }
+}
+
+export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string) {
+    const blockingTask = state.tasks.find(t => t.id === blockingTaskId);
+    const blockedTask = state.tasks.find(t => t.id === blockedTaskId);
+    if (!blockingTask || !blockedTask || !state.activeWorkspaceId) return;
+
+    const newDependencyPayload: Omit<TaskDependency, 'id'> = {
+        workspaceId: state.activeWorkspaceId,
         blockingTaskId,
         blockedTaskId,
     };
-
     try {
-        const [newDependency] = await apiPost('task_dependencies', dependencyPayload);
-        state.dependencies.push(newDependency);
+        const [savedDependency] = await apiPost('task_dependencies', newDependencyPayload);
+        state.dependencies.push(savedDependency);
         updateUI(['modal']);
     } catch (error) {
         console.error("Failed to add dependency:", error);
-        alert("Could not add dependency.");
     }
 }
 
@@ -340,74 +432,22 @@ export async function handleAddAttachment(taskId: string, file: File) {
         fileType: file.type,
         provider: 'native',
     };
-
+    
     try {
         const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
         state.attachments.push(savedAttachment);
         updateUI(['modal']);
-    } catch (error) {
+    } catch(error) {
         console.error("File upload failed:", error);
         alert("File upload failed. Please try again.");
     }
 }
 
-export async function handleAttachGoogleDriveFile(taskId: string) {
-    const { activeWorkspaceId } = state;
-    if (!activeWorkspaceId) return;
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    try {
-        const config = await apiFetch(`/api?action=token&provider=google_drive&workspaceId=${activeWorkspaceId}`);
-        const { token, developerKey, clientId } = config;
-
-        if (!token) {
-            throw new Error("Could not retrieve Google Drive access token.");
-        }
-        
-        const showPicker = () => {
-            const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
-                .setOAuthToken(token)
-                .setDeveloperKey(developerKey)
-                .setAppId(clientId)
-                .setCallback(async (data: any) => {
-                    if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
-                        const doc = data[google.picker.Response.DOCUMENTS][0];
-                        const attachmentPayload: Omit<Attachment, 'id' | 'createdAt'> = {
-                            workspaceId: activeWorkspaceId,
-                            projectId: task.projectId,
-                            taskId: taskId,
-                            fileName: doc.name,
-                            fileSize: doc.sizeBytes,
-                            fileType: doc.mimeType,
-                            provider: 'google_drive',
-                            externalUrl: doc.url,
-                            fileId: doc.id,
-                            iconUrl: doc.iconUrl,
-                        };
-                        const [savedAttachment] = await apiPost('attachments', attachmentPayload);
-                        state.attachments.push(savedAttachment);
-                        updateUI(['modal']);
-                    }
-                })
-                .build();
-            picker.setVisible(true);
-        };
-        
-        gapi.load('picker', showPicker);
-
-    } catch (error) {
-        console.error("Error attaching Google Drive file:", error);
-        alert("Could not connect to Google Drive. Please ensure the integration is active in Settings.");
-    }
-}
-
 export async function handleRemoveAttachment(attachmentId: string) {
-    const attachmentIndex = state.attachments.findIndex(a => a.id === attachmentId);
-    if (attachmentIndex === -1) return;
+    const attIndex = state.attachments.findIndex(a => a.id === attachmentId);
+    if (attIndex === -1) return;
 
-    const [removedAttachment] = state.attachments.splice(attachmentIndex, 1);
+    const [removedAttachment] = state.attachments.splice(attIndex, 1);
     updateUI(['modal']);
 
     try {
@@ -417,112 +457,131 @@ export async function handleRemoveAttachment(attachmentId: string) {
         });
     } catch (error) {
         console.error("Failed to remove attachment:", error);
-        state.attachments.splice(attachmentIndex, 0, removedAttachment);
+        state.attachments.splice(attIndex, 0, removedAttachment);
         updateUI(['modal']);
     }
 }
 
-export async function handleAddCustomFieldDefinition(name: string, type: CustomFieldType) {
+export async function handleCustomFieldValueUpdate(taskId: string, fieldId: string, value: any) {
     if (!state.activeWorkspaceId) return;
+
+    const existingValue = state.customFieldValues.find(v => v.taskId === taskId && v.fieldId === fieldId);
     const payload = {
         workspaceId: state.activeWorkspaceId,
-        name,
-        type,
+        taskId,
+        fieldId,
+        value,
     };
-    try {
-        const [newField] = await apiPost('custom_field_definitions', payload);
-        state.customFieldDefinitions.push(newField);
-        updateUI(['page']);
-    } catch (error) {
-        console.error("Failed to add custom field:", error);
-    }
-}
-
-export async function handleDeleteCustomFieldDefinition(fieldId: string) {
-    const fieldIndex = state.customFieldDefinitions.findIndex(f => f.id === fieldId);
-    if (fieldIndex === -1) return;
-
-    const [removedField] = state.customFieldDefinitions.splice(fieldIndex, 1);
-    updateUI(['page']);
-
-    try {
-        await apiFetch('/api?action=data&resource=custom_field_definitions', {
-            method: 'DELETE',
-            body: JSON.stringify({ id: fieldId }),
-        });
-    } catch (error) {
-        console.error("Failed to delete custom field:", error);
-        state.customFieldDefinitions.splice(fieldIndex, 0, removedField);
-        updateUI(['page']);
-    }
-}
-
-export async function handleCustomFieldValueUpdate(taskId: string, fieldId: string, value: any) {
-    const fieldDef = state.customFieldDefinitions.find(f => f.id === fieldId);
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!fieldDef || !task) return;
-
-    let existingValue = state.customFieldValues.find(v => v.fieldId === fieldId && v.taskId === taskId);
-
+    
     if (existingValue) {
         const originalValue = existingValue.value;
         existingValue.value = value;
         updateUI(['modal']);
         try {
-            await apiPut('custom_field_values', { id: existingValue.id, value: value });
+            await apiPut('custom_field_values', { ...payload, id: existingValue.id });
         } catch (error) {
-            existingValue.value = originalValue;
+            existingValue.value = originalValue; // Revert
             updateUI(['modal']);
+            alert("Could not update custom field.");
         }
     } else {
-        const payload = {
-            workspaceId: task.workspaceId,
-            taskId,
-            fieldId,
-            value,
-        };
+        const tempId = `temp-${Date.now()}`;
+        state.customFieldValues.push({ ...payload, id: tempId } as any);
+        updateUI(['modal']);
         try {
-            const [newValue] = await apiPost('custom_field_values', payload);
-            state.customFieldValues.push(newValue);
-            updateUI(['modal']);
+            const [savedValue] = await apiPost('custom_field_values', payload);
+            const tempIndex = state.customFieldValues.findIndex(v => v.id === tempId);
+            if (tempIndex > -1) {
+                state.customFieldValues[tempIndex] = savedValue;
+            }
         } catch (error) {
-            console.error("Failed to save custom field value:", error);
+            const tempIndex = state.customFieldValues.findIndex(v => v.id === tempId);
+            if (tempIndex > -1) {
+                state.customFieldValues.splice(tempIndex, 1);
+            }
+            updateUI(['modal']);
+            alert("Could not save custom field value.");
         }
     }
 }
 
-export async function handleToggleTag(taskId: string, tagId: string, newTagName?: string) {
+export async function handleAddCustomFieldDefinition(name: string, type: CustomFieldType) {
+    if (!state.activeWorkspaceId) return;
+
+    const payload: Omit<CustomFieldDefinition, 'id'> = {
+        workspaceId: state.activeWorkspaceId,
+        name,
+        type,
+    };
+
+    try {
+        const [savedField] = await apiPost('custom_field_definitions', payload);
+        state.customFieldDefinitions.push(savedField);
+        updateUI(['page']);
+    } catch (error) {
+        console.error("Failed to add custom field:", error);
+        alert("Could not add custom field.");
+    }
+}
+
+export async function handleSetTaskReminder(taskId: string, reminderDate: string | null) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    let finalTagId = tagId;
+    const originalReminder = task.reminderAt;
+    task.reminderAt = reminderDate;
+    updateUI(['modal']); // Optimistic update
 
     try {
-        if (newTagName) {
-            const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-            const [newTag] = await apiPost('tags', { workspaceId: task.workspaceId, name: newTagName, color });
-            state.tags.push(newTag);
-            finalTagId = newTag.id;
-        }
-
-        const existingLinkIndex = state.taskTags.findIndex(tt => tt.taskId === taskId && tt.tagId === finalTagId);
-
-        if (existingLinkIndex > -1) {
-            const [removedLink] = state.taskTags.splice(existingLinkIndex, 1);
-            updateUI(['modal']);
-            await apiFetch('/api?action=data&resource=task_tags', {
-                method: 'DELETE',
-                body: JSON.stringify({ taskId: taskId, tagId: finalTagId }),
-            });
-        } else {
-            const newLink = { taskId, tagId: finalTagId, workspaceId: task.workspaceId };
-            state.taskTags.push(newLink);
-            updateUI(['modal']);
-            await apiPost('task_tags', newLink);
-        }
+        await apiPut('tasks', { id: taskId, reminderAt: reminderDate });
     } catch (error) {
-        console.error("Failed to toggle tag:", error);
+        console.error("Failed to set reminder:", error);
+        task.reminderAt = originalReminder; // Revert
         updateUI(['modal']);
+        alert("Could not save the reminder.");
+    }
+}
+
+export async function handleToggleFollowUp(taskId: string, type: 'onInactivity' | 'onUnansweredQuestion') {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const originalConfig = { ...(task.followUpConfig || {}) };
+    if (!task.followUpConfig) {
+        task.followUpConfig = {};
+    }
+
+    task.followUpConfig[type] = !task.followUpConfig[type];
+    updateUI(['modal']); // Optimistic update
+
+    try {
+        await apiPut('tasks', { id: taskId, followUpConfig: task.followUpConfig });
+    } catch (error) {
+        console.error("Failed to toggle follow-up:", error);
+        task.followUpConfig = originalConfig; // Revert
+        updateUI(['modal']);
+        alert("Could not save follow-up preference.");
+    }
+}
+
+export async function handleDeleteTask(taskId: string) {
+    if (!confirm("Are you sure you want to delete this task permanently?")) return;
+    
+    const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const [removedTask] = state.tasks.splice(taskIndex, 1);
+    updateUI(['page']);
+
+    try {
+        await apiFetch('/api?action=data&resource=tasks', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: taskId }),
+        });
+    } catch (error) {
+        console.error("Failed to delete task:", error);
+        state.tasks.splice(taskIndex, 0, removedTask);
+        updateUI(['page']);
     }
 }
 
@@ -530,113 +589,40 @@ export async function handleToggleTaskArchive(taskId: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const isArchiving = !task.isArchived;
-    const originalValue = task.isArchived;
-    task.isArchived = isArchiving;
+    const originalStatus = task.isArchived;
+    task.isArchived = !task.isArchived;
     updateUI(['page']);
 
     try {
-        await apiPut('tasks', { id: taskId, isArchived: isArchiving });
+        await apiPut('tasks', { id: taskId, isArchived: task.isArchived });
     } catch (error) {
-        console.error('Failed to update task archive status:', error);
-        alert('Could not update task. Please try again.');
-        task.isArchived = originalValue;
+        console.error("Failed to update task archive status:", error);
+        task.isArchived = originalStatus;
         updateUI(['page']);
     }
 }
 
-export async function handleDeleteTask(taskId: string) {
-    const taskIndex = state.tasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) return;
-
-    if (!confirm('Are you sure you want to permanently delete this task and all its related data? This action cannot be undone.')) {
-        return;
-    }
-
-    const [removedTask] = state.tasks.splice(taskIndex, 1);
-    state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== taskId);
-    state.comments = state.comments.filter(c => c.taskId !== taskId);
-    state.timeLogs = state.timeLogs.filter(l => l.taskId !== taskId);
-    state.dependencies = state.dependencies.filter(d => d.blockedTaskId !== taskId && d.blockingTaskId !== taskId);
-    state.taskTags = state.taskTags.filter(tt => tt.taskId !== taskId);
-    state.customFieldValues = state.customFieldValues.filter(cfv => cfv.taskId !== taskId);
-    state.tasks = state.tasks.filter(t => t.parentId !== taskId);
+export async function handleChangeGanttViewMode(mode: 'Day' | 'Week' | 'Month') {
+    state.ui.tasks.ganttViewMode = mode;
     updateUI(['page']);
-
-    try {
-        await apiFetch(`/api?action=data&resource=tasks`, {
-            method: 'DELETE',
-            body: JSON.stringify({ id: taskId }),
-        });
-    } catch (error) {
-        console.error("Failed to delete task:", error);
-        alert('Could not delete the task from the server.');
-    }
 }
 
-export async function handleAddChecklistItem(taskId: string, text: string) {
+
+export async function handleToggleProjectTaskStatus(taskId: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const newItem = { id: generateId(), text, completed: false };
-    if (!task.checklist) task.checklist = [];
-    task.checklist.push(newItem);
-    updateUI(['modal']);
+    const originalStatus = task.status;
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    task.status = newStatus;
+    updateUI(['side-panel']);
 
     try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+        await apiPut('tasks', { id: taskId, status: newStatus });
     } catch (error) {
-        console.error("Failed to add checklist item:", error);
-        alert("Could not add checklist item.");
-        task.checklist.pop();
-        updateUI(['modal']);
-    }
-}
-
-export async function handleToggleChecklistItem(taskId: string, itemId: string) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task || !task.checklist) return;
-
-    const item = task.checklist.find(i => i.id === itemId);
-    if (!item) return;
-
-    const originalStatus = item.completed;
-    item.completed = !item.completed;
-    updateUI(['modal']);
-
-    try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
-    } catch (error) {
-        console.error("Failed to toggle checklist item:", error);
-        alert("Could not update checklist item.");
-        item.completed = originalStatus;
-        updateUI(['modal']);
-    }
-}
-
-export async function handleDeleteChecklistItem(taskId: string, itemId: string) {
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task || !task.checklist) return;
-
-    const itemIndex = task.checklist.findIndex(i => i.id === itemId);
-    if (itemIndex === -1) return;
-
-    const [removedItem] = task.checklist.splice(itemIndex, 1);
-    updateUI(['modal']);
-
-    try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
-    } catch (error) {
-        console.error("Failed to delete checklist item:", error);
-        alert("Could not delete checklist item.");
-        task.checklist.splice(itemIndex, 0, removedItem);
-        updateUI(['modal']);
-    }
-}
-
-export function handleChangeGanttViewMode(mode: 'Day' | 'Week' | 'Month') {
-    if (state.ui.tasks.ganttViewMode !== mode) {
-        state.ui.tasks.ganttViewMode = mode;
-        updateUI(['page']);
+        console.error("Failed to update task status:", error);
+        task.status = originalStatus;
+        updateUI(['side-panel']);
+        alert("Could not update task status.");
     }
 }

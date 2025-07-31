@@ -8,11 +8,20 @@ import { handleClick } from './listeners/click.ts';
 import { handleChange } from './listeners/change.ts';
 import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './handlers/dnd.ts';
 import { handleMouseUp } from './listeners/selection.ts';
+import { handleProgressMouseDown } from './listeners/progress.ts';
 
 export function setupEventListeners() {
     // By attaching to document, we can catch events on dynamically created elements
     // like modals and context menus which are appended to the body.
-    document.addEventListener('mousedown', (e) => handleMouseDown(e as MouseEvent));
+    document.addEventListener('mousedown', (e) => {
+        const target = e.target as HTMLElement;
+        const progressBar = target.closest<HTMLElement>('#task-progress-bar');
+        if (progressBar) {
+            handleProgressMouseDown(e, progressBar);
+        } else {
+            handleMouseDown(e as MouseEvent)
+        }
+    });
     document.addEventListener('click', (e) => handleClick(e as MouseEvent));
     document.addEventListener('mouseup', handleMouseUp);
     

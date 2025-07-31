@@ -68,7 +68,7 @@ async function main() {
 
     try {
         setupEventListeners();
-        window.addEventListener('popstate', () => updateUI(['page', 'sidebar']));
+        window.addEventListener('popstate', () => updateUI(['page', 'sidebar', 'header']));
         window.addEventListener('ui-update', (e: CustomEvent) => updateUI(e.detail));
 
         await initSupabase();

@@ -1,5 +1,6 @@
 
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -125,7 +126,7 @@ export function getInitialState(): AppState {
                 filters: { dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10), projectId: 'all', userId: 'all', clientId: 'all' },
             },
             settings: { activeTab: 'general' },
-            dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null, activeTab: 'overview' },
+            dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null, activeTab: 'my_day' },
             hr: { activeTab: 'employees', filters: { text: '' } },
             goals: { filters: { text: '' } },
             inventory: { filters: { text: '' } },

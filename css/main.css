@@ -848,6 +848,78 @@
   .text-selection-popover button {
     @apply bg-content shadow-lg border border-border-color;
   }
+
+  /* == Task Progress Bar == */
+  .task-progress-bar-container {
+    @apply relative h-5 flex items-center cursor-pointer;
+  }
+  .task-progress-bar-track {
+    @apply w-full h-1.5 bg-background rounded-full;
+  }
+  .task-progress-bar-fill {
+    @apply h-full bg-primary rounded-full;
+  }
+  .task-progress-bar-thumb {
+    @apply absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow transition-transform;
+  }
+  .task-progress-bar-container:hover .task-progress-bar-thumb {
+    @apply scale-110;
+  }
+  .task-progress-bar-container.dragging .task-progress-bar-thumb {
+    @apply scale-125 cursor-grabbing;
+  }
+
+  /* == Reminders & Follow-ups == */
+  .toggle-switch {
+    @apply appearance-none relative w-9 h-5 bg-border-color rounded-full cursor-pointer transition-colors;
+  }
+  .toggle-switch:checked {
+    @apply bg-primary;
+  }
+  .toggle-switch::before {
+    content: '';
+    @apply absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform;
+  }
+  .toggle-switch:checked::before {
+    @apply translate-x-4;
+  }
+  .reminder-popover {
+    @apply absolute z-50 w-64 bg-content rounded-lg shadow-lg border border-border-color p-3 space-y-3;
+  }
+  /* == NEW Breadcrumbs == */
+  .breadcrumb-container {
+    @apply flex items-center h-12 px-4 sm:px-6 lg:px-8 border-b border-border-color text-sm;
+  }
+  .breadcrumb-item {
+    @apply flex items-center gap-2;
+  }
+  .breadcrumb-item a {
+    @apply text-text-subtle hover:text-text-main hover:underline;
+  }
+  .breadcrumb-item .breadcrumb-separator {
+    @apply text-text-subtle;
+  }
+  .breadcrumb-item.current span {
+    @apply font-semibold text-text-main;
+  }
+  .breadcrumb-switcher {
+    @apply flex items-center gap-1 font-semibold text-text-main p-1 -ml-1 rounded-md hover:bg-background;
+  }
+  .breadcrumb-switcher-menu {
+    @apply absolute top-full mt-1 w-64 bg-content rounded-md shadow-lg border border-border-color z-20 p-1;
+  }
+  .breadcrumb-switcher-menu input {
+    @apply w-full text-xs mb-1;
+  }
+  .switcher-menu-list {
+    @apply max-h-60 overflow-y-auto;
+  }
+  .switcher-menu-item {
+    @apply w-full text-left flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-background;
+  }
+  .switcher-menu-item.active {
+    @apply bg-primary/10 text-primary font-semibold;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

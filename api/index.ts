@@ -522,6 +522,79 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 return res.status(200).json(keysToCamel(data));
             }
+             // ============================================================================
+            // JOB / CRON HANDLERS
+            // ============================================================================
+            case 'process-reminders': {
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+                // This endpoint should be protected, e.g., by a cron job secret.
+                const CRON_SECRET = process.env.CRON_SECRET;
+                const authHeader = req.headers.authorization;
+                if (!CRON_SECRET || `Bearer ${CRON_SECRET}` !== authHeader) {
+                    return res.status(401).json({ error: 'Unauthorized' });
+                }
+
+                const supabase = getSupabaseAdmin();
+                const now = new Date().toISOString();
+
+                // Find tasks with reminders that are due
+                const { data: tasksToRemind, error: tasksError } = await supabase
+                    .from('tasks')
+                    .select('id, name, workspace_id, reminder_at')
+                    .lte('reminder_at', now)
+                    .not('reminder_at', 'is', null);
+
+                if (tasksError) throw tasksError;
+                if (!tasksToRemind || tasksToRemind.length === 0) {
+                    return res.status(200).json({ message: 'No reminders to process.' });
+                }
+
+                const notificationsToCreate: any[] = [];
+                const remindedTaskIds: string[] = [];
+
+                for (const task of tasksToRemind) {
+                    remindedTaskIds.push(task.id);
+                    // Find all assignees for the task
+                    const { data: assignees, error: assigneesError } = await supabase
+                        .from('task_assignees')
+                        .select('user_id')
+                        .eq('task_id', task.id);
+                    
+                    if (assigneesError) {
+                        console.error(`Could not fetch assignees for task ${task.id}:`, assigneesError);
+                        continue; // Skip this task
+                    }
+
+                    for (const assignee of assignees) {
+                        notificationsToCreate.push({
+                            user_id: assignee.user_id,
+                            workspace_id: task.workspace_id,
+                            type: 'mention', // Re-using mention type for simplicity
+                            text: `Reminder for task: "${task.name}"`,
+                            is_read: false,
+                            action: { type: 'viewTask', taskId: task.id },
+                        });
+                    }
+                }
+
+                if (notificationsToCreate.length > 0) {
+                    const { error: notificationError } = await supabase
+                        .from('notifications')
+                        .insert(notificationsToCreate);
+
+                    if (notificationError) throw notificationError;
+                }
+
+                // Clear the reminders from the tasks so they don't fire again
+                const { error: updateError } = await supabase
+                    .from('tasks')
+                    .update({ reminder_at: null })
+                    .in('id', remindedTaskIds);
+
+                if (updateError) throw updateError;
+                
+                return res.status(200).json({ message: `Processed ${remindedTaskIds.length} reminders.` });
+            }
             // ============================================================================
             // AUTH HANDLERS
             // ============================================================================

@@ -1,5 +1,7 @@
 
 
+
+
 export interface User {
     id: string;
     name?: string;
@@ -167,6 +169,13 @@ export interface Task {
     type?: 'feature' | 'bug' | 'chore' | null;
     isArchived: boolean;
     createdAt: string;
+    progress?: number;
+    reminderAt?: string | null; // ISO 8601 for manual reminders
+    lastActivityAt?: string | null; // ISO 8601 to track staleness
+    followUpConfig?: {
+        onInactivity?: boolean;
+        onUnansweredQuestion?: boolean;
+    } | null;
 }
 
 export interface TaskDependency {
@@ -761,7 +770,7 @@ export interface AppState {
             isEditing: boolean;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
-            activeTab: 'overview' | 'projects' | 'team' | 'analytics';
+            activeTab: 'my_day' | 'overview' | 'projects' | 'team' | 'analytics';
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';

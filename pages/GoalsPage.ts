@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -75,7 +76,7 @@ function renderGoalCard(goal: Objective) {
     };
 
     return `
-        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow" data-goal-id="${goal.id}">
+        <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow goal-card" data-goal-id="${goal.id}">
             <h4 class="font-bold">${goal.title}</h4>
             <p class="text-sm text-text-subtle flex-grow">${goal.description || ''}</p>
             <div class="flex flex-wrap items-center gap-2">

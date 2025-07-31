@@ -1,5 +1,3 @@
-
-
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate } from '../../utils.ts';
@@ -339,6 +337,7 @@ function renderSidebar(task: Task) {
     const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
     const taskTags = state.taskTags.filter(tt => tt.taskId === task.id).map(tt => state.tags.find(t => t.id === tt.tagId)).filter(Boolean);
     const workspaceTags = state.tags.filter(t => t.workspaceId === task.workspaceId);
+    const progress = task.progress ?? 0;
 
 
     const renderCustomField = (field: CustomFieldDefinition) => {
@@ -377,6 +376,18 @@ function renderSidebar(task: Task) {
                     <option value="inreview" ${task.status === 'inreview' ? 'selected' : ''}>${t('modals.status_inreview')}</option>
                     <option value="done" ${task.status === 'done' ? 'selected' : ''}>${t('modals.status_done')}</option>
                 </select>
+            </div>
+            <div class="sidebar-item">
+                <div class="flex justify-between items-center">
+                    <label>${t('modals.progress')}</label>
+                    <span class="text-xs font-semibold" id="task-progress-label">${Math.round(progress)}%</span>
+                </div>
+                <div class="task-progress-bar-container" id="task-progress-bar" data-task-id="${task.id}">
+                    <div class="task-progress-bar-track">
+                        <div class="task-progress-bar-fill" id="task-progress-fill" style="width: ${progress}%;"></div>
+                    </div>
+                    <div class="task-progress-bar-thumb" id="task-progress-thumb" style="left: ${progress}%;"></div>
+                </div>
             </div>
              <div class="sidebar-item">
                 <label>${t('modals.assignees')}</label>
@@ -445,6 +456,27 @@ function renderSidebar(task: Task) {
                             <input type="text" class="form-control" placeholder="Create new tag...">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="sidebar-item">
+                <div class="flex justify-between items-center">
+                    <label>${t('modals.reminders')}</label>
+                    <button class="btn-icon" data-set-reminder-for-task-id="${task.id}" title="${t('modals.set_reminder')}">
+                        <span class="material-icons-sharp text-base">${task.reminderAt ? 'notifications_active' : 'notifications_none'}</span>
+                    </button>
+                </div>
+                ${task.reminderAt ? `<p class="text-xs text-primary">${formatDate(task.reminderAt, {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>` : ''}
+                <div class="mt-2 pt-2 border-t border-border-color space-y-2">
+                    <h5 class="text-xs font-bold text-text-subtle">${t('modals.automated_follow_ups')}</h5>
+                    <label class="flex justify-between items-center cursor-pointer">
+                        <span class="text-sm">${t('modals.nudge_on_inactivity')}</span>
+                        <input type="checkbox" class="toggle-switch" data-toggle-follow-up="onInactivity" data-task-id="${task.id}" ${task.followUpConfig?.onInactivity ? 'checked' : ''}>
+                    </label>
+                    <label class="flex justify-between items-center cursor-pointer">
+                        <span class="text-sm">${t('modals.nudge_on_unanswered_question')}</span>
+                        <input type="checkbox" class="toggle-switch" data-toggle-follow-up="onUnansweredQuestion" data-task-id="${task.id}" ${task.followUpConfig?.onUnansweredQuestion ? 'checked' : ''}>
+                    </label>
                 </div>
             </div>
 
