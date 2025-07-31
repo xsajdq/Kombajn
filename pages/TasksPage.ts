@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
@@ -565,13 +566,34 @@ export function TasksPage() {
     const { text } = state.ui.tasks.filters;
     const kanbanViewMode = state.currentUser?.kanbanViewMode || 'detailed';
     
-    const activeTaskView = state.taskViews.find(tv => tv.id === state.ui.activeTaskViewId);
-    const pageTitle = activeTaskView ? activeTaskView.name : t('tasks.title');
+    const { filters } = state.ui.tasks;
+    const { activeTaskViewId } = state.ui;
+    const activeTaskView = state.taskViews.find(tv => tv.id === activeTaskViewId);
+    const filteredProject = state.projects.find(p => p.id === filters.projectId);
+
+    let headerContent = '';
+    if (activeTaskView) {
+        headerContent = `
+            <div class="flex items-center gap-3">
+                <span class="material-icons-sharp text-2xl text-text-subtle">${activeTaskView.icon}</span>
+                <h2 class="text-2xl font-bold">${activeTaskView.name}</h2>
+            </div>
+        `;
+    } else if (filteredProject) {
+        headerContent = `
+            <div class="flex items-center gap-3">
+                <span class="material-icons-sharp text-2xl text-text-subtle">folder</span>
+                <h2 class="text-2xl font-bold">${filteredProject.name}</h2>
+            </div>
+        `;
+    } else {
+        headerContent = `<h2 class="text-2xl font-bold">${t('tasks.title')}</h2>`;
+    }
 
     return `
         <div class="h-full flex flex-col">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                <h2 class="text-2xl font-bold">${pageTitle}</h2>
+                ${headerContent}
                 <div class="flex items-center gap-2">
                     <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
                         <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'board' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp text-xl">grid_view</span></button>

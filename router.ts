@@ -46,7 +46,7 @@ export async function router() {
         state.ui.openedProjectId = null;
         state.ui.openedClientId = null;
         state.ui.openedDealId = null;
-        updateUI(['side-panel']);
+        updateUI(['side-panel', 'header']);
     }
     
     state.currentPage = newPage;

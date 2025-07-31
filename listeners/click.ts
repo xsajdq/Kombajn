@@ -690,10 +690,12 @@ export async function handleClick(e: MouseEvent) {
     }
     const removeAssigneeBtn = target.closest<HTMLElement>('.remove-assignee');
     if (removeAssigneeBtn) {
-        const taskId = state.ui.modal.data?.taskId;
-        const userId = removeAssigneeBtn.dataset.userId!;
-        if (taskId && userId) {
-            taskHandlers.handleToggleAssignee(taskId, userId);
+        if (state.ui.modal.isOpen && state.ui.modal.data) {
+            const taskId = state.ui.modal.data.taskId;
+            const userId = removeAssigneeBtn.dataset.userId!;
+            if (taskId && userId) {
+                taskHandlers.handleToggleAssignee(taskId, userId);
+            }
         }
         return;
     }

@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Project, Client, Deal } from '../types.ts';
@@ -75,55 +76,53 @@ export function Breadcrumbs() {
         'ai-assistant': { text: t('sidebar.ai_assistant'), link: '/ai-assistant' },
     };
 
-    if (currentPage !== 'dashboard' && pageMap[currentPage]) {
-        breadcrumbs.push(pageMap[currentPage]!);
-    }
-
-    if (ui.openedProjectId) {
-        const project = state.projects.find(p => p.id === ui.openedProjectId);
-        if (project) {
-            breadcrumbs[breadcrumbs.length - 1] = { ...breadcrumbs[breadcrumbs.length - 1], text: project.name, isSwitcher: true, switcherType: 'project', id: project.id };
-        }
-    } else if (ui.openedClientId) {
-        const client = state.clients.find(c => c.id === ui.openedClientId);
-        if (client) {
-            breadcrumbs[breadcrumbs.length - 1] = { ...breadcrumbs[breadcrumbs.length - 1], text: client.name, isSwitcher: true, switcherType: 'client', id: client.id };
-        }
-    } else if (ui.openedDealId) {
-        const deal = state.deals.find(d => d.id === ui.openedDealId);
-        if (deal) {
-            breadcrumbs[breadcrumbs.length - 1] = { ...breadcrumbs[breadcrumbs.length - 1], text: deal.name, isSwitcher: true, switcherType: 'deal', id: deal.id };
-        }
-    }
-
+    // Task detail modal is a special case that defines the whole path from scratch
     if (ui.modal.isOpen && ui.modal.type === 'taskDetail' && ui.modal.data?.taskId) {
         const task = state.tasks.find(t => t.id === ui.modal.data.taskId);
         if (task) {
             const project = state.projects.find(p => p.id === task.projectId);
-            // Rebuild breadcrumbs for task context
-            breadcrumbs.splice(1, breadcrumbs.length - 1); // Remove everything after Home
-            if(project) {
+            if (project) {
                 breadcrumbs.push({ text: t('sidebar.projects'), link: '/projects' });
-                breadcrumbs.push({ text: project.name, link: `/projects/${project.id}`, isSwitcher: true, switcherType: 'project', id: project.id });
+                breadcrumbs.push({ text: project.name, link: `/projects/${project.id}` });
             } else {
-                 breadcrumbs.push({ text: t('sidebar.tasks'), link: '/tasks' });
+                breadcrumbs.push({ text: t('sidebar.tasks'), link: '/tasks' });
             }
             breadcrumbs.push({ text: task.name });
         }
-    }
+    } else {
+        // Build base path for the current page
+        if (currentPage !== 'dashboard' && pageMap[currentPage]) {
+            breadcrumbs.push(pageMap[currentPage]!);
+        }
 
-    if (currentPage === 'settings' && ui.settings.activeTab) {
-        const tabKey = `settings.tab_${ui.settings.activeTab}`;
-        breadcrumbs.push({ text: t(tabKey) });
-    }
-    
-    if (currentPage === 'hr' && ui.hr.activeTab) {
-        const tabKey = `hr.tabs.${ui.hr.activeTab}`;
-        breadcrumbs.push({ text: t(tabKey) });
+        // Append details for open side panels
+        if (ui.openedProjectId) {
+            const project = state.projects.find(p => p.id === ui.openedProjectId);
+            if (project) {
+                breadcrumbs.push({ text: project.name, isSwitcher: true, switcherType: 'project', id: project.id });
+            }
+        } else if (ui.openedClientId) {
+            const client = state.clients.find(c => c.id === ui.openedClientId);
+            if (client) {
+                breadcrumbs.push({ text: client.name, isSwitcher: true, switcherType: 'client', id: client.id });
+            }
+        } else if (ui.openedDealId) {
+            const deal = state.deals.find(d => d.id === ui.openedDealId);
+            if (deal) {
+                breadcrumbs.push({ text: deal.name, isSwitcher: true, switcherType: 'deal', id: deal.id });
+            }
+        }
+
+        // Append details for tabs within pages
+        if (currentPage === 'settings' && ui.settings.activeTab !== 'general') {
+            breadcrumbs.push({ text: t(`settings.tab_${ui.settings.activeTab}`) });
+        } else if (currentPage === 'hr' && ui.hr.activeTab !== 'employees') {
+            breadcrumbs.push({ text: t(`hr.tabs.${ui.hr.activeTab}`) });
+        }
     }
 
     if (breadcrumbs.length <= 1 && currentPage !== 'dashboard') {
-        return ''; // Don't show breadcrumbs if it's just "Home" on a non-home page
+        return '';
     }
 
     return `

@@ -336,8 +336,6 @@ function renderSidebar(task: Task) {
         .map(m => state.users.find(u => u.id === m.userId))
         .filter((u): u is User => !!u);
     
-    const unassignedMembers = workspaceMembers.filter(u => !assigneeIds.has(u.id));
-    
     const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
     const taskTags = state.taskTags.filter(tt => tt.taskId === task.id).map(tt => state.tags.find(t => t.id === tt.tagId)).filter(Boolean);
     const workspaceTags = state.tags.filter(t => t.workspaceId === task.workspaceId);
@@ -395,28 +393,26 @@ function renderSidebar(task: Task) {
             </div>
              <div class="sidebar-item">
                 <label>${t('modals.assignees')}</label>
-                <div class="assignee-list">
-                    ${assignees.length > 0 ? assignees.map(user => `
-                        <div class="assignee-item group">
-                            <div class="avatar">${user.initials}</div>
-                            <span>${user.name || user.initials}</span>
-                            <button class="btn-icon remove-assignee" data-user-id="${user.id}"><span class="material-icons-sharp text-base">close</span></button>
+                <div class="relative">
+                    <button class="form-control text-left flex items-center justify-between" data-menu-toggle="assignee-dropdown" aria-haspopup="true" aria-expanded="false">
+                        <div class="flex items-center gap-1 -space-x-2 overflow-hidden">
+                            ${assignees.length > 0 ? assignees.map(user => `
+                                <div class="avatar-small" title="${user.name || user.initials || 'Unnamed'}">${user.initials || '?'}</div>
+                            `).join('') : `<span class="text-text-subtle text-sm px-1">${t('modals.unassigned')}</span>`}
                         </div>
-                    `).join('') : ''}
-                    <div class="relative">
-                        <button class="add-assignee-btn" data-menu-toggle="assignee-dropdown">${assignees.length > 0 ? 'Add/Remove' : 'Assign'}</button>
-                        <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu">
-                            ${workspaceMembers.map(user => {
-                                const isAssigned = assigneeIds.has(user!.id);
-                                return `
-                                    <div class="assignee-dropdown-item" data-user-id="${user!.id}">
-                                        <div class="avatar">${user!.initials}</div>
-                                        <span>${user!.name || user!.initials}</span>
-                                        ${isAssigned ? `<span class="material-icons-sharp text-primary ml-auto">check</span>` : ''}
-                                    </div>
-                                `
-                            }).join('')}
-                        </div>
+                         ${assignees.length > 0 ? `<span class="text-sm text-text-subtle">${assignees.length} assigned</span>` : ''}
+                    </button>
+                    <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu">
+                        ${workspaceMembers.map(user => {
+                            const isAssigned = assigneeIds.has(user.id);
+                            return `
+                                <div class="assignee-dropdown-item" data-user-id="${user.id}">
+                                    <div class="avatar">${user.initials || '?'}</div>
+                                    <span>${user.name || user.initials || 'Unnamed'}</span>
+                                    ${isAssigned ? `<span class="material-icons-sharp text-primary ml-auto">check</span>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             </div>
