@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -266,7 +267,7 @@
 
   /* == Tasks Page (Redesigned) == */
   .tasks-board-container {
-    @apply grid grid-cols-5 gap-4 h-full;
+    @apply grid gap-4 h-full;
   }
   .tasks-board-column {
     @apply flex flex-col bg-transparent;
@@ -683,12 +684,7 @@
     @apply fixed inset-0 bg-black/50 z-50 flex justify-center pt-20 transition-opacity duration-200;
   }
   .command-palette {
-    @apply w-full max-w-xl bg-content rounded-lg shadow-2xl h-fit max-h-[70vh] flex flex-col overflow-hidden transition-transform duration-200 transform scale-95;
-    animation: zoomIn 0.2s ease-out forwards;
-  }
-  @keyframes zoomIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    @apply w-full max-w-xl bg-content rounded-lg shadow-2xl h-fit max-h-[70vh] flex flex-col overflow-hidden transition-transform duration-200;
   }
   .command-palette-input-wrapper {
     @apply flex items-center gap-3 p-4 border-b border-border-color;
@@ -724,6 +720,69 @@
     @apply text-xs text-text-subtle;
   }
   .command-shortcut {
-    @apply ml-auto text-xs text-text-subtle bg-background px-1.5 py-0.5 rounded-md border border-border-color;
+      @apply ml-auto text-xs text-text-subtle bg-background px-1.5 py-0.5 rounded-md border border-border-color;
   }
+
+  /* == Team Calendar (All Views) == */
+  .calendar-event-bar {
+    @apply absolute z-10 pointer-events-auto;
+  }
+  .calendar-event-content {
+    @apply h-full px-2 py-0.5 text-xs font-medium truncate flex items-center;
+  }
+  .calendar-event-content.is-start { @apply rounded-l-md; }
+  .calendar-event-content.is-end { @apply rounded-r-md; }
+
+  .team-calendar-leave-header {
+    @apply p-2 border-b border-border-color sticky top-0 bg-content z-20;
+  }
+  .leave-header-row {
+    @apply grid items-center;
+    grid-template-columns: 200px 1fr;
+  }
+  .leave-header-user {
+    @apply text-sm font-semibold px-2 truncate;
+  }
+  .leave-header-timeline {
+    @apply relative grid grid-cols-7 h-6;
+  }
+  .leave-header-timeline .calendar-event-bar {
+    @apply static h-6;
+  }
+  .leave-header-timeline .calendar-event-content {
+    @apply rounded-md;
+  }
+
+  .workload-container { @apply overflow-x-auto; }
+  .workload-grid {
+    @apply grid min-w-[1400px];
+    grid-template-columns: 200px 1fr;
+  }
+  .workload-header-user { @apply border-b border-r border-border-color sticky left-0 bg-content z-20; }
+  .workload-header-timeline { @apply grid grid-cols-7; }
+  .workload-header-date { @apply text-center p-2 border-b border-r border-border-color; }
+  .workload-user-cell { @apply flex items-center gap-2 p-2 border-r border-b border-border-color sticky left-0 bg-content z-10; }
+  .workload-user-timeline { @apply relative border-b border-border-color; grid-column: 2 / -1; }
+  .workload-day-cell-container { @apply grid grid-cols-7 h-full; }
+  .workload-day-cell { @apply border-r border-border-color p-1 min-h-[60px]; }
+  .workload-day-cell:last-child { @apply border-r-0; }
+  .capacity-good { background-color: rgba(var(--primary-color-rgb), 0.05); }
+  .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.05); }
+  .workload-task-bars { @apply absolute inset-0; }
+  .workload-task-bar { @apply absolute h-6 px-2 text-xs font-medium text-white truncate flex items-center rounded cursor-pointer; }
+
+  .timesheet-container { @apply overflow-auto; height: calc(100vh - 300px); }
+  .timesheet-grid { @apply grid min-w-[1200px] relative; grid-template-columns: 60px repeat(7, 1fr); }
+  .timesheet-header { @apply sticky top-0 bg-content z-20 border-b border-r border-border-color; grid-column: 1; grid-row: 1; }
+  .timesheet-day-header { @apply text-center p-2 border-b border-r border-border-color sticky top-0 bg-content z-20; }
+  .time-axis-container { @apply col-start-1 row-start-2 border-r border-border-color text-right text-xs text-text-subtle sticky left-0 bg-content z-10; }
+  .time-axis { @apply h-12 pr-2 border-t border-border-color; }
+  .day-column { @apply row-start-2 relative border-r border-border-color; }
+  .day-column:last-child { @apply border-r-0; }
+  .hour-row { @apply h-12 border-t border-border-color; }
+  .timesheet-entry { @apply absolute rounded-md p-1.5 text-white text-xs overflow-hidden cursor-pointer flex gap-1 z-10; border: 1px solid rgba(0,0,0,0.2); }
+  .timesheet-entry-initials { @apply w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-xs font-bold shrink-0; }
+  .timesheet-entry-content { @apply overflow-hidden; }
+  .timesheet-entry-content strong { @apply block truncate font-semibold; }
+  .timesheet-entry-content p { @apply truncate text-white/80; }
 }
