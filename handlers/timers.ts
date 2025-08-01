@@ -44,14 +44,14 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
         await apiPut('tasks', { id: taskId, lastActivityAt: task.lastActivityAt });
 
         closeModal(false);
-        updateUI(['modal', 'page']);
+        updateUI(['modal', 'page', 'side-panel']);
     } catch(error) {
         console.error("Failed to save time log:", error);
         alert("Could not save time log. Please try again.");
     }
 }
 
-export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: number, dateString: string, comment?: string) {
+export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: number, createdAt: string, comment?: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) {
         throw new Error("Task or user not found.");
@@ -66,13 +66,14 @@ export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: nu
         taskId,
         userId: state.currentUser.id,
         trackedSeconds: Math.floor(trackedSeconds),
-        createdAt: new Date(dateString).toISOString(),
+        createdAt: createdAt,
         ...(comment && { comment }),
     };
 
     const [savedLog] = await apiPost('time_logs', timeLogPayload);
     state.timeLogs.push(savedLog);
     closeModal();
+    updateUI(['page', 'side-panel']);
 }
 
 export function startGlobalTimer() {

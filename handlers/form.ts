@@ -693,10 +693,14 @@ export async function handleFormSubmit() {
             const taskId = (form.querySelector('#timeLogTask') as HTMLSelectElement).value;
             const trackedSeconds = parseInt((form.querySelector('#time-picker-seconds') as HTMLInputElement).value, 10);
             const dateString = (form.querySelector('#timeLogDate') as HTMLInputElement).value;
+            const timeString = (form.querySelector('#timeLogStartTime') as HTMLInputElement).value || '00:00';
             const comment = (form.querySelector('#timeLogComment') as HTMLTextAreaElement).value.trim();
 
             if (taskId && trackedSeconds > 0 && dateString) {
-                await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, dateString, comment || undefined);
+                const [hours, minutes] = timeString.split(':').map(Number);
+                const createdAt = new Date(dateString);
+                createdAt.setHours(hours, minutes);
+                await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, createdAt.toISOString(), comment || undefined);
             } else {
                 alert("Please select a valid time and date.");
                 return;
