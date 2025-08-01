@@ -735,7 +735,7 @@ export interface AppState {
         calendarDate: string; // YYYY-MM for the calendar view
         teamCalendarView: TeamCalendarView;
         teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
-        teamCalendarSelectedUserId: string | null;
+        teamCalendarSelectedUserIds: string[];
         activeChannelId: string | null;
         activeTaskViewId: string | null;
         isWikiEditing: boolean;

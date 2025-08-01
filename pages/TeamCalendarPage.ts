@@ -1,6 +1,4 @@
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
@@ -338,12 +336,11 @@ function renderWeekView(currentDate: Date) {
 }
 
 function renderWorkloadView(currentDate: Date) {
-    // Similar header logic to week view
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
     startDate.setDate(startDate.getDate() - dayOfWeek);
-    
+
     for (let i = 0; i < 7; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
@@ -352,7 +349,7 @@ function renderWorkloadView(currentDate: Date) {
     const weekStartDate = weekDays[0];
     const weekEndDate = new Date(weekDays[6]);
     weekEndDate.setHours(23, 59, 59, 999);
-    
+
     const users = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => state.users.find(u => u.id === m.userId))
@@ -369,33 +366,28 @@ function renderWorkloadView(currentDate: Date) {
     const rowsHtml = users.map(user => {
         const dayCellsHtml = weekDays.map(date => {
             const dateStr = date.toISOString().slice(0, 10);
-            let dailyHours = 0;
-            state.tasks.forEach(task => {
-                const isAssigned = state.taskAssignees.some(a => a.taskId === task.id && a.userId === user.id);
-                if (isAssigned && task.startDate && task.dueDate && task.estimatedHours) {
-                    const start = new Date(task.startDate + 'T12:00:00Z');
-                    const end = new Date(task.dueDate + 'T12:00:00Z');
-                    const currentDate = new Date(dateStr + 'T12:00:00Z');
-                    if (currentDate >= start && currentDate <= end) {
-                        const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
-                        dailyHours += (task.estimatedHours || 0) / durationDays;
-                    }
-                }
+            const itemsForDay = getItemsForDay(dateStr).filter(item => {
+                return ('userId' in item && item.userId === user.id) || ('date' in item); // TimeOffRequests and PublicHolidays
             });
-            
-            let capacityClass = 'capacity-under';
-            if (dailyHours > 8) capacityClass = 'capacity-over';
-            else if (dailyHours > 6) capacityClass = 'capacity-good';
-            
-            return `<div class="workload-day-cell ${capacityClass}" title="${user.name}: ${dailyHours.toFixed(1)}h"></div>`;
+            return `
+                <div class="workload-day-cell">
+                    ${itemsForDay.map(item => {
+                        const { text, colorClasses, title } = getEventBarDetails(item);
+                        return `
+                        <div class="flex items-center gap-2 text-xs p-1 rounded ${colorClasses}" title="${title}">
+                            <span>${text}</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
         }).join('');
 
         return `
              <div class="workload-user-cell">
                 <div class="avatar-small">${getUserInitials(user)}</div>
-                <span class="text-sm font-medium">${user.name}</span>
+                <span class="text-sm font-medium">${user.name || getUserInitials(user)}</span>
             </div>
-            <div class="workload-day-cell-container">${dayCellsHtml}</div>
+            ${dayCellsHtml}
         `;
     }).join('');
 
@@ -411,8 +403,6 @@ function renderWorkloadView(currentDate: Date) {
 }
 
 function renderTimesheetView(currentDate: Date) {
-    const selectedUserId = state.ui.teamCalendarSelectedUserId || state.currentUser!.id;
-    
     // 1. Calculate week dates
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
@@ -426,13 +416,26 @@ function renderTimesheetView(currentDate: Date) {
     }
     const weekStartDateStr = weekDays[0].toISOString().slice(0, 10);
     const weekEndDateStr = weekDays[6].toISOString().slice(0, 10);
+    
+    // 2. Filter logs based on selected users
+    let userIdsToDisplay: string[] = [];
+    if (state.ui.teamCalendarSelectedUserIds.length === 0) {
+        userIdsToDisplay = [state.currentUser!.id];
+    } else if (state.ui.teamCalendarSelectedUserIds.includes('all')) {
+        userIdsToDisplay = state.workspaceMembers
+            .filter(m => m.workspaceId === state.activeWorkspaceId)
+            .map(m => m.userId);
+    } else {
+        userIdsToDisplay = state.ui.teamCalendarSelectedUserIds;
+    }
 
     const timeLogs = state.timeLogs.filter(log => 
-        log.userId === selectedUserId &&
+        userIdsToDisplay.includes(log.userId) &&
         log.createdAt >= weekStartDateStr &&
         log.createdAt <= weekEndDateStr + 'T23:59:59.999Z'
     );
-
+    
+    // 3. Render grid
     const timeAxisHtml = Array.from({ length: 24 }, (_, i) => `<div class="time-axis h-12">${String(i).padStart(2, '0')}:00</div>`).join('');
     
     const dayColumnsHtml = weekDays.map(day => {
@@ -448,14 +451,20 @@ function renderTimesheetView(currentDate: Date) {
             const height = (durationMinutes / (24 * 60)) * 100;
             const task = state.tasks.find(t => t.id === log.taskId);
             const project = state.projects.find(p => p.id === task?.projectId);
+            const user = state.users.find(u => u.id === log.userId);
+
+            const userColor = getUserColor(log.userId);
 
             return `
                 <div class="timesheet-entry" 
-                     style="top: ${top}%; height: ${height}%;"
+                     style="top: ${top}%; height: ${height}%; background-color: ${userColor};"
                      title="${task?.name || 'Task'} (${formatDuration(log.trackedSeconds)})"
                      data-task-id="${task?.id}">
-                    <strong>${task?.name || 'Task'}</strong>
-                    <p>${project?.name || 'Project'}</p>
+                    ${userIdsToDisplay.length > 1 ? `<span class="timesheet-entry-initials">${getUserInitials(user)}</span>` : ''}
+                    <div class="timesheet-entry-content">
+                        <strong>${task?.name || 'Task'}</strong>
+                        <p>${project?.name || 'Project'}</p>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -486,6 +495,16 @@ function renderTimesheetView(currentDate: Date) {
     `;
 }
 
+function getUserColor(userId: string): string {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return "#" + "00000".substring(0, 6 - color.length) + color;
+}
+
+
 function renderDayView(currentDate: Date) {
     const dayDateString = currentDate.toISOString().slice(0, 10);
     const items = getItemsForDay(dayDateString);
@@ -509,7 +528,7 @@ function renderDayView(currentDate: Date) {
 }
 
 export async function TeamCalendarPage() {
-    const { teamCalendarDate, teamCalendarView, teamCalendarSelectedUserId } = state.ui;
+    const { teamCalendarDate, teamCalendarView, teamCalendarSelectedUserIds } = state.ui;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
     const year = currentDate.getUTCFullYear();
     const month = currentDate.getUTCMonth() + 1;
@@ -529,13 +548,34 @@ export async function TeamCalendarPage() {
             .filter(m => m.workspaceId === state.activeWorkspaceId)
             .map(m => state.users.find(u => u.id === m.userId)!)
             .filter(Boolean);
+        
+        let buttonText = t('team_calendar.my_time_logs');
+        if (teamCalendarSelectedUserIds.includes('all')) {
+            buttonText = t('team_calendar.all_users');
+        } else if (teamCalendarSelectedUserIds.length > 0) {
+            buttonText = `${teamCalendarSelectedUserIds.length} users selected`;
+        }
 
         topContent = `
-            <div class="w-64">
-                <select id="timesheet-user-select" class="form-control">
-                    <option value="current" ${!teamCalendarSelectedUserId || teamCalendarSelectedUserId === state.currentUser?.id ? 'selected' : ''}>${t('team_calendar.my_time_logs')}</option>
-                    ${workspaceUsers.map(u => `<option value="${u.id}" ${teamCalendarSelectedUserId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
-                </select>
+            <div id="timesheet-user-selector-container" class="relative w-64">
+                <button data-timesheet-user-toggle class="form-control flex justify-between items-center">
+                    <span>${buttonText}</span>
+                    <span class="material-icons-sharp">expand_more</span>
+                </button>
+                <div id="timesheet-user-dropdown" class="absolute top-full left-0 w-full bg-content border border-border-color rounded-md shadow-lg z-20 mt-1 hidden">
+                    <div class="p-1 max-h-60 overflow-y-auto">
+                        <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-me="true">${t('team_calendar.my_time_logs')}</div>
+                        <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-all="true">${t('team_calendar.all_users')}</div>
+                        <div class="border-t border-border-color my-1"></div>
+                        ${workspaceUsers.map(u => `
+                            <label class="timesheet-user-option flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer">
+                                <input type="checkbox" value="${u.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ${teamCalendarSelectedUserIds.includes(u.id) ? 'checked' : ''}>
+                                <div class="avatar-small">${getUserInitials(u)}</div>
+                                <span class="text-sm">${u.name}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
             </div>
         `;
     }

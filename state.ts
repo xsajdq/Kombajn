@@ -1,6 +1,4 @@
 
-
-
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -115,7 +113,7 @@ export function getInitialState(): AppState {
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',
             teamCalendarDate: now.toISOString().slice(0, 10),
-            teamCalendarSelectedUserId: null,
+            teamCalendarSelectedUserIds: [],
             activeChannelId: null,
             activeTaskViewId: null,
             isWikiEditing: false,

@@ -197,7 +197,7 @@ const translations = {
             expected_close: 'Expected Close'
         },
         calendar: { prev_month: 'Previous month', next_month: 'Next month', weekdays: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }, month_view: 'Month', week_view: 'Week', day_view: 'Day' },
-        team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other', workload_view: 'Workload', timesheet_view: 'Timesheet', my_time_logs: 'My Time Logs', select_user: 'Select User...' },
+        team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other', workload_view: 'Workload', timesheet_view: 'Timesheet', my_time_logs: 'My Time Logs', select_user: 'Select User...', all_users: 'All Users' },
         clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client', active_projects: 'Active Projects' },
         reports: {
             title: 'Reports',
@@ -604,7 +604,7 @@ const translations = {
             expected_close: 'Przewidywane zamknięcie'
         },
         calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Ndz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' }, month_view: 'Miesiąc', week_view: 'Tydzień', day_view: 'Dzień' },
-        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny', workload_view: 'Obciążenie', timesheet_view: 'Ewidencja czasu', my_time_logs: 'Moje wpisy czasu', select_user: 'Wybierz użytkownika...' },
+        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny', workload_view: 'Obciążenie', timesheet_view: 'Ewidencja czasu', my_time_logs: 'Moje wpisy czasu', select_user: 'Wybierz użytkownika...', all_users: 'Wszyscy użytkownicy' },
         clients: { title: 'Klienci', new_client: 'Nowy klient', no_clients_yet: 'Brak klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj klienta', active_projects: 'Aktywne projekty' },
         reports: {
             title: 'Raporty',

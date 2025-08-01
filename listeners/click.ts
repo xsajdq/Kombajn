@@ -119,6 +119,51 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
+    // --- START: Timesheet User Selector ---
+    const timesheetUserToggle = target.closest<HTMLElement>('[data-timesheet-user-toggle]');
+    if (timesheetUserToggle) {
+        const dropdown = document.getElementById('timesheet-user-dropdown');
+        dropdown?.classList.toggle('hidden');
+        return;
+    }
+
+    const timesheetUserOption = target.closest<HTMLElement>('.timesheet-user-option');
+    if (timesheetUserOption) {
+        const userId = timesheetUserOption.dataset.timesheetUserId;
+        const allUsers = timesheetUserOption.dataset.timesheetUserAll;
+        const myTime = timesheetUserOption.dataset.timesheetUserMe;
+
+        if (myTime) {
+            state.ui.teamCalendarSelectedUserIds = [];
+        } else if (allUsers) {
+            state.ui.teamCalendarSelectedUserIds = ['all'];
+        } else if (userId) {
+            const checkbox = timesheetUserOption.querySelector('input[type="checkbox"]') as HTMLInputElement;
+            checkbox.checked = !checkbox.checked;
+            
+            const selectedIds = new Set(state.ui.teamCalendarSelectedUserIds.filter(id => id !== 'all'));
+            if (checkbox.checked) {
+                selectedIds.add(userId);
+            } else {
+                selectedIds.delete(userId);
+            }
+            state.ui.teamCalendarSelectedUserIds = Array.from(selectedIds);
+        }
+        
+        updateUI(['page']);
+        // Don't close dropdown on multi-select
+        if (myTime || allUsers) {
+            document.getElementById('timesheet-user-dropdown')?.classList.add('hidden');
+        }
+        return;
+    }
+
+    if (!target.closest('#timesheet-user-selector-container')) {
+        document.getElementById('timesheet-user-dropdown')?.classList.add('hidden');
+    }
+    // --- END: Timesheet User Selector ---
+
+
     // --- Dynamic Breadcrumb Switcher Handler ---
     const breadcrumbSwitcher = target.closest<HTMLElement>('[data-breadcrumb-switcher]');
     if (breadcrumbSwitcher) {
@@ -554,7 +599,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item');
+    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item, .timesheet-entry');
     if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) {
@@ -667,7 +712,7 @@ export async function handleClick(e: MouseEvent) {
         if (navEl.dataset.targetCalendar === 'team') {
             const newDate = new Date(state.ui.teamCalendarDate);
             if (state.ui.teamCalendarView === 'month') newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
-            else if (state.ui.teamCalendarView === 'week' || state.ui.teamCalendarView === 'workload') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+            else if (state.ui.teamCalendarView === 'week' || state.ui.teamCalendarView === 'workload' || state.ui.teamCalendarView === 'timesheet') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
             else newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
             state.ui.teamCalendarDate = newDate.toISOString().slice(0, 10);
         } else {
