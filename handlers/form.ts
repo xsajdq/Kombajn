@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -688,10 +689,11 @@ export async function handleFormSubmit() {
         }
 
         if (type === 'addManualTimeLog') {
-            const taskId = data.taskId as string;
-            const trackedSeconds = parseInt((document.getElementById('time-picker-seconds') as HTMLInputElement).value, 10);
-            const dateString = (document.getElementById('timeLogDate') as HTMLInputElement).value;
-            const comment = (document.getElementById('timeLogComment') as HTMLTextAreaElement).value.trim();
+            const form = document.getElementById('manualTimeLogForm') as HTMLFormElement;
+            const taskId = (form.querySelector('#timeLogTask') as HTMLSelectElement).value;
+            const trackedSeconds = parseInt((form.querySelector('#time-picker-seconds') as HTMLInputElement).value, 10);
+            const dateString = (form.querySelector('#timeLogDate') as HTMLInputElement).value;
+            const comment = (form.querySelector('#timeLogComment') as HTMLTextAreaElement).value.trim();
 
             if (taskId && trackedSeconds > 0 && dateString) {
                 await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, dateString, comment || undefined);
