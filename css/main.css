@@ -825,12 +825,15 @@
   .gantt-container .popup-wrapper { background-color: rgba(var(--background-color-rgb), 1); border: 1px solid rgba(var(--border-color-rgb), 1); color: rgba(var(--text-color-rgb), 1); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
   .gantt-container .popup-wrapper .pointer { border-top-color: rgba(var(--border-color-rgb), 1); }
 
-  /* NEW: Reports KPI Card Styles */
+  /* == NEW: Reports KPI Card Styles == */
   .kpi-card {
-    @apply bg-content p-4 rounded-lg flex flex-col items-start gap-1 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+    @apply bg-content p-4 rounded-lg flex items-center gap-4 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1;
   }
   .kpi-icon {
-      @apply w-10 h-10 rounded-lg flex items-center justify-center mb-2;
+    @apply w-12 h-12 rounded-full flex items-center justify-center shrink-0;
+  }
+  .kpi-icon .material-icons-sharp {
+      @apply text-2xl;
   }
   .kpi-title {
       @apply text-sm text-text-subtle;

@@ -770,7 +770,7 @@ export interface AppState {
             isEditing: boolean;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
-            activeTab: 'my_day' | 'overview' | 'projects' | 'team' | 'analytics';
+            activeTab: string;
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';

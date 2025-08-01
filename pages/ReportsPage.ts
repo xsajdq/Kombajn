@@ -57,24 +57,54 @@ function getFilteredData() {
 
 // Chart utility
 const chartColors = {
-    primary: 'rgba(59, 130, 246, 0.6)',
+    primary: 'rgba(59, 130, 246, 0.8)',
     primaryHover: 'rgba(59, 130, 246, 1)',
-    danger: 'rgba(239, 68, 68, 0.6)',
-    success: 'rgba(34, 197, 94, 0.6)',
-    warning: 'rgba(245, 158, 11, 0.6)',
-    purple: 'rgba(139, 92, 246, 0.6)',
-    teal: 'rgba(20, 184, 166, 0.6)',
+    danger: 'rgba(239, 68, 68, 0.8)',
+    success: 'rgba(34, 197, 94, 0.8)',
+    warning: 'rgba(245, 158, 11, 0.8)',
+    purple: 'rgba(139, 92, 246, 0.8)',
+    teal: 'rgba(20, 184, 166, 0.8)',
     text: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151',
-    grid: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    grid: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
 };
 
 const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: chartColors.text } } },
+    plugins: {
+        legend: {
+            display: false,
+        },
+        tooltip: {
+            backgroundColor: 'rgba(var(--content-bg-rgb), 0.9)',
+            titleColor: 'rgba(var(--text-color-rgb), 1)',
+            bodyColor: 'rgba(var(--subtle-text-color-rgb), 1)',
+            borderColor: 'rgba(var(--border-color-rgb), 1)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 6,
+            usePointStyle: true,
+            boxPadding: 3,
+        }
+    },
     scales: {
-        x: { ticks: { color: chartColors.text }, grid: { color: chartColors.grid } },
-        y: { ticks: { color: chartColors.text }, grid: { color: chartColors.grid } }
+        x: {
+            ticks: { color: chartColors.text, font: { size: 10 } },
+            grid: { drawOnChartArea: false, drawBorder: false },
+        },
+        y: {
+            ticks: { color: chartColors.text, font: { size: 10 } },
+            grid: { color: chartColors.grid, borderDash: [2, 4] },
+            border: { display: false }
+        }
+    },
+    elements: {
+        bar: {
+            borderRadius: 4,
+        },
+        line: {
+            tension: 0.3,
+        }
     }
 };
 
@@ -83,8 +113,10 @@ const renderKpiCard = (title: string, value: string, icon: string, colorClass: s
         <div class="kpi-icon ${colorClass}">
             <span class="material-icons-sharp">${icon}</span>
         </div>
-        <p class="kpi-title">${title}</p>
-        <strong class="kpi-value">${value}</strong>
+        <div>
+            <p class="kpi-title">${title}</p>
+            <strong class="kpi-value">${value}</strong>
+        </div>
     </div>
 `;
 
@@ -95,13 +127,13 @@ function renderProductivityReports({ tasks }: { tasks: Task[] }) {
     const avgCompletionSeconds = completedTasks.length > 0 ? totalTime / completedTasks.length : 0;
     
     return `
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            ${renderKpiCard(t('reports.kpi_tasks_completed'), completedTasks.length.toString(), 'check_circle', 'bg-green-100 text-green-700')}
-            ${renderKpiCard(t('reports.kpi_avg_completion_time'), formatDuration(avgCompletionSeconds), 'timer', 'bg-blue-100 text-blue-700')}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${renderKpiCard(t('reports.kpi_tasks_completed'), completedTasks.length.toString(), 'check_circle', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
+            ${renderKpiCard(t('reports.kpi_avg_completion_time'), formatDuration(avgCompletionSeconds), 'timer', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
         </div>
-        <div class="card col-span-1 md:col-span-2 lg:col-span-4"><h4 class="font-semibold mb-4">${t('reports.report_task_velocity_title')}</h4><div class="h-64"><canvas id="taskVelocityChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_team_workload_title')}</h4><div class="h-64"><canvas id="teamWorkloadChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_tasks_by_priority_title')}</h4><div class="h-64"><canvas id="tasksByPriorityChart"></canvas></div></div>
+        <div class="card md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_task_velocity_title')}</h4></div><div class="h-64"><canvas id="taskVelocityChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_team_workload_title')}</h4></div><div class="h-64"><canvas id="teamWorkloadChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_tasks_by_priority_title')}</h4></div><div class="h-64"><canvas id="tasksByPriorityChart"></canvas></div></div>
     `;
 }
 
@@ -113,13 +145,13 @@ function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }) {
     }).reduce((sum, log) => sum + log.trackedSeconds, 0);
 
     return `
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-             ${renderKpiCard(t('reports.kpi_total_time_tracked'), formatDuration(timeLogs.reduce((s,l) => s + l.trackedSeconds, 0)), 'schedule', 'bg-purple-100 text-purple-700')}
-             ${renderKpiCard(t('reports.kpi_billable_hours'), formatDuration(billableTime), 'attach_money', 'bg-green-100 text-green-700')}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             ${renderKpiCard(t('reports.kpi_total_time_tracked'), formatDuration(timeLogs.reduce((s,l) => s + l.trackedSeconds, 0)), 'schedule', 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300')}
+             ${renderKpiCard(t('reports.kpi_billable_hours'), formatDuration(billableTime), 'attach_money', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
         </div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_time_by_project_title')}</h4><div class="h-64"><canvas id="timeByProjectChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_time_by_user_title')}</h4><div class="h-64"><canvas id="timeByUserChart"></canvas></div></div>
-        <div class="card col-span-1 md:col-span-2 lg:col-span-4"><h4 class="font-semibold mb-4">${t('reports.report_billable_time_title')}</h4><div class="h-64"><canvas id="billableTimeChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_project_title')}</h4></div><div class="h-64"><canvas id="timeByProjectChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_user_title')}</h4></div><div class="h-64"><canvas id="timeByUserChart"></canvas></div></div>
+        <div class="card md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_billable_time_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="billableTimeChart"></canvas></div></div>
     `;
 }
 
@@ -130,14 +162,14 @@ function renderFinancialReports({ invoices, expenses }: { invoices: Invoice[], e
     
     return `
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            ${renderKpiCard(t('reports.kpi_total_revenue'), formatCurrency(totalRevenue, 'PLN'), 'paid', 'bg-green-100 text-green-700')}
-            ${renderKpiCard(t('reports.kpi_total_expenses'), formatCurrency(totalExpenses, 'PLN'), 'receipt_long', 'bg-red-100 text-red-700')}
-            ${renderKpiCard(t('reports.kpi_net_profit'), formatCurrency(totalRevenue - totalExpenses, 'PLN'), 'trending_up', 'bg-blue-100 text-blue-700')}
-            ${renderKpiCard(t('reports.kpi_outstanding_revenue'), formatCurrency(outstandingRevenue, 'PLN'), 'hourglass_top', 'bg-yellow-100 text-yellow-700')}
+            ${renderKpiCard(t('reports.kpi_total_revenue'), formatCurrency(totalRevenue, 'PLN'), 'paid', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
+            ${renderKpiCard(t('reports.kpi_total_expenses'), formatCurrency(totalExpenses, 'PLN'), 'receipt_long', 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300')}
+            ${renderKpiCard(t('reports.kpi_net_profit'), formatCurrency(totalRevenue - totalExpenses, 'PLN'), 'trending_up', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
+            ${renderKpiCard(t('reports.kpi_outstanding_revenue'), formatCurrency(outstandingRevenue, 'PLN'), 'hourglass_top', 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300')}
         </div>
-        <div class="card col-span-1 md:col-span-2 lg:col-span-4"><h4 class="font-semibold mb-4">${t('reports.report_revenue_cost_profit_title')}</h4><div class="h-64"><canvas id="revenueCostProfitChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_invoice_status_title')}</h4><div class="h-64"><canvas id="invoiceStatusChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_top_clients_title')}</h4><div class="h-64"><canvas id="topClientsChart"></canvas></div></div>
+        <div class="card md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_revenue_cost_profit_title')}</h4></div><div class="h-64"><canvas id="revenueCostProfitChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_invoice_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="invoiceStatusChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_top_clients_title')}</h4></div><div class="h-64"><canvas id="topClientsChart"></canvas></div></div>
     `;
 }
 
@@ -156,13 +188,13 @@ function renderGoalsReports({ objectives }: { objectives: Objective[] }) {
 
     return `
          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            ${renderKpiCard(t('goals.total_goals'), objectives.length.toString(), 'flag', 'bg-purple-100 text-purple-700')}
-            ${renderKpiCard(t('goals.avg_progress'), `${avgProgress}%`, 'trending_up', 'bg-blue-100 text-blue-700')}
-            ${renderKpiCard(t('reports.milestones_completed'), completedMilestones.toString(), 'task_alt', 'bg-green-100 text-green-700')}
+            ${renderKpiCard(t('goals.total_goals'), objectives.length.toString(), 'flag', 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300')}
+            ${renderKpiCard(t('goals.avg_progress'), `${avgProgress}%`, 'trending_up', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
+            ${renderKpiCard(t('reports.milestones_completed'), completedMilestones.toString(), 'task_alt', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
         </div>
-        <div class="card col-span-1 md:col-span-2 lg:col-span-4"><h4 class="font-semibold mb-4">${t('reports.report_progress_by_goal_title')}</h4><div class="h-64"><canvas id="progressByGoalChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_goal_completion_title')}</h4><div class="h-64"><canvas id="goalCompletionChart"></canvas></div></div>
-        <div class="card lg:col-span-2"><h4 class="font-semibold mb-4">${t('reports.report_milestone_status_title')}</h4><div class="h-64"><canvas id="milestoneStatusChart"></canvas></div></div>
+        <div class="card md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_progress_by_goal_title')}</h4></div><div class="h-64"><canvas id="progressByGoalChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_goal_completion_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="goalCompletionChart"></canvas></div></div>
+        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_milestone_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="milestoneStatusChart"></canvas></div></div>
     `;
 }
 
@@ -182,7 +214,7 @@ export function initReportsPage() {
             }, {} as Record<string, number>);
             charts.taskVelocity = new Chart(velocityCtx, {
                 type: 'line',
-                data: { labels: Object.keys(completedByDay), datasets: [{ label: t('reports.report_task_velocity_title'), data: Object.values(completedByDay), borderColor: chartColors.primary, tension: 0.1 }] },
+                data: { labels: Object.keys(completedByDay), datasets: [{ label: t('reports.report_task_velocity_title'), data: Object.values(completedByDay), borderColor: chartColors.primary, tension: 0.3, pointBackgroundColor: chartColors.primary, pointBorderColor: '#fff', pointHoverRadius: 6 }] },
                 options: commonChartOptions
             });
         }
@@ -196,8 +228,8 @@ export function initReportsPage() {
             }, {} as Record<string, number>);
             charts.teamWorkload = new Chart(workloadCtx, {
                 type: 'doughnut',
-                data: { labels: Object.keys(openTasksByUser), datasets: [{ data: Object.values(openTasksByUser), backgroundColor: [chartColors.primary, chartColors.purple, chartColors.teal, chartColors.warning, chartColors.danger] }] },
-                options: { ...commonChartOptions, scales: {} }
+                data: { labels: Object.keys(openTasksByUser), datasets: [{ data: Object.values(openTasksByUser), backgroundColor: [chartColors.primary, chartColors.purple, chartColors.teal, chartColors.warning, chartColors.danger], borderWidth: 0 }] },
+                options: { ...commonChartOptions, scales: {}, cutout: '70%' }
             });
         }
         
@@ -228,7 +260,7 @@ export function initReportsPage() {
             charts.timeByProject = new Chart(timeByProjectCtx, {
                 type: 'bar',
                 data: { labels: Object.keys(timeByProject), datasets: [{ label: t('reports.report_time_by_project_title'), data: Object.values(timeByProject).map(s => s / 3600), backgroundColor: chartColors.primary }] },
-                options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, title: { display: true, text: 'Hours' } } } }
+                options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, title: { display: true, text: 'Hours', color: chartColors.text } } } }
             });
         }
 
@@ -242,7 +274,7 @@ export function initReportsPage() {
             charts.timeByUser = new Chart(timeByUserCtx, {
                 type: 'bar',
                 data: { labels: Object.keys(timeByUser), datasets: [{ label: t('reports.report_time_by_user_title'), data: Object.values(timeByUser).map(s => s / 3600), backgroundColor: chartColors.purple }] },
-                options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, title: { display: true, text: 'Hours' } } } }
+                options: { ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, title: { display: true, text: 'Hours', color: chartColors.text } } } }
             });
         }
 
@@ -256,7 +288,7 @@ export function initReportsPage() {
             }).reduce((sum, log) => sum + log.trackedSeconds, 0);
             charts.billableTime = new Chart(billableTimeCtx, {
                 type: 'pie',
-                data: { labels: [t('reports.billable'), t('reports.non_billable')], datasets: [{ data: [billableTime, totalTime - billableTime], backgroundColor: [chartColors.success, chartColors.danger] }] },
+                data: { labels: [t('reports.billable'), t('reports.non_billable')], datasets: [{ data: [billableTime, totalTime - billableTime], backgroundColor: [chartColors.success, chartColors.danger], borderWidth: 0 }] },
                 options: { ...commonChartOptions, scales: {} }
             });
         }
@@ -284,7 +316,7 @@ export function initReportsPage() {
                     datasets: [
                         { type: 'bar', label: t('reports.revenue'), data: labels.map(l => dataByMonth[l].revenue), backgroundColor: chartColors.success },
                         { type: 'bar', label: t('reports.expenses'), data: labels.map(l => dataByMonth[l].expenses), backgroundColor: chartColors.danger },
-                        { type: 'line', label: t('reports.profit'), data: labels.map(l => dataByMonth[l].revenue - dataByMonth[l].expenses), borderColor: chartColors.primary, tension: 0.1, fill: false }
+                        { type: 'line', label: t('reports.profit'), data: labels.map(l => dataByMonth[l].revenue - dataByMonth[l].expenses), borderColor: chartColors.primary, tension: 0.3, fill: false, pointBackgroundColor: chartColors.primary }
                     ]
                 },
                 options: commonChartOptions
@@ -299,7 +331,7 @@ export function initReportsPage() {
             }, {} as Record<string, number>);
              charts.invoiceStatus = new Chart(invoiceStatusCtx, {
                 type: 'pie',
-                data: { labels: Object.keys(statusCounts).map(s => t(`invoices.status_${s}`)), datasets: [{ data: Object.values(statusCounts), backgroundColor: [chartColors.warning, chartColors.success, chartColors.danger] }] },
+                data: { labels: Object.keys(statusCounts).map(s => t(`invoices.status_${s}`)), datasets: [{ data: Object.values(statusCounts), backgroundColor: [chartColors.warning, chartColors.success, chartColors.danger], borderWidth: 0 }] },
                 options: { ...commonChartOptions, scales: {} }
             });
         }
@@ -345,8 +377,8 @@ export function initReportsPage() {
             }, {} as Record<string, number>);
             charts.goalCompletion = new Chart(goalCompletionCtx, {
                 type: 'doughnut',
-                data: { labels: Object.keys(statusCounts).map(s => t(`goals.status_${s}`)), datasets: [{ data: Object.values(statusCounts), backgroundColor: [chartColors.primary, chartColors.success, chartColors.warning] }] },
-                options: { ...commonChartOptions, scales: {} }
+                data: { labels: Object.keys(statusCounts).map(s => t(`goals.status_${s}`)), datasets: [{ data: Object.values(statusCounts), backgroundColor: [chartColors.primary, chartColors.success, chartColors.warning], borderWidth: 0 }] },
+                options: { ...commonChartOptions, scales: {}, cutout: '70%' }
             });
         }
 
@@ -357,7 +389,7 @@ export function initReportsPage() {
             const remaining = allMilestones.length - completed;
              charts.milestoneStatus = new Chart(milestoneStatusCtx, {
                 type: 'pie',
-                data: { labels: [t('reports.milestones_completed'), t('reports.milestones_remaining')], datasets: [{ data: [completed, remaining], backgroundColor: [chartColors.success, chartColors.danger] }] },
+                data: { labels: [t('reports.milestones_completed'), t('reports.milestones_remaining')], datasets: [{ data: [completed, remaining], backgroundColor: [chartColors.success, chartColors.danger], borderWidth: 0 }] },
                 options: { ...commonChartOptions, scales: {} }
             });
         }
@@ -375,18 +407,23 @@ export function ReportsPage() {
     const workspaceClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
 
     let tabContent = '';
+    let gridColsClass = 'lg:grid-cols-2';
     switch (activeTab) {
         case 'productivity':
             tabContent = renderProductivityReports({ tasks });
+            gridColsClass = 'lg:grid-cols-2';
             break;
         case 'time':
             tabContent = renderTimeTrackingReports({ timeLogs });
+            gridColsClass = 'lg:grid-cols-2';
             break;
         case 'financial':
             tabContent = renderFinancialReports({ invoices, expenses });
+            gridColsClass = 'lg:grid-cols-2';
             break;
         case 'goals':
             tabContent = renderGoalsReports({ objectives });
+            gridColsClass = 'lg:grid-cols-2';
             break;
     }
     
@@ -438,7 +475,7 @@ export function ReportsPage() {
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 ${gridColsClass} gap-6">
                 ${tabContent}
             </div>
         </div>
