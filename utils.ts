@@ -1,5 +1,4 @@
 
-
 import { state } from './state.ts';
 import { t } from './i18n.ts';
 import type { Task, PlanId, User, TimeOffRequest, PublicHoliday } from './types.ts';
@@ -193,6 +192,24 @@ export function getVacationInfo(user: User, timeOffRequests: TimeOffRequest[], h
     };
 }
 
+export function getUserInitials(user: User | null | undefined): string {
+    if (!user) return '??';
+    if (user.initials && user.initials.trim().length > 0) return user.initials.toUpperCase();
+    if (user.name && user.name.trim().length > 0) {
+        return user.name
+            .trim()
+            .split(' ')
+            .filter(Boolean)
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    }
+    if (user.email && user.email.trim().length > 0) {
+        return user.email.substring(0, 2).toUpperCase();
+    }
+    return '??';
+}
 
 export function snakeToCamel(str: string): string {
     return str.replace(/_(\w)/g, (_, letter) => letter.toUpperCase());

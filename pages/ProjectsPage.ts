@@ -1,8 +1,7 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds } from '../utils.ts';
+import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds, getUserInitials } from '../utils.ts';
 import { can } from '../permissions.ts';
 
 function renderGridView() {
@@ -122,8 +121,8 @@ function renderGridView() {
                         <div class="flex justify-between items-center mt-auto pt-3 border-t border-border-color">
                              <div class="flex -space-x-2">
                                  ${memberUsers.slice(0, 4).map(u => u ? `
-                                    <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${u.name || u.initials}">
-                                        ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : u.initials}
+                                    <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${u.name || getUserInitials(u)}">
+                                        ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : getUserInitials(u)}
                                     </div>
                                 ` : '').join('')}
                                 ${memberUsers.length > 4 ? `
@@ -219,7 +218,7 @@ function renderPortfolioView() {
                             </td>
                             <td>
                                 <div class="avatar-stack">
-                                    ${memberUsers.slice(0, 3).map(u => u ? `<div class="avatar-small" title="${u.name || u.initials}">${u.initials}</div>` : '').join('')}
+                                    ${memberUsers.slice(0, 3).map(u => u ? `<div class="avatar-small" title="${u.name || getUserInitials(u)}">${getUserInitials(u)}</div>` : '').join('')}
                                     ${memberUsers.length > 3 ? `<div class="avatar-small more-avatar">+${memberUsers.length - 3}</div>` : ''}
                                 </div>
                             </td>

@@ -1,6 +1,8 @@
+
 import { state } from '../state.ts';
 import type { User } from '../types.ts';
 import { t } from '../i18n.ts';
+import { getUserInitials } from '../utils.ts';
 
 export function MentionPopover() {
     const { query, activeIndex, rect } = state.ui.mention;
@@ -23,10 +25,10 @@ export function MentionPopover() {
 
     const popoverContent = workspaceMembers.length > 0
         ? workspaceMembers.map((user, index) => `
-            <div class="mention-item ${index === activeIndex ? 'active' : ''}" data-mention-id="${user.id}" data-mention-name="${user.name || user.initials}">
-                <div class="avatar">${user.initials}</div>
+            <div class="mention-item ${index === activeIndex ? 'active' : ''}" data-mention-id="${user.id}" data-mention-name="${user.name || getUserInitials(user)}">
+                <div class="avatar">${getUserInitials(user)}</div>
                 <div class="mention-user-info">
-                    <div class="mention-user-name">${user.name || user.initials}</div>
+                    <div class="mention-user-name">${user.name || getUserInitials(user)}</div>
                     <div class="mention-user-email">${user.email || ''}</div>
                 </div>
             </div>

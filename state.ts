@@ -115,6 +115,7 @@ export function getInitialState(): AppState {
             calendarDate: now.toISOString().slice(0, 7),
             teamCalendarView: 'month',
             teamCalendarDate: now.toISOString().slice(0, 10),
+            teamCalendarSelectedUserId: null,
             activeChannelId: null,
             activeTaskViewId: null,
             isWikiEditing: false,

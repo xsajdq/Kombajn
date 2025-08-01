@@ -1,11 +1,9 @@
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
-import { formatCurrency } from '../utils.ts';
+import { formatCurrency, getUserInitials } from '../utils.ts';
 
 function renderDealCard(deal: Deal) {
     const client = state.clients.find(c => c.id === deal.clientId);
@@ -21,7 +19,7 @@ function renderDealCard(deal: Deal) {
             </div>
             <div class="flex justify-between items-center">
                 ${owner ? `
-                    <div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold" title="${t('sales.deal_owner')}: ${owner.name || owner.initials}">${owner.initials}</div>
+                    <div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold" title="${t('sales.deal_owner')}: ${owner.name || getUserInitials(owner)}">${getUserInitials(owner)}</div>
                 ` : `
                     <div class="w-6 h-6 rounded-full bg-background flex items-center justify-center text-text-subtle" title="${t('tasks.unassigned')}">
                          <span class="material-icons-sharp text-base">person_outline</span>

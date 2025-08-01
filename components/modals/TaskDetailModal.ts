@@ -1,6 +1,7 @@
+
 import { state } from '../../state.ts';
 import { t } from '../../i18n.ts';
-import { formatDuration, formatDate } from '../../utils.ts';
+import { formatDuration, formatDate, getUserInitials } from '../../utils.ts';
 import { can } from '../../permissions.ts';
 import type { Task, User, Attachment, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, Comment, TimeLog } from '../../types.ts';
 import { getUserProjectRole } from '../../handlers/main.ts';
@@ -21,7 +22,7 @@ function renderCommentBody(content: string) {
 
 function renderComment(comment: Comment) {
     const user = state.users.find(u => u.id === comment.userId);
-    const userName = user?.name || user?.initials || 'User';
+    const userName = user?.name || getUserInitials(user) || 'User';
     const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
     const reactionsByEmoji = (comment.reactions || []).reduce((acc, reaction) => {
@@ -55,7 +56,7 @@ function renderComment(comment: Comment) {
 
     return `
         <div class="activity-item comment-container" data-comment-id="${comment.id}">
-            <div class="avatar">${user?.initials || '?'}</div>
+            <div class="avatar">${getUserInitials(user)}</div>
             <div class="activity-content">
                 <div class="activity-header">
                     <strong>${userName}</strong>
@@ -86,10 +87,10 @@ function renderComment(comment: Comment) {
 
 function renderTimeLog(item: TimeLog) {
     const user = state.users.find(u => u.id === item.userId);
-    const userName = user?.name || user?.initials || 'User';
+    const userName = user?.name || getUserInitials(user) || 'User';
     return `
         <div class="activity-item">
-            <div class="avatar">${user?.initials || '?'}</div>
+            <div class="avatar">${getUserInitials(user)}</div>
             <div class="activity-content">
                 <div class="activity-header">
                     <strong>${userName}</strong>
@@ -225,7 +226,7 @@ function renderSubtasksTab(task: Task) {
                             <input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary subtask-checkbox" data-subtask-id="${subtask.id}" ${subtask.status === 'done' ? 'checked' : ''}>
                             <span class="flex-1 text-sm ${subtask.status === 'done' ? 'line-through text-text-subtle' : ''}">${subtask.name}</span>
                             <div class="avatar-stack">
-                                ${assignees.slice(0, 2).map(u => u ? `<div class="avatar-small" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                                ${assignees.slice(0, 2).map(u => u ? `<div class="avatar-small" title="${u.name || ''}">${getUserInitials(u)}</div>` : '').join('')}
                                 ${assignees.length > 2 ? `<div class="avatar-small more-avatar">+${assignees.length - 2}</div>` : ''}
                             </div>
                             <button class="btn-icon delete-subtask-btn opacity-0 group-hover:opacity-100" data-subtask-id="${subtask.id}">
@@ -397,7 +398,7 @@ function renderSidebar(task: Task) {
                     <button class="form-control text-left flex items-center justify-between" data-menu-toggle="assignee-dropdown" aria-haspopup="true" aria-expanded="false">
                         <div class="flex items-center gap-1 -space-x-2 overflow-hidden">
                             ${assignees.length > 0 ? assignees.map(user => `
-                                <div class="avatar-small" title="${user.name || user.initials || 'Unnamed'}">${user.initials || '?'}</div>
+                                <div class="avatar-small" title="${user.name || getUserInitials(user)}">${getUserInitials(user)}</div>
                             `).join('') : `<span class="text-text-subtle text-sm px-1">${t('modals.unassigned')}</span>`}
                         </div>
                          ${assignees.length > 0 ? `<span class="text-sm text-text-subtle">${assignees.length} assigned</span>` : ''}
@@ -407,7 +408,7 @@ function renderSidebar(task: Task) {
                             const isAssigned = assigneeIds.has(user.id);
                             return `
                                 <div class="assignee-dropdown-item" data-user-id="${user.id}">
-                                    <div class="avatar">${user.initials || '?'}</div>
+                                    <div class="avatar">${getUserInitials(user)}</div>
                                     <span>${user.name || user.initials || 'Unnamed'}</span>
                                     ${isAssigned ? `<span class="material-icons-sharp text-primary ml-auto">check</span>` : ''}
                                 </div>

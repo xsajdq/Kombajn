@@ -1,8 +1,7 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import type { Task } from '../types.ts';
 
 function getPriorityClass(priority: Task['priority']): string {
@@ -21,7 +20,6 @@ export function renderTaskCard(task: Task) {
     const completedSubtasks = subtasks.filter(s => s.status === 'done').length;
     const commentsCount = state.comments.filter(c => c.taskId === task.id).length;
     const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
-    const unknownAssignee = taskAssignees.length === 0;
     const projectSection = task.projectSectionId ? state.projectSections.find(ps => ps.id === task.projectSectionId) : null;
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
 
@@ -99,10 +97,10 @@ export function renderTaskCard(task: Task) {
                 </div>
                 <div class="avatar-stack">
                     ${taskAssignees.slice(0, 2).map(assignee => `
-                        <div class="avatar-small" title="${assignee!.name || assignee!.initials || 'Unassigned'}">${assignee!.initials || '?'}</div>
+                        <div class="avatar-small" title="${assignee!.name || getUserInitials(assignee)}">${getUserInitials(assignee)}</div>
                     `).join('')}
                     ${taskAssignees.length > 2 ? `<div class="avatar-small more-avatar">+${taskAssignees.length - 2}</div>` : ''}
-                    ${unknownAssignee ? `<div class="unknown-avatar" title="Unassigned">?</div>` : ''}
+                    ${taskAssignees.length === 0 ? `<div class="unknown-avatar" title="${t('tasks.unassigned')}"><span class="material-icons-sharp" style="font-size: 1rem;">person_outline</span></div>` : ''}
                 </div>
             </div>
         </div>

@@ -625,7 +625,7 @@ export interface Budget {
 
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
-export type TeamCalendarView = 'month' | 'week' | 'day' | 'workload';
+export type TeamCalendarView = 'month' | 'week' | 'day' | 'workload' | 'timesheet';
 
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
@@ -735,6 +735,7 @@ export interface AppState {
         calendarDate: string; // YYYY-MM for the calendar view
         teamCalendarView: TeamCalendarView;
         teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
+        teamCalendarSelectedUserId: string | null;
         activeChannelId: string | null;
         activeTaskViewId: string | null;
         isWikiEditing: boolean;

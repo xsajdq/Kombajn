@@ -99,73 +99,74 @@ function renderTodaysSchedule() {
     `;
 }
 
-function renderWhosOffToday() {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const todayDate = new Date(todayStr + 'T12:00:00Z');
-
-    const offToday = state.timeOffRequests.filter(to => {
-        if (to.workspaceId !== state.activeWorkspaceId || to.status !== 'approved') return false;
-        const start = new Date(to.startDate + 'T00:00:00Z');
-        const end = new Date(to.endDate + 'T23:59:59Z');
-        return todayDate >= start && todayDate <= end;
-    }).map(r => state.users.find(u => u.id === r.userId)).filter(Boolean);
-
-    return `
-         <div class="bg-content p-4 rounded-lg shadow-sm">
-            <h4 class="font-semibold text-sm mb-2">${t('dashboard.my_day_whos_off')}</h4>
-            <div class="flex flex-wrap gap-2">
-                ${offToday.length > 0 ? offToday.map(user => `
-                    <div class="avatar-small" title="${user!.name}">${user!.initials}</div>
-                `).join('') : `<p class="text-xs text-text-subtle">Everyone's here today!</p>`}
-            </div>
-        </div>
-    `;
-}
-
-
 function renderMyTasks(currentUser: User) {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().slice(0, 10);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
     const userTasks = state.tasks.filter(task => 
         task.workspaceId === state.activeWorkspaceId &&
         !task.isArchived &&
-        state.taskAssignees.some(a => a.taskId === task.id && a.userId === currentUser.id)
-    ).sort((a,b) => (a.dueDate || 'z').localeCompare(b.dueDate || 'z'));
+        state.taskAssignees.some(a => a.taskId === task.id && a.userId === currentUser.id) &&
+        task.status !== 'done'
+    ).sort((a,b) => (a.priority === 'high' ? -1 : 1) - (b.priority === 'high' ? -1 : 1) || (a.dueDate || 'z').localeCompare(b.dueDate || 'z'));
 
-    const overdueTasks = userTasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'done');
-    const otherTasks = userTasks.filter(t => !(t.dueDate && t.dueDate < todayStr && t.status !== 'done'));
+    const overdueTasks = userTasks.filter(t => t.dueDate && t.dueDate < todayStr);
+    const todayTasks = userTasks.filter(t => t.dueDate === todayStr);
+    const tomorrowTasks = userTasks.filter(t => t.dueDate === tomorrowStr);
+    
+    const allTasksCount = overdueTasks.length + todayTasks.length + tomorrowTasks.length;
 
-
-    const renderTaskRow = (task: Task, isOverdue: boolean) => {
+    const renderTaskRow = (task: Task) => {
         const project = state.projects.find(p => p.id === task.projectId);
+        const isOverdue = task.dueDate && task.dueDate < todayStr;
         return `
             <div class="p-2.5 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-background transition-colors dashboard-task-item" data-task-id="${task.id}" role="button" tabindex="0">
                 <span class="material-icons-sharp text-lg text-text-subtle">radio_button_unchecked</span>
-                <div class="flex-1">
-                    <p class="text-sm font-medium ${isOverdue ? 'text-danger' : ''}">${task.name}</p>
-                    <p class="text-xs text-text-subtle">${project?.name || ''}</p>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate ${isOverdue ? 'text-danger' : ''}">${task.name}</p>
+                    <p class="text-xs text-text-subtle truncate">${project?.name || ''}</p>
                 </div>
+            </div>
+        `;
+    };
+
+    const renderTaskSection = (title: string, tasks: Task[]) => {
+        if (tasks.length === 0) return '';
+        return `
+            <div class="space-y-1">
+                <h5 class="px-2.5 text-xs font-bold text-text-subtle uppercase tracking-wider mb-1">${title} (${tasks.length})</h5>
+                ${tasks.map(renderTaskRow).join('')}
+            </div>
+        `;
+    };
+    
+    let content;
+    if (allTasksCount === 0) {
+        content = `
+            <div class="text-center py-8 text-text-subtle">
+                <span class="material-icons-sharp text-4xl">task_alt</span>
+                <p class="mt-2 text-sm font-medium">${t('dashboard.my_day_no_tasks')}</p>
+            </div>
+        `;
+    } else {
+        content = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                ${renderTaskSection(t('dashboard.my_day_overdue'), overdueTasks)}
+                ${renderTaskSection(t('dashboard.my_day_today'), todayTasks)}
+                ${renderTaskSection(t('dashboard.my_day_tomorrow'), tomorrowTasks)}
             </div>
         `;
     }
 
-    const allTasks = [...overdueTasks, ...otherTasks];
-
     return `
-        <div class="bg-content p-4 rounded-lg shadow-sm h-full">
-            <h4 class="font-semibold text-sm mb-2">${t('dashboard.my_day_my_tasks')}</h4>
-            ${allTasks.length > 0 ? `
-                <div class="space-y-1">
-                    ${allTasks.map(t => renderTaskRow(t, overdueTasks.includes(t))).join('')}
-                </div>
-            ` : `
-                <div class="text-center py-8 text-text-subtle">
-                    <span class="material-icons-sharp text-4xl">task_alt</span>
-                    <p class="mt-2 text-sm font-medium">${t('dashboard.my_day_no_tasks')}</p>
-                </div>
-            `}
+        <div class="bg-content p-4 rounded-lg shadow-sm">
+            <h4 class="font-semibold text-sm mb-4">${t('dashboard.my_day_my_tasks')}</h4>
+            ${content}
         </div>
     `;
 }
@@ -221,18 +222,15 @@ function renderMyDayDashboard() {
     if (!currentUser) return '';
 
     return `
-        <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
-            <div class="space-y-4 xl:col-span-1">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div class="lg:col-span-2 space-y-6">
                 ${renderWelcomeCard(currentUser)}
-                ${renderQuickActions()}
-            </div>
-            <div class="lg:col-span-2 xl:col-span-2">
                 ${renderMyTasks(currentUser)}
             </div>
-            <div class="space-y-4 xl:col-span-1">
+            <div class="lg:col-span-1 space-y-6">
+                ${renderQuickActions()}
                 ${renderTodaysSchedule()}
                 ${renderProjectsAndSummary(currentUser)}
-                ${renderWhosOffToday()}
             </div>
         </div>
     `;

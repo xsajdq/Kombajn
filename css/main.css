@@ -775,6 +775,18 @@
   .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.1); }
   .capacity-good { background-color: rgba(var(--success-color-rgb), 0.05); }
 
+  /* == NEW: Timesheet View == */
+  .timesheet-container { @apply overflow-auto; }
+  .timesheet-grid { @apply min-w-[1200px] grid; grid-template-columns: 60px repeat(7, 1fr); }
+  .timesheet-header { @apply sticky top-0 bg-content z-20; }
+  .timesheet-day-header { @apply p-2 border-b border-r border-border-color text-center; }
+  .time-axis { @apply p-2 border-b border-r border-border-color text-xs text-text-subtle text-right; }
+  .day-column { @apply border-b border-r border-border-color relative; }
+  .hour-row { @apply h-12 box-border border-b border-dashed border-border-color; }
+  .timesheet-entry { @apply absolute z-10 bg-primary/80 text-white p-1.5 rounded-md text-xs leading-tight overflow-hidden cursor-pointer hover:bg-primary; }
+  .timesheet-entry strong { @apply font-semibold block; }
+  .timesheet-entry p { @apply text-white/80; }
+
   
   /* === NEW: Portfolio View === */
   .portfolio-table { @apply w-full text-sm; }
@@ -806,6 +818,26 @@
 
   .task-list-indicator { @apply flex items-center gap-2 text-sm capitalize; }
   .indicator-dot { @apply w-2 h-2 rounded-full; }
+  
+  /* === NEW: Task List Section Headers === */
+  .task-section > .task-section-header {
+    @apply flex justify-between items-center p-3 cursor-pointer list-none hover:bg-background;
+  }
+  .task-section > .task-section-header::-webkit-details-marker {
+    display: none;
+  }
+  .task-section > .task-section-header::before {
+    content: 'keyboard_arrow_down';
+    font-family: 'Material Icons Sharp';
+    @apply transition-transform duration-200 mr-2 text-text-subtle;
+    font-size: 20px;
+  }
+  .task-section[open] > .task-section-header::before {
+    @apply rotate-180;
+  }
+  .task-section-body {
+    @apply pl-6;
+  }
   
   /* Gantt Chart Custom Styles */
   .gantt .bar-wrapper.gantt-priority-high .bar { fill: rgba(var(--danger-color-rgb), 0.8); }

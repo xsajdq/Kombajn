@@ -1,4 +1,5 @@
 
+
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -13,6 +14,13 @@ import { t } from '../i18n.ts';
 
 export function handleChange(e: Event) {
     const target = e.target as HTMLElement;
+
+    if (target.id === 'timesheet-user-select') {
+        const selectedUserId = (target as HTMLSelectElement).value;
+        state.ui.teamCalendarSelectedUserId = selectedUserId === 'current' ? null : selectedUserId;
+        updateUI(['page']);
+        return;
+    }
 
     const followUpToggle = target.closest<HTMLInputElement>('[data-toggle-follow-up]');
     if (followUpToggle) {

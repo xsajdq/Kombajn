@@ -4,7 +4,7 @@ import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
 import { AddCommentToTimeLogModal } from './modals/AddCommentToTimeLogModal.ts';
 import { TaskDetailModal } from './modals/TaskDetailModal.ts';
-import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration, parseDurationStringToSeconds } from '../utils.ts';
+import { camelToSnake, formatCurrency, formatDate, getTaskTotalTrackedSeconds, formatDuration, parseDurationStringToSeconds, getUserInitials } from '../utils.ts';
 import { can } from '../permissions.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 
@@ -270,13 +270,12 @@ export function Modal() {
                             if (!user) return '';
                             const isCreator = user.id === state.currentUser?.id;
                             const isExistingMember = isEdit && existingMemberIds.has(user.id);
-                            const initials = (user.initials || user.name?.substring(0, 2) || user.email?.substring(0, 2) || '??').toUpperCase();
                             const displayName = user.name || user.email || 'Unnamed User';
 
                             return `
                             <label class="flex items-center gap-2 p-1.5 rounded-md hover:bg-background">
                                 <input type="checkbox" name="project_members" value="${user.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ${isCreator ? 'checked disabled' : (isExistingMember ? 'checked' : '')}>
-                                <div class="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold">${initials}</div>
+                                <div class="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold">${getUserInitials(user)}</div>
                                 <span class="text-sm">${displayName} ${isCreator ? `(${t('hr.you')})` : ''}</span>
                             </label>
                             `;
@@ -367,7 +366,7 @@ export function Modal() {
                                 ${workspaceMembers.map(user => `
                                     <label class="multiselect-list-item">
                                         <input type="checkbox" name="taskAssignees" value="${user!.id}">
-                                        <div class="avatar">${user!.initials || '?'}</div>
+                                        <div class="avatar">${getUserInitials(user)}</div>
                                         <span>${user!.name || user!.email}</span>
                                     </label>
                                 `).join('')}
@@ -674,9 +673,15 @@ export function Modal() {
                     <label for="timeLogAmount" class="${labelClasses}">${t('modals.time_to_log')}</label>
                     ${renderTimePicker()}
                 </div>
-                <div class="${formGroupClasses}">
-                    <label for="timeLogDate" class="${labelClasses}">${t('modals.date_worked')}</label>
-                    <input type="date" id="timeLogDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="${formGroupClasses}">
+                        <label for="timeLogDate" class="${labelClasses}">${t('modals.date_worked')}</label>
+                        <input type="date" id="timeLogDate" class="${formControlClasses}" required value="${new Date().toISOString().slice(0, 10)}">
+                    </div>
+                    <div class="${formGroupClasses}">
+                        <label for="timeLogStartTime" class="${labelClasses}">${t('modals.start_time')}</label>
+                        <input type="time" id="timeLogStartTime" class="${formControlClasses}" value="${new Date().toTimeString().slice(0,5)}">
+                    </div>
                 </div>
                 <div class="${formGroupClasses}">
                     <label for="timeLogComment" class="${labelClasses}">${t('modals.comment_placeholder')}</label>
@@ -885,7 +890,7 @@ export function Modal() {
                     <div class="${formGroupClasses}">
                         <label for="dealOwner" class="${labelClasses}">${t('modals.deal_owner')}</label>
                         <select id="dealOwner" class="${formControlClasses}" required>
-                            ${workspaceMembers.map(u => u ? `<option value="${u.id}" ${deal?.ownerId === u.id ? 'selected' : ''}>${u.name || u.initials}</option>` : '').join('')}
+                            ${workspaceMembers.map(u => u ? `<option value="${u.id}" ${deal?.ownerId === u.id ? 'selected' : ''}>${u.name || getUserInitials(u)}</option>` : '').join('')}
                         </select>
                     </div>
                     <div class="${formGroupClasses}">
@@ -1147,7 +1152,7 @@ export function Modal() {
             body = `
                 <form id="employeeDetailForm" data-user-id="${user.id}" class="space-y-4">
                      <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center text-2xl font-semibold">${user.initials}</div>
+                        <div class="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center text-2xl font-semibold">${getUserInitials(user)}</div>
                         <div>
                             <h4 class="text-lg font-bold">${user.name}</h4>
                             <p class="text-sm text-text-subtle">${user.email}</p>

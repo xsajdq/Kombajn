@@ -1,9 +1,7 @@
 
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import type { Deal, Task, DealActivity } from '../types.ts';
 
 function renderActivityTab(deal: Deal) {
@@ -157,7 +155,7 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
                     <div class="deal-kpi-item">
                         <label>${t('sales.deal_owner')}</label>
                         <div class="value">
-                            ${owner ? `<div class="avatar" title="${owner.name}">${owner.initials}</div><span>${owner.name}</span>` : t('tasks.unassigned')}
+                            ${owner ? `<div class="avatar" title="${owner.name}">${getUserInitials(owner)}</div><span>${owner.name}</span>` : t('tasks.unassigned')}
                         </div>
                     </div>
                     <div class="deal-kpi-item">

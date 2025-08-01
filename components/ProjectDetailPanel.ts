@@ -1,8 +1,7 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import type { Task, ProjectRole, Attachment, Objective, KeyResult, Expense } from '../types.ts';
 import { getUserProjectRole } from '../handlers/main.ts';
 import { can } from '../permissions.ts';
@@ -114,7 +113,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                     <div class="task-meta">
                         ${task.dueDate ? `<span class="task-due-date">${formatDate(task.dueDate, { month: 'short', day: 'numeric' })}</span>` : '<span></span>'}
                         <div class="avatar-stack">
-                            ${assignees.slice(0, 2).map(u => u ? `<div class="avatar" title="${u.name || ''}">${u.initials}</div>` : '').join('')}
+                            ${assignees.slice(0, 2).map(u => u ? `<div class="avatar" title="${u.name || ''}">${getUserInitials(u)}</div>` : '').join('')}
                             ${assignees.length > 2 ? `<div class="avatar more-avatar">+${assignees.length - 2}</div>` : ''}
                         </div>
                     </div>
@@ -268,11 +267,11 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 <h4>${t('panels.project_access')} (${projectMembers.length})</h4>
                 <div class="team-member-list">
                     ${projectMembers.map(pm => {
-                        const userName = pm.user!.name || pm.user!.initials;
+                        const userName = pm.user!.name || getUserInitials(pm.user);
                         const isSelf = pm.user!.id === state.currentUser?.id;
                         return `
                         <div class="team-member-item">
-                            <div class="avatar">${pm.user!.initials}</div>
+                            <div class="avatar">${getUserInitials(pm.user)}</div>
                             <div class="member-info">
                                 <strong>${userName} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
                                 <p class="subtle-text">${pm.user!.email}</p>
@@ -296,7 +295,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                             <label for="project-member-select">${t('hr.member')}</label>
                             <select id="project-member-select" class="form-control" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>
                                  ${workspaceUsersNotInProject.length > 0
-                                    ? workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || user!.initials}</option>`).join('')
+                                    ? workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || getUserInitials(user)}</option>`).join('')
                                     : `<option disabled selected>All members are in the project</option>`
                                  }
                             </select>

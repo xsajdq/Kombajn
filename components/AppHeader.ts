@@ -2,7 +2,7 @@
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
-import { formatDuration } from '../utils.ts';
+import { formatDuration, getUserInitials } from '../utils.ts';
 import { Breadcrumbs } from './Breadcrumbs.ts';
 
 export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
@@ -55,8 +55,8 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                     <button class="p-2 rounded-full hover:bg-background transition-colors" data-logout-button title="Log Out">
                         <span class="material-icons-sharp">logout</span>
                     </button>
-                    <div class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold uppercase" title="${currentUser.name || currentUser.initials}">
-                        ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}" class="h-full w-full rounded-full object-cover">` : currentUser.initials}
+                    <div class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold uppercase" title="${currentUser.name || getUserInitials(currentUser)}">
+                        ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}" class="h-full w-full rounded-full object-cover">` : getUserInitials(currentUser)}
                     </div>
                 </div>
             </div>

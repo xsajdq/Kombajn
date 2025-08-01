@@ -200,7 +200,6 @@ function renderListView(filteredTasks: Task[]) {
                 <details class="task-section" open>
                     <summary class="task-section-header">
                         <div class="flex items-center gap-2">
-                            <span class="material-icons-sharp">keyboard_arrow_down</span>
                             <h4 class="font-semibold">${sectionName}</h4>
                             <span class="text-sm text-text-subtle">${tasks.length}</span>
                         </div>
@@ -225,6 +224,9 @@ function renderListView(filteredTasks: Task[]) {
             `;
         };
 
+        const { text, assigneeId, priority, status, dateRange, tagIds, isArchived } = state.ui.tasks.filters;
+        const hasOtherFilters = text || assigneeId || priority || status || dateRange !== 'all' || tagIds.length > 0 || isArchived;
+
         return `
             <div class="bg-content rounded-lg shadow-sm">
                 ${renderListHeader()}
@@ -232,9 +234,11 @@ function renderListView(filteredTasks: Task[]) {
                     ${projectSections.map(section => renderSection(section, tasksBySection[section.id])).join('')}
                     ${renderSection(null, tasksBySection['no-section'])}
                 </div>
+                ${can('manage_projects') && !hasOtherFilters ? `
                 <button class="w-full text-left p-2 text-sm text-text-subtle hover:bg-background" id="add-project-section-btn" data-project-id="${projectId}">
                     + Add Section
                 </button>
+                ` : ''}
             </div>
         `;
 

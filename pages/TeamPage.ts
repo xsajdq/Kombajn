@@ -1,7 +1,7 @@
 
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDate, getVacationInfo } from '../utils.ts';
+import { formatDate, getVacationInfo, getUserInitials } from '../utils.ts';
 import type { Role, User, WorkspaceMember, TimeOffRequest, Review } from '../types.ts';
 import { can } from '../permissions.ts';
 import { PLANS } from '../utils.ts';
@@ -59,11 +59,11 @@ async function renderEmployeesTab() {
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
-                        const displayName = user.name || user.email || user.initials;
+                        const displayName = user.name || user.email || getUserInitials(user);
                         return `
                         <div class="modern-list-row hr-list-grid group" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
+                                <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                 <div class="font-semibold">
                                     ${displayName} ${isSelf ? `<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
                                 </div>
@@ -149,9 +149,9 @@ function renderRequestsTab() {
                         return `
                             <div class="bg-content p-3 rounded-lg flex items-center justify-between">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user.initials}</div>
+                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                     <div>
-                                        <strong class="text-sm font-semibold">${user.name || user.initials}</strong>
+                                        <strong class="text-sm font-semibold">${user.name || getUserInitials(user)}</strong>
                                         <p class="text-xs text-text-subtle">${user.email}</p>
                                     </div>
                                 </div>
@@ -172,7 +172,7 @@ function renderRequestsTab() {
                         return `
                             <div class="bg-content p-3 rounded-lg flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${user?.initials || '?'}</div>
+                                    <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                     <div>
                                         <strong class="text-sm font-semibold">${user?.name || 'Unknown User'}</strong>
                                         <p class="text-xs text-text-subtle">${t(`team_calendar.leave_type_${request.type}`)}</p>
@@ -223,7 +223,7 @@ function renderVacationTab() {
                         const usagePercentage = vacationInfo.pool.hours > 0 ? (vacationInfo.used.hours / vacationInfo.pool.hours) * 100 : 0;
                         return `
                             <div class="grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 items-center hr-table-row">
-                                <div data-label="${t('hr.employee')}">${user.name || user.initials}</div>
+                                <div data-label="${t('hr.employee')}">${user.name || getUserInitials(user)}</div>
                                 <div data-label="${t('hr.vacation_pool')}">
                                     <span>${vacationInfo.pool.days} ${t('hr.days')}</span>
                                     <span class="text-text-subtle ml-1">(${vacationInfo.pool.hours} ${t('hr.hours')})</span>
@@ -331,7 +331,7 @@ function renderReviewsTab() {
                 <details class="bg-content rounded-lg shadow-sm" open>
                     <summary class="flex justify-between items-center p-4 cursor-pointer">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${member.initials}</div>
+                            <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(member)}</div>
                             <span class="font-semibold">${member.name}</span>
                         </div>
                         ${canManage ? `
@@ -397,26 +397,22 @@ export async function HRPage() {
         { id: 'requests', text: t('hr.tabs.requests') },
         { id: 'vacation', text: t('hr.tabs.vacation') },
         { id: 'history', text: t('hr.tabs.history') },
-        { id: 'reviews', text: t('hr.tabs.reviews') }
+        { id: 'reviews', text: t('hr.tabs.reviews') },
     ];
 
     return `
-        <div class="flex flex-col md:flex-row gap-8 h-full">
-            <nav class="flex flex-col w-full md:w-56 shrink-0">
-                <h3 class="text-xl font-bold p-4">${t('hr.title')}</h3>
-                <ul class="space-y-1 p-2">
-                ${navItems.map(item => `
-                    <li>
-                        <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-hr-tab="${item.id}">
-                            ${item.text}
-                        </a>
-                    </li>
-                `).join('')}
-                </ul>
-            </nav>
-            <main class="flex-1 overflow-y-auto">
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold">${t('hr.title')}</h2>
+            <div class="border-b border-border-color">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    ${navItems.map(item => `
+                        <a href="#" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-hr-tab="${item.id}">${item.text}</a>
+                    `).join('')}
+                </nav>
+            </div>
+            <div>
                 ${tabContent}
-            </main>
+            </div>
         </div>
     `;
 }
