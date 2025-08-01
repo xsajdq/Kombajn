@@ -6,6 +6,32 @@ import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 
 let isCreatingDefaults = false;
 
+export function getKpiMetrics() {
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) {
+        return { totalRevenue: 0, activeProjects: 0, totalClients: 0, overdueProjects: 0 };
+    }
+
+    const totalRevenue = state.invoices
+        .filter(i => i.workspaceId === activeWorkspaceId && i.status === 'paid')
+        .reduce((sum, invoice) => sum + invoice.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
+
+    const activeProjects = state.projects.filter(p => p.workspaceId === activeWorkspaceId && !p.isArchived).length;
+
+    const totalClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId).length;
+    
+    const today = new Date().toISOString().slice(0, 10);
+    const overdueProjectIds = new Set<string>();
+    state.tasks.forEach(task => {
+        if (task.workspaceId === activeWorkspaceId && task.dueDate && task.dueDate < today && task.status !== 'done') {
+            overdueProjectIds.add(task.projectId);
+        }
+    });
+    const overdueProjects = overdueProjectIds.size;
+
+    return { totalRevenue, activeProjects, totalClients, overdueProjects };
+}
+
 export function toggleEditMode() {
     state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
     updateUI(['page']);

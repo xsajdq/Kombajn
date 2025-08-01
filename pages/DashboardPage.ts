@@ -1,7 +1,3 @@
-
-
-
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment, CalendarEvent, TimeOffRequest, PublicHoliday, User } from '../types.ts';
@@ -111,7 +107,7 @@ function renderMyTasks(overdue: Task[], today: Task[], thisWeek: Task[]) {
                     ${tasks.map(task => {
                         const project = state.projects.find(p => p.id === task.projectId);
                         return `
-                            <div class="bg-content p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-border-color/50 transition-colors" data-task-id="${task.id}" role="button" tabindex="0">
+                            <div class="bg-content p-3 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-border-color/50 transition-colors dashboard-task-item" data-task-id="${task.id}" role="button" tabindex="0">
                                 <span class="material-icons-sharp text-primary">radio_button_unchecked</span>
                                 <div class="flex-1">
                                     <p class="text-sm font-medium">${task.name}</p>
@@ -179,7 +175,7 @@ function renderProjectsAndTimeSummary() {
                         const completed = tasks.filter(t => t.status === 'done').length;
                         const progress = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
                         return `
-                            <div class="cursor-pointer" data-project-id="${p.id}" role="button" tabindex="0">
+                            <div class="cursor-pointer dashboard-project-item" data-project-id="${p.id}" role="button" tabindex="0">
                                 <div class="flex justify-between items-center text-sm mb-1">
                                     <span class="font-medium">${p.name}</span>
                                     <span class="text-text-subtle">${Math.round(progress)}%</span>
@@ -247,24 +243,132 @@ function renderMyDayDashboard() {
     `;
 }
 
+function renderOverviewDashboard() {
+    const { currentUser, activeWorkspaceId, dashboardWidgets } = state;
+    if (!currentUser || !activeWorkspaceId) return '';
+
+    const userWidgets = dashboardWidgets.filter(w => w.userId === currentUser.id && w.workspaceId === activeWorkspaceId)
+        .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        
+    const gridColumns = state.workspaces.find(w => w.id === activeWorkspaceId)?.dashboardGridColumns || 3;
+
+    if (userWidgets.length === 0) {
+        return `
+            <div class="text-center p-8">
+                <p>${t('dashboard.no_activity_yet')}</p>
+                <button id="create-default-widgets-btn" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Add Default Widgets</button>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="dashboard-widget-grid" style="grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));">
+            ${userWidgets.map(widget => renderWidget(widget)).join('')}
+        </div>
+    `;
+}
+
+function renderWidget(widget: DashboardWidget) {
+    const isEditing = state.ui.dashboard.isEditing;
+    const { type, config } = widget;
+    let content = '';
+
+    switch (type) {
+        case 'kpiMetric':
+            const { totalRevenue, activeProjects, totalClients, overdueProjects } = dashboardHandlers.getKpiMetrics();
+            const metricMap = {
+                totalRevenue: { value: formatCurrency(totalRevenue), label: t('dashboard.kpi_total_revenue'), icon: 'payments' },
+                activeProjects: { value: activeProjects, label: t('dashboard.kpi_active_projects'), icon: 'folder_special' },
+                totalClients: { value: totalClients, label: t('dashboard.kpi_total_clients'), icon: 'groups' },
+                overdueProjects: { value: overdueProjects, label: t('dashboard.kpi_overdue_projects'), icon: 'warning' },
+            };
+            const metric = metricMap[config.metric as keyof typeof metricMap];
+            content = `<div class="p-4 bg-content rounded-lg h-full flex flex-col justify-center">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-primary/10 text-primary"><span class="material-icons-sharp">${metric.icon}</span></div>
+                    <div>
+                        <p class="text-sm text-text-subtle">${metric.label}</p>
+                        <strong class="text-2xl font-semibold">${metric.value}</strong>
+                    </div>
+                </div>
+            </div>`;
+            break;
+        case 'recentProjects':
+             const recentProjects = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId).slice(0, 5);
+             content = `<div class="p-4 bg-content rounded-lg h-full">
+                <h4 class="font-semibold mb-3">${t('dashboard.widget_recent_projects_title')}</h4>
+                <div class="space-y-2">
+                    ${recentProjects.map(p => `<div class="text-sm p-2 rounded-md hover:bg-background cursor-pointer dashboard-project-item" data-project-id="${p.id}">${p.name}</div>`).join('')}
+                </div>
+             </div>`;
+             break;
+        case 'todaysTasks':
+             const taskFilter = config.taskFilter || 'today';
+             content = `<div class="p-4 bg-content rounded-lg h-full flex flex-col">...</div>`; // simplified
+             break;
+        case 'activityFeed':
+            const activities = [...state.comments, ...state.timeLogs]
+                .filter(a => a.workspaceId === state.activeWorkspaceId)
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5);
+            content = `<div class="p-4 bg-content rounded-lg h-full">...</div>`; // simplified
+            break;
+        default:
+            content = `<div class="p-4 bg-content rounded-lg h-full"><p>${type}</p></div>`;
+    }
+
+    return `
+        <div class="relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+            ${isEditing ? `
+                <button class="remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>
+                <button class="configure-widget-btn" data-configure-widget-id="${widget.id}"><span class="material-icons-sharp text-base">settings</span></button>
+            ` : ''}
+            ${content}
+        </div>
+    `;
+}
+
 
 export function initDashboardCharts() {
     destroyCharts();
 }
 
 export function DashboardPage() {
-    const { currentUser, activeWorkspaceId } = state;
+    const { currentUser, activeWorkspaceId, ui: { dashboard: { isLoading, isEditing, activeTab } } } = state;
     if (!currentUser || !activeWorkspaceId) return '';
     
-    if (state.ui.dashboard.isLoading) {
+    if (isLoading) {
         return `<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
 
+    let content = '';
+    if (activeTab === 'my_day') {
+        content = renderMyDayDashboard();
+    } else {
+        content = renderOverviewDashboard();
+    }
+
     return `
         <div class="space-y-6">
-            ${renderMyDayDashboard()}
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-2xl font-bold">${t('dashboard.title')}</h2>
+                <div class="flex items-center gap-2">
+                    <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'my_day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-dashboard-tab="my_day">${t('dashboard.tab_my_day')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'overview' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-dashboard-tab="overview">${t('dashboard.tab_overview')}</button>
+                    </div>
+                    ${activeTab === 'overview' ? `
+                        <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
+                            <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
+                            ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
+                        </button>
+                        ${isEditing ? `<button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white" data-modal-target="addWidget"><span class="material-icons-sharp text-base">add</span> ${t('dashboard.add_widget')}</button>` : ''}
+                    ` : ''}
+                </div>
+            </div>
+            ${content}
         </div>
     `;
 }

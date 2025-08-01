@@ -51,15 +51,14 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
     }
 }
 
-export async function handleSaveManualTimeLog(taskId: string, timeString: string, dateString: string, comment?: string) {
+export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: number, dateString: string, comment?: string) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) {
         throw new Error("Task or user not found.");
     }
 
-    const trackedSeconds = parseDurationStringToSeconds(timeString);
     if (trackedSeconds <= 0) {
-        throw new Error("Invalid time format or amount. Please use a format like '2h 30m'.");
+        throw new Error("Invalid time amount.");
     }
 
     const timeLogPayload = {

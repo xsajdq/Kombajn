@@ -2,6 +2,7 @@
 
 
 
+
 export interface User {
     id: string;
     name?: string;
@@ -770,7 +771,7 @@ export interface AppState {
             isEditing: boolean;
             isLoading: boolean;
             loadedWorkspaceId: string | null;
-            activeTab: string;
+            activeTab: 'my_day' | 'overview';
         };
         hr: {
              activeTab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews';

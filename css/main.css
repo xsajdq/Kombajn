@@ -921,6 +921,23 @@
   .switcher-menu-item.active {
     @apply bg-primary/10 text-primary font-semibold;
   }
+  
+  /* == NEW: Time Picker == */
+  .time-picker {
+    @apply flex gap-2 bg-background p-2 rounded-lg border border-border-color;
+  }
+  .time-picker-column {
+    @apply flex-1 h-48 overflow-y-auto;
+  }
+  .time-picker-column::-webkit-scrollbar {
+      width: 4px;
+  }
+  .time-picker-option {
+    @apply text-center p-2 rounded-md cursor-pointer hover:bg-border-color;
+  }
+  .time-picker-option.selected {
+    @apply bg-primary text-white font-semibold;
+  }
 }
 
 /* Custom grid utilities for dynamic classes that Tailwind might miss */

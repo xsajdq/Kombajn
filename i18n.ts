@@ -34,7 +34,9 @@ const translations = {
             my_day_quick_actions: "Quick Actions",
             my_day_log_time: "Log Time",
             my_day_active_projects: "My Active Projects",
-            my_day_time_summary: "Today's Time Summary"
+            my_day_time_summary: "Today's Time Summary",
+            tab_my_day: "My Day",
+            tab_overview: "Overview",
         },
         projects: {
             no_projects_yet: 'No projects yet.',
@@ -433,7 +435,9 @@ const translations = {
             my_day_quick_actions: "Szybkie Akcje",
             my_day_log_time: "Zapisz czas",
             my_day_active_projects: "Moje aktywne projekty",
-            my_day_time_summary: "Dzisiejszy czas pracy"
+            my_day_time_summary: "Dzisiejszy czas pracy",
+            tab_my_day: "Mój Dzień",
+            tab_overview: "Przegląd",
         },
         projects: {
             no_projects_yet: 'Brak projektów.',

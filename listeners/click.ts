@@ -95,6 +95,29 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as HTMLElement;
 
+    // --- Time Picker Logic ---
+    const timePickerOption = target.closest<HTMLElement>('.time-picker-option');
+    if (timePickerOption) {
+        const column = timePickerOption.parentElement!;
+        const timePicker = column.parentElement!;
+        const hiddenInput = timePicker.querySelector<HTMLInputElement>('#time-picker-seconds');
+
+        if (!hiddenInput) return;
+
+        column.querySelectorAll('.time-picker-option').forEach(opt => opt.classList.remove('selected'));
+        timePickerOption.classList.add('selected');
+
+        const selectedHourEl = timePicker.querySelector<HTMLElement>('#time-picker-hours .selected');
+        const selectedMinuteEl = timePicker.querySelector<HTMLElement>('#time-picker-minutes .selected');
+        
+        const selectedHour = selectedHourEl ? parseInt(selectedHourEl.dataset.value!, 10) : 0;
+        const selectedMinute = selectedMinuteEl ? parseInt(selectedMinuteEl.dataset.value!, 10) : 0;
+        
+        const totalSeconds = (selectedHour * 3600) + (selectedMinute * 60);
+        hiddenInput.value = String(totalSeconds);
+        return;
+    }
+
     // --- Dynamic Breadcrumb Switcher Handler ---
     const breadcrumbSwitcher = target.closest<HTMLElement>('[data-breadcrumb-switcher]');
     if (breadcrumbSwitcher) {
@@ -512,7 +535,7 @@ export async function handleClick(e: MouseEvent) {
 
     if (target.closest('.btn-close-panel, #side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
     
-    const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id]');
+    const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id], .dashboard-project-item');
     if (projectCard && !target.closest('button, a, .multiselect-container')) {
         uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!);
         return;
@@ -530,7 +553,7 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id]');
+    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item');
     if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) {
@@ -774,100 +797,8 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('.kr-value')) { const krItem = target.closest<HTMLElement>('.key-result-item')!; krItem.dataset.editing = 'true'; updateUI(['side-panel']); return; }
     if (target.closest('[data-remove-project-member-id]')) { teamHandlers.handleRemoveUserFromProject(target.closest<HTMLElement>('[data-remove-project-member-id]')!.dataset.removeProjectMemberId!); return; }
     if (target.closest('.mention-item')) { const userId = target.closest<HTMLElement>('.mention-item')!.dataset.mentionId!; const user = state.users.find(u => u.id === userId); if(user) handleInsertMention(user, state.ui.mention.target as HTMLElement); return; }
-    if (target.closest<HTMLElement>('[data-delete-project-id]')) { if (confirm('Are you sure you want to delete this project?')) { await projectHandlers.handleDeleteProject(target.closest<HTMLElement>('[data-delete-project-id]')!.dataset.deleteProjectId!); } return; }
     if (target.closest('#global-timer-toggle')) { if(state.ui.globalTimer.isRunning) timerHandlers.stopGlobalTimer(); else timerHandlers.startGlobalTimer(); return; }
+    if (target.closest('#restart-onboarding-btn')) { onboardingHandlers.startOnboarding(); return; }
     if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
     if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
-    if (target.closest('#restart-onboarding-btn')) { onboardingHandlers.startOnboarding(); return; }
-    const createProjectFromDealBtn = target.closest('#create-project-from-deal-btn');
-    if (createProjectFromDealBtn) {
-        const btn = createProjectFromDealBtn as HTMLElement;
-        const clientId = btn.dataset.clientId;
-        const dealName = btn.dataset.dealName;
-        uiHandlers.closeModal(false);
-        uiHandlers.showModal('addProject', { clientId, projectName: dealName });
-        return;
-    }
-    if (target.closest('#add-milestone-btn')) { goalHandlers.handleAddMilestone(); return; }
-    const removeMilestoneBtn = target.closest('.remove-milestone-btn');
-    if (removeMilestoneBtn) {
-        const id = removeMilestoneBtn.parentElement?.dataset.id;
-        if(id) goalHandlers.handleRemoveMilestone(id);
-        return;
-    }
-
-    const activityTab = target.closest<HTMLElement>('.activity-log-tabs button');
-    if (activityTab) {
-        const type = activityTab.dataset.activityType!; // 'note', 'call', 'meeting', 'email'
-        const formContainer = activityTab.closest('.activity-log-container');
-        if (formContainer) {
-            formContainer.querySelectorAll('.activity-log-tabs button').forEach(btn => btn.classList.remove('active'));
-            activityTab.classList.add('active');
-    
-            formContainer.querySelectorAll('.deal-activity-form').forEach(form => {
-                const formEl = form as HTMLElement;
-                if (formEl.dataset.formType === type) {
-                    formEl.classList.remove('hidden');
-                    if (type === 'note' || type === 'call' || type === 'meeting') {
-                        // Set the hidden input for the generic logger form
-                        const hiddenInput = formEl.querySelector('input[name="activity-type"]') as HTMLInputElement;
-                        if (hiddenInput) hiddenInput.value = type;
-                        const textarea = formEl.querySelector('textarea');
-                        if(textarea) textarea.placeholder = t(`modals.${type === 'note' ? 'note_placeholder' : `Log ${type} details...`}`);
-                    }
-                } else {
-                    formEl.classList.add('hidden');
-                }
-            });
-        }
-        return;
-    }
-
-    const multiSelectListItem = target.closest<HTMLElement>('.multiselect-list-item');
-    if (multiSelectListItem) {
-        // Allow the default checkbox behavior to toggle the input
-        // The API call logic is now conditional
-        const checkbox = multiSelectListItem.querySelector<HTMLInputElement>('input[type="checkbox"]');
-        const container = multiSelectListItem.closest<HTMLElement>('.multiselect-container');
-        
-        if (checkbox && container) {
-            const entityType = container.dataset.entityType as 'project' | 'client' | 'task';
-            const entityId = container.dataset.entityId; // This can be undefined
-            const tagId = checkbox.value;
-
-            // ONLY call the handler if we have an entityId (i.e., we are editing an existing entity)
-            if (entityId) {
-                tagHandlers.handleToggleTag(entityType, entityId, tagId);
-            }
-        }
-        return;
-    }
-
-    const removeTagBtn = target.closest<HTMLElement>('.remove-tag-btn');
-    if(removeTagBtn) {
-        const multiselect = removeTagBtn.closest<HTMLElement>('.multiselect-container');
-        if(multiselect) {
-            const entityType = multiselect.dataset.entityType as 'project' | 'client' | 'task';
-            const entityId = multiselect.dataset.entityId;
-            const tagId = removeTagBtn.dataset.tagId;
-            if(entityId && entityType && tagId) {
-                tagHandlers.handleToggleTag(entityType, entityId, tagId);
-            }
-        }
-        return;
-    }
-
-    const goalCard = target.closest<HTMLElement>('.goal-card[data-goal-id]');
-    if (goalCard) {
-        uiHandlers.showModal('addGoal', { goalId: goalCard.dataset.goalId! });
-        return;
-    }
-
-    if (target.closest('#goals-analytics-btn')) {
-        state.currentPage = 'reports';
-        state.ui.reports.activeTab = 'goals';
-        history.pushState({}, '', '/reports');
-        updateUI(['page', 'sidebar']);
-        return;
-    }
 }

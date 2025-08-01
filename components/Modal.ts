@@ -26,6 +26,25 @@ function renderClientContactFormRow(contact?: any) {
     `;
 }
 
+function renderTimePicker(initialSeconds: number = 0) {
+    const hours = Math.floor(initialSeconds / 3600);
+    const minutes = Math.floor((initialSeconds % 3600) / 60);
+
+    const hoursOptions = Array.from({ length: 24 }, (_, i) => `<div class="time-picker-option ${i === hours ? 'selected' : ''}" data-value="${i}">${String(i).padStart(2, '0')}</div>`).join('');
+    const minutesOptions = Array.from({ length: 12 }, (_, i) => {
+        const minute = i * 5;
+        return `<div class="time-picker-option ${minute === minutes ? 'selected' : ''}" data-value="${minute}">${String(minute).padStart(2, '0')}</div>`;
+    }).join('');
+
+    return `
+        <div class="time-picker">
+            <input type="hidden" id="time-picker-seconds" value="${initialSeconds}">
+            <div class="time-picker-column" id="time-picker-hours">${hoursOptions}</div>
+            <div class="time-picker-column" id="time-picker-minutes">${minutesOptions}</div>
+        </div>
+    `;
+}
+
 
 export function Modal() {
     if (!state.ui.modal.isOpen) return '';
@@ -634,7 +653,7 @@ export function Modal() {
             <form id="manualTimeLogForm" class="space-y-4">
                 <div class="${formGroupClasses}">
                     <label for="timeLogAmount" class="${labelClasses}">${t('modals.time_to_log')}</label>
-                    <input type="text" id="timeLogAmount" class="${formControlClasses}" required placeholder="${t('modals.time_placeholder')}">
+                    ${renderTimePicker()}
                 </div>
                 <div class="${formGroupClasses}">
                     <label for="timeLogDate" class="${labelClasses}">${t('modals.date_worked')}</label>
@@ -657,7 +676,7 @@ export function Modal() {
             <form id="assignGlobalTimeForm" class="space-y-4">
                 <div class="${formGroupClasses}">
                     <label for="global-timelog-amount" class="${labelClasses}">${t('modals.time_to_log')}</label>
-                    <input type="text" id="global-timelog-amount" class="${formControlClasses}" value="${formatDuration(trackedSeconds)}" placeholder="${t('modals.time_placeholder')}" required>
+                     ${renderTimePicker(trackedSeconds)}
                 </div>
                 <div class="${modalFormGridClasses}">
                     <div class="${formGroupClasses}">

@@ -1,4 +1,3 @@
-
 import { state } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -690,38 +689,39 @@ export async function handleFormSubmit() {
 
         if (type === 'addManualTimeLog') {
             const taskId = data.taskId as string;
-            const timeString = (document.getElementById('timeLogAmount') as HTMLInputElement).value;
+            const trackedSeconds = parseInt((document.getElementById('time-picker-seconds') as HTMLInputElement).value, 10);
             const dateString = (document.getElementById('timeLogDate') as HTMLInputElement).value;
             const comment = (document.getElementById('timeLogComment') as HTMLTextAreaElement).value.trim();
 
-            if (taskId && timeString && dateString) {
-                await timerHandlers.handleSaveManualTimeLog(taskId, timeString, dateString, comment || undefined);
+            if (taskId && trackedSeconds > 0 && dateString) {
+                await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, dateString, comment || undefined);
+            } else {
+                alert("Please select a valid time and date.");
+                return;
             }
         }
         
         if (type === 'addCommentToTimeLog') {
             const taskId = data.taskId as string;
-            const timeString = (document.getElementById('timelog-amount') as HTMLInputElement).value;
+            const trackedSeconds = parseInt((document.getElementById('time-picker-seconds') as HTMLInputElement).value, 10);
             const comment = (document.getElementById('timelog-comment') as HTMLTextAreaElement).value.trim();
-            const trackedSeconds = parseDurationStringToSeconds(timeString);
 
-            if (taskId && trackedSeconds > 0) {
+            if (taskId && trackedSeconds >= 0) { // Allow 0 second logs
                 await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment || undefined);
                 return; 
             } else {
-                alert("Invalid time format or amount. Please use a format like '1h 30m'.");
+                alert("Invalid time amount.");
                 return; 
             }
         }
 
         if (type === 'assignGlobalTime') {
-            const timeString = (document.getElementById('global-timelog-amount') as HTMLInputElement).value;
-            const trackedSeconds = parseDurationStringToSeconds(timeString);
+            const trackedSeconds = parseInt((document.getElementById('time-picker-seconds') as HTMLInputElement).value, 10);
             const projectId = (document.getElementById('assign-time-project-select') as HTMLSelectElement).value;
             const taskId = (document.getElementById('assign-time-task-select') as HTMLSelectElement).value;
             const comment = (document.getElementById('global-timelog-comment') as HTMLTextAreaElement).value.trim();
 
-            if (taskId && trackedSeconds > 0) {
+            if (taskId && trackedSeconds >= 0) {
                 await timerHandlers.handleSaveTimeLogAndComment(taskId, trackedSeconds, comment || undefined);
                 return; 
             } else {
