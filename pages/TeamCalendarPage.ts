@@ -74,7 +74,6 @@ function renderMonthView(year: number, month: number) {
     const monthStartDate = new Date(year, month - 1, 1);
     const monthEndDate = new Date(year, month, 0);
     
-    // --- 1. Get Calendar Grid Dates ---
     const firstDayOfMonth = new Date(year, month - 1, 1);
     const calendarStartDate = new Date(firstDayOfMonth);
     calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
@@ -93,7 +92,6 @@ function renderMonthView(year: number, month: number) {
         if (week[6] >= monthEndDate && (week[6].getDay() + 6) % 7 === 6) break;
     }
 
-    // --- 2. Fetch and Categorize All Items for the View ---
     const allItemsRaw = [
         ...state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && (t.startDate || t.dueDate)),
         ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
@@ -103,20 +101,19 @@ function renderMonthView(year: number, month: number) {
 
     const allItems = allItemsRaw.map(original => {
         let startDateStr: string, endDateStr: string;
-        if ('projectId' in original) {
+        if ('projectId' in original) { // Task
             const task = original as Task;
             startDateStr = task.startDate || task.dueDate!;
             endDateStr = task.dueDate || task.startDate!;
-        } else if ('userId' in original) {
-            const eventOrRequest = original as TimeOffRequest | CalendarEvent;
-            startDateStr = eventOrRequest.startDate;
-            endDateStr = eventOrRequest.endDate;
-        } else if ('isAllDay' in original) {
+        } else if ('isAllDay' in original) { // CalendarEvent
              const event = original as CalendarEvent;
              startDateStr = event.startDate;
              endDateStr = event.endDate;
-        }
-        else {
+        } else if ('userId' in original) { // TimeOffRequest
+            const eventOrRequest = original as TimeOffRequest;
+            startDateStr = eventOrRequest.startDate;
+            endDateStr = eventOrRequest.endDate;
+        } else { // PublicHoliday
             const holiday = original as PublicHoliday;
             startDateStr = holiday.date;
             endDateStr = holiday.date;
@@ -136,41 +133,36 @@ function renderMonthView(year: number, month: number) {
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    const gridItems = allItems; // Render ALL items in the grid for month view
-    
-    // --- 4. Render Main Grid with Lane Algorithm ---
-    const lanes: Date[] = [];
-    gridItems.forEach(event => {
-        let assignedLane = -1;
-        for (let i = 0; i < lanes.length; i++) {
-            if (lanes[i] < event.startDate) {
-                lanes[i] = event.endDate;
-                assignedLane = i;
-                break;
-            }
-        }
-        if (assignedLane === -1) {
-            assignedLane = lanes.length;
-            lanes.push(event.endDate);
-        }
-        (event as any).lane = assignedLane;
-    });
-
     let eventBarsHtml = '';
-    gridItems.forEach(event => {
-        const lane = (event as any).lane;
-        const barHeight = 22;
-        const barGap = 2;
-        const topOffset = 30 + (lane * (barHeight + barGap));
-        const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(event.item);
+    weeks.forEach((week, weekIndex) => {
+        const weekStart = week[0];
+        const weekEnd = new Date(week[6]);
+        weekEnd.setHours(23, 59, 59, 999);
+        
+        const weekItems = allItems.filter(e => e.startDate <= weekEnd && e.endDate >= weekStart);
+        
+        const lanes: Date[] = [];
+        weekItems.forEach(event => {
+            let assignedLane = -1;
+            for (let i = 0; i < lanes.length; i++) {
+                if (lanes[i] < event.startDate) {
+                    lanes[i] = event.endDate;
+                    assignedLane = i;
+                    break;
+                }
+            }
+            if (assignedLane === -1) {
+                assignedLane = lanes.length;
+                lanes.push(event.endDate);
+            }
+            (event as any).lane = assignedLane;
 
-        weeks.forEach((week, weekIndex) => {
-            const weekStart = week[0];
-            const weekEnd = new Date(week[6]);
-            weekEnd.setHours(23, 59, 59, 999);
-
-            if (event.startDate > weekEnd || event.endDate < weekStart) return;
-
+            const lane = (event as any).lane;
+            const barHeight = 22;
+            const barGap = 2;
+            const topOffset = 30 + (lane * (barHeight + barGap));
+            const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(event.item);
+            
             const startDayIndex = event.startDate > weekStart ? (event.startDate.getUTCDay() + 6) % 7 : 0;
             const endDayIndex = event.endDate < weekEnd ? (event.endDate.getUTCDay() + 6) % 7 : 6;
             const duration = endDayIndex - startDayIndex + 1;
@@ -215,7 +207,6 @@ function renderMonthView(year: number, month: number) {
 }
 
 function renderWeekView(currentDate: Date) {
-    // 1. Calculate week dates
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -230,35 +221,32 @@ function renderWeekView(currentDate: Date) {
     const weekEndDate = new Date(weekDays[6]);
     weekEndDate.setHours(23, 59, 59, 999);
 
-    // 2. Fetch and filter leave items for the header
     const allLeaveItemsRaw = [
         ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
         ...state.publicHolidays
     ];
 
     const leaveItems = allLeaveItemsRaw.map(original => {
-        let startDateStr: string, endDateStr: string;
-        if ('userId' in original) {
-            const eventOrRequest = original as TimeOffRequest | CalendarEvent;
+        const eventOrRequest = original as TimeOffRequest | PublicHoliday;
+        let startDateStr: string;
+        let endDateStr: string;
+
+        if ('startDate' in eventOrRequest) { // It's a TimeOffRequest
             startDateStr = eventOrRequest.startDate;
             endDateStr = eventOrRequest.endDate;
-        } else {
-            const holiday = original as PublicHoliday;
-            startDateStr = holiday.date;
-            endDateStr = holiday.date;
+        } else { // It's a PublicHoliday
+            startDateStr = eventOrRequest.date;
+            endDateStr = eventOrRequest.date;
         }
         
-        if (!startDateStr || !endDateStr) return null;
         let d1 = new Date(startDateStr + 'T12:00:00Z');
         let d2 = new Date(endDateStr + 'T12:00:00Z');
         if (d1 > d2) [d1, d2] = [d2, d1];
         
         return { item: original, startDate: d1, endDate: d2 };
     })
-    .filter((e): e is { item: any; startDate: Date; endDate: Date; } => e !== null)
     .filter(e => e.startDate <= weekEndDate && e.endDate >= weekStartDate);
 
-    // 3. Render the leave header
     const leaveByUser = new Map<string, any[]>();
     leaveItems.forEach(event => {
         const key = 'userId' in event.item ? event.item.userId : 'public_holidays';
@@ -304,11 +292,9 @@ function renderWeekView(currentDate: Date) {
         leaveHeaderHtml = `<div class="team-calendar-leave-header">${userRowsHtml}</div>`;
     }
 
-    // 4. Render the main grid, but EXCLUDE leave items
     let daysHtml = '';
     for (const dayDate of weekDays) {
         const dayDateString = dayDate.toISOString().slice(0, 10);
-        // getItemsForDay gets everything. Filter to keep only Tasks and CalendarEvents.
         const itemsForDay = getItemsForDay(dayDateString)
             .filter(item => 'projectId' in item || 'isAllDay' in item);
 
@@ -328,7 +314,6 @@ function renderWeekView(currentDate: Date) {
         `;
     }
     
-    // 5. Combine and return
     return `
         ${leaveHeaderHtml}
         <div class="grid grid-cols-1 sm:grid-cols-7 h-full">${daysHtml}</div>
@@ -356,45 +341,93 @@ function renderWorkloadView(currentDate: Date) {
         .filter((u): u is User => !!u)
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-    const headerHtml = weekDays.map(d => `
-        <div class="workload-header-date">
-            <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
-            <div class="font-bold">${d.getDate()}</div>
-        </div>
-    `).join('');
+    const tasksWithData = state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.startDate && t.dueDate && t.estimatedHours);
 
+    const headerHtml = `
+        <div class="workload-header-user"></div>
+        <div class="workload-header-timeline">
+            ${weekDays.map(d => `
+                <div class="workload-header-date">
+                    <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
+                    <div class="font-bold">${d.getDate()}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
     const rowsHtml = users.map(user => {
+        const userTasks = tasksWithData
+            .filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id))
+            .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
+
         const dayCellsHtml = weekDays.map(date => {
             const dateStr = date.toISOString().slice(0, 10);
-            const itemsForDay = getItemsForDay(dateStr).filter(item => {
-                return ('userId' in item && item.userId === user.id) || ('date' in item); // TimeOffRequests and PublicHolidays
+            let dailyHours = 0;
+            userTasks.forEach(task => {
+                const start = new Date(task.startDate!);
+                const end = new Date(task.dueDate!);
+                const currentDate = new Date(dateStr);
+                if (currentDate >= start && currentDate <= end) {
+                    const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
+                    dailyHours += (task.estimatedHours || 0) / durationDays;
+                }
             });
-            return `
-                <div class="workload-day-cell">
-                    ${itemsForDay.map(item => {
-                        const { text, colorClasses, title } = getEventBarDetails(item);
-                        return `
-                        <div class="flex items-center gap-2 text-xs p-1 rounded ${colorClasses}" title="${title}">
-                            <span>${text}</span>
-                        </div>`;
-                    }).join('')}
-                </div>
-            `;
+            
+            let capacityClass = 'capacity-under';
+            if (dailyHours > 8) capacityClass = 'capacity-over';
+            else if (dailyHours > 6) capacityClass = 'capacity-good';
+            
+            return `<div class="workload-day-cell ${capacityClass}"></div>`;
         }).join('');
 
+        const tracks: { end: Date }[][] = [];
+        const taskBarsHtml = userTasks.map(task => {
+            const taskStart = new Date(task.startDate!);
+            const taskEnd = new Date(task.dueDate!);
+
+            if (taskEnd < weekStartDate || taskStart > weekEndDate) return ''; // Don't render if outside view
+
+            let laneIndex = tracks.findIndex(track => !track.some(placed => placed.end >= taskStart));
+
+            if (laneIndex === -1) {
+                laneIndex = tracks.length;
+                tracks.push([]);
+            }
+            tracks[laneIndex].push({ end: taskEnd });
+
+            const startDayIndex = Math.max(0, Math.floor((taskStart.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24)));
+            const endDayIndex = Math.min(6, Math.floor((taskEnd.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24)));
+            const durationDays = endDayIndex - startDayIndex + 1;
+            
+            const gridColumnStart = startDayIndex + 1;
+
+            const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
+            const colorClass = priorityColors[task.priority || 'low'];
+
+            return `
+                <div class="workload-task-bar ${colorClass}" 
+                     style="grid-column: ${gridColumnStart} / span ${durationDays}; top: ${2 + laneIndex * 28}px;"
+                     data-task-id="${task.id}"
+                     title="${task.name}">
+                     ${task.name}
+                </div>`;
+        }).join('');
+        
         return `
-             <div class="workload-user-cell">
+            <div class="workload-user-cell">
                 <div class="avatar-small">${getUserInitials(user)}</div>
                 <span class="text-sm font-medium">${user.name || getUserInitials(user)}</span>
             </div>
-            ${dayCellsHtml}
+            <div class="workload-user-timeline">
+                 <div class="workload-day-cell-container">${dayCellsHtml}</div>
+                 <div class="workload-task-bars">${taskBarsHtml}</div>
+            </div>
         `;
     }).join('');
 
     return `
         <div class="workload-container">
             <div class="workload-grid">
-                <div class="workload-header-user"></div>
                 ${headerHtml}
                 ${rowsHtml}
             </div>
@@ -402,8 +435,16 @@ function renderWorkloadView(currentDate: Date) {
     `;
 }
 
+function getUserColor(userId: string): string {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return "#" + "00000".substring(0, 6 - color.length) + color;
+}
+
 function renderTimesheetView(currentDate: Date) {
-    // 1. Calculate week dates
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -415,9 +456,10 @@ function renderTimesheetView(currentDate: Date) {
         weekDays.push(d);
     }
     const weekStartDateStr = weekDays[0].toISOString().slice(0, 10);
-    const weekEndDateStr = weekDays[6].toISOString().slice(0, 10);
+    const weekEndDate = new Date(weekDays[6]);
+    weekEndDate.setHours(23, 59, 59, 999);
+    const weekEndDateStr = weekEndDate.toISOString();
     
-    // 2. Filter logs based on selected users
     let userIdsToDisplay: string[] = [];
     if (state.ui.teamCalendarSelectedUserIds.length === 0) {
         userIdsToDisplay = [state.currentUser!.id];
@@ -432,11 +474,10 @@ function renderTimesheetView(currentDate: Date) {
     const timeLogs = state.timeLogs.filter(log => 
         userIdsToDisplay.includes(log.userId) &&
         log.createdAt >= weekStartDateStr &&
-        log.createdAt <= weekEndDateStr + 'T23:59:59.999Z'
+        log.createdAt <= weekEndDateStr
     );
     
-    // 3. Render grid
-    const timeAxisHtml = Array.from({ length: 24 }, (_, i) => `<div class="time-axis h-12">${String(i).padStart(2, '0')}:00</div>`).join('');
+    const timeAxisHtml = Array.from({ length: 24 }, (_, i) => `<div class="time-axis">${String(i).padStart(2, '0')}:00</div>`).join('');
     
     const dayColumnsHtml = weekDays.map(day => {
         const dayStr = day.toISOString().slice(0,10);
@@ -445,7 +486,7 @@ function renderTimesheetView(currentDate: Date) {
 
         const entriesHtml = entriesForDay.map(log => {
             const logDate = new Date(log.createdAt);
-            const startMinutes = logDate.getUTCHours() * 60 + logDate.getUTCMinutes();
+            const startMinutes = logDate.getHours() * 60 + logDate.getMinutes();
             const durationMinutes = log.trackedSeconds / 60;
             const top = (startMinutes / (24 * 60)) * 100;
             const height = (durationMinutes / (24 * 60)) * 100;
@@ -494,16 +535,6 @@ function renderTimesheetView(currentDate: Date) {
         </div>
     `;
 }
-
-function getUserColor(userId: string): string {
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-    return "#" + "00000".substring(0, 6 - color.length) + color;
-}
-
 
 function renderDayView(currentDate: Date) {
     const dayDateString = currentDate.toISOString().slice(0, 10);
