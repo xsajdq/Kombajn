@@ -1170,7 +1170,7 @@ export function Modal() {
 
     return `
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div class="bg-content rounded-lg shadow-xl w-full ${maxWidth} transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+            <div class="bg-content rounded-lg shadow-xl w-full ${maxWidth} transform transition-all duration-300 ${state.ui.modal.justOpened ? 'scale-95 opacity-0' : ''}" id="modal-content">
                 <div class="flex justify-between items-center p-4 border-b border-border-color">
                     <h3 id="modal-title" class="text-lg font-semibold">${title}</h3>
                     <button class="p-1 rounded-full text-text-subtle hover:bg-background btn-close-modal" aria-label="${t('panels.close')}">

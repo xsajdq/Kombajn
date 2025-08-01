@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday } from '../types.ts';
@@ -23,7 +24,7 @@ function getEventBarDetails(item: any) {
         text = item.name;
         handler = `data-task-id="${item.id}"`;
         title = item.name;
-    } else if ('userId' in item && 'rejectionReason' in item) { // TimeOffRequest
+    } else if ('userId' in item && 'type' in item && ['vacation', 'sick_leave', 'other'].includes(item.type)) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
         const userName = user?.name || user?.initials || 'User';
         colorClasses = 'bg-green-500';
@@ -102,13 +103,12 @@ function renderMonthView(year: number, month: number) {
     ];
 
     const allItems = allItemsRaw.map(original => {
-        let startDateStr: string, endDateStr: string, type: 'leave' | 'grid' = 'grid';
+        let startDateStr: string, endDateStr: string;
         if ('projectId' in original) {
             const task = original as Task;
             startDateStr = task.startDate || task.dueDate!;
             endDateStr = task.dueDate || task.startDate!;
         } else if ('userId' in original) {
-            type = 'leave';
             const eventOrRequest = original as TimeOffRequest | CalendarEvent;
             startDateStr = eventOrRequest.startDate;
             endDateStr = eventOrRequest.endDate;
@@ -118,7 +118,6 @@ function renderMonthView(year: number, month: number) {
              endDateStr = event.endDate;
         }
         else {
-            type = 'leave';
             const holiday = original as PublicHoliday;
             startDateStr = holiday.date;
             endDateStr = holiday.date;
@@ -129,63 +128,16 @@ function renderMonthView(year: number, month: number) {
         let d2 = new Date(endDateStr + 'T12:00:00Z');
         if (d1 > d2) [d1, d2] = [d2, d1];
         
-        return { item: original, startDate: d1, endDate: d2, type };
+        return { item: original, startDate: d1, endDate: d2 };
     })
-    .filter((e): e is { item: any; startDate: Date; endDate: Date; type: 'leave' | 'grid' } => e !== null)
+    .filter((e): e is { item: any; startDate: Date; endDate: Date; } => e !== null)
     .filter(e => e.startDate <= calendarEndDate && e.endDate >= calendarStartDate)
     .sort((a, b) => {
         if (a.startDate.getTime() !== b.startDate.getTime()) return a.startDate.getTime() - b.startDate.getTime();
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    const leaveItems = allItems.filter(i => i.type === 'leave');
-    const gridItems = allItems.filter(i => i.type === 'grid');
-    
-    // --- 3. Render Leave Header ---
-    const leaveByUser = new Map<string, any[]>();
-    leaveItems.forEach(event => {
-        const key = 'userId' in event.item ? event.item.userId : 'public_holidays';
-        if (!leaveByUser.has(key)) leaveByUser.set(key, []);
-        leaveByUser.get(key)!.push(event);
-    });
-
-    let leaveHeaderHtml = '';
-    if (leaveByUser.size > 0) {
-        let userRowsHtml = '';
-        leaveByUser.forEach((events, userId) => {
-            const user = state.users.find(u => u.id === userId);
-            const userName = user?.name || user?.initials || t('team_calendar.public_holiday');
-            
-            let eventBars = '';
-            events.forEach(event => {
-                const start = event.startDate > calendarStartDate ? event.startDate : calendarStartDate;
-                const end = event.endDate < calendarEndDate ? event.endDate : calendarEndDate;
-                
-                const startDayIndex = Math.floor((start.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24));
-                const endDayIndex = Math.floor((end.getTime() - calendarStartDate.getTime()) / (1000 * 3600 * 24));
-                const duration = endDayIndex - startDayIndex + 1;
-                
-                const { colorClasses, textColorClass, text, title } = getEventBarDetails(event.item);
-
-                eventBars += `
-                    <div class="calendar-event-bar" style="grid-column: ${startDayIndex + 1} / span ${duration};" title="${title}">
-                        <div class="calendar-event-content ${colorClasses} ${textColorClass} is-start is-end">
-                            ${text}
-                        </div>
-                    </div>
-                `;
-            });
-
-            userRowsHtml += `
-                <div class="leave-header-row">
-                    <div class="leave-header-user">${userName}</div>
-                    <div class="leave-header-timeline">${eventBars}</div>
-                </div>
-            `;
-        });
-
-        leaveHeaderHtml = `<div class="team-calendar-leave-header">${userRowsHtml}</div>`;
-    }
+    const gridItems = allItems; // Render ALL items in the grid for month view
     
     // --- 4. Render Main Grid with Lane Algorithm ---
     const lanes: Date[] = [];
@@ -241,7 +193,6 @@ function renderMonthView(year: number, month: number) {
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     return `
-        ${leaveHeaderHtml}
         <div class="overflow-x-auto">
             <div class="min-w-[1200px] relative">
                 <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
@@ -265,6 +216,7 @@ function renderMonthView(year: number, month: number) {
 }
 
 function renderWeekView(currentDate: Date) {
+    // 1. Calculate week dates
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -275,11 +227,92 @@ function renderWeekView(currentDate: Date) {
         d.setDate(d.getDate() + i);
         weekDays.push(d);
     }
+    const weekStartDate = weekDays[0];
+    const weekEndDate = new Date(weekDays[6]);
+    weekEndDate.setHours(23, 59, 59, 999);
 
+    // 2. Fetch and filter leave items for the header
+    const allLeaveItemsRaw = [
+        ...state.timeOffRequests.filter(to => to.workspaceId === state.activeWorkspaceId && to.status === 'approved'),
+        ...state.publicHolidays
+    ];
+
+    const leaveItems = allLeaveItemsRaw.map(original => {
+        let startDateStr: string, endDateStr: string;
+        if ('userId' in original) {
+            const eventOrRequest = original as TimeOffRequest | CalendarEvent;
+            startDateStr = eventOrRequest.startDate;
+            endDateStr = eventOrRequest.endDate;
+        } else {
+            const holiday = original as PublicHoliday;
+            startDateStr = holiday.date;
+            endDateStr = holiday.date;
+        }
+        
+        if (!startDateStr || !endDateStr) return null;
+        let d1 = new Date(startDateStr + 'T12:00:00Z');
+        let d2 = new Date(endDateStr + 'T12:00:00Z');
+        if (d1 > d2) [d1, d2] = [d2, d1];
+        
+        return { item: original, startDate: d1, endDate: d2 };
+    })
+    .filter((e): e is { item: any; startDate: Date; endDate: Date; } => e !== null)
+    .filter(e => e.startDate <= weekEndDate && e.endDate >= weekStartDate);
+
+    // 3. Render the leave header
+    const leaveByUser = new Map<string, any[]>();
+    leaveItems.forEach(event => {
+        const key = 'userId' in event.item ? event.item.userId : 'public_holidays';
+        if (!leaveByUser.has(key)) leaveByUser.set(key, []);
+        leaveByUser.get(key)!.push(event);
+    });
+
+    let leaveHeaderHtml = '';
+    if (leaveByUser.size > 0) {
+        let userRowsHtml = '';
+        leaveByUser.forEach((events, userId) => {
+            const user = state.users.find(u => u.id === userId);
+            const userName = user?.name || user?.initials || t('team_calendar.public_holiday');
+            
+            let eventBars = '';
+            events.forEach(event => {
+                const start = event.startDate > weekStartDate ? event.startDate : weekStartDate;
+                const end = event.endDate < weekEndDate ? event.endDate : weekEndDate;
+                
+                const startDayIndex = Math.floor((start.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24));
+                const endDayIndex = Math.floor((end.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24));
+                const duration = endDayIndex - startDayIndex + 1;
+                
+                const { colorClasses, textColorClass, text, title } = getEventBarDetails(event.item);
+
+                eventBars += `
+                    <div class="calendar-event-bar" style="grid-column: ${startDayIndex + 1} / span ${duration};" title="${title}">
+                        <div class="calendar-event-content ${colorClasses} ${textColorClass} is-start is-end">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+            });
+
+            userRowsHtml += `
+                <div class="leave-header-row">
+                    <div class="leave-header-user">${userName}</div>
+                    <div class="leave-header-timeline">${eventBars}</div>
+                </div>
+            `;
+        });
+
+        leaveHeaderHtml = `<div class="team-calendar-leave-header">${userRowsHtml}</div>`;
+    }
+
+    // 4. Render the main grid, but EXCLUDE leave items
     let daysHtml = '';
     for (const dayDate of weekDays) {
         const dayDateString = dayDate.toISOString().slice(0, 10);
-        const itemsForDay = getItemsForDay(dayDateString);
+        // getItemsForDay gets everything. Filter to keep only Tasks and CalendarEvents.
+        const itemsForDay = getItemsForDay(dayDateString)
+            .filter(item => 'projectId' in item || 'isAllDay' in item);
+
         daysHtml += `
             <div class="border-r border-border-color p-2">
                 <div class="text-center mb-2">
@@ -296,7 +329,11 @@ function renderWeekView(currentDate: Date) {
         `;
     }
     
-    return `<div class="grid grid-cols-1 sm:grid-cols-7 h-full">${daysHtml}</div>`;
+    // 5. Combine and return
+    return `
+        ${leaveHeaderHtml}
+        <div class="grid grid-cols-1 sm:grid-cols-7 h-full">${daysHtml}</div>
+    `;
 }
 
 function renderDayView(currentDate: Date) {
