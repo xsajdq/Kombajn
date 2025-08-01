@@ -648,9 +648,28 @@ export function Modal() {
     }
 
     if (state.ui.modal.type === 'addManualTimeLog') {
+        const { selectedProjectId } = modalData;
+        const filteredTasks = selectedProjectId ? state.tasks.filter(t => t.projectId === selectedProjectId && !t.isArchived) : [];
+
         title = t('modals.add_manual_time_log_title');
         body = `
             <form id="manualTimeLogForm" class="space-y-4">
+                 <div class="${modalFormGridClasses}">
+                     <div class="${formGroupClasses}">
+                        <label for="timeLogProject" class="${labelClasses}">${t('modals.project')}</label>
+                        <select id="timeLogProject" class="${formControlClasses}" required>
+                            <option value="">${t('modals.select_a_project')}</option>
+                            ${workspaceProjects.map(p => `<option value="${p.id}" ${selectedProjectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                        </select>
+                    </div>
+                     <div class="${formGroupClasses}">
+                        <label for="timeLogTask" class="${labelClasses}">${t('tasks.col_task')}</label>
+                        <select id="timeLogTask" class="${formControlClasses}" required ${!selectedProjectId ? 'disabled' : ''}>
+                             <option value="">Select a task</option>
+                            ${filteredTasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
                 <div class="${formGroupClasses}">
                     <label for="timeLogAmount" class="${labelClasses}">${t('modals.time_to_log')}</label>
                     ${renderTimePicker()}

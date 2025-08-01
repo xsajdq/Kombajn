@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface User {
     id: string;
     name?: string;
@@ -629,6 +625,7 @@ export interface Budget {
 
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
+export type TeamCalendarView = 'month' | 'week' | 'day' | 'workload';
 
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
@@ -736,7 +733,7 @@ export interface AppState {
             dateEnd: string;
         };
         calendarDate: string; // YYYY-MM for the calendar view
-        teamCalendarView: 'month' | 'week' | 'day';
+        teamCalendarView: TeamCalendarView;
         teamCalendarDate: string; // YYYY-MM-DD for the team calendar view
         activeChannelId: string | null;
         activeTaskViewId: string | null;

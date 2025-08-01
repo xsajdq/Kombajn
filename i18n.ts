@@ -1,3 +1,4 @@
+
 import { state } from './state';
 
 const translations = {
@@ -25,6 +26,8 @@ const translations = {
             invoices_pending: 'Pending', invoices_overdue: 'Overdue', time_today: 'Time Today',
             my_day_todays_schedule: "Today's Schedule",
             my_day_for_you: "For You",
+            my_day_my_tasks: "My Tasks",
+            my_day_whos_off: "Who's Off Today?",
             my_day_overdue: "Overdue",
             my_day_today: "Today",
             my_day_this_week: "This Week",
@@ -179,6 +182,11 @@ const translations = {
             sort_priority: 'Priority',
             sort_name: 'Name',
             sort_created_at: 'Date Created',
+            saved_views: 'My Views',
+            save_view: 'Save View',
+            update_view: 'Update View',
+            delete_view: 'Delete View',
+            save_as_new: 'Save as New',
         },
         sales: {
             title: 'Sales Pipeline',
@@ -190,7 +198,7 @@ const translations = {
             expected_close: 'Expected Close'
         },
         calendar: { prev_month: 'Previous month', next_month: 'Next month', weekdays: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }, month_view: 'Month', week_view: 'Week', day_view: 'Day' },
-        team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other' },
+        team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other', workload_view: 'Workload' },
         clients: { title: 'Clients', new_client: 'New Client', no_clients_yet: 'No Clients Yet', no_clients_desc: 'Add your first client to associate with projects.', add_client: 'Add Client', active_projects: 'Active Projects' },
         reports: {
             title: 'Reports',
@@ -426,6 +434,8 @@ const translations = {
             invoices_pending: 'Oczekujące', invoices_overdue: 'Po terminie', time_today: 'Czas dzisiaj',
             my_day_todays_schedule: "Harmonogram na dziś",
             my_day_for_you: "Dla Ciebie",
+            my_day_my_tasks: "Moje zadania",
+            my_day_whos_off: "Kto jest na urlopie?",
             my_day_overdue: "Zaległe",
             my_day_today: "Na dziś",
             my_day_this_week: "W tym tygodniu",
@@ -580,6 +590,11 @@ const translations = {
             sort_priority: 'Priorytet',
             sort_name: 'Nazwa',
             sort_created_at: 'Data utworzenia',
+            saved_views: 'Moje Widoki',
+            save_view: 'Zapisz Widok',
+            update_view: 'Aktualizuj Widok',
+            delete_view: 'Usuń Widok',
+            save_as_new: 'Zapisz jako Nowy',
         },
         sales: {
             title: 'Lejek Sprzedażowy',
@@ -591,7 +606,7 @@ const translations = {
             expected_close: 'Przewidywane zamknięcie'
         },
         calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Ndz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' }, month_view: 'Miesiąc', week_view: 'Tydzień', day_view: 'Dzień' },
-        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny' },
+        team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny', workload_view: 'Obciążenie' },
         clients: { title: 'Klienci', new_client: 'Nowy klient', no_clients_yet: 'Brak klientów', no_clients_desc: 'Dodaj swojego pierwszego klienta, aby powiązać go z projektami.', add_client: 'Dodaj klienta', active_projects: 'Aktywne projekty' },
         reports: {
             title: 'Raporty',

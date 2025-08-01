@@ -1,7 +1,8 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task } from '../types.ts';
+import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -666,7 +667,7 @@ export async function handleClick(e: MouseEvent) {
         if (navEl.dataset.targetCalendar === 'team') {
             const newDate = new Date(state.ui.teamCalendarDate);
             if (state.ui.teamCalendarView === 'month') newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
-            else if (state.ui.teamCalendarView === 'week') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+            else if (state.ui.teamCalendarView === 'week' || state.ui.teamCalendarView === 'workload') newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
             else newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
             state.ui.teamCalendarDate = newDate.toISOString().slice(0, 10);
         } else {
@@ -679,7 +680,7 @@ export async function handleClick(e: MouseEvent) {
     }
     const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
     if (teamCalendarViewBtn) {
-        state.ui.teamCalendarView = teamCalendarViewBtn.dataset.teamCalendarView as 'month' | 'week' | 'day';
+        state.ui.teamCalendarView = teamCalendarViewBtn.dataset.teamCalendarView as TeamCalendarView;
         updateUI(['page']);
         return;
     }
@@ -750,6 +751,9 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest('[data-delete-pipeline-stage]')) { pipelineHandlers.handleDeleteStage(target.closest<HTMLElement>('[data-delete-pipeline-stage]')!.dataset.deletePipelineStage!); return; }
     if (target.closest('[data-save-pipeline-stage]')) { const stageId = target.closest<HTMLElement>('[data-save-pipeline-stage]')!.dataset.savePipelineStage!; const input = document.querySelector(`input[data-stage-name-id="${stageId}"]`) as HTMLInputElement; pipelineHandlers.handleUpdateStage(stageId, input.value); return; }
     if (target.closest('[data-save-kanban-stage]')) { const stageId = target.closest<HTMLElement>('[data-save-kanban-stage]')!.dataset.saveKanbanStage!; const input = document.querySelector(`input[data-stage-name-id="${stageId}"]`) as HTMLInputElement; kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value); return; }
+    if (target.closest('#save-filter-view-btn')) { filterHandlers.saveCurrentFilterView(); return; }
+    if (target.closest('#update-filter-view-btn')) { filterHandlers.updateActiveFilterView(); return; }
+    if (target.closest('#delete-filter-view-btn')) { filterHandlers.deleteActiveFilterView(); return; }
 
     const hrTab = target.closest<HTMLElement>('a[data-hr-tab]');
     if (hrTab) {

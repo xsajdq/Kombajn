@@ -1,3 +1,4 @@
+
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -173,6 +174,14 @@ export function handleChange(e: Event) {
     
     const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
     if (taskFilterInput) {
+        if (taskFilterInput.id === 'saved-views-select') {
+            const viewId = (taskFilterInput as HTMLSelectElement).value;
+            if (viewId) {
+                filterHandlers.applyFilterView(viewId);
+            }
+            return;
+        }
+
         if (taskFilterInput.matches('input[type="checkbox"][data-filter-key="tagIds"]')) {
             const tagId = (taskFilterInput as HTMLInputElement).value;
             const isChecked = (taskFilterInput as HTMLInputElement).checked;
@@ -194,6 +203,13 @@ export function handleChange(e: Event) {
     if (target.id === 'automation-project-selector') {
         const projectId = (target as HTMLSelectElement).value;
         state.ui.modal.data = { ...state.ui.modal.data, selectedProjectId: projectId };
+        updateUI(['modal']);
+        return;
+    }
+
+    if (target.id === 'timeLogProject') {
+        const projectId = (target as HTMLSelectElement).value;
+        state.ui.modal.data.selectedProjectId = projectId;
         updateUI(['modal']);
         return;
     }
