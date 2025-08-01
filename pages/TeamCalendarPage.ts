@@ -593,7 +593,7 @@ export async function TeamCalendarPage() {
                     <span>${buttonText}</span>
                     <span class="material-icons-sharp">expand_more</span>
                 </button>
-                <div id="timesheet-user-dropdown" class="absolute top-full left-0 w-full bg-content border border-border-color rounded-md shadow-lg z-20 mt-1 hidden">
+                <div id="timesheet-user-dropdown" class="absolute top-full left-0 w-full bg-content border border-border-color rounded-md shadow-lg z-30 mt-1 hidden">
                     <div class="p-1 max-h-60 overflow-y-auto">
                         <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-me="true">${t('team_calendar.my_time_logs')}</div>
                         <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-all="true">${t('team_calendar.all_users')}</div>
