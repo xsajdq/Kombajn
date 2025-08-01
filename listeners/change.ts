@@ -1,5 +1,6 @@
 
 
+
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -17,7 +18,7 @@ export function handleChange(e: Event) {
 
     if (target.id === 'timesheet-user-select') {
         const selectedUserId = (target as HTMLSelectElement).value;
-        state.ui.teamCalendarSelectedUserId = selectedUserId === 'current' ? null : selectedUserId;
+        state.ui.teamCalendarSelectedUserId = selectedUserId === 'current' ? state.currentUser!.id : selectedUserId;
         updateUI(['page']);
         return;
     }

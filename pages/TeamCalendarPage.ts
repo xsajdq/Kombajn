@@ -1,10 +1,11 @@
 
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday } from '../types.ts';
+import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
-import { formatDate } from '../utils.ts';
+import { formatDate, getUserInitials, formatDuration } from '../utils.ts';
 
 function getEventBarDetails(item: any) {
     let colorClasses = '';
@@ -336,25 +337,179 @@ function renderWeekView(currentDate: Date) {
     `;
 }
 
+function renderWorkloadView(currentDate: Date) {
+    // Similar header logic to week view
+    const weekDays: Date[] = [];
+    const dayOfWeek = (currentDate.getDay() + 6) % 7;
+    const startDate = new Date(currentDate);
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        weekDays.push(d);
+    }
+    const weekStartDate = weekDays[0];
+    const weekEndDate = new Date(weekDays[6]);
+    weekEndDate.setHours(23, 59, 59, 999);
+    
+    const users = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter((u): u is User => !!u)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    const headerHtml = weekDays.map(d => `
+        <div class="workload-header-date">
+            <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
+            <div class="font-bold">${d.getDate()}</div>
+        </div>
+    `).join('');
+
+    const rowsHtml = users.map(user => {
+        const dayCellsHtml = weekDays.map(date => {
+            const dateStr = date.toISOString().slice(0, 10);
+            let dailyHours = 0;
+            state.tasks.forEach(task => {
+                const isAssigned = state.taskAssignees.some(a => a.taskId === task.id && a.userId === user.id);
+                if (isAssigned && task.startDate && task.dueDate && task.estimatedHours) {
+                    const start = new Date(task.startDate + 'T12:00:00Z');
+                    const end = new Date(task.dueDate + 'T12:00:00Z');
+                    const currentDate = new Date(dateStr + 'T12:00:00Z');
+                    if (currentDate >= start && currentDate <= end) {
+                        const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
+                        dailyHours += (task.estimatedHours || 0) / durationDays;
+                    }
+                }
+            });
+            
+            let capacityClass = 'capacity-under';
+            if (dailyHours > 8) capacityClass = 'capacity-over';
+            else if (dailyHours > 6) capacityClass = 'capacity-good';
+            
+            return `<div class="workload-day-cell ${capacityClass}" title="${user.name}: ${dailyHours.toFixed(1)}h"></div>`;
+        }).join('');
+
+        return `
+             <div class="workload-user-cell">
+                <div class="avatar-small">${getUserInitials(user)}</div>
+                <span class="text-sm font-medium">${user.name}</span>
+            </div>
+            <div class="workload-day-cell-container">${dayCellsHtml}</div>
+        `;
+    }).join('');
+
+    return `
+        <div class="workload-container">
+            <div class="workload-grid">
+                <div class="workload-header-user"></div>
+                ${headerHtml}
+                ${rowsHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderTimesheetView(currentDate: Date) {
+    const selectedUserId = state.ui.teamCalendarSelectedUserId || state.currentUser!.id;
+    
+    // 1. Calculate week dates
+    const weekDays: Date[] = [];
+    const dayOfWeek = (currentDate.getDay() + 6) % 7;
+    const startDate = new Date(currentDate);
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        weekDays.push(d);
+    }
+    const weekStartDateStr = weekDays[0].toISOString().slice(0, 10);
+    const weekEndDateStr = weekDays[6].toISOString().slice(0, 10);
+
+    const timeLogs = state.timeLogs.filter(log => 
+        log.userId === selectedUserId &&
+        log.createdAt >= weekStartDateStr &&
+        log.createdAt <= weekEndDateStr + 'T23:59:59.999Z'
+    );
+
+    const timeAxisHtml = Array.from({ length: 24 }, (_, i) => `<div class="time-axis h-12">${String(i).padStart(2, '0')}:00</div>`).join('');
+    
+    const dayColumnsHtml = weekDays.map(day => {
+        const dayStr = day.toISOString().slice(0,10);
+        const entriesForDay = timeLogs.filter(log => log.createdAt.startsWith(dayStr));
+        const hourRows = Array.from({ length: 24 }, () => `<div class="hour-row"></div>`).join('');
+
+        const entriesHtml = entriesForDay.map(log => {
+            const logDate = new Date(log.createdAt);
+            const startMinutes = logDate.getUTCHours() * 60 + logDate.getUTCMinutes();
+            const durationMinutes = log.trackedSeconds / 60;
+            const top = (startMinutes / (24 * 60)) * 100;
+            const height = (durationMinutes / (24 * 60)) * 100;
+            const task = state.tasks.find(t => t.id === log.taskId);
+            const project = state.projects.find(p => p.id === task?.projectId);
+
+            return `
+                <div class="timesheet-entry" 
+                     style="top: ${top}%; height: ${height}%;"
+                     title="${task?.name || 'Task'} (${formatDuration(log.trackedSeconds)})"
+                     data-task-id="${task?.id}">
+                    <strong>${task?.name || 'Task'}</strong>
+                    <p>${project?.name || 'Project'}</p>
+                </div>
+            `;
+        }).join('');
+        
+        return `
+            <div class="day-column">
+                ${hourRows}
+                ${entriesHtml}
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="timesheet-container">
+            <div class="timesheet-grid">
+                <div class="timesheet-header"></div>
+                ${weekDays.map(day => `
+                    <div class="timesheet-day-header">
+                         <strong class="text-sm">${t(`calendar.weekdays.${day.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
+                         <p class="text-2xl font-bold">${day.getDate()}</p>
+                    </div>
+                `).join('')}
+                
+                <div class="time-axis-container">${timeAxisHtml}</div>
+                ${dayColumnsHtml}
+            </div>
+        </div>
+    `;
+}
+
 function renderDayView(currentDate: Date) {
     const dayDateString = currentDate.toISOString().slice(0, 10);
-    const itemsForDay = getItemsForDay(dayDateString);
-    
+    const items = getItemsForDay(dayDateString);
+
+    if (items.length === 0) {
+        return `<div class="p-8 text-center text-text-subtle">${t('misc.no_events_for_day')}</div>`;
+    }
+
     return `
         <div class="p-4 space-y-2">
-            ${itemsForDay.length > 0
-                ? itemsForDay.map(item => {
-                    const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
-                    return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses} ${textColorClass}" title="${title}" ${handler}>${text}</div>`
-                }).join('')
-                : `<div class="flex items-center justify-center py-8 text-text-subtle">${t('misc.no_events_for_day')}</div>`
-            }
+            ${items.map(item => {
+                const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
+                return `
+                    <div class="p-2 text-sm font-medium rounded-md ${colorClasses} ${textColorClass}" title="${title}" ${handler}>
+                        ${text}
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 }
 
 export async function TeamCalendarPage() {
-    const { teamCalendarDate, teamCalendarView } = state.ui;
+    const { teamCalendarDate, teamCalendarView, teamCalendarSelectedUserId } = state.ui;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
     const year = currentDate.getUTCFullYear();
     const month = currentDate.getUTCMonth() + 1;
@@ -367,6 +522,23 @@ export async function TeamCalendarPage() {
     
     let viewTitle = '';
     let viewContent = '';
+    let topContent = '';
+
+    if (teamCalendarView === 'timesheet') {
+        const workspaceUsers = state.workspaceMembers
+            .filter(m => m.workspaceId === state.activeWorkspaceId)
+            .map(m => state.users.find(u => u.id === m.userId)!)
+            .filter(Boolean);
+
+        topContent = `
+            <div class="w-64">
+                <select id="timesheet-user-select" class="form-control">
+                    <option value="current" ${!teamCalendarSelectedUserId || teamCalendarSelectedUserId === state.currentUser?.id ? 'selected' : ''}>${t('team_calendar.my_time_logs')}</option>
+                    ${workspaceUsers.map(u => `<option value="${u.id}" ${teamCalendarSelectedUserId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
+                </select>
+            </div>
+        `;
+    }
 
     switch (teamCalendarView) {
         case 'month':
@@ -374,13 +546,17 @@ export async function TeamCalendarPage() {
             viewContent = renderMonthView(year, month);
             break;
         case 'week':
+        case 'workload':
+        case 'timesheet':
             const weekStart = new Date(currentDate);
             const dayOfWeek = (weekStart.getDay() + 6) % 7;
             weekStart.setDate(weekStart.getDate() - dayOfWeek);
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekEnd.getDate() + 6);
             viewTitle = `${formatDate(weekStart.toISOString())} - ${formatDate(weekEnd.toISOString())}`;
-            viewContent = renderWeekView(currentDate);
+            if (teamCalendarView === 'week') viewContent = renderWeekView(currentDate);
+            if (teamCalendarView === 'workload') viewContent = renderWorkloadView(currentDate);
+            if (teamCalendarView === 'timesheet') viewContent = renderTimesheetView(currentDate);
             break;
         case 'day':
             viewTitle = formatDate(currentDate.toISOString(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -388,6 +564,14 @@ export async function TeamCalendarPage() {
             break;
     }
     
+    const navItems = [
+        { id: 'month', text: t('calendar.month_view') },
+        { id: 'week', text: t('calendar.week_view') },
+        { id: 'day', text: t('calendar.day_view') },
+        { id: 'workload', text: t('team_calendar.workload_view') },
+        { id: 'timesheet', text: t('team_calendar.timesheet_view') },
+    ];
+
     return `
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -409,10 +593,11 @@ export async function TeamCalendarPage() {
                         <button class="p-1.5 rounded-full hover:bg-background text-text-subtle" data-calendar-nav="next" data-target-calendar="team" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
                          <h4 class="text-lg font-semibold">${viewTitle}</h4>
                     </div>
+                    ${topContent}
                     <div class="flex items-center p-1 bg-background rounded-lg">
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'month' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="month">${t('calendar.month_view')}</button>
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'week' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="week">${t('calendar.week_view')}</button>
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === 'day' ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="day">${t('calendar.day_view')}</button>
+                        ${navItems.map(item => `
+                             <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === item.id ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="${item.id}">${item.text}</button>
+                        `).join('')}
                     </div>
                 </div>
                 ${viewContent}
