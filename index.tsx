@@ -68,7 +68,14 @@ async function main() {
 
     try {
         setupEventListeners();
-        window.addEventListener('popstate', () => updateUI(['page', 'sidebar', 'header']));
+        window.addEventListener('popstate', () => {
+            // When using browser back/forward, close any open side panels
+            // and update all main layout components.
+            state.ui.openedProjectId = null;
+            state.ui.openedClientId = null;
+            state.ui.openedDealId = null;
+            updateUI(['page', 'sidebar', 'header', 'side-panel']);
+        });
         window.addEventListener('ui-update', (e: CustomEvent) => updateUI(e.detail));
 
         await initSupabase();

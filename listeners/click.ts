@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -547,7 +548,12 @@ export async function handleClick(e: MouseEvent) {
             const isDifferentPage = window.location.pathname !== navLink.pathname || window.location.search !== navLink.search;
             if (isDifferentPage) {
                 history.pushState({}, '', navLink.href);
-                updateUI(['page', 'sidebar']);
+                // Page is changing. We must update the page content, the sidebar for active state,
+                // the header for breadcrumbs, and close any open side panels.
+                state.ui.openedProjectId = null;
+                state.ui.openedClientId = null;
+                state.ui.openedDealId = null;
+                updateUI(['page', 'sidebar', 'header', 'side-panel']);
             }
             if (navLink.closest('#app-sidebar')) {
                 closeMobileMenu();

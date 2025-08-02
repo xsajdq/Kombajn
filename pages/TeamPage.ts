@@ -49,26 +49,26 @@ async function renderEmployeesTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="modern-list-row hr-list-grid px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid">
+                <div class="px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid md:grid-cols-[2fr_1.5fr_2fr_auto] md:gap-4">
                     <div>${t('hr.employee')}</div>
                     <div>${t('hr.role')}</div>
                     <div>Email</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color hr-table-body">
+                <div class="hr-table-body">
                     ${members.map(({ member, user }) => {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = user.name || user.email || getUserInitials(user);
                         return `
-                        <div class="modern-list-row hr-list-grid group" data-user-name="${(user.name || '').toLowerCase()}" data-user-email="${(user.email || '').toLowerCase()}">
-                            <div class="flex items-center gap-3">
+                        <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr_1.5fr_2fr_auto] md:gap-4 md:items-center md:p-0 group">
+                            <div class="flex items-center gap-3 md:p-4">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                 <div class="font-semibold">
                                     ${displayName} ${isSelf ? `<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
                                 </div>
                             </div>
-                            <div>
+                            <div class="md:p-4">
                                 ${canManageRoles && !isOwner && !isSelf ? `
                                     <button class="role-tag" data-role-menu-for-member-id="${member.id}" aria-haspopup="true" aria-expanded="false">
                                         <span>${t(`hr.role_${member.role}`)}</span>
@@ -76,10 +76,10 @@ async function renderEmployeesTab() {
                                     </button>
                                 ` : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
                             </div>
-                            <div>
+                            <div class="md:p-4">
                                 <span class="text-text-subtle">${user.email || t('misc.not_applicable')}</span>
                             </div>
-                            <div class="flex justify-end items-center gap-1 actions-on-hover">
+                            <div class="flex justify-end items-center gap-1 md:p-4 actions-on-hover">
                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="View/Edit Details">
                                     <span class="material-icons-sharp text-lg">edit_note</span>
                                 </button>
@@ -217,28 +217,28 @@ function renderVacationTab() {
                     <div>${t('hr.vacation_remaining')}</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
-                <div class="divide-y divide-border-color md:divide-y-0">
+                <div class="md:contents">
                     ${workspaceUsers.map(user => {
                         const vacationInfo = getVacationInfo(user, state.timeOffRequests, state.publicHolidays);
                         const usagePercentage = vacationInfo.pool.hours > 0 ? (vacationInfo.used.hours / vacationInfo.pool.hours) * 100 : 0;
                         return `
-                            <div class="grid-cols-[2fr,1fr,2fr,1fr,1fr] gap-4 px-4 py-3 items-center hr-table-row">
-                                <div data-label="${t('hr.employee')}">${user.name || getUserInitials(user)}</div>
-                                <div data-label="${t('hr.vacation_pool')}">
+                            <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr,1fr,2fr,1fr,1fr] md:gap-4 md:items-center md:p-0 md:border-none">
+                                <div class="md:p-4" data-label="${t('hr.employee')}">${user.name || getUserInitials(user)}</div>
+                                <div class="md:p-4" data-label="${t('hr.vacation_pool')}">
                                     <span>${vacationInfo.pool.days} ${t('hr.days')}</span>
                                     <span class="text-text-subtle ml-1">(${vacationInfo.pool.hours} ${t('hr.hours')})</span>
                                 </div>
-                                <div data-label="${t('hr.vacation_used')}">
+                                <div class="md:p-4" data-label="${t('hr.vacation_used')}">
                                     <div class="flex items-center gap-2">
                                         <span>${vacationInfo.used.days} ${t('hr.days')}</span>
                                         <div class="w-20 h-2 bg-background rounded-full"><div class="h-2 rounded-full bg-primary" style="width: ${usagePercentage}%;"></div></div>
                                     </div>
                                 </div>
-                                <div data-label="${t('hr.vacation_remaining')}">
+                                <div class="md:p-4" data-label="${t('hr.vacation_remaining')}">
                                     <span>${vacationInfo.remaining.days} ${t('hr.days')}</span>
                                     <span class="text-text-subtle ml-1">(${vacationInfo.remaining.hours} ${t('hr.hours')})</span>
                                 </div>
-                                <div class="text-right" data-label="${t('hr.actions')}">
+                                <div class="md:p-4 text-right" data-label="${t('hr.actions')}">
                                     ${canManage ? `
                                     <button class="px-2 py-1 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="adjustVacationAllowance" data-user-id="${user.id}" data-current-allowance="${vacationInfo.pool.hours}">
                                         ${t('hr.manage_vacation')}
@@ -285,16 +285,16 @@ function renderHistoryTab() {
                     <div>${t('hr.history_table.end_date')}</div>
                     <div>${t('hr.history_table.status')}</div>
                 </div>
-                <div class="divide-y divide-border-color md:divide-y-0">
+                <div class="md:contents">
                     ${history.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
                         return `
-                        <div class="grid-cols-[2fr,1fr,1fr,1fr,1fr] gap-4 px-4 py-3 items-center hr-table-row">
-                            <div data-label="${t('hr.history_table.employee')}">${user?.name || 'Unknown'}</div>
-                            <div data-label="${t('hr.history_table.type')}">${t(`team_calendar.leave_type_${request.type}`)}</div>
-                            <div data-label="${t('hr.history_table.start_date')}">${formatDate(request.startDate)}</div>
-                            <div data-label="${t('hr.history_table.end_date')}">${formatDate(request.endDate)}</div>
-                            <div data-label="${t('hr.history_table.status')}">
+                        <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr,1fr,1fr,1fr,1fr] md:gap-4 md:items-center md:p-0 md:border-none">
+                            <div class="md:p-4" data-label="${t('hr.history_table.employee')}">${user?.name || 'Unknown'}</div>
+                            <div class="md:p-4" data-label="${t('hr.history_table.type')}">${t(`team_calendar.leave_type_${request.type}`)}</div>
+                            <div class="md:p-4" data-label="${t('hr.history_table.start_date')}">${formatDate(request.startDate)}</div>
+                            <div class="md:p-4" data-label="${t('hr.history_table.end_date')}">${formatDate(request.endDate)}</div>
+                            <div class="md:p-4" data-label="${t('hr.history_table.status')}">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClasses[request.status]}">
                                     ${t(`modals.status_${request.status}`)}
                                 </span>

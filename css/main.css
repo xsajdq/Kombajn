@@ -55,6 +55,38 @@
     background-color: rgba(var(--subtle-text-color-rgb), 0.6);
   }
 
+  /* == Breadcrumbs == */
+  .breadcrumb-container {
+    @apply flex items-center gap-2 text-sm text-text-subtle px-4 sm:px-6 lg:px-8 py-2 border-b border-border-color bg-content flex-wrap;
+  }
+  .breadcrumb-item {
+      @apply flex items-center gap-2;
+  }
+  .breadcrumb-item a {
+      @apply hover:text-text-main;
+  }
+  .breadcrumb-item.current {
+      @apply font-semibold text-text-main;
+  }
+  .breadcrumb-separator {
+      @apply text-text-subtle;
+  }
+  .breadcrumb-switcher {
+      @apply flex items-center gap-1 p-1 -m-1 rounded-md hover:bg-background;
+  }
+  .breadcrumb-switcher-menu {
+      @apply absolute top-full left-0 mt-2 w-64 bg-content rounded-lg shadow-lg border border-border-color z-20 p-2;
+  }
+  .switcher-menu-list {
+      @apply max-h-60 overflow-y-auto mt-2 space-y-1;
+  }
+  .switcher-menu-item {
+      @apply w-full text-left p-2 rounded-md text-sm hover:bg-background;
+  }
+  .switcher-menu-item.active {
+      @apply bg-primary/10 text-primary font-semibold;
+  }
+
   /* == Side Panel Overlay == */
   #side-panel-container {
       @apply fixed top-0 right-0 h-full w-[95vw] sm:w-[60vw] max-w-3xl bg-content shadow-2xl z-40 transform translate-x-full transition-transform duration-300 ease-in-out;
