@@ -49,7 +49,7 @@ export function Sidebar() {
 
     return `
     <aside id="app-sidebar" class="flex flex-col h-screen w-64 bg-content border-r border-border-color text-sidebar-text fixed top-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50">
-      <div class="flex items-center p-4 border-b border-border-color">
+      <div class="flex items-center h-16 shrink-0 px-4 border-b border-border-color">
         <span class="material-icons-sharp text-primary">hub</span>
         <h1 class="text-lg font-bold ml-2 text-text-main">Kombajn</h1>
       </div>
