@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, formatDate, formatCurrency } from '../utils.ts';
@@ -440,7 +439,7 @@ export function ReportsPage() {
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
                     ${navItems.map(item => `
-                        <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'} report-tab" data-tab="${item.id}">${item.text}</button>
+                        <button class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.reports.activeTab" data-tab-value="${item.id}">${item.text}</button>
                     `).join('')}
                 </nav>
             </div>

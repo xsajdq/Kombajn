@@ -268,7 +268,7 @@ function renderAttachmentsTab(task: Task) {
                             <a href="${att.externalUrl || '#'}" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline">${att.fileName}</a>
                             <p class="subtle-text">${formatBytes(att.fileSize || 0)} - ${formatDate(att.createdAt)}</p>
                         </div>
-                        <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}">
+                        <button class="btn-icon delete-attachment-btn" data-delete-resource="attachments" data-delete-id="${att.id}" data-delete-confirm="Are you sure you want to delete this attachment?">
                             <span class="material-icons-sharp text-base">delete</span>
                         </button>
                     </li>
@@ -295,7 +295,7 @@ function renderDependenciesTab(task: Task) {
                         return `
                         <div class="dependency-item">
                             <span>${t.name}</span>
-                            <button class="btn-icon" data-remove-dependency-id="${dep.id}"><span class="material-icons-sharp text-base">link_off</span></button>
+                            <button class="btn-icon" data-delete-resource="task_dependencies" data-delete-id="${dep.id}" data-delete-confirm="Are you sure you want to remove this dependency?"><span class="material-icons-sharp text-base">link_off</span></button>
                         </div>
                     `}).join('') : `<p class="subtle-text">No blocking tasks.</p>`}
                 </div>
@@ -315,7 +315,7 @@ function renderDependenciesTab(task: Task) {
                          return `
                          <div class="dependency-item">
                              <span>${t.name}</span>
-                            <button class="btn-icon" data-remove-dependency-id="${dep.id}"><span class="material-icons-sharp text-base">link_off</span></button>
+                            <button class="btn-icon" data-delete-resource="task_dependencies" data-delete-id="${dep.id}" data-delete-confirm="Are you sure you want to remove this dependency?"><span class="material-icons-sharp text-base">link_off</span></button>
                          </div>
                      `}).join('') : `<p class="subtle-text">Not blocking any tasks.</p>`}
                 </div>
@@ -526,7 +526,7 @@ export function TaskDetailModal({ taskId }: { taskId: string }): string {
                 </div>
                 <nav class="side-panel-tabs mt-6" role="tablist">
                     ${tabs.map(tab => `
-                        <button class="side-panel-tab task-detail-tab ${activeTab === tab ? 'active' : ''}" data-tab="${tab}" role="tab" aria-selected="${activeTab === tab}">
+                        <button class="side-panel-tab task-detail-tab ${activeTab === tab ? 'active' : ''}" data-tab-group="ui.taskDetail.activeTab" data-tab-value="${tab}" role="tab" aria-selected="${activeTab === tab}">
                             ${t(`modals.${tab}`)}
                         </button>
                     `).join('')}

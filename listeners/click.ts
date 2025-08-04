@@ -1,5 +1,4 @@
 
-
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -18,7 +17,6 @@ import * as teamHandlers from '../handlers/team.ts';
 import * as timerHandlers from '../handlers/timers.ts';
 import * as uiHandlers from '../handlers/ui.ts';
 import * as wikiHandlers from '../handlers/wiki.ts';
-import * as automationHandlers from '../handlers/automations.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
@@ -30,14 +28,14 @@ import * as filterHandlers from '../handlers/filters.ts';
 import * as clientHandlers from '../handlers/clients.ts';
 import * as projectHandlers from '../handlers/projects.ts';
 import * as userHandlers from '../handlers/user.ts';
-import * as projectSectionHandlers from '../handlers/projectSections.ts';
 import * as taskViewHandlers from '../handlers/taskViews.ts';
 import * as goalHandlers from '../handlers/goals.ts';
-import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
 import * as tagHandlers from '../handlers/tags.ts';
+import type { TaggableEntity } from '../handlers/tags.ts';
 import * as kanbanHandlers from '../handlers/kanban.ts';
 import { handleInsertSlashCommand } from '../handlers/editor.ts';
+import { handleOptimisticDelete, ResourceName } from '../handlers/generic.ts';
 
 function closeDynamicMenus() {
     document.querySelectorAll('#dynamic-role-menu, .task-card-menu').forEach(menu => menu.remove());
@@ -61,7 +59,7 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
             <span class="material-icons-sharp">archive</span>
             <span>${task.isArchived ? t('tasks.unarchive') : t('tasks.archive')}</span>
         </button>
-        <button class="task-menu-item danger" data-delete-task-id="${taskId}">
+        <button class="task-menu-item danger" data-delete-resource="tasks" data-delete-id="${taskId}" data-delete-confirm="Are you sure you want to delete this task permanently?">
             <span class="material-icons-sharp">delete</span>
             <span>${t('modals.delete')}</span>
         </button>
@@ -96,6 +94,50 @@ function closeMobileMenu() {
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as HTMLElement;
+
+    // --- Generic Tab Switching Handler ---
+    const tabButton = target.closest<HTMLElement>('[data-tab-group]');
+    if (tabButton) {
+        e.preventDefault();
+        const groupPath = tabButton.dataset.tabGroup!.split('.');
+        const tabValue = tabButton.dataset.tabValue;
+
+        let currentStateSlice = state as any;
+        for (let i = 0; i < groupPath.length - 1; i++) {
+            currentStateSlice = currentStateSlice[groupPath[i]];
+        }
+        
+        const finalKey = groupPath[groupPath.length - 1];
+        if (currentStateSlice[finalKey] !== tabValue) {
+            currentStateSlice[finalKey] = tabValue;
+            
+            // Determine which parts of the UI need to be updated
+            const updateScopeMap: {[key: string]: any} = {
+                'ui.settings.activeTab': ['page'],
+                'ui.hr.activeTab': ['page'],
+                'ui.reports.activeTab': ['page'],
+                'ui.dashboard.activeTab': ['page'],
+                'ui.openedProjectTab': ['side-panel'],
+                'ui.dealDetail.activeTab': ['side-panel'],
+                'ui.taskDetail.activeTab': ['modal'],
+                'ui.notifications.activeTab': ['header'],
+            };
+            const scopeKey = tabButton.dataset.tabGroup!;
+            updateUI(updateScopeMap[scopeKey] || ['page']);
+        }
+        return;
+    }
+
+
+    // --- Generic Optimistic Delete Handler ---
+    const deleteButton = target.closest<HTMLElement>('[data-delete-resource]');
+    if (deleteButton) {
+        const { deleteResource, deleteId, deleteConfirm } = deleteButton.dataset;
+        if (deleteResource && deleteId && deleteConfirm) {
+            handleOptimisticDelete(deleteResource as ResourceName, deleteId, deleteConfirm);
+        }
+        return;
+    }
 
     // --- Projects Page UI Handlers ---
     const projectViewModeBtn = target.closest<HTMLElement>('[data-project-view-mode]');
@@ -262,6 +304,44 @@ export async function handleClick(e: MouseEvent) {
     }
     // --- End Dynamic Role Menu Handler ---
 
+    // --- Client Modal Contact Handlers ---
+    const addContactRowBtn = target.closest('#add-contact-row-btn');
+    if (addContactRowBtn) {
+        const container = document.getElementById('client-contacts-container');
+        if (container) {
+            const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
+            const newRowHtml = `
+                <div class="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 items-center contact-form-row" data-contact-id="new-${Date.now()}">
+                    <input type="text" class="${formControlClasses}" data-field="name" placeholder="${t('modals.contact_person')}" value="" required>
+                    <input type="email" class="${formControlClasses}" data-field="email" placeholder="${t('modals.email')}" value="">
+                    <input type="text" class="${formControlClasses}" data-field="phone" placeholder="${t('modals.phone')}" value="">
+                    <input type="text" class="${formControlClasses}" data-field="role" placeholder="${t('modals.contact_role')}" value="">
+                    <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-contact-row-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', newRowHtml);
+        }
+        return;
+    }
+
+    const removeContactRowBtn = target.closest('.remove-contact-row-btn');
+    if (removeContactRowBtn) {
+        const row = removeContactRowBtn.closest<HTMLElement>('.contact-form-row');
+        if (row) {
+            const contactId = row.dataset.contactId;
+            if (contactId && !contactId.startsWith('new-')) {
+                const deletedIdsInput = document.getElementById('deleted-contact-ids') as HTMLInputElement;
+                if (deletedIdsInput) {
+                    const currentIds = deletedIdsInput.value ? deletedIdsInput.value.split(',') : [];
+                    currentIds.push(contactId);
+                    deletedIdsInput.value = currentIds.join(',');
+                }
+            }
+            row.remove();
+        }
+        return;
+    }
+    // --- End Client Modal Contact Handlers ---
 
     // --- Global Click Handlers ---
     const fabContainer = document.getElementById('fab-container');
@@ -657,116 +737,305 @@ export async function handleClick(e: MouseEvent) {
     }
     if (target.closest<HTMLElement>('[data-logout-button]')) { auth.logout(); return; }
 
-    if (target.closest('#toggle-dashboard-edit-mode')) { dashboardHandlers.toggleEditMode(); return; }
-    if (target.closest<HTMLElement>('[data-dashboard-tab]')) { state.ui.dashboard.activeTab = target.closest<HTMLElement>('[data-dashboard-tab]')!.dataset.dashboardTab as any; updateUI(['page']); return; }
     if (target.closest<HTMLElement>('[data-add-widget-type]')) { const btn = target.closest<HTMLElement>('[data-add-widget-type]')!; dashboardHandlers.addWidget(btn.dataset.addWidgetType as any, btn.dataset.metricType as any); return; }
-    if (target.closest<HTMLElement>('.remove-widget-btn')) { dashboardHandlers.removeWidget(target.closest<HTMLElement>('.remove-widget-btn')!.dataset.removeWidgetId!); return; }
-    if (target.closest<HTMLElement>('[data-configure-widget-id]')) { dashboardHandlers.showConfigureWidgetModal(target.closest<HTMLElement>('[data-configure-widget-id]')!.dataset.configureWidgetId!); return; }
-
-    const hrTab = target.closest<HTMLElement>('[data-hr-tab]');
-    if (hrTab) {
-        e.preventDefault();
-        teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
+    if (target.closest<HTMLElement>('[data-approve-join-request-id]')) { teamHandlers.handleApproveJoinRequest(target.closest<HTMLElement>('[data-approve-join-request-id]')!.dataset.approveJoinRequestId!); return; }
+    if (target.closest<HTMLElement>('[data-reject-join-request-id]')) { teamHandlers.handleRejectJoinRequest(target.closest<HTMLElement>('[data-reject-join-request-id]')!.dataset.rejectJoinRequestId!); return; }
+    const timerControls = target.closest<HTMLElement>('.timer-controls');
+    if (timerControls) {
+        const taskId = timerControls.dataset.timerTaskId!;
+        if (state.activeTimers[taskId]) timerHandlers.stopTimer(taskId); else timerHandlers.startTimer(taskId);
         return;
     }
-
-    // --- START: Re-implemented View & Filter Handlers ---
-
-    // Tasks Page: View switcher (Board, List, etc.)
-    const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
-    if (viewModeBtn) {
-        const viewMode = viewModeBtn.dataset.viewMode as 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
-        if (state.ui.tasks.viewMode !== viewMode) {
-            state.ui.tasks.viewMode = viewMode;
-            updateUI(['page']);
+    if (target.closest('#global-timer-toggle')) {
+        if (state.ui.globalTimer.isRunning) timerHandlers.stopGlobalTimer(); else timerHandlers.startGlobalTimer();
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-toggle-kanban-view]')) { userHandlers.handleToggleKanbanViewMode(); return; }
+    if (target.closest('#edit-wiki-btn')) { wikiHandlers.startWikiEdit(); return; }
+    if (target.closest('#cancel-wiki-edit-btn')) { wikiHandlers.cancelWikiEdit(); return; }
+    if (target.closest('#save-wiki-btn')) { wikiHandlers.saveWikiEdit(); return; }
+    if (target.closest('#wiki-history-btn')) { uiHandlers.showModal('wikiHistory', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId }); return; }
+    if (target.closest<HTMLElement>('[data-restore-version-id]')) { wikiHandlers.handleRestoreWikiVersion(target.closest<HTMLElement>('[data-restore-version-id]')!.dataset.restoreVersionId!); return; }
+    if (target.closest<HTMLElement>('[data-channel-id]')) { mainHandlers.handleSwitchChannel(target.closest<HTMLElement>('[data-channel-id]')!.dataset.channelId!); return; }
+    if (target.closest<HTMLElement>('[data-approve-request-id]')) { teamHandlers.handleApproveTimeOffRequest(target.closest<HTMLElement>('[data-approve-request-id]')!.dataset.approveRequestId!); return; }
+    if (target.closest<HTMLElement>('[data-reject-request-id]')) { uiHandlers.showModal('rejectTimeOffRequest', { requestId: target.closest<HTMLElement>('[data-reject-request-id]')!.dataset.rejectRequestId! }); return; }
+    if (target.closest<HTMLElement>('[data-delete-client-id]')) { clientHandlers.handleDeleteClient(target.closest<HTMLElement>('[data-delete-client-id]')!.dataset.deleteClientId!); return; }
+    if (target.closest<HTMLElement>('[data-delete-project-id]')) { projectHandlers.handleDeleteProject(target.closest<HTMLElement>('[data-delete-project-id]')!.dataset.deleteProjectId!); return; }
+    const ganttViewModeBtn = target.closest<HTMLElement>('[data-gantt-view-mode]');
+    if (ganttViewModeBtn) {
+        taskHandlers.handleChangeGanttViewMode(ganttViewModeBtn.dataset.ganttViewMode as any);
+        return;
+    }
+    const taskStatusToggle = target.closest<HTMLElement>('.task-status-toggle');
+    if (taskStatusToggle) {
+        taskHandlers.handleToggleProjectTaskStatus(taskStatusToggle.dataset.taskId!);
+        return;
+    }
+    if (target.closest('#restart-onboarding-btn')) {
+        onboardingHandlers.startOnboarding();
+        return;
+    }
+    if (target.closest('.onboarding-next-btn')) {
+        onboardingHandlers.nextStep();
+        return;
+    }
+    if (target.closest('.onboarding-skip-btn')) {
+        onboardingHandlers.finishOnboarding();
+        return;
+    }
+    const mentionItem = target.closest<HTMLElement>('.mention-item');
+    if (mentionItem) {
+        const userId = mentionItem.dataset.mentionId!;
+        const user = state.users.find(u => u.id === userId);
+        if (user && state.ui.mention.target) {
+            handleInsertMention(user, state.ui.mention.target);
         }
         return;
     }
-
-    // Clients Page: Status filter (All, Active, Archived)
-    const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
-    if (clientFilterStatusBtn) {
-        const status = clientFilterStatusBtn.dataset.clientFilterStatus as 'all' | 'active' | 'archived';
-        if (state.ui.clients.filters.status !== status) {
-            state.ui.clients.filters.status = status;
-            updateUI(['page']);
+    if (target.closest<HTMLElement>('[data-connect-provider]')) {
+        integrationHandlers.connectIntegration(target.closest<HTMLElement>('[data-connect-provider]')!.dataset.connectProvider as any);
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-disconnect-provider]')) {
+        integrationHandlers.disconnectIntegration(target.closest<HTMLElement>('[data-disconnect-provider]')!.dataset.disconnectProvider as any);
+        return;
+    }
+    if (target.closest('#reset-task-filters')) {
+        filterHandlers.resetFilters();
+        return;
+    }
+    if (target.closest('#save-filter-view-btn')) {
+        filterHandlers.saveCurrentFilterView();
+        return;
+    }
+    if (target.closest('#update-filter-view-btn')) {
+        filterHandlers.updateActiveFilterView();
+        return;
+    }
+    if (target.closest('#remove-logo-btn')) {
+        const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+        if (workspace) { workspace.companyLogo = ''; teamHandlers.handleSaveWorkspaceSettings(); }
+        return;
+    }
+    if (target.closest('#save-workspace-settings-btn')) { teamHandlers.handleSaveWorkspaceSettings(); return; }
+    const krValue = target.closest<HTMLElement>('.kr-value');
+    if (krValue) {
+        const krItem = krValue.closest<HTMLElement>('.key-result-item')!;
+        krItem.dataset.editing = 'true';
+        updateUI(['side-panel']);
+        krItem.querySelector('input')?.focus();
+        return;
+    }
+    const checklistItemCheckbox = target.closest<HTMLElement>('.checklist-item-checkbox');
+    if (checklistItemCheckbox) {
+        const taskId = state.ui.modal.data?.taskId;
+        const itemId = (checklistItemCheckbox as HTMLInputElement).dataset.itemId!;
+        if (taskId && itemId) {
+            taskHandlers.handleToggleChecklistItem(taskId, itemId);
         }
         return;
     }
-
-    // Team Calendar Page: View switcher (Month, Week, etc.)
-    const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
-    if (teamCalendarViewBtn) {
-        const view = teamCalendarViewBtn.dataset.teamCalendarView as TeamCalendarView;
-        if (state.ui.teamCalendarView !== view) {
-            state.ui.teamCalendarView = view;
-            updateUI(['page']);
+    const deleteChecklistItemBtn = target.closest<HTMLElement>('.delete-checklist-item-btn');
+    if (deleteChecklistItemBtn) {
+        const taskId = state.ui.modal.data?.taskId;
+        const itemId = deleteChecklistItemBtn.dataset.itemId!;
+        if (taskId && itemId) {
+            taskHandlers.handleDeleteChecklistItem(taskId, itemId);
         }
         return;
     }
-
-    // Team Calendar Page: Prev/Next navigation
-    const teamCalendarNav = target.closest<HTMLElement>('[data-calendar-nav][data-target-calendar="team"]');
-    if (teamCalendarNav) {
-        const direction = teamCalendarNav.dataset.calendarNav as 'prev' | 'next';
-        const currentDate = new Date(state.ui.teamCalendarDate + 'T12:00:00Z');
-        
-        switch (state.ui.teamCalendarView) {
-            case 'month':
-                currentDate.setUTCMonth(currentDate.getUTCMonth() + (direction === 'next' ? 1 : -1));
-                break;
-            case 'week':
-            case 'workload':
-            case 'timesheet':
-                currentDate.setUTCDate(currentDate.getUTCDate() + (direction === 'next' ? 7 : -7));
-                break;
-            case 'day':
-                currentDate.setUTCDate(currentDate.getUTCDate() + (direction === 'next' ? 1 : -1));
-                break;
-        }
-
-        state.ui.teamCalendarDate = currentDate.toISOString().slice(0, 10);
-        updateUI(['page']);
-        return;
-    }
-
-    // Tasks Page: Calendar view Prev/Next navigation
-    const calendarNav = target.closest<HTMLElement>('[data-calendar-nav]');
-    if (calendarNav && !calendarNav.dataset.targetCalendar) {
-        const direction = calendarNav.dataset.calendarNav as 'prev' | 'next';
-        const [year, month] = state.ui.calendarDate.split('-').map(Number);
-        const newDate = new Date(year, month - 1, 1);
-        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
-        state.ui.calendarDate = newDate.toISOString().slice(0, 7);
-        updateUI(['page']);
-        return;
-    }
-
-    // --- END: Re-implemented View & Filter Handlers ---
-
-    const settingsTab = target.closest<HTMLElement>('[data-tab]');
-    if (settingsTab && settingsTab.closest('#settings-nav')) { // Check if it's within the settings sidebar nav
-        e.preventDefault();
-        const tabId = settingsTab.dataset.tab as any;
-        if (state.ui.settings.activeTab !== tabId) {
-            state.ui.settings.activeTab = tabId;
-            updateUI(['page']);
+    const subtaskCheckbox = target.closest<HTMLElement>('.subtask-checkbox');
+    if (subtaskCheckbox) {
+        const subtaskId = (subtaskCheckbox as HTMLInputElement).dataset.subtaskId!;
+        if (subtaskId) {
+            taskHandlers.handleToggleSubtaskStatus(subtaskId);
         }
         return;
     }
+    const deleteSubtaskBtn = target.closest<HTMLElement>('.delete-subtask-btn');
+    if (deleteSubtaskBtn) {
+        const subtaskId = deleteSubtaskBtn.dataset.subtaskId!;
+        if (subtaskId) {
+            taskHandlers.handleDeleteSubtask(subtaskId);
+        }
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-copy-link]')) {
+        const path = target.closest<HTMLElement>('[data-copy-link]')!.dataset.copyLink!;
+        const url = `${window.location.origin}/${path}`;
+        navigator.clipboard.writeText(url);
+        const originalText = target.closest<HTMLElement>('[data-copy-link]')!.title;
+        target.closest<HTMLElement>('[data-copy-link]')!.title = t('misc.copied');
+        setTimeout(() => {
+            target.closest<HTMLElement>('[data-copy-link]')!.title = originalText;
+        }, 1500);
+        return;
+    }
+    if (target.closest('#add-project-section-btn')) {
+        uiHandlers.showModal('addProjectSection', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId });
+        return;
+    }
+    const editTaskViewBtn = target.closest<HTMLElement>('.edit-task-view-btn');
+    if (editTaskViewBtn) {
+        const item = editTaskViewBtn.closest<HTMLElement>('.task-view-item')!;
+        item.querySelector('.view-mode')?.classList.add('hidden');
+        item.querySelector('.edit-mode')?.classList.remove('hidden');
+        return;
+    }
+    const cancelEditTaskViewBtn = target.closest<HTMLElement>('.cancel-task-view-edit-btn');
+    if (cancelEditTaskViewBtn) {
+        const item = cancelEditTaskViewBtn.closest<HTMLElement>('.task-view-item')!;
+        item.querySelector('.view-mode')?.classList.remove('hidden');
+        item.querySelector('.edit-mode')?.classList.add('hidden');
+        return;
+    }
+    if (target.closest<HTMLElement>('.save-task-view-btn')) {
+        const item = target.closest<HTMLElement>('.task-view-item')!;
+        const viewId = item.dataset.viewId!;
+        const name = item.querySelector<HTMLInputElement>('input[name="view-name"]')!.value;
+        const icon = item.querySelector<HTMLInputElement>('input[name="view-icon"]')!.value;
+        taskViewHandlers.handleUpdateTaskView(viewId, name, icon);
+        return;
+    }
+    if (target.closest('#add-task-view-btn')) {
+        const name = (document.getElementById('new-task-view-name') as HTMLInputElement).value;
+        const icon = (document.getElementById('new-task-view-icon') as HTMLInputElement).value;
+        taskViewHandlers.handleCreateTaskView(name, icon);
+        (document.getElementById('new-task-view-name') as HTMLInputElement).value = '';
+        return;
+    }
+    const milestoneCheckbox = target.closest<HTMLInputElement>('.milestone-checkbox');
+    if (milestoneCheckbox) {
+        const milestoneId = milestoneCheckbox.dataset.milestoneId!;
+        if (milestoneId) {
+            goalHandlers.handleToggleMilestone(milestoneId);
+        }
+        return;
+    }
+    const savePipelineStageBtn = target.closest<HTMLElement>('[data-save-pipeline-stage]');
+    if (savePipelineStageBtn) {
+        const stageId = savePipelineStageBtn.dataset.savePipelineStage!;
+        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
+        if (input) {
+            pipelineHandlers.handleUpdateStage(stageId, input.value);
+        }
+        return;
+    }
+    const saveKanbanStageBtn = target.closest<HTMLElement>('[data-save-kanban-stage]');
+    if (saveKanbanStageBtn) {
+        const stageId = saveKanbanStageBtn.dataset.saveKanbanStage!;
+        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
+        if (input) {
+            kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value);
+        }
+        return;
+    }
+    const deleteAttachmentBtn = target.closest<HTMLElement>('.delete-attachment-btn');
+    if (deleteAttachmentBtn) {
+        const attachmentId = deleteAttachmentBtn.dataset.attachmentId!;
+        if (confirm("Are you sure you want to delete this attachment?")) {
+            handleOptimisticDelete('attachments', attachmentId, '');
+        }
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-delete-client-id]')) {
+        clientHandlers.handleDeleteClient(target.closest<HTMLElement>('[data-delete-client-id]')!.dataset.deleteClientId!);
+        return;
+    }
 
-    const addMilestoneBtn = target.closest('#add-milestone-btn');
-    if (addMilestoneBtn) {
+    const removeTagBtn = target.closest<HTMLElement>('.remove-tag-btn');
+    if (removeTagBtn) {
+        const container = removeTagBtn.closest<HTMLElement>('.multiselect-container')!;
+        const tagId = removeTagBtn.dataset.tagId!;
+        const entityType = container.dataset.entityType as TaggableEntity;
+        const entityId = container.dataset.entityId!;
+        if (entityType && entityId && tagId) {
+            tagHandlers.handleToggleTag(entityType, entityId, tagId);
+        }
+        return;
+    }
+    if (target.closest('#create-project-from-deal-btn')) {
+        const btn = target.closest<HTMLElement>('#create-project-from-deal-btn')!;
+        uiHandlers.closeModal(false);
+        uiHandlers.showModal('addProject', { clientId: btn.dataset.clientId, projectName: btn.dataset.dealName });
+        return;
+    }
+    const taskCardMenuBtn = target.closest<HTMLElement>('.task-card-menu-btn');
+    if (taskCardMenuBtn) {
+        e.stopPropagation();
+        const taskId = taskCardMenuBtn.closest<HTMLElement>('.task-card')!.dataset.taskId!;
+        showTaskCardMenu(taskId, taskCardMenuBtn);
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-edit-task-id]')) {
+        const taskId = target.closest<HTMLElement>('[data-edit-task-id]')!.dataset.editTaskId!;
+        taskHandlers.openTaskDetail(taskId);
+        closeDynamicMenus();
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-archive-task-id]')) {
+        const taskId = target.closest<HTMLElement>('[data-archive-task-id]')!.dataset.archiveTaskId!;
+        taskHandlers.handleToggleTaskArchive(taskId);
+        closeDynamicMenus();
+        return;
+    }
+    if (target.closest<HTMLElement>('[data-remove-member-id]')) {
+        const memberId = target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!;
+        teamHandlers.handleRemoveUserFromWorkspace(memberId);
+        return;
+    }
+    if (target.closest('#add-milestone-btn')) {
         goalHandlers.handleAddMilestone();
         return;
     }
-
     const removeMilestoneBtn = target.closest('.remove-milestone-btn');
     if (removeMilestoneBtn) {
-        const milestoneItem = removeMilestoneBtn.closest<HTMLElement>('.milestone-item');
-        if (milestoneItem && milestoneItem.dataset.id) {
-            goalHandlers.handleRemoveMilestone(milestoneItem.dataset.id);
-        }
+        const id = removeMilestoneBtn.closest<HTMLElement>('.milestone-item')!.dataset.id!;
+        goalHandlers.handleRemoveMilestone(id);
         return;
     }
+    const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
+    if (clientFilterStatusBtn) {
+        state.ui.clients.filters.status = clientFilterStatusBtn.dataset.clientFilterStatus as any;
+        updateUI(['page']);
+        return;
+    }
+    const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
+    if (teamCalendarViewBtn) {
+        state.ui.teamCalendarView = teamCalendarViewBtn.dataset.teamCalendarView as any;
+        updateUI(['page']);
+        return;
+    }
+    const calendarNavBtn = target.closest<HTMLElement>('[data-calendar-nav]');
+    if (calendarNavBtn) {
+        const direction = calendarNavBtn.dataset.calendarNav;
+        const targetCalendar = calendarNavBtn.dataset.targetCalendar;
+        const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
+        const viewKey = targetCalendar === 'team' ? 'teamCalendarView' : 'tasks.viewMode';
+        
+        const currentDate = new Date(state.ui[dateKey as 'teamCalendarDate'] + 'T12:00:00Z');
+        let viewMode: string = state.ui.teamCalendarView;
+        if(targetCalendar !== 'team') viewMode = state.ui.tasks.viewMode;
+
+        if (direction === 'prev') {
+            if (viewMode === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
+            else if (viewMode === 'week' || viewMode === 'workload' || viewMode === 'timesheet') currentDate.setDate(currentDate.getDate() - 7);
+            else if (viewMode === 'day') currentDate.setDate(currentDate.getDate() - 1);
+        } else {
+            if (viewMode === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
+            else if (viewMode === 'week' || viewMode === 'workload' || viewMode === 'timesheet') currentDate.setDate(currentDate.getDate() + 7);
+            else if (viewMode === 'day') currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        state.ui[dateKey as 'teamCalendarDate'] = currentDate.toISOString().slice(0, 10);
+        updateUI(['page']);
+        return;
+    }
+    const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
+    if(viewModeBtn){
+        state.ui.tasks.viewMode = viewModeBtn.dataset.viewMode as any;
+        updateUI(['page']);
+        return;
+    }
+
 }

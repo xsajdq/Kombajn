@@ -103,8 +103,8 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
                 <button class="text-sm text-primary hover:underline" id="mark-all-read-btn">${t('notifications.mark_all_read')}</button>
             </div>
             <div class="flex border-b border-border-color">
-                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'new' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab="new">${t('notifications.tab_new')} (${unreadCount})</button>
-                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'read' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab="read">${t('notifications.tab_read')}</button>
+                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'new' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab-group="ui.notifications.activeTab" data-tab-value="new">${t('notifications.tab_new')} (${unreadCount})</button>
+                <button class="flex-1 py-2 text-center text-sm ${activeTab === 'read' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab-group="ui.notifications.activeTab" data-tab-value="read">${t('notifications.tab_read')}</button>
             </div>
             <div class="p-2 max-h-96 overflow-y-auto">
                 ${filteredNotifications.length > 0 ? `

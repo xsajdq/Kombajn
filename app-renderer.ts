@@ -1,5 +1,4 @@
 
-
 import { state } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -19,7 +18,7 @@ import { OnboardingGuide } from './components/OnboardingGuide.ts';
 import { SlashCommandPopover } from './components/SlashCommandPopover.ts';
 import { TextSelectionPopover } from './components/TextSelectionPopover.ts';
 
-type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'text-selection-popover' | 'all';
+export type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'text-selection-popover' | 'all';
 
 async function AppLayout() {
     if (!state.currentUser) {

@@ -231,4 +231,48 @@ function convertKeys(obj: any, converter: (key: string) => string): any {
     return obj;
 }
 
+export function filterItems<T extends { id: string; [key: string]: any }>(
+    items: T[],
+    filters: { text?: string; tagIds?: string[]; [key: string]: any },
+    textSearchFields: (keyof T)[],
+    tagJoinTable?: Record<string, any>[],
+    entityIdKey?: string
+): T[] {
+    const { text, tagIds, ...otherFilters } = filters;
+
+    return items.filter(item => {
+        // Text search
+        if (text) {
+            const query = text.toLowerCase();
+            const textMatch = textSearchFields.some(field =>
+                item[field] && String(item[field]).toLowerCase().includes(query)
+            );
+            if (!textMatch) return false;
+        }
+
+        // Tag search
+        if (tagIds && tagIds.length > 0 && tagJoinTable && entityIdKey) {
+            const itemTagIds = new Set(
+                tagJoinTable
+                    .filter(join => join[entityIdKey] === item.id)
+                    .map(join => join.tagId)
+            );
+            const tagMatch = tagIds.every((tagId: string) => itemTagIds.has(tagId));
+            if (!tagMatch) return false;
+        }
+
+        // Other exact match filters
+        for (const key in otherFilters) {
+            const filterValue = otherFilters[key];
+            const itemValue = item[key];
+            if (filterValue !== 'all' && filterValue !== '' && itemValue !== filterValue) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+}
+
+
 export const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);

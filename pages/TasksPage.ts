@@ -1,8 +1,7 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User, ProjectSection, SortByOption, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
@@ -116,7 +115,6 @@ function getFilteredTasks(): Task[] {
     return filtered;
 }
 
-
 function renderBoardView(filteredTasks: Task[]) {
     const kanbanStages = state.kanbanStages
         .filter(s => s.workspaceId === state.activeWorkspaceId)
@@ -203,457 +201,279 @@ function renderListView(filteredTasks: Task[]) {
                             <h4 class="font-semibold">${sectionName}</h4>
                             <span class="text-sm text-text-subtle">${tasks.length}</span>
                         </div>
-                         ${section ? `
-                            <div class="relative">
-                                <button class="btn-icon task-section-menu-btn" data-menu-toggle="project-section-menu-${sectionId}">
-                                    <span class="material-icons-sharp">more_horiz</span>
-                                </button>
-                                <div id="project-section-menu-${sectionId}" class="absolute top-full right-0 mt-1 w-40 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
-                                    <div class="py-1">
-                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-rename-project-section-id="${sectionId}">${t('modals.rename')}</button>
-                                        <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-project-section-id="${sectionId}">${t('modals.delete')}</button>
-                                    </div>
-                                </div>
-                            </div>
-                         ` : ''}
                     </summary>
-                    <div class="task-section-body">
-                        ${tasks.map(renderListRow).join('')}
+                    <div class="task-list-modern">
+                        ${tasks.map(renderTaskRow).join('')}
                     </div>
                 </details>
             `;
         };
-
-        const { text, assigneeId, priority, status, dateRange, tagIds, isArchived } = state.ui.tasks.filters;
-        const hasOtherFilters = text || assigneeId || priority || status || dateRange !== 'all' || tagIds.length > 0 || isArchived;
+        
+        const renderTaskRow = (task: Task) => {
+             const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+             const trackedSeconds = getTaskCurrentTrackedSeconds(task);
+             return `
+                <div class="modern-list-row" data-task-id="${task.id}">
+                    <div>${task.name}</div>
+                    <div class="text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</div>
+                    <div>
+                        <div class="avatar-stack">
+                             ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
+                        </div>
+                    </div>
+                    <div>${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</div>
+                </div>
+            `;
+        };
 
         return `
-            <div class="bg-content rounded-lg shadow-sm">
-                ${renderListHeader()}
-                <div>
-                    ${projectSections.map(section => renderSection(section, tasksBySection[section.id])).join('')}
-                    ${renderSection(null, tasksBySection['no-section'])}
-                </div>
-                ${can('manage_projects') && !hasOtherFilters ? `
-                <button class="w-full text-left p-2 text-sm text-text-subtle hover:bg-background" id="add-project-section-btn" data-project-id="${projectId}">
-                    + Add Section
-                </button>
-                ` : ''}
+            <div class="space-y-4">
+                ${projectSections.map(section => renderSection(section, tasksBySection[section.id])).join('')}
+                ${renderSection(null, tasksBySection['no-section'])}
             </div>
         `;
-
     }
 
-    // Default view (all projects)
+    // Default list view (no project selected)
     return `
         <div class="bg-content rounded-lg shadow-sm">
-            ${renderListHeader()}
-            <div>
-                ${filteredTasks.map(renderListRow).join('')}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm responsive-table">
+                    <thead class="text-xs text-text-subtle uppercase bg-background">
+                        <tr>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_task')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_project')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_assignee')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_due_date')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_priority')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_time')}</th>
+                            <th class="px-4 py-2 text-left">${t('tasks.col_status')}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border-color">
+                        ${filteredTasks.map(task => {
+                            const project = state.projects.find(p => p.id === task.projectId);
+                            const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+                            const trackedSeconds = getTaskCurrentTrackedSeconds(task);
+                            const priorityText = task.priority ? t(`tasks.priority_${task.priority}`) : t('tasks.priority_none');
+                            
+                            return `
+                                <tr class="hover:bg-background cursor-pointer" data-task-id="${task.id}">
+                                    <td data-label="${t('tasks.col_task')}" class="px-4 py-3 font-medium">${task.name}</td>
+                                    <td data-label="${t('tasks.col_project')}" class="px-4 py-3">${project?.name || ''}</td>
+                                    <td data-label="${t('tasks.col_assignee')}" class="px-4 py-3">
+                                        <div class="avatar-stack">
+                                             ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
+                                        </div>
+                                    </td>
+                                    <td data-label="${t('tasks.col_due_date')}" class="px-4 py-3">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
+                                    <td data-label="${t('tasks.col_priority')}" class="px-4 py-3">${priorityText}</td>
+                                    <td data-label="${t('tasks.col_time')}" class="px-4 py-3 task-tracked-time">${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</td>
+                                    <td data-label="${t('tasks.col_status')}" class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full capitalize bg-background">${t(`tasks.${task.status}`)}</span></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
             </div>
         </div>
     `;
 }
-
-function renderListHeader() {
-    return `
-        <div class="task-list-grid modern-list-row p-3 border-b border-border-color text-xs font-semibold text-text-subtle uppercase hidden md:grid">
-            <div>${t('tasks.col_task')}</div>
-            <div>${t('tasks.col_project')}</div>
-            <div>${t('modals.assignees')}</div>
-            <div>${t('tasks.col_due_date')}</div>
-            <div>${t('tasks.col_priority')}</div>
-            <div class="text-right">${t('tasks.col_time')}</div>
-        </div>
-    `;
-}
-
-function renderListRow(task: Task) {
-    const project = state.projects.find(p => p.id === task.projectId);
-    const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-    const isRunning = !!state.activeTimers[task.id];
-    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
-
-    const priorityClasses = {
-        high: 'bg-danger',
-        medium: 'bg-warning',
-        low: 'bg-primary'
-    };
-    
-    const statusClasses = {
-        done: 'bg-success',
-        inprogress: 'bg-primary',
-        inreview: 'bg-purple-500',
-        todo: 'bg-gray-400',
-        backlog: 'bg-gray-400',
-    };
-    
-    const priorityClass = priorityClasses[task.priority as keyof typeof priorityClasses] || 'bg-gray-400';
-    const statusClass = statusClasses[task.status as keyof typeof statusClasses] || 'bg-gray-400';
-    
-    return `
-        <div class="modern-list-row task-list-grid group cursor-pointer ${task.isArchived ? 'opacity-60' : ''}" data-task-id="${task.id}" role="button" tabindex="0">
-             <div class="font-medium flex items-center gap-2">
-                <div class="task-list-indicator">
-                    <div class="indicator-dot ${statusClass}"></div>
-                    <span class="text-text-subtle">${t('tasks.' + task.status)}</span>
-                </div>
-                ${task.isArchived ? `<span class="material-icons-sharp text-base text-text-subtle" title="${t('tasks.archive')}d">archive</span>` : ''}
-                ${task.name}
-            </div>
-             <div>${project?.name || t('misc.not_applicable')}</div>
-             <div>
-                <div class="flex -space-x-2">
-                    ${taskAssignees.length > 0 ? taskAssignees.map(assignee => `
-                        <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${assignee!.name || assignee!.initials}">${assignee!.initials}</div>
-                    `).join('') : `<div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center border-2 border-content" title="${t('tasks.unassigned')}"><span class="material-icons-sharp text-base">person_outline</span></div>`}
-                </div>
-             </div>
-             <div class="${isOverdue ? 'text-danger' : ''}">${task.dueDate ? formatDate(task.dueDate) : t('misc.not_applicable')}</div>
-             <div class="task-list-indicator">
-                <div class="indicator-dot ${priorityClass}"></div>
-                <span>${task.priority ? t('tasks.priority_' + task.priority) : t('tasks.priority_none')}</span>
-             </div>
-             <div class="flex items-center justify-end gap-2 text-text-subtle">
-                 <span class="text-sm font-mono task-tracked-time">${formatDuration(getTaskCurrentTrackedSeconds(task))}</span>
-                 <button class="actions-on-hover p-1 rounded-full text-text-subtle hover:bg-border-color timer-controls ${isRunning ? 'text-primary' : ''}" data-timer-task-id="${task.id}" aria-label="${isRunning ? t('tasks.stop_timer') : t('tasks.start_timer')}">
-                    <span class="material-icons-sharp text-xl">${isRunning ? 'pause_circle' : 'play_circle_outline'}</span>
-                </button>
-             </div>
-        </div>
-    `;
-};
 
 function renderCalendarView(filteredTasks: Task[]) {
     const [year, month] = state.ui.calendarDate.split('-').map(Number);
-    const currentDate = new Date(year, month - 1, 1);
-    const monthName = currentDate.toLocaleString(state.settings.language, { month: 'long', year: 'numeric' });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const tasksByDay: Record<number, Task[]> = {};
+    const monthStartDate = new Date(year, month - 1, 1);
+    
+    const calendarStartDate = new Date(monthStartDate);
+    calendarStartDate.setDate(calendarStartDate.getDate() - (monthStartDate.getDay() + 6) % 7);
+
+    const weeks: Date[][] = [];
+    let currentWeek: Date[] = [];
+
+    for (let i = 0; i < 42; i++) { // Render 6 weeks to be safe
+        if (i > 0 && i % 7 === 0) {
+            weeks.push(currentWeek);
+            currentWeek = [];
+        }
+        const day = new Date(calendarStartDate);
+        day.setDate(day.getDate() + i);
+        currentWeek.push(day);
+    }
+    if (currentWeek.length > 0) weeks.push(currentWeek);
+
+    const tasksByDate: { [key: string]: Task[] } = {};
     filteredTasks.forEach(task => {
-        if (task.dueDate && task.dueDate.startsWith(state.ui.calendarDate)) {
-            const day = parseInt(task.dueDate.slice(8, 10), 10);
-            if (!tasksByDay[day]) {
-                tasksByDay[day] = [];
+        if (task.dueDate) {
+            const dateStr = task.dueDate;
+            if (!tasksByDate[dateStr]) {
+                tasksByDate[dateStr] = [];
             }
-            tasksByDay[day].push(task);
+            tasksByDate[dateStr].push(task);
         }
     });
 
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayIndex = (new Date(year, month - 1, 1).getDay() + 6) % 7; // Monday = 0
-    let daysHtml = '';
-    for (let i = 0; i < firstDayIndex; i++) {
-        daysHtml += `<div class="border-r border-b border-border-color"></div>`;
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const tasksForDay = tasksByDay[day] || [];
-        daysHtml += `
-            <div class="border-r border-b border-border-color p-2 min-h-[120px]">
-                <div class="font-medium text-sm">${day}</div>
-                <div class="mt-1 space-y-1">
-                    ${tasksForDay.map(task => `
-                        <div class="p-1.5 text-xs font-medium rounded-md truncate cursor-pointer ${task.priority === 'high' ? 'bg-red-100 text-red-800' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}" data-task-id="${task.id}" role="button" tabindex="0" title="${task.name}">
-                           ${task.name}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    const totalCells = firstDayIndex + daysInMonth;
-    const remainingCells = (7 - (totalCells % 7)) % 7;
-    for (let i = 0; i < remainingCells; i++) {
-        daysHtml += `<div class="border-r border-b border-border-color"></div>`;
-    }
+    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     return `
-        <div class="bg-content rounded-lg shadow-sm">
-            <div class="flex justify-between items-center p-4 border-b border-border-color">
-                <div class="flex items-center gap-2">
-                    <button class="p-1 rounded-full hover:bg-background" data-calendar-nav="prev" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
-                    <button class="p-1 rounded-full hover:bg-background" data-calendar-nav="next" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
-                </div>
-                <h4 class="text-lg font-semibold">${monthName}</h4>
-                <div></div>
+        <div class="bg-content rounded-lg shadow-sm border border-border-color flex flex-col h-full">
+            <div class="grid grid-cols-7 border-b border-border-color">
+                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
             </div>
-            <div class="grid grid-cols-7">
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.mon')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.tue')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.wed')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.thu')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.fri')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-r border-b border-border-color">${t('calendar.weekdays.sat')}</div>
-                <div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-border-color">${t('calendar.weekdays.sun')}</div>
-                ${daysHtml}
+            <div class="grid grid-cols-7 grid-rows-6 flex-1">
+                ${weeks.flat().map(day => {
+                    const dayStr = day.toISOString().slice(0, 10);
+                    const isCurrentMonth = day.getMonth() === month - 1;
+                    const isToday = day.getTime() === today.getTime();
+                    const tasksForDay = tasksByDate[dayStr] || [];
+                    return `
+                        <div class="border-r border-b border-border-color p-2 flex flex-col ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                            <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.getDate()}</div>
+                            <div class="flex-1 overflow-y-auto space-y-1 mt-1">
+                                ${tasksForDay.map(task => `
+                                    <div class="p-1.5 text-xs font-medium rounded-md truncate bg-blue-500 text-white cursor-pointer task-calendar-item" data-task-id="${task.id}" title="${task.name}">${task.name}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
 }
 
-function renderGanttView() {
-    return `<div id="gantt-chart-container" class="bg-content rounded-lg p-4"><svg id="gantt-chart"></svg></div>`;
+function renderGanttView(filteredTasks: Task[]) {
+    if (filteredTasks.length === 0) {
+        return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
+            <span class="material-icons-sharp text-5xl text-text-subtle">bar_chart</span>
+            <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
+        </div>`;
+    }
+    return `<div class="p-4 bg-content rounded-lg h-full"><svg id="gantt-chart"></svg></div>`;
 }
 
 function renderWorkloadView(filteredTasks: Task[]) {
-    const users = state.workspaceMembers
-        .filter(m => m.workspaceId === state.activeWorkspaceId)
-        .map(m => state.users.find(u => u.id === m.userId))
-        .filter((u): u is User => !!u)
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    const dates: Date[] = Array.from({ length: 14 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() + i);
-        return date;
-    });
-
-    const tasksWithData = filteredTasks.filter(t => t.startDate && t.dueDate && t.estimatedHours);
-
-    const headerHtml = dates.map(d => `
-        <div class="workload-header-date">
-            <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
-            <div class="font-bold">${d.getDate()}</div>
-        </div>
-    `).join('');
-
-    const rowsHtml = users.map(user => {
-        const userTasks = tasksWithData
-            .filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id))
-            .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
-
-        const dayCellsHtml = dates.map(date => {
-            const dateStr = date.toISOString().slice(0, 10);
-            let dailyHours = 0;
-            userTasks.forEach(task => {
-                const start = new Date(task.startDate!);
-                const end = new Date(task.dueDate!);
-                const currentDate = new Date(dateStr);
-                if (currentDate >= start && currentDate <= end) {
-                    const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
-                    dailyHours += (task.estimatedHours || 0) / durationDays;
-                }
-            });
-            
-            let capacityClass = 'capacity-under';
-            if (dailyHours > 8) capacityClass = 'capacity-over';
-            else if (dailyHours > 6) capacityClass = 'capacity-good';
-            
-            return `<div class="workload-day-cell ${capacityClass}"></div>`;
-        }).join('');
-
-        const tracks: { end: Date }[][] = [];
-        const taskBarsHtml = userTasks.map(task => {
-            const taskStart = new Date(task.startDate!);
-            const taskEnd = new Date(task.dueDate!);
-
-            let laneIndex = tracks.findIndex(track => !track.some(placed => placed.end >= taskStart));
-
-            if (laneIndex === -1) {
-                laneIndex = tracks.length;
-                tracks.push([]);
-            }
-            tracks[laneIndex].push({ end: taskEnd });
-
-            const startDayIndex = Math.floor((taskStart.getTime() - dates[0].getTime()) / (1000 * 3600 * 24));
-            const durationDays = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 3600 * 24)) + 1;
-            
-            const gridColumnStart = Math.max(1, startDayIndex + 1);
-            const gridColumnEnd = Math.min(dates.length + 1, gridColumnStart + durationDays);
-
-            const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
-            const colorClass = priorityColors[task.priority || 'low'];
-
-            return `
-                <div class="workload-task-bar ${colorClass}" 
-                     style="grid-column: ${gridColumnStart} / ${gridColumnEnd}; top: ${2 + laneIndex * 28}px;"
-                     data-task-id="${task.id}"
-                     title="${task.name}">
-                     ${task.name}
-                </div>`;
-        }).join('');
-        
-        return `
-            <div class="workload-user-cell">
-                <div class="avatar-small">${user.initials}</div>
-                <span class="text-sm font-medium">${user.name}</span>
-            </div>
-            <div class="workload-day-cell-container">${dayCellsHtml}</div>
-            <div class="workload-task-bars">${taskBarsHtml}</div>
-        `;
-    }).join('');
-
-    return `
-        <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
-            <div class="workload-grid" style="grid-template-columns: 150px repeat(${dates.length}, 1fr);">
-                <div class="workload-header-user"></div>
-                ${headerHtml}
-                ${rowsHtml}
-            </div>
-        </div>
-    `;
+    return `<div class="p-8 text-center bg-content rounded-lg">
+        <h3 class="font-semibold">Workload View</h3>
+        <p class="text-text-subtle">This view is currently under construction.</p>
+    </div>`;
 }
 
-export function initTasksPage() {
-    if (state.ui.tasks.viewMode !== 'gantt') {
-        ganttChart = null; // Destroy gantt instance if we switch away
-        return;
-    }
+function initGanttChart(tasks: Task[]) {
+    const ganttContainer = document.getElementById('gantt-chart');
+    if (!ganttContainer) return;
+    ganttContainer.innerHTML = ''; // Clear previous chart
 
-    const container = document.getElementById('gantt-chart');
-    if (!container) return;
-
-    // Clear previous chart content, important for re-renders
-    container.innerHTML = '';
-
-    const filteredTasks = getFilteredTasks();
-    const tasksForGantt = filteredTasks
-        .filter(t => t.startDate && t.dueDate)
-        .map(t => {
-            const dependencies = state.dependencies
-                .filter(d => d.blockedTaskId === t.id)
-                .map(d => d.blockingTaskId);
-
+    const ganttTasks = tasks
+        .filter(task => task.startDate && task.dueDate)
+        .map(task => {
+            const progress = task.progress ?? (task.status === 'done' ? 100 : 0);
             return {
-                id: t.id,
-                name: t.name,
-                start: t.startDate!,
-                end: t.dueDate!,
-                progress: t.status === 'done' ? 100 : (t.status === 'inprogress' || t.status === 'inreview' ? 50 : 0),
-                dependencies: dependencies.join(','),
-                custom_class: `gantt-priority-${t.priority || 'low'}`
+                id: task.id,
+                name: task.name,
+                start: task.startDate!,
+                end: task.dueDate!,
+                progress: progress,
             };
         });
 
-    if (tasksForGantt.length > 0) {
-        ganttChart = new Gantt("#gantt-chart", tasksForGantt, {
-            on_click: (task: any) => {
+    if (ganttTasks.length === 0) {
+        if(ganttContainer.parentElement) {
+            ganttContainer.parentElement.innerHTML = `<div class="flex flex-col items-center justify-center h-full">
+                <span class="material-icons-sharp text-5xl text-text-subtle">bar_chart</span>
+                <p class="mt-2 text-text-subtle">No tasks with start and end dates to display.</p>
+            </div>`;
+        }
+        return;
+    }
+
+    ganttChart = new Gantt("#gantt-chart", ganttTasks, {
+        view_mode: state.ui.tasks.ganttViewMode,
+        on_click: (task: any) => {
+            if (task.id) {
                 openTaskDetail(task.id);
-            },
-            language: state.settings.language,
-            view_mode: state.ui.tasks.ganttViewMode, // Use state for view mode
-        });
-    } else {
-        container.closest('#gantt-chart-container')!.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-text-subtle">${t('tasks.no_tasks_match_filters')}</p></div>`;
+            }
+        },
+        on_date_change: async (task: any, start: Date, end: Date) => {
+            const startDate = start.toISOString().slice(0, 10);
+            const endDate = end.toISOString().slice(0, 10);
+            await taskHandlers.handleTaskDetailUpdate(task.id, 'startDate', startDate);
+            await taskHandlers.handleTaskDetailUpdate(task.id, 'dueDate', endDate);
+        },
+        on_progress_change: (task: any, progress: number) => {
+            taskHandlers.handleTaskProgressUpdate(task.id, progress);
+        },
+        bar_height: 20,
+        bar_corner_radius: 3,
+        padding: 18,
+    });
+}
+
+export function initTasksPage() {
+    if (state.ui.tasks.viewMode === 'gantt') {
+        initGanttChart(getFilteredTasks());
     }
 }
 
 export function TasksPage() {
-    if (state.ui.tasks.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>`;
-    }
-
+    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode } = state.ui.tasks;
+    const canManage = can('manage_tasks');
     const filteredTasks = getFilteredTasks();
-    const activeWorkspaceId = state.activeWorkspaceId;
-
-    let viewContent = '';
-    if (state.tasks.filter(t => t.workspaceId === activeWorkspaceId && !t.parentId).length === 0) {
-        viewContent = `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
-            <span class="material-icons-sharp text-5xl text-text-subtle">assignment</span>
-            <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_found')}</h3>
-            <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask">${t('tasks.new_task')}</button>
-        </div>`;
-    } else {
-        switch (state.ui.tasks.viewMode) {
-            case 'board': viewContent = renderBoardView(filteredTasks); break;
-            case 'list': viewContent = renderListView(filteredTasks); break;
-            case 'calendar': viewContent = renderCalendarView(filteredTasks); break;
-            case 'gantt': viewContent = renderGanttView(); break;
-            case 'workload': viewContent = renderWorkloadView(filteredTasks); break;
-        }
-    }
     
-    const { text } = state.ui.tasks.filters;
-    const kanbanViewMode = state.currentUser?.kanbanViewMode || 'detailed';
-    
-    const { filters } = state.ui.tasks;
-    const { activeTaskViewId } = state.ui;
-    const activeTaskView = state.taskViews.find(tv => tv.id === activeTaskViewId);
-    const filteredProject = state.projects.find(p => p.id === filters.projectId);
+    let content = '';
+    const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
-    let headerContent = '';
-    if (activeTaskView) {
-        headerContent = `
-            <div class="flex items-center gap-3">
-                <span class="material-icons-sharp text-2xl text-text-subtle">${activeTaskView.icon}</span>
-                <h2 class="text-2xl font-bold">${activeTaskView.name}</h2>
-            </div>
-        `;
-    } else if (filteredProject) {
-        headerContent = `
-            <div class="flex items-center gap-3">
-                <span class="material-icons-sharp text-2xl text-text-subtle">folder</span>
-                <h2 class="text-2xl font-bold">${filteredProject.name}</h2>
-            </div>
-        `;
-    } else {
-        headerContent = `<h2 class="text-2xl font-bold">${t('tasks.title')}</h2>`;
+    switch (viewMode) {
+        case 'board':
+            content = renderBoardView(filteredTasks);
+            break;
+        case 'list':
+            content = renderListView(filteredTasks);
+            break;
+        case 'calendar':
+            content = renderCalendarView(filteredTasks);
+            break;
+        case 'gantt':
+            content = renderGanttView(filteredTasks);
+            break;
+        case 'workload':
+            content = renderWorkloadView(filteredTasks);
+            break;
+        default:
+            content = renderBoardView(filteredTasks);
     }
+
+    const navItems = [
+        { id: 'board', icon: 'view_kanban', text: t('tasks.board_view') },
+        { id: 'list', icon: 'view_list', text: t('tasks.list_view') },
+        { id: 'calendar', icon: 'calendar_month', text: t('tasks.calendar_view') },
+        { id: 'gantt', icon: 'bar_chart', text: t('tasks.gantt_view') },
+        { id: 'workload', icon: 'groups', text: t('tasks.workload_view') },
+    ];
 
     return `
         <div class="h-full flex flex-col">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                ${headerContent}
+                <h2 class="text-2xl font-bold">${state.ui.activeTaskViewId ? state.taskViews.find(tv => tv.id === state.ui.activeTaskViewId)?.name : t('tasks.title')}</h2>
                 <div class="flex items-center gap-2">
                     <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'board' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="board" aria-label="${t('tasks.board_view')}"><span class="material-icons-sharp text-xl">grid_view</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'list' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="list" aria-label="${t('tasks.list_view')}"><span class="material-icons-sharp text-xl">view_list</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'calendar' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="calendar" aria-label="${t('tasks.calendar_view')}"><span class="material-icons-sharp text-xl">calendar_today</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'gantt' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="gantt" aria-label="${t('tasks.gantt_view')}"><span class="material-icons-sharp text-xl">analytics</span></button>
-                        <button class="p-1.5 rounded-md ${state.ui.tasks.viewMode === 'workload' ? 'bg-background shadow-sm' : 'text-text-subtle hover:bg-background/50'}" data-view-mode="workload" aria-label="${t('tasks.workload_view')}"><span class="material-icons-sharp text-xl">person</span></button>
+                         ${navItems.map(item => `
+                             <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === item.id ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-view-mode="${item.id}">${item.text}</button>
+                        `).join('')}
                     </div>
-                    ${state.ui.tasks.viewMode === 'gantt' ? `
-                        <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Day">${t('calendar.day_view')}</button>
-                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Week' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Week">${t('calendar.week_view')}</button>
-                            <button class="px-3 py-1 text-sm font-medium rounded-md ${state.ui.tasks.ganttViewMode === 'Month' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-gantt-view-mode="Month">${t('calendar.month_view')}</button>
-                        </div>
-                    ` : ''}
-                    ${state.ui.tasks.viewMode === 'board' ? `
-                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-kanban-view title="Toggle card details">
-                            <span class="material-icons-sharp text-base">${kanbanViewMode === 'simple' ? 'view_agenda' : 'view_day'}</span>
-                        </button>
-                    ` : ''}
-                     <div class="relative">
-                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="sort-menu" aria-haspopup="true" aria-expanded="false">
-                            <span class="material-icons-sharp text-base">sort</span>
-                            <span>${t('tasks.sort_by')}: ${t(`tasks.sort_${state.ui.tasks.sortBy}`)}</span>
-                        </button>
-                        <div id="sort-menu" class="absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
-                            <div class="py-1">
-                                ${state.ui.tasks.viewMode === 'board' ? `<button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="manual">${t('tasks.sort_manual')}</button>` : ''}
-                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="dueDate">${t('tasks.sort_due_date')}</button>
-                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="priority">${t('tasks.sort_priority')}</button>
-                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="name">${t('tasks.sort_name')}</button>
-                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="createdAt">${t('tasks.sort_created_at')}</button>
-                            </div>
-                        </div>
-                    </div>
-                     <button id="toggle-filters-btn" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
-                        <span class="material-icons-sharp text-base">filter_list</span>
-                        <span>${t('tasks.filters_button_text')}</span>
-                    </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="automations" ${!can('manage_automations') ? 'disabled' : ''}>
-                        <span class="material-icons-sharp text-base">smart_toy</span>
-                        <span>${t('tasks.automations_button_text')}</span>
-                    </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ${!can('manage_tasks') ? 'disabled' : ''}>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addTask" ${!canManage ? 'disabled' : ''}>
                         <span class="material-icons-sharp text-base">add</span> ${t('tasks.new_task')}
                     </button>
                 </div>
             </div>
             
-            <div class="relative">
-                <div id="task-filter-panel" class="bg-content p-4 rounded-lg border border-border-color transition-all duration-300 overflow-hidden ${state.ui.tasks.isFilterOpen ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0'}">
-                     ${TaskFilterPanel()}
-                </div>
+            <div id="task-filter-panel" class="bg-content p-4 rounded-lg shadow-sm border border-border-color mb-4 ${isFilterOpen ? '' : 'hidden'}">
+                ${TaskFilterPanel()}
             </div>
 
-            ${viewContent}
+            ${content}
         </div>
     `;
 }

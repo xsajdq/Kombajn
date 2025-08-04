@@ -1,7 +1,8 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
-import { formatCurrency, formatDate } from '../utils.ts';
+import { formatCurrency, formatDate, filterItems } from '../utils.ts';
 
 export function ClientsPage() {
     const { activeWorkspaceId } = state;
@@ -13,21 +14,15 @@ export function ClientsPage() {
         </div>`;
     }
     
-    const { text: filterText, status: filterStatus, tagIds: filterTagIds } = state.ui.clients.filters;
     const allClients = state.clients.filter(c => c.workspaceId === activeWorkspaceId);
     
-    const filteredClients = allClients.filter(client => {
-        const textMatch = !filterText || client.name.toLowerCase().includes(filterText.toLowerCase());
-        const statusMatch = filterStatus === 'all' || (client.status ?? 'active') === filterStatus;
-        
-        let tagMatch = true;
-        if (filterTagIds.length > 0) {
-            const clientTagIds = new Set(state.clientTags.filter(ct => ct.clientId === client.id).map(ct => ct.tagId));
-            tagMatch = filterTagIds.every(tagId => clientTagIds.has(tagId));
-        }
-
-        return textMatch && statusMatch && tagMatch;
-    });
+    const filteredClients = filterItems(
+        allClients, 
+        state.ui.clients.filters, 
+        ['name', 'category'],
+        state.clientTags, 
+        'clientId'
+    );
 
     const canManage = can('manage_clients');
     const workspaceTags = state.tags.filter(t => t.workspaceId === activeWorkspaceId);
@@ -41,6 +36,8 @@ export function ClientsPage() {
         .reduce((sum, invoice) => {
             return sum + invoice.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0);
         }, 0);
+
+    const { text: filterText, status: filterStatus, tagIds: filterTagIds } = state.ui.clients.filters;
 
     return `
     <div class="space-y-6">

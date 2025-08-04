@@ -1,9 +1,9 @@
 
-
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Objective, KeyResult } from '../types.ts';
+import { filterItems } from '../utils.ts';
 
 function renderKpiWidgets(goals: Objective[]) {
     const inProgress = goals.filter(g => g.status === 'in_progress').length;
@@ -108,22 +108,9 @@ function renderGoalCard(goal: Objective) {
 
 export function GoalsPage() {
     const { text, status, ownerId } = state.ui.goals.filters;
-    const filterText = text.toLowerCase();
     
-    let goals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');
-    
-    if (filterText) {
-        goals = goals.filter(g => 
-            g.title.toLowerCase().includes(filterText) ||
-            (g.description || '').toLowerCase().includes(filterText)
-        );
-    }
-    if (status !== 'all') {
-        goals = goals.filter(g => g.status === status);
-    }
-    if (ownerId !== 'all') {
-        goals = goals.filter(g => g.ownerId === ownerId);
-    }
+    const allGoals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');
+    const filteredGoals = filterItems(allGoals, state.ui.goals.filters, ['title', 'description']);
 
     const canManage = can('manage_goals');
     const workspaceUsers = state.workspaceMembers
@@ -131,8 +118,8 @@ export function GoalsPage() {
         .map(m => state.users.find(u => u.id === m.userId))
         .filter(Boolean);
 
-    const content = goals.length > 0 ? `
-        ${renderCategoryCards(goals)}
+    const content = allGoals.length > 0 ? `
+        ${renderCategoryCards(allGoals)}
         <div class="bg-content p-4 rounded-lg">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div class="relative md:col-span-1">
@@ -152,7 +139,7 @@ export function GoalsPage() {
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            ${goals.map(renderGoalCard).join('')}
+            ${filteredGoals.map(renderGoalCard).join('')}
         </div>
     ` : `
         <div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
@@ -183,7 +170,7 @@ export function GoalsPage() {
                     </button>
                 </div>
             </div>
-            ${renderKpiWidgets(goals)}
+            ${renderKpiWidgets(allGoals)}
             ${content}
         </div>
     `;

@@ -314,7 +314,7 @@ function renderWidget(widget: DashboardWidget) {
     return `
         <div class="relative" data-widget-id="${widget.id}" draggable="${isEditing}">
             ${isEditing ? `
-                <button class="remove-widget-btn" data-remove-widget-id="${widget.id}"><span class="material-icons-sharp text-base">close</span></button>
+                <button class="remove-widget-btn" data-delete-resource="dashboard_widgets" data-delete-id="${widget.id}" data-delete-confirm="Are you sure you want to remove this widget?"><span class="material-icons-sharp text-base">close</span></button>
                 <button class="configure-widget-btn" data-configure-widget-id="${widget.id}"><span class="material-icons-sharp text-base">settings</span></button>
             ` : ''}
             ${content}
@@ -350,8 +350,8 @@ export function DashboardPage() {
                 <h2 class="text-2xl font-bold">${t('dashboard.title')}</h2>
                 <div class="flex items-center gap-2">
                     <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'my_day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-dashboard-tab="my_day">${t('dashboard.tab_my_day')}</button>
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'overview' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-dashboard-tab="overview">${t('dashboard.tab_overview')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'my_day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="my_day">${t('dashboard.tab_my_day')}</button>
+                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'overview' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="overview">${t('dashboard.tab_overview')}</button>
                     </div>
                     ${activeTab === 'overview' ? `
                         <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
