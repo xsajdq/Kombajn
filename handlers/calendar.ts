@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 
 interface NagerHoliday {
     date: string; // "2024-01-01"
@@ -14,6 +15,7 @@ interface NagerHoliday {
 
 
 export async function fetchPublicHolidays(year: number) {
+    const state = getState();
     // Check if we already have holidays for this year to avoid re-fetching
     const yearPrefix = year.toString();
     const alreadyFetched = state.publicHolidays.some(h => h.date.startsWith(yearPrefix));
@@ -33,11 +35,13 @@ export async function fetchPublicHolidays(year: number) {
         }));
         
         // Add to state, preventing duplicates
-        const existingDates = new Set(state.publicHolidays.map(h => h.date));
-        const newHolidays = formattedHolidays.filter(h => !existingDates.has(h.date));
-        state.publicHolidays.push(...newHolidays);
-
-        // No need to re-render here, the caller will do it.
+        setState(prevState => {
+            const existingDates = new Set(prevState.publicHolidays.map(h => h.date));
+            const newHolidays = formattedHolidays.filter(h => !existingDates.has(h.date));
+            return {
+                publicHolidays: [...prevState.publicHolidays, ...newHolidays]
+            };
+        }, []);
     } catch (error) {
         console.error("Error fetching public holidays:", error);
         // Silently fail, the calendar will just not show holidays.

@@ -1,13 +1,14 @@
 
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Task, Automation, AutomationAction } from '../types.ts';
+import type { Task, Automation, AutomationAction, TaskAssignee } from '../types.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import { createNotification } from './notifications.ts';
 
 export async function runAutomations(triggerType: 'statusChange', data: { task: Task, actorId: string }) {
     if (triggerType !== 'statusChange') return;
 
+    const state = getState();
     const { task, actorId } = data;
     const automationsForProject = state.automations.filter(a => a.projectId === task.projectId);
 
@@ -16,60 +17,70 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
     );
 
     if (applicableAutomations.length === 0) return;
-
-    // --- Create a clone of the task state to apply changes and revert on failure ---
-    const originalTask = { ...task };
-    const originalAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
-
-    // --- Apply all actions optimistically ---
-    let changesToPersist: { task?: Partial<Task> & { id: string }, assignees?: { toAdd: string[], toRemove: string[] } } = { task: { id: task.id } };
+    
+    let updatedTask = { ...task };
+    let newAssignees: TaskAssignee[] | null = null;
     
     for (const automation of applicableAutomations) {
         for (const action of automation.actions) {
             if (action.type === 'changeStatus') {
-                task.status = action.status;
-                changesToPersist.task!.status = action.status;
+                updatedTask.status = action.status;
             }
             if (action.type === 'assignUser') {
-                changesToPersist.assignees = { toAdd: [action.userId], toRemove: originalAssignees.map(a => a.userId) };
-                state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
-                state.taskAssignees.push({ taskId: task.id, userId: action.userId, workspaceId: task.workspaceId } as any);
+                newAssignees = [{ taskId: task.id, userId: action.userId, workspaceId: task.workspaceId } as TaskAssignee];
             }
         }
     }
     
-    updateUI(['page']);
-
-    // --- Persist changes to the backend ---
-    try {
-        if (Object.keys(changesToPersist.task!).length > 1) {
-            await apiPut('tasks', changesToPersist.task!);
+    // Optimistic Update
+    const originalTask = state.tasks.find(t => t.id === task.id);
+    const originalAssignees = state.taskAssignees.filter(a => a.taskId === task.id);
+    
+    setState(prevState => {
+        const newTasks = prevState.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+        let newTaskAssignees = prevState.taskAssignees;
+        if (newAssignees) {
+            newTaskAssignees = [
+                ...prevState.taskAssignees.filter(a => a.taskId !== task.id),
+                ...newAssignees
+            ];
         }
-        if (changesToPersist.assignees) {
-            for (const userId of changesToPersist.assignees.toRemove) {
-                await apiFetch('/api?action=data&resource=task_assignees', { method: 'DELETE', body: JSON.stringify({ taskId: task.id, userId }) });
+        return { tasks: newTasks, taskAssignees: newTaskAssignees };
+    }, ['page']);
+
+
+    // Persist changes
+    try {
+        if (updatedTask.status !== originalTask?.status) {
+            await apiPut('tasks', { id: updatedTask.id, status: updatedTask.status });
+        }
+        if (newAssignees) {
+            // Remove old
+            for (const assignee of originalAssignees) {
+                 await apiFetch('/api?action=data&resource=task_assignees', { method: 'DELETE', body: JSON.stringify({ taskId: assignee.taskId, userId: assignee.userId }) });
             }
-            for (const userId of changesToPersist.assignees.toAdd) {
-                await apiPost('task_assignees', { taskId: task.id, userId, workspaceId: task.workspaceId });
-                if (userId !== actorId) {
-                    await createNotification('new_assignment', { taskId: task.id, userIdToNotify: userId, actorId });
-                }
+            // Add new
+            for (const assignee of newAssignees) {
+                 const [saved] = await apiPost('task_assignees', { taskId: assignee.taskId, userId: assignee.userId, workspaceId: assignee.workspaceId });
+                 // update temp id if needed
             }
         }
     } catch (error) {
         console.error("Failed to persist automation-triggered change:", error);
-        // Revert UI changes on failure
-        const taskInState = state.tasks.find(t => t.id === task.id);
-        if (taskInState) Object.assign(taskInState, originalTask);
-        state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
-        state.taskAssignees.push(...originalAssignees);
-        updateUI(['page']);
+        setState(prevState => ({
+            tasks: prevState.tasks.map(t => t.id === originalTask?.id ? originalTask : t),
+            taskAssignees: [
+                ...prevState.taskAssignees.filter(a => a.taskId !== task.id),
+                ...originalAssignees
+            ]
+        }), ['page']);
         alert("An automation failed to run.");
     }
 }
 
 
 export async function handleSaveAutomation(automationId: string | null, projectId: string, name: string, trigger: Automation['trigger'], actions: AutomationAction[]) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
 
     const payload: Omit<Automation, 'id'> = {
@@ -83,15 +94,15 @@ export async function handleSaveAutomation(automationId: string | null, projectI
     try {
         if (automationId) {
             const [updatedAutomation] = await apiPut('automations', { ...payload, id: automationId });
-            const index = state.automations.findIndex(a => a.id === automationId);
-            if (index > -1) {
-                state.automations[index] = updatedAutomation;
-            }
+            setState(prevState => ({
+                automations: prevState.automations.map(a => a.id === automationId ? updatedAutomation : a)
+            }), ['modal']);
         } else {
             const [savedAutomation] = await apiPost('automations', payload);
-            state.automations.push(savedAutomation);
+            setState(prevState => ({
+                automations: [...prevState.automations, savedAutomation]
+            }), ['modal']);
         }
-        updateUI(['modal']);
     } catch (error) {
         console.error("Failed to save automation:", error);
         alert("Could not save automation.");

@@ -1,11 +1,11 @@
-import { state, saveState } from '../state.ts';
-import { updateUI, renderApp } from '../app-renderer.ts';
+
+import { getState, setState } from '../state.ts';
+import { updateUI } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { showModal, toggleCommandPalette, updateUrlAndShowDetail } from './ui.ts';
 import { toggleNotificationsPopover } from './notifications.ts';
-import { apiFetch } from '../services/api.ts';
 import { renderCommandPaletteList } from '../components/CommandPalette.ts';
 
 function navigate(path: string) {
@@ -21,8 +21,13 @@ export function executeCommand(commandId: string) {
 
 let searchTimeout: number;
 export function handleCommandSearch(query: string) {
-    state.ui.commandPaletteQuery = query;
-    state.ui.commandPaletteActiveIndex = 0; // Reset selection
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            commandPaletteQuery: query,
+            commandPaletteActiveIndex: 0,
+        }
+    }), []);
 
     clearTimeout(searchTimeout);
 
@@ -38,6 +43,7 @@ export function handleCommandSearch(query: string) {
     // Use a short debounce for responsiveness as filtering large arrays can be slow
     searchTimeout = window.setTimeout(() => {
         const lowerCaseQuery = query.toLowerCase();
+        const state = getState();
 
         const projectResults = state.projects
             .filter(p => p.workspaceId === state.activeWorkspaceId && p.name.toLowerCase().includes(lowerCaseQuery))
@@ -72,7 +78,7 @@ export function handleCommandSearch(query: string) {
             clients: clientResults,
         };
         
-        if (listContainer && state.ui.isCommandPaletteOpen) {
+        if (listContainer && getState().ui.isCommandPaletteOpen) {
             listContainer.innerHTML = renderCommandPaletteList(groupedResults);
         }
     }, 100);
@@ -108,9 +114,7 @@ export function getCommands(): Command[] {
     const allCommands: Command[] = [
         { id: 'new-task', name: t('command_palette.cmd_new_task'), icon: 'add_task', shortcut: 'N', action: () => showModal('addTask') },
         { id: 'toggle-theme', name: t('command_palette.cmd_toggle_theme'), icon: 'brightness_6', action: () => {
-            state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
-            saveState();
-            updateUI(['all']);
+            setState(prevState => ({ settings: { ...prevState.settings, theme: prevState.settings.theme === 'dark' ? 'light' : 'dark' } }), ['all']);
         }},
         { id: 'go-dashboard', name: t('command_palette.cmd_go_dashboard'), icon: 'dashboard', action: () => { navigate('/dashboard'); updateUI(['page', 'sidebar']); } },
         { id: 'go-projects', name: t('command_palette.cmd_go_projects'), icon: 'folder', action: () => { navigate('/projects'); updateUI(['page', 'sidebar']); } },

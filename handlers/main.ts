@@ -1,8 +1,4 @@
-
-
-
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
@@ -15,22 +11,22 @@ export async function fetchInitialData(session: Session) {
 
     if (!data) throw new Error("Bootstrap data is null or undefined.");
     
-    state.currentUser = data.currentUser;
-    if (!state.currentUser) throw new Error("Bootstrap data is missing current user profile.");
+    if (!data.currentUser) throw new Error("Bootstrap data is missing current user profile.");
 
-    state.users = data.profiles || [];
-    state.workspaces = (data.workspaces || []).map((w: any) => ({
-        ...w,
-        subscription: { planId: w.subscriptionPlanId, status: w.subscriptionStatus },
-        planHistory: w.planHistory || []
-    }));
-    state.workspaceMembers = data.workspaceMembers || [];
-    state.workspaceJoinRequests = data.workspaceJoinRequests || [];
-    
-    // Notifications and integrations are global to the user, load them here.
-    state.notifications = data.notifications || [];
-    state.integrations = data.integrations || [];
-    state.filterViews = [];
+    setState({
+        currentUser: data.currentUser,
+        users: data.profiles || [],
+        workspaces: (data.workspaces || []).map((w: any) => ({
+            ...w,
+            subscription: { planId: w.subscriptionPlanId, status: w.subscriptionStatus },
+            planHistory: w.planHistory || []
+        })),
+        workspaceMembers: data.workspaceMembers || [],
+        workspaceJoinRequests: data.workspaceJoinRequests || [],
+        notifications: data.notifications || [],
+        integrations: data.integrations || [],
+        filterViews: [],
+    }, []);
     
     console.log("Core data fetched successfully.");
 }
@@ -42,66 +38,75 @@ export async function fetchWorkspaceData(workspaceId: string) {
         const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}`);
         if (!data) throw new Error("Workspace data fetch returned null.");
 
-        state.dashboardWidgets = (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        state.projects = data.projects || [];
-        state.tasks = data.tasks || [];
-        state.clients = data.clients || [];
-        state.clientContacts = data.clients.flatMap((c: any) => c.clientContacts || []);
-        state.invoices = data.invoices || [];
-        state.timeLogs = data.timeLogs || [];
-        state.comments = data.comments || [];
-        state.taskAssignees = data.taskAssignees || [];
-        state.projectSections = data.projectSections || [];
-        state.taskViews = data.taskViews || [];
-        state.reviews = data.reviews || [];
-        state.timeOffRequests = data.timeOffRequests || [];
-        state.userTaskSortOrders = data.userTaskSortOrders || [];
-        state.projectMembers = data.projectMembers || [];
-        state.objectives = data.objectives || [];
-        state.keyResults = data.keyResults || [];
-        state.inventoryItems = data.inventoryItems || [];
-        state.inventoryAssignments = data.inventoryAssignments || [];
-        state.budgets = data.budgets || [];
-        state.deals = data.deals || [];
-        state.dealActivities = data.dealActivities || [];
-        state.pipelineStages = data.pipelineStages || [];
-        state.kanbanStages = data.kanbanStages || [];
-        state.automations = data.automations || [];
-        state.tags = data.tags || [];
-        state.taskTags = data.taskTags || [];
-        state.projectTags = data.projectTags || [];
-        state.clientTags = data.clientTags || [];
-        state.customFieldDefinitions = data.customFieldDefinitions || [];
-        state.customFieldValues = data.customFieldValues || [];
-        state.projectTemplates = data.projectTemplates || [];
-        state.wikiHistory = data.wikiHistory || [];
-        state.channels = data.channels || [];
-        state.chatMessages = data.chatMessages || [];
-        state.calendarEvents = data.calendarEvents || [];
-        state.expenses = data.expenses || [];
-        
-        // Set loaded flags to prevent re-fetching on navigation
-        state.ui.dashboard.loadedWorkspaceId = workspaceId;
-        state.ui.projects.loadedWorkspaceId = workspaceId;
-        state.ui.tasks.loadedWorkspaceId = workspaceId;
-        state.ui.clients.loadedWorkspaceId = workspaceId;
-        state.ui.invoices.loadedWorkspaceId = workspaceId;
-        state.ui.sales.loadedWorkspaceId = workspaceId;
+        setState(prevState => ({
+            dashboardWidgets: (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+            projects: data.projects || [],
+            tasks: data.tasks || [],
+            clients: data.clients || [],
+            clientContacts: data.clients.flatMap((c: any) => c.clientContacts || []),
+            invoices: data.invoices || [],
+            timeLogs: data.timeLogs || [],
+            comments: data.comments || [],
+            taskAssignees: data.taskAssignees || [],
+            projectSections: data.projectSections || [],
+            taskViews: data.taskViews || [],
+            reviews: data.reviews || [],
+            timeOffRequests: data.timeOffRequests || [],
+            userTaskSortOrders: data.userTaskSortOrders || [],
+            projectMembers: data.projectMembers || [],
+            objectives: data.objectives || [],
+            keyResults: data.keyResults || [],
+            inventoryItems: data.inventoryItems || [],
+            inventoryAssignments: data.inventoryAssignments || [],
+            budgets: data.budgets || [],
+            deals: data.deals || [],
+            dealActivities: data.dealActivities || [],
+            pipelineStages: data.pipelineStages || [],
+            kanbanStages: data.kanbanStages || [],
+            automations: data.automations || [],
+            tags: data.tags || [],
+            taskTags: data.taskTags || [],
+            projectTags: data.projectTags || [],
+            clientTags: data.clientTags || [],
+            customFieldDefinitions: data.customFieldDefinitions || [],
+            customFieldValues: data.customFieldValues || [],
+            projectTemplates: data.projectTemplates || [],
+            wikiHistory: data.wikiHistory || [],
+            channels: data.channels || [],
+            chatMessages: data.chatMessages || [],
+            calendarEvents: data.calendarEvents || [],
+            expenses: data.expenses || [],
+            ui: {
+                ...prevState.ui,
+                dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: workspaceId },
+                projects: { ...prevState.ui.projects, loadedWorkspaceId: workspaceId },
+                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: workspaceId },
+                clients: { ...prevState.ui.clients, loadedWorkspaceId: workspaceId },
+                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: workspaceId },
+                sales: { ...prevState.ui.sales, loadedWorkspaceId: workspaceId },
+            }
+        }), []);
         
         console.log(`Successfully fetched data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch workspace data:", error);
-        state.ui.dashboard.loadedWorkspaceId = null;
-        state.ui.projects.loadedWorkspaceId = null;
-        state.ui.tasks.loadedWorkspaceId = null;
-        state.ui.clients.loadedWorkspaceId = null;
-        state.ui.invoices.loadedWorkspaceId = null;
-        state.ui.sales.loadedWorkspaceId = null;
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: null },
+                projects: { ...prevState.ui.projects, loadedWorkspaceId: null },
+                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: null },
+                clients: { ...prevState.ui.clients, loadedWorkspaceId: null },
+                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: null },
+                sales: { ...prevState.ui.sales, loadedWorkspaceId: null },
+            }
+        }), []);
         throw error; // Re-throw the error to be caught by the bootstrap process
     }
 }
 
 export function getUserProjectRole(userId: string, projectId: string): ProjectRole | null {
+    const state = getState();
     if (!userId || !projectId) return null;
 
     const project = state.projects.find(p => p.id === projectId);
@@ -136,6 +141,7 @@ export function getUserProjectRole(userId: string, projectId: string): ProjectRo
 }
 
 export function getWorkspaceKanbanWorkflow(workspaceId: string | null): 'simple' | 'advanced' {
+    const state = getState();
     if (!workspaceId) return 'simple';
     const integration = state.integrations.find(i => 
         i.workspaceId === workspaceId && 
@@ -145,6 +151,7 @@ export function getWorkspaceKanbanWorkflow(workspaceId: string | null): 'simple'
 }
 
 export async function handleSaveProjectAsTemplate(projectId: string) {
+    const state = getState();
     const project = state.projects.find(p => p.id === projectId);
     if (!project || !state.activeWorkspaceId) return;
 
@@ -165,7 +172,7 @@ export async function handleSaveProjectAsTemplate(projectId: string) {
 
     try {
         const [savedTemplate] = await apiPost('project_templates', newTemplatePayload);
-        state.projectTemplates.push(savedTemplate);
+        setState(prevState => ({ projectTemplates: [...prevState.projectTemplates, savedTemplate] }), []);
         alert(`Project "${project.name}" saved as a template!`);
     } catch (error) {
         console.error("Failed to save project as template:", error);
@@ -176,6 +183,7 @@ export async function handleSaveProjectAsTemplate(projectId: string) {
 }
 
 export async function handleFileUpload(projectId: string, file: File, taskId?: string) {
+    const state = getState();
     const project = state.projects.find(p => p.id === projectId);
     if (!project || !state.activeWorkspaceId) return;
 
@@ -191,8 +199,7 @@ export async function handleFileUpload(projectId: string, file: File, taskId?: s
     
     try {
         const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
-        state.attachments.push(savedAttachment);
-        updateUI(state.ui.modal.isOpen ? ['modal'] : ['side-panel']);
+        setState(prevState => ({ attachments: [...prevState.attachments, savedAttachment] }), [getState().ui.modal.isOpen ? 'modal' : 'side-panel']);
     } catch(error) {
         console.error("File upload failed:", error);
         alert("File upload failed. Please try again.");
@@ -210,11 +217,11 @@ export function closeProjectMenu() {
 }
 
 export function handleSwitchChannel(channelId: string) {
-    state.ui.activeChannelId = channelId;
-    updateUI(['page']);
+    setState(prevState => ({ ui: { ...prevState.ui, activeChannelId: channelId } }), ['page']);
 }
 
 export async function handleSendMessage(channelId: string, content: string) {
+    const state = getState();
     if (!state.currentUser) return;
     
     const newMessagePayload: Omit<ChatMessage, 'id'|'createdAt'> = {
@@ -225,9 +232,8 @@ export async function handleSendMessage(channelId: string, content: string) {
     
     try {
         const [savedMessage] = await apiPost('chat_messages', newMessagePayload);
-        state.chatMessages.push(savedMessage);
+        setState(prevState => ({ chatMessages: [...prevState.chatMessages, savedMessage] }), ['page']);
         
-        updateUI(['page']);
         const messageList = document.querySelector('.message-list');
         if (messageList) {
             setTimeout(() => messageList.scrollTop = messageList.scrollHeight, 0);

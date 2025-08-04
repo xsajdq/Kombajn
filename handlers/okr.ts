@@ -1,10 +1,11 @@
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import { closeModal } from './ui.ts';
 import type { Objective, KeyResult } from '../types.ts';
 
 export async function handleCreateObjective(projectId: string, title: string, description: string) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
 
     const payload: Omit<Objective, 'id' | 'currentValue' | 'status'> = {
@@ -16,7 +17,7 @@ export async function handleCreateObjective(projectId: string, title: string, de
 
     try {
         const [newObjective] = await apiPost('objectives', {...payload, status: 'in_progress', currentValue: 0});
-        state.objectives.push(newObjective);
+        setState(prevState => ({ objectives: [...prevState.objectives, newObjective] }), ['side-panel']);
         closeModal(false);
         updateUI(['side-panel']);
     } catch (error) {
@@ -36,7 +37,7 @@ export async function handleAddKeyResult(objectiveId: string, title: string, typ
 
     try {
         const [newKeyResult] = await apiPost('key_results', {...payload, completed: false, currentValue: startValue});
-        state.keyResults.push(newKeyResult);
+        setState(prevState => ({ keyResults: [...prevState.keyResults, newKeyResult] }), ['side-panel']);
         closeModal(false);
         updateUI(['side-panel']);
     } catch (error) {
@@ -46,25 +47,30 @@ export async function handleAddKeyResult(objectiveId: string, title: string, typ
 }
 
 export async function handleUpdateKeyResultValue(krId: string, value: number) {
+    const state = getState();
     const keyResult = state.keyResults.find(kr => kr.id === krId);
     if (!keyResult) return;
 
     const originalValue = keyResult.currentValue;
-    keyResult.currentValue = value;
 
-    // After updating, we need to remove the editing state from the UI
     const krItem = document.querySelector(`.key-result-item[data-kr-id="${krId}"]`);
     if (krItem) {
         krItem.removeAttribute('data-editing');
     }
-    updateUI(['side-panel']);
+    
+    setState(prevState => ({
+        keyResults: prevState.keyResults.map(kr => kr.id === krId ? { ...kr, currentValue: value } : kr)
+    }), ['side-panel']);
+
 
     try {
         await apiPut('key_results', { id: krId, currentValue: value });
     } catch (error) {
         console.error("Failed to update key result value:", error);
         alert("Could not update key result.");
-        keyResult.currentValue = originalValue; // Revert
-        updateUI(['side-panel']);
+        // Revert
+        setState(prevState => ({
+            keyResults: prevState.keyResults.map(kr => kr.id === krId ? { ...kr, currentValue: originalValue } : kr)
+        }), ['side-panel']);
     }
 }

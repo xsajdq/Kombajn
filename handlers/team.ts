@@ -1,5 +1,5 @@
 
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
 import { closeSidePanels, closeModal, showModal } from './ui.ts';
@@ -14,37 +14,43 @@ import { fetchWorkspaceData } from './main.ts';
 import { handleCreateDefaultStages } from './pipeline.ts';
 
 export async function handleWorkspaceSwitch(workspaceId: string) {
+    const state = getState();
     if (state.activeWorkspaceId !== workspaceId) {
-        state.activeWorkspaceId = workspaceId;
+        
         localStorage.setItem('activeWorkspaceId', workspaceId);
 
         // Reset loaded status for all pages to force refetch
-        Object.keys(state.ui).forEach(key => {
-            const pageState = (state.ui as any)[key];
+        const newUiState = { ...state.ui };
+        Object.keys(newUiState).forEach(key => {
+            const pageState = (newUiState as any)[key];
             if (pageState && typeof pageState === 'object' && 'loadedWorkspaceId' in pageState) {
                 pageState.loadedWorkspaceId = null;
             }
         });
-
+        
+        newUiState.dashboard.isLoading = true;
+        
         closeSidePanels(false);
-        state.currentPage = 'dashboard';
+        
+        setState({ 
+            activeWorkspaceId: workspaceId,
+            currentPage: 'dashboard',
+            ui: newUiState
+        }, ['page', 'sidebar', 'header']);
+        
         history.pushState({}, '', '/dashboard');
 
-        // Set loading state and render the loader
-        state.ui.dashboard.isLoading = true;
-        updateUI(['page', 'sidebar', 'header']); // Update all to reflect new workspace selection and show loader
 
         await switchWorkspaceChannel(workspaceId);
         await fetchWorkspaceData(workspaceId);
         
-        state.ui.dashboard.isLoading = false;
-        // The previous fetch populated the data, now render the final page
-        await updateUI(['page']);
+        setState(prevState => ({ ui: { ...prevState.ui, dashboard: { ...prevState.ui.dashboard, isLoading: false } } }), ['page']);
     }
 }
 
 
 export async function handleCreateWorkspace(name: string) {
+    const state = getState();
     if (!state.currentUser) return;
 
     const trimmedName = name.trim();
@@ -95,8 +101,10 @@ export async function handleCreateWorkspace(name: string) {
             },
             planHistory: newWorkspaceRaw.planHistory || []
         };
-        state.workspaces.push(newWorkspace);
-        state.workspaceMembers.push(newMember);
+        setState({
+            workspaces: [...state.workspaces, newWorkspace],
+            workspaceMembers: [...state.workspaceMembers, newMember]
+        }, []);
 
         // Automatically switch to the new workspace
         await handleWorkspaceSwitch(newWorkspace.id);
@@ -111,6 +119,7 @@ export async function handleCreateWorkspace(name: string) {
 }
 
 export async function handleRequestToJoinWorkspace(workspaceName: string) {
+    const state = getState();
     if (!state.currentUser) return;
     
     // Fetch from API to check all workspaces, not just the ones the user is in
@@ -134,7 +143,7 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
     }
 
     const [newRequest] = await apiPost('workspace_join_requests', { workspaceId: targetWorkspace.id, userId: state.currentUser!.id, status: 'pending' });
-    state.workspaceJoinRequests.push(newRequest);
+    setState({ workspaceJoinRequests: [...state.workspaceJoinRequests, newRequest] }, ['page']);
 
     const owners = state.workspaceMembers.filter(m => m.workspaceId === targetWorkspace.id && m.role === 'owner');
     owners.forEach(owner => {
@@ -145,11 +154,10 @@ export async function handleRequestToJoinWorkspace(workspaceName: string) {
             workspaceName: targetWorkspace.name
         });
     });
-
-    updateUI(['page']);
 }
 
 export async function handleApproveJoinRequest(requestId: string) {
+    const state = getState();
     const request = state.workspaceJoinRequests.find(r => r.id === requestId);
     if (!request) return;
 
@@ -161,13 +169,11 @@ export async function handleApproveJoinRequest(requestId: string) {
         });
 
         const [updatedRequest] = await apiPut('workspace_join_requests', { id: request.id, status: 'approved' });
-
-        state.workspaceMembers.push(newMember);
-        const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
-        if (reqIndex > -1) {
-            state.workspaceJoinRequests[reqIndex] = updatedRequest;
-        }
-        updateUI(['page']);
+        
+        setState(prevState => ({
+            workspaceMembers: [...prevState.workspaceMembers, newMember],
+            workspaceJoinRequests: prevState.workspaceJoinRequests.map(r => r.id === requestId ? updatedRequest : r)
+        }), ['page']);
     } catch(error) {
         alert("Failed to approve join request.");
     }
@@ -176,17 +182,16 @@ export async function handleApproveJoinRequest(requestId: string) {
 export async function handleRejectJoinRequest(requestId: string) {
     try {
         const [updatedRequest] = await apiPut('workspace_join_requests', { id: requestId, status: 'rejected' });
-        const reqIndex = state.workspaceJoinRequests.findIndex(r => r.id === requestId);
-        if (reqIndex > -1) {
-            state.workspaceJoinRequests[reqIndex] = updatedRequest;
-        }
-        updateUI(['page']);
+        setState(prevState => ({
+            workspaceJoinRequests: prevState.workspaceJoinRequests.map(r => r.id === requestId ? updatedRequest : r)
+        }), ['page']);
     } catch(error) {
         alert("Failed to reject join request.");
     }
 }
 
 export async function handleInviteUser(email: string, role: Role) {
+    const state = getState();
     if (!state.activeWorkspaceId || !state.currentUser) return;
     
     const user = state.users.find(u => u.email === email);
@@ -207,34 +212,35 @@ export async function handleInviteUser(email: string, role: Role) {
             userId: user.id,
             role: role,
         });
-        state.workspaceMembers.push(newMember);
-        updateUI(['page']);
+        setState({ workspaceMembers: [...state.workspaceMembers, newMember] }, ['page']);
     } catch (error) {
         alert("Failed to invite user.");
     }
 }
 
 export async function handleChangeUserRole(memberId: string, newRole: Role) {
+    const state = getState();
     const member = state.workspaceMembers.find(m => m.id === memberId);
     if (!member) return;
     
     const originalRole = member.role;
     if (originalRole === newRole) return;
     
-    member.role = newRole; 
-    updateUI(['page']);
+    const updatedMembers = state.workspaceMembers.map(m => m.id === memberId ? { ...m, role: newRole } : m);
+    setState({ workspaceMembers: updatedMembers }, ['page']);
 
     try {
         await apiPut('workspace_members', { id: memberId, role: newRole });
     } catch (error) {
         console.error("Failed to update user role:", error);
-        member.role = originalRole; 
-        updateUI(['page']);
+        const revertedMembers = state.workspaceMembers.map(m => m.id === memberId ? { ...m, role: originalRole } : m);
+        setState({ workspaceMembers: revertedMembers }, ['page']);
         alert("Failed to update user role.");
     }
 }
 
 export async function handleRemoveUserFromWorkspace(memberId: string) {
+    const state = getState();
     const memberIndex = state.workspaceMembers.findIndex(m => m.id === memberId);
     if (memberIndex === -1) return;
 
@@ -247,8 +253,9 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
         }
     }
     
-    const [removedMember] = state.workspaceMembers.splice(memberIndex, 1);
-    updateUI(['page']);
+    const originalMembers = [...state.workspaceMembers];
+    const updatedMembers = originalMembers.filter(m => m.id !== memberId);
+    setState({ workspaceMembers: updatedMembers }, ['page']);
     
     try {
         await apiFetch('/api?action=data&resource=workspace_members', {
@@ -256,13 +263,13 @@ export async function handleRemoveUserFromWorkspace(memberId: string) {
             body: JSON.stringify({ id: memberId }),
         });
     } catch(error) {
-        state.workspaceMembers.splice(memberIndex, 0, removedMember);
-        updateUI(['page']);
+        setState({ workspaceMembers: originalMembers }, ['page']);
         alert("Failed to remove user.");
     }
 }
 
 export async function handleSaveWorkspaceSettings() {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!workspace) return;
@@ -282,22 +289,20 @@ export async function handleSaveWorkspaceSettings() {
     };
 
     try {
-        const [updatedWorkspace] = await apiPut('workspaces', workspacePayload);
+        const [updatedWorkspaceApi] = await apiPut('workspaces', workspacePayload);
 
-        const index = state.workspaces.findIndex(w => w.id === workspace.id);
-        if (index !== -1) {
-            state.workspaces[index] = {
-                ...state.workspaces[index],
-                ...updatedWorkspace,
-                subscription: {
-                    planId: updatedWorkspace.subscriptionPlanId,
-                    status: updatedWorkspace.subscriptionStatus,
-                },
-                planHistory: updatedWorkspace.planHistory || [],
-            };
-        }
-
-        updateUI(['page']);
+        const updatedWorkspace: Workspace = {
+            ...workspace,
+            ...updatedWorkspaceApi,
+            subscription: {
+                planId: updatedWorkspaceApi.subscriptionPlanId,
+                status: updatedWorkspaceApi.subscriptionStatus,
+            },
+            planHistory: updatedWorkspaceApi.planHistory || [],
+        };
+        
+        const updatedWorkspaces = state.workspaces.map(w => w.id === workspace.id ? updatedWorkspace : w);
+        setState({ workspaces: updatedWorkspaces }, ['page']);
 
         const statusEl = document.getElementById('workspace-save-status');
         if (statusEl) {
@@ -314,6 +319,7 @@ export async function handleSaveWorkspaceSettings() {
 }
 
 export async function handleUpdateEmployeeNotes(userId: string, contractNotes: string, employmentNotes: string) {
+    const state = getState();
     const user = state.users.find(u => u.id === userId);
     if (user) {
         const payload = {
@@ -323,12 +329,9 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
         };
         try {
             const [updatedProfile] = await apiPut('profiles', payload);
-            const index = state.users.findIndex(u => u.id === userId);
-            if (index !== -1) {
-                state.users[index] = { ...state.users[index], ...updatedProfile };
-            }
+            const updatedUsers = state.users.map(u => u.id === userId ? { ...u, ...updatedProfile } : u);
+            setState({ users: updatedUsers }, ['page']);
             closeModal();
-            updateUI(['page']);
         } catch (error) {
             console.error("Failed to update employee notes:", error);
             alert((error as Error).message);
@@ -337,24 +340,26 @@ export async function handleUpdateEmployeeNotes(userId: string, contractNotes: s
 }
 
 export async function handleUpdateEmployeeManager(userId: string, managerId: string) {
+    const state = getState();
     const user = state.users.find(u => u.id === userId);
     if (!user) return;
 
     const originalManagerId = user.managerId;
-    user.managerId = managerId || undefined;
-    updateUI(['page']);
+    const updatedUsers = state.users.map(u => u.id === userId ? { ...u, managerId: managerId || undefined } : u);
+    setState({ users: updatedUsers }, ['page']);
 
     try {
         await apiPut('profiles', { id: userId, managerId: managerId || null });
     } catch (error) {
         console.error("Failed to update employee manager:", error);
         alert((error as Error).message);
-        user.managerId = originalManagerId;
-        updateUI(['page']);
+        const revertedUsers = state.users.map(u => u.id === userId ? { ...u, managerId: originalManagerId } : u);
+        setState({ users: revertedUsers }, ['page']);
     }
 }
 
 export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave' | 'other', startDate: string, endDate: string) {
+    const state = getState();
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
     const newRequestPayload: Omit<TimeOffRequest, 'id'|'createdAt'> = {
@@ -368,9 +373,8 @@ export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave'
 
     try {
         const [savedRequest] = await apiPost('time_off_requests', newRequestPayload);
-        state.timeOffRequests.push(savedRequest);
+        setState({ timeOffRequests: [...state.timeOffRequests, savedRequest] }, ['page']);
         closeModal();
-        updateUI(['page']);
 
         const requester = state.currentUser;
         const managerId = requester.managerId;
@@ -409,79 +413,81 @@ export async function handleSubmitTimeOffRequest(type: 'vacation' | 'sick_leave'
 }
 
 export async function handleApproveTimeOffRequest(requestId: string) {
+    const state = getState();
     const request = state.timeOffRequests.find(r => r.id === requestId);
     if (request) {
         const originalStatus = request.status;
-        request.status = 'approved';
-        updateUI(['page']);
+        const updatedRequests = state.timeOffRequests.map(r => r.id === requestId ? { ...r, status: 'approved' as const } : r);
+        setState({ timeOffRequests: updatedRequests }, ['page']);
         try {
             await apiPut('time_off_requests', { id: requestId, status: 'approved' });
         } catch(error) {
-            request.status = originalStatus;
-            updateUI(['page']);
+            const revertedRequests = state.timeOffRequests.map(r => r.id === requestId ? { ...r, status: originalStatus } : r);
+            setState({ timeOffRequests: revertedRequests }, ['page']);
             alert("Failed to approve request.");
         }
     }
 }
 
 export async function handleRejectTimeOffRequest(requestId: string, reason: string) {
+    const state = getState();
     const request = state.timeOffRequests.find(r => r.id === requestId);
     if (request) {
         const originalStatus = request.status;
-        request.status = 'rejected';
-        request.rejectionReason = reason;
+        const updatedRequest = { ...request, status: 'rejected' as const, rejectionReason: reason };
+        const updatedRequests = state.timeOffRequests.map(r => r.id === requestId ? updatedRequest : r);
         
         try {
             await apiPut('time_off_requests', { id: requestId, status: 'rejected', rejectionReason: reason });
+            setState({ timeOffRequests: updatedRequests }, ['page']);
             closeModal();
         } catch(error) {
-            request.status = originalStatus;
-            delete request.rejectionReason;
             alert("Failed to reject request.");
-        } finally {
-            updateUI(['page']);
         }
     }
 }
 
 export async function handleSetVacationAllowance(userId: string, hours: number) {
+    const state = getState();
     const user = state.users.find(u => u.id === userId);
     if (!user) return;
     
     const originalAllowance = user.vacationAllowanceHours;
-    user.vacationAllowanceHours = hours;
+    const updatedUsers = state.users.map(u => u.id === userId ? { ...u, vacationAllowanceHours: hours } : u);
+    setState({ users: updatedUsers }, ['page']);
     closeModal();
-    updateUI(['page']);
     
     try {
         await apiPut('profiles', { id: userId, vacationAllowanceHours: hours });
     } catch (error) {
         console.error("Failed to update vacation allowance:", error);
         alert("Could not save vacation allowance. Please try again.");
-        user.vacationAllowanceHours = originalAllowance;
-        updateUI(['page']);
+        const revertedUsers = state.users.map(u => u.id === userId ? { ...u, vacationAllowanceHours: originalAllowance } : u);
+        setState({ users: revertedUsers }, ['page']);
     }
 }
 
 export async function handleChangeProjectMemberRole(projectMemberId: string, newRole: ProjectRole) {
+    const state = getState();
     const member = state.projectMembers.find(pm => pm.id === projectMemberId);
     if (!member) return;
 
     const originalRole = member.role;
-    member.role = newRole;
-    updateUI(['side-panel']);
+    const updatedMembers = state.projectMembers.map(pm => pm.id === projectMemberId ? { ...pm, role: newRole } : pm);
+    setState({ projectMembers: updatedMembers }, ['side-panel']);
 
     try {
         await apiPut('project_members', { id: projectMemberId, role: newRole });
     } catch (error) {
         console.error("Failed to change project member role:", error);
-        member.role = originalRole;
-        updateUI(['side-panel']);
+        const revertedMembers = state.projectMembers.map(pm => pm.id === projectMemberId ? { ...pm, role: originalRole } : pm);
+        setState({ projectMembers: revertedMembers }, ['side-panel']);
         alert("Could not update member role.");
     }
 }
 
 export async function handleAddMemberToProject(projectId: string, userId: string, role: ProjectRole) {
+    const state = getState();
     if (!projectId || !userId || !role) {
         alert("Please select a member and a role.");
         return;
@@ -502,8 +508,7 @@ export async function handleAddMemberToProject(projectId: string, userId: string
 
     try {
         const [savedMember] = await apiPost('project_members', newMemberPayload);
-        state.projectMembers.push(savedMember);
-        updateUI(['side-panel']);
+        setState({ projectMembers: [...state.projectMembers, savedMember] }, ['side-panel']);
     } catch (error) {
         console.error("Failed to add member to project:", error);
         alert("Could not add member to project.");

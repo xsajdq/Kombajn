@@ -1,4 +1,4 @@
-import { state, generateId } from '../state.ts';
+import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction } from '../types.ts';
 import { createNotification } from './notifications.ts';
@@ -16,6 +16,7 @@ export function openTaskDetail(taskId: string) {
 }
 
 export async function handleAddTaskComment(taskId: string, content: string, parentId: string | null, successCallback: () => void) {
+    const state = getState();
     if (!content || !state.currentUser) return;
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -30,10 +31,14 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
 
     try {
         const [savedComment] = await apiPost('comments', newCommentPayload);
-        state.comments.push(savedComment);
         
-        task.lastActivityAt = new Date().toISOString();
-        await apiPut('tasks', { id: taskId, lastActivityAt: task.lastActivityAt });
+        const updatedTask = { ...task, lastActivityAt: new Date().toISOString() };
+        setState({ 
+            comments: [...state.comments, savedComment],
+            tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+        }, []);
+        
+        await apiPut('tasks', { id: taskId, lastActivityAt: updatedTask.lastActivityAt });
 
         if (!parentId) { // Only clear the main draft, not for replies
             localStorage.removeItem(`comment-draft-${taskId}`);
@@ -70,6 +75,7 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
 }
 
 export async function handleUpdateTaskComment(commentId: string, newContent: string) {
+    const state = getState();
     const comment = state.comments.find(c => c.id === commentId);
     if (!comment || !newContent.trim() || comment.content === newContent.trim()) {
         // If no change, just re-render to exit edit mode
@@ -81,102 +87,126 @@ export async function handleUpdateTaskComment(commentId: string, newContent: str
     const originalUpdatedAt = comment.updatedAt;
 
     // Optimistic update
-    comment.content = newContent.trim();
-    comment.updatedAt = new Date().toISOString();
-    updateUI(['modal']);
+    const updatedComment = { ...comment, content: newContent.trim(), updatedAt: new Date().toISOString() };
+    const updatedComments = state.comments.map(c => c.id === commentId ? updatedComment : c);
+    setState({ comments: updatedComments }, ['modal']);
 
     try {
         await apiPut('comments', { 
             id: commentId, 
-            content: comment.content,
-            updatedAt: comment.updatedAt 
+            content: updatedComment.content,
+            updatedAt: updatedComment.updatedAt 
         });
     } catch (error) {
         console.error("Failed to update comment:", error);
         alert("Could not save comment changes. Reverting.");
         // Revert on failure
-        comment.content = originalContent;
-        comment.updatedAt = originalUpdatedAt;
-        updateUI(['modal']);
+        const revertedComments = state.comments.map(c => c.id === commentId ? { ...c, content: originalContent, updatedAt: originalUpdatedAt } : c);
+        setState({ comments: revertedComments }, ['modal']);
     }
 }
 
 export async function handleToggleReaction(commentId: string, emoji: string) {
+    const state = getState();
     const comment = state.comments.find(c => c.id === commentId);
     if (!comment || !state.currentUser) return;
 
-    if (!comment.reactions) {
-        comment.reactions = [];
-    }
+    const originalReactions = [...(comment.reactions || [])];
+    let newReactions = [...originalReactions];
 
     const userId = state.currentUser.id;
-    const existingReactionIndex = comment.reactions.findIndex(r => r.emoji === emoji && r.userId === userId);
+    const existingReactionIndex = newReactions.findIndex(r => r.emoji === emoji && r.userId === userId);
 
     if (existingReactionIndex > -1) {
         // User is removing their reaction
-        comment.reactions.splice(existingReactionIndex, 1);
+        newReactions.splice(existingReactionIndex, 1);
     } else {
         // User is adding a reaction
-        comment.reactions.push({ emoji, userId });
+        newReactions.push({ emoji, userId });
     }
 
-    updateUI(['modal']); // Optimistic update
+    const updatedComments = state.comments.map(c => c.id === commentId ? { ...c, reactions: newReactions } : c);
+    setState({ comments: updatedComments }, ['modal']); // Optimistic update
 
     try {
-        await apiPut('comments', { id: commentId, reactions: comment.reactions });
+        await apiPut('comments', { id: commentId, reactions: newReactions });
     } catch (error) {
         console.error("Failed to toggle reaction:", error);
         alert("Could not save reaction.");
         // Revert UI change on failure
-        if (existingReactionIndex > -1) {
-            comment.reactions.splice(existingReactionIndex, 0, { emoji, userId });
-        } else {
-            comment.reactions.pop();
-        }
-        updateUI(['modal']);
+        const revertedComments = state.comments.map(c => c.id === commentId ? { ...c, reactions: originalReactions } : c);
+        setState({ comments: revertedComments }, ['modal']);
     }
 }
 
 
 export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, value: any) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
+    const oldValue = task[field];
+    
+    // This is the simplest, most localized fix. Handle the specific case for 'status'.
+    if (field === 'status') {
+        const newStatus = value as Task['status'];
+        if (oldValue === newStatus) return;
+
+        const updatedTask = { ...task, status: newStatus };
+        const updatedTasks = state.tasks.map(t => t.id === taskId ? updatedTask : t);
+        setState({ tasks: updatedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
+        
+        try {
+            await apiPut('tasks', { id: taskId, status: newStatus });
+            const assignees = state.taskAssignees.filter(a => a.taskId === taskId);
+            for (const assignee of assignees) {
+                if (assignee.userId !== state.currentUser!.id) {
+                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: newStatus, actorId: state.currentUser.id });
+                }
+            }
+            runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
+        } catch (error) {
+            console.error(`Failed to update task field status:`, error);
+            alert(`Could not update task. Reverting change.`);
+            const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, status: oldValue as Task['status'] } : t);
+            setState({ tasks: revertedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
+        }
+        return; // Exit after handling status
+    }
+    
+    // Handle other fields
     let finalValue: any = value === '' ? null : value;
     if (field === 'estimatedHours') {
         finalValue = parseDurationStringToHours(value as string);
+    } else if (field === 'priority') {
+        finalValue = (value === '' ? null : value) as Task['priority'];
+    } else if (field === 'type') {
+        finalValue = (value === '' ? null : value) as Task['type'];
+    } else if (field === 'recurrence') {
+        finalValue = value as Task['recurrence'];
     }
-
-    const oldValue = task[field];
     
     if (oldValue === finalValue || (oldValue === null && value === '')) {
         return;
     }
     
-    (task as any)[field] = finalValue;
-    updateUI(state.ui.modal.isOpen ? ['modal'] : ['page']);
+    const updatedTask = { ...task, [field]: finalValue };
+
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? updatedTask as Task : t);
+    setState({ tasks: updatedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
 
     try {
         await apiPut('tasks', { id: taskId, [field]: finalValue });
-
-        if (field === 'status') {
-            const assignees = state.taskAssignees.filter(a => a.taskId === taskId);
-            for (const assignee of assignees) {
-                if (assignee.userId !== state.currentUser!.id) {
-                    await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: finalValue, actorId: state.currentUser!.id });
-                }
-            }
-            runAutomations('statusChange', { task, actorId: state.currentUser.id });
-        }
     } catch (error) {
         console.error(`Failed to update task field ${field}:`, error);
         alert(`Could not update task. Reverting change.`);
-        (task as any)[field] = oldValue;
-        updateUI(state.ui.modal.isOpen ? ['modal'] : ['page']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, [field]: oldValue } as Task : t);
+        setState({ tasks: revertedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
     }
 }
 
 export async function handleTaskProgressUpdate(taskId: string, newProgress: number) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
@@ -184,52 +214,53 @@ export async function handleTaskProgressUpdate(taskId: string, newProgress: numb
     const originalProgress = task.progress;
     const originalStatus = task.status;
 
-    task.progress = roundedProgress;
-
+    let updatedTask: Task = { ...task, progress: roundedProgress };
     const workflow = getWorkspaceKanbanWorkflow(task.workspaceId);
     const doneStatus = workflow === 'simple' ? 'done' : 'done'; // Assuming 'done' for both for now
 
     if (roundedProgress === 100 && task.status !== doneStatus) {
-        task.status = doneStatus;
+        updatedTask.status = doneStatus;
     } else if (roundedProgress < 100 && task.status === doneStatus) {
-        task.status = 'inprogress';
+        updatedTask.status = 'inprogress';
     }
 
     // Update UI immediately
-    updateUI(['modal', 'page']);
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? updatedTask : t);
+    setState({ tasks: updatedTasks }, ['modal', 'page']);
 
     try {
         const payload: { id: string, progress: number, status?: Task['status'] } = {
             id: taskId,
             progress: roundedProgress,
         };
-        if (task.status !== originalStatus) {
-            payload.status = task.status;
+        if (updatedTask.status !== originalStatus) {
+            payload.status = updatedTask.status;
         }
         await apiPut('tasks', payload);
 
         // If status changed, run automations
-        if (task.status !== originalStatus && state.currentUser) {
-            runAutomations('statusChange', { task, actorId: state.currentUser.id });
+        if (updatedTask.status !== originalStatus && state.currentUser) {
+            runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
         }
     } catch (error) {
         console.error('Failed to update task progress', error);
         alert('Failed to save progress.');
-        task.progress = originalProgress;
-        task.status = originalStatus;
-        updateUI(['modal', 'page']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, progress: originalProgress, status: originalStatus } : t);
+        setState({ tasks: revertedTasks }, ['modal', 'page']);
     }
 }
 
 export async function handleToggleAssignee(taskId: string, userId: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
     const existingIndex = state.taskAssignees.findIndex(a => a.taskId === taskId && a.userId === userId);
 
     if (existingIndex > -1) {
-        const [removed] = state.taskAssignees.splice(existingIndex, 1);
-        updateUI(['modal', 'page']);
+        const originalAssignees = [...state.taskAssignees];
+        const updatedAssignees = originalAssignees.filter((_, index) => index !== existingIndex);
+        setState({ taskAssignees: updatedAssignees }, ['modal', 'page']);
         try {
             await apiFetch('/api?action=data&resource=task_assignees', {
                 method: 'DELETE',
@@ -237,93 +268,94 @@ export async function handleToggleAssignee(taskId: string, userId: string) {
             });
         } catch (error) {
             console.error('Failed to remove assignee', error);
-            state.taskAssignees.splice(existingIndex, 0, removed); // Revert
-            updateUI(['modal', 'page']);
+            setState({ taskAssignees: originalAssignees }, ['modal', 'page']); // Revert
         }
     } else {
         const newAssignee = { taskId, userId, workspaceId: task.workspaceId };
-        // Optimistic update with a temporary ID
         const tempId = `temp-${Date.now()}`;
-        state.taskAssignees.push({ ...newAssignee, id: tempId } as any);
-        updateUI(['modal', 'page']);
+        setState({ taskAssignees: [...state.taskAssignees, { ...newAssignee, id: tempId } as any] }, ['modal', 'page']);
         try {
             const [saved] = await apiPost('task_assignees', newAssignee);
-            // Replace temporary with real one
-            const tempIndex = state.taskAssignees.findIndex(a => (a as any).id === tempId);
-            if (tempIndex > -1) {
-                state.taskAssignees[tempIndex] = saved;
-            }
+            setState(prevState => ({
+                taskAssignees: prevState.taskAssignees.map(a => (a as any).id === tempId ? saved : a)
+            }), ['modal', 'page']);
             if (userId !== state.currentUser.id) {
                 await createNotification('new_assignment', { taskId, userIdToNotify: userId, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error('Failed to add assignee', error);
-            const tempIndex = state.taskAssignees.findIndex(a => (a as any).id === tempId);
-            if (tempIndex > -1) {
-                state.taskAssignees.splice(tempIndex, 1); // Revert
-            }
-            updateUI(['modal', 'page']);
+            setState(prevState => ({
+                taskAssignees: prevState.taskAssignees.filter(a => (a as any).id !== tempId)
+            }), ['modal', 'page']); // Revert
         }
     }
 }
 
 export async function handleAddChecklistItem(taskId: string, text: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
-    if (!task.checklist) task.checklist = [];
     
     const newItem = { id: generateId(), text, completed: false };
-    task.checklist.push(newItem);
-    updateUI(['modal']); // Optimistic update
+    const newChecklist = [...(task.checklist || []), newItem];
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: newChecklist } : t);
+    setState({ tasks: updatedTasks }, ['modal']); // Optimistic update
 
     try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+        await apiPut('tasks', { id: taskId, checklist: newChecklist });
     } catch (error) {
         console.error("Failed to add checklist item:", error);
-        task.checklist.pop();
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: task.checklist || [] } : t);
+        setState({ tasks: revertedTasks }, ['modal']);
     }
 }
 
 export async function handleDeleteChecklistItem(taskId: string, itemId: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !task.checklist) return;
 
     const itemIndex = task.checklist.findIndex(item => item.id === itemId);
     if (itemIndex === -1) return;
 
-    const [removedItem] = task.checklist.splice(itemIndex, 1);
-    updateUI(['modal']); // Optimistic update
+    const originalChecklist = [...task.checklist];
+    const newChecklist = originalChecklist.filter(item => item.id !== itemId);
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: newChecklist } : t);
+    setState({ tasks: updatedTasks }, ['modal']); // Optimistic update
 
     try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+        await apiPut('tasks', { id: taskId, checklist: newChecklist });
     } catch (error) {
         console.error("Failed to delete checklist item:", error);
-        task.checklist.splice(itemIndex, 0, removedItem);
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: originalChecklist } : t);
+        setState({ tasks: revertedTasks }, ['modal']);
     }
 }
 
 export async function handleToggleChecklistItem(taskId: string, itemId: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !task.checklist) return;
 
     const item = task.checklist.find(item => item.id === itemId);
     if (!item) return;
 
-    item.completed = !item.completed; // Optimistic update
-    updateUI(['modal']);
+    const originalChecklist = [...task.checklist];
+    const newChecklist = originalChecklist.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i);
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: newChecklist } : t);
+    setState({ tasks: updatedTasks }, ['modal']); // Optimistic update
 
     try {
-        await apiPut('tasks', { id: taskId, checklist: task.checklist });
+        await apiPut('tasks', { id: taskId, checklist: newChecklist });
     } catch (error) {
         console.error("Failed to toggle checklist item:", error);
-        item.completed = !item.completed;
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, checklist: originalChecklist } : t);
+        setState({ tasks: revertedTasks }, ['modal']);
     }
 }
 
 export async function handleAddSubtask(parentId: string, name: string) {
+    const state = getState();
     const parentTask = state.tasks.find(t => t.id === parentId);
     if (!parentTask || !state.activeWorkspaceId) return;
 
@@ -337,19 +369,20 @@ export async function handleAddSubtask(parentId: string, name: string) {
     };
     try {
         const [savedSubtask] = await apiPost('tasks', newSubtaskPayload);
-        state.tasks.push(savedSubtask);
-        updateUI(['modal']);
+        setState({ tasks: [...state.tasks, savedSubtask] }, ['modal']);
     } catch (error) {
         console.error("Failed to add subtask:", error);
     }
 }
 
 export async function handleDeleteSubtask(subtaskId: string) {
+    const state = getState();
     const subtaskIndex = state.tasks.findIndex(t => t.id === subtaskId);
     if (subtaskIndex === -1) return;
 
-    const [removedSubtask] = state.tasks.splice(subtaskIndex, 1);
-    updateUI(['modal']);
+    const originalTasks = [...state.tasks];
+    const updatedTasks = originalTasks.filter(t => t.id !== subtaskId);
+    setState({ tasks: updatedTasks }, ['modal']);
 
     try {
         await apiFetch('/api?action=data&resource=tasks', {
@@ -358,30 +391,31 @@ export async function handleDeleteSubtask(subtaskId: string) {
         });
     } catch (error) {
         console.error("Failed to delete subtask:", error);
-        state.tasks.splice(subtaskIndex, 0, removedSubtask);
-        updateUI(['modal']);
+        setState({ tasks: originalTasks }, ['modal']);
     }
 }
 
 export async function handleToggleSubtaskStatus(subtaskId: string) {
+    const state = getState();
     const subtask = state.tasks.find(t => t.id === subtaskId);
     if (!subtask) return;
 
-    const newStatus = subtask.status === 'done' ? 'todo' : 'done';
+    const newStatus: Task['status'] = subtask.status === 'done' ? 'todo' : 'done';
     const originalStatus = subtask.status;
-    subtask.status = newStatus;
-    updateUI(['modal']);
+    const updatedTasks = state.tasks.map(t => t.id === subtaskId ? { ...t, status: newStatus } : t);
+    setState({ tasks: updatedTasks }, ['modal']);
 
     try {
         await apiPut('tasks', { id: subtaskId, status: newStatus });
     } catch (error) {
         console.error("Failed to toggle subtask status:", error);
-        subtask.status = originalStatus;
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === subtaskId ? { ...t, status: originalStatus } : t);
+        setState({ tasks: revertedTasks }, ['modal']);
     }
 }
 
 export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string) {
+    const state = getState();
     const blockingTask = state.tasks.find(t => t.id === blockingTaskId);
     const blockedTask = state.tasks.find(t => t.id === blockedTaskId);
     if (!blockingTask || !blockedTask || !state.activeWorkspaceId) return;
@@ -393,19 +427,20 @@ export async function handleAddDependency(blockingTaskId: string, blockedTaskId:
     };
     try {
         const [savedDependency] = await apiPost('task_dependencies', newDependencyPayload);
-        state.dependencies.push(savedDependency);
-        updateUI(['modal']);
+        setState({ dependencies: [...state.dependencies, savedDependency] }, ['modal']);
     } catch (error) {
         console.error("Failed to add dependency:", error);
     }
 }
 
 export async function handleRemoveDependency(dependencyId: string) {
+    const state = getState();
     const depIndex = state.dependencies.findIndex(d => d.id === dependencyId);
     if (depIndex === -1) return;
 
-    const [removedDep] = state.dependencies.splice(depIndex, 1);
-    updateUI(['modal']);
+    const originalDependencies = [...state.dependencies];
+    const updatedDependencies = originalDependencies.filter(d => d.id !== dependencyId);
+    setState({ dependencies: updatedDependencies }, ['modal']);
 
     try {
         await apiFetch('/api?action=data&resource=task_dependencies', {
@@ -414,12 +449,12 @@ export async function handleRemoveDependency(dependencyId: string) {
         });
     } catch (error) {
         console.error("Failed to remove dependency:", error);
-        state.dependencies.splice(depIndex, 0, removedDep);
-        updateUI(['modal']);
+        setState({ dependencies: originalDependencies }, ['modal']);
     }
 }
 
 export async function handleAddAttachment(taskId: string, file: File) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.activeWorkspaceId) return;
 
@@ -435,8 +470,7 @@ export async function handleAddAttachment(taskId: string, file: File) {
     
     try {
         const [savedAttachment] = await apiPost('attachments', newAttachmentPayload);
-        state.attachments.push(savedAttachment);
-        updateUI(['modal']);
+        setState({ attachments: [...state.attachments, savedAttachment] }, ['modal']);
     } catch(error) {
         console.error("File upload failed:", error);
         alert("File upload failed. Please try again.");
@@ -444,11 +478,13 @@ export async function handleAddAttachment(taskId: string, file: File) {
 }
 
 export async function handleRemoveAttachment(attachmentId: string) {
+    const state = getState();
     const attIndex = state.attachments.findIndex(a => a.id === attachmentId);
     if (attIndex === -1) return;
 
-    const [removedAttachment] = state.attachments.splice(attIndex, 1);
-    updateUI(['modal']);
+    const originalAttachments = [...state.attachments];
+    const updatedAttachments = originalAttachments.filter(a => a.id !== attachmentId);
+    setState({ attachments: updatedAttachments }, ['modal']);
 
     try {
         await apiFetch('/api?action=data&resource=attachments', {
@@ -457,12 +493,12 @@ export async function handleRemoveAttachment(attachmentId: string) {
         });
     } catch (error) {
         console.error("Failed to remove attachment:", error);
-        state.attachments.splice(attIndex, 0, removedAttachment);
-        updateUI(['modal']);
+        setState({ attachments: originalAttachments }, ['modal']);
     }
 }
 
 export async function handleCustomFieldValueUpdate(taskId: string, fieldId: string, value: any) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
 
     const existingValue = state.customFieldValues.find(v => v.taskId === taskId && v.fieldId === fieldId);
@@ -475,37 +511,34 @@ export async function handleCustomFieldValueUpdate(taskId: string, fieldId: stri
     
     if (existingValue) {
         const originalValue = existingValue.value;
-        existingValue.value = value;
-        updateUI(['modal']);
+        const updatedValues = state.customFieldValues.map(v => v.id === existingValue.id ? { ...v, value } : v);
+        setState({ customFieldValues: updatedValues }, ['modal']);
         try {
             await apiPut('custom_field_values', { ...payload, id: existingValue.id });
         } catch (error) {
-            existingValue.value = originalValue; // Revert
-            updateUI(['modal']);
+            const revertedValues = state.customFieldValues.map(v => v.id === existingValue.id ? { ...v, value: originalValue } : v);
+            setState({ customFieldValues: revertedValues }, ['modal']); // Revert
             alert("Could not update custom field.");
         }
     } else {
         const tempId = `temp-${Date.now()}`;
-        state.customFieldValues.push({ ...payload, id: tempId } as any);
-        updateUI(['modal']);
+        setState({ customFieldValues: [...state.customFieldValues, { ...payload, id: tempId } as any] }, ['modal']);
         try {
             const [savedValue] = await apiPost('custom_field_values', payload);
-            const tempIndex = state.customFieldValues.findIndex(v => v.id === tempId);
-            if (tempIndex > -1) {
-                state.customFieldValues[tempIndex] = savedValue;
-            }
+            setState(prevState => ({
+                customFieldValues: prevState.customFieldValues.map(v => v.id === tempId ? savedValue : v)
+            }), ['modal']);
         } catch (error) {
-            const tempIndex = state.customFieldValues.findIndex(v => v.id === tempId);
-            if (tempIndex > -1) {
-                state.customFieldValues.splice(tempIndex, 1);
-            }
-            updateUI(['modal']);
+            setState(prevState => ({
+                customFieldValues: prevState.customFieldValues.filter(v => v.id !== tempId)
+            }), ['modal']); // Revert
             alert("Could not save custom field value.");
         }
     }
 }
 
 export async function handleAddCustomFieldDefinition(name: string, type: CustomFieldType) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
 
     const payload: Omit<CustomFieldDefinition, 'id'> = {
@@ -516,8 +549,7 @@ export async function handleAddCustomFieldDefinition(name: string, type: CustomF
 
     try {
         const [savedField] = await apiPost('custom_field_definitions', payload);
-        state.customFieldDefinitions.push(savedField);
-        updateUI(['page']);
+        setState({ customFieldDefinitions: [...state.customFieldDefinitions, savedField] }, ['page']);
     } catch (error) {
         console.error("Failed to add custom field:", error);
         alert("Could not add custom field.");
@@ -525,41 +557,40 @@ export async function handleAddCustomFieldDefinition(name: string, type: CustomF
 }
 
 export async function handleSetTaskReminder(taskId: string, reminderDate: string | null) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const originalReminder = task.reminderAt;
-    task.reminderAt = reminderDate;
-    updateUI(['modal']); // Optimistic update
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, reminderAt: reminderDate } : t);
+    setState({ tasks: updatedTasks }, ['modal']); // Optimistic update
 
     try {
         await apiPut('tasks', { id: taskId, reminderAt: reminderDate });
     } catch (error) {
         console.error("Failed to set reminder:", error);
-        task.reminderAt = originalReminder; // Revert
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, reminderAt: originalReminder } : t);
+        setState({ tasks: revertedTasks }, ['modal']); // Revert
         alert("Could not save the reminder.");
     }
 }
 
 export async function handleToggleFollowUp(taskId: string, type: 'onInactivity' | 'onUnansweredQuestion') {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const originalConfig = { ...(task.followUpConfig || {}) };
-    if (!task.followUpConfig) {
-        task.followUpConfig = {};
-    }
-
-    task.followUpConfig[type] = !task.followUpConfig[type];
-    updateUI(['modal']); // Optimistic update
+    const newConfig = { ...originalConfig, [type]: !originalConfig[type] };
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, followUpConfig: newConfig } : t);
+    setState({ tasks: updatedTasks }, ['modal']); // Optimistic update
 
     try {
-        await apiPut('tasks', { id: taskId, followUpConfig: task.followUpConfig });
+        await apiPut('tasks', { id: taskId, followUpConfig: newConfig });
     } catch (error) {
         console.error("Failed to toggle follow-up:", error);
-        task.followUpConfig = originalConfig; // Revert
-        updateUI(['modal']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, followUpConfig: originalConfig } : t);
+        setState({ tasks: revertedTasks }, ['modal']); // Revert
         alert("Could not save follow-up preference.");
     }
 }
@@ -567,11 +598,13 @@ export async function handleToggleFollowUp(taskId: string, type: 'onInactivity' 
 export async function handleDeleteTask(taskId: string) {
     if (!confirm("Are you sure you want to delete this task permanently?")) return;
     
+    const state = getState();
     const taskIndex = state.tasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1) return;
 
-    const [removedTask] = state.tasks.splice(taskIndex, 1);
-    updateUI(['page']);
+    const originalTasks = [...state.tasks];
+    const updatedTasks = originalTasks.filter(t => t.id !== taskId);
+    setState({ tasks: updatedTasks }, ['page']);
 
     try {
         await apiFetch('/api?action=data&resource=tasks', {
@@ -580,49 +613,50 @@ export async function handleDeleteTask(taskId: string) {
         });
     } catch (error) {
         console.error("Failed to delete task:", error);
-        state.tasks.splice(taskIndex, 0, removedTask);
-        updateUI(['page']);
+        setState({ tasks: originalTasks }, ['page']);
     }
 }
 
 export async function handleToggleTaskArchive(taskId: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const originalStatus = task.isArchived;
-    task.isArchived = !task.isArchived;
-    updateUI(['page']);
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, isArchived: !t.isArchived } : t);
+    setState({ tasks: updatedTasks }, ['page']);
 
     try {
-        await apiPut('tasks', { id: taskId, isArchived: task.isArchived });
+        await apiPut('tasks', { id: taskId, isArchived: !task.isArchived });
     } catch (error) {
         console.error("Failed to update task archive status:", error);
-        task.isArchived = originalStatus;
-        updateUI(['page']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, isArchived: originalStatus } : t);
+        setState({ tasks: revertedTasks }, ['page']);
     }
 }
 
 export async function handleChangeGanttViewMode(mode: 'Day' | 'Week' | 'Month') {
-    state.ui.tasks.ganttViewMode = mode;
-    updateUI(['page']);
+    setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, ganttViewMode: mode } } }), ['page']);
 }
 
 
 export async function handleToggleProjectTaskStatus(taskId: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const originalStatus = task.status;
     const newStatus = task.status === 'done' ? 'todo' : 'done';
-    task.status = newStatus;
-    updateUI(['side-panel']);
+    
+    const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+    setState({ tasks: updatedTasks }, ['side-panel']);
 
     try {
         await apiPut('tasks', { id: taskId, status: newStatus });
     } catch (error) {
         console.error("Failed to update task status:", error);
-        task.status = originalStatus;
-        updateUI(['side-panel']);
+        const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, status: originalStatus } : t);
+        setState({ tasks: revertedTasks }, ['side-panel']);
         alert("Could not update task status.");
     }
 }

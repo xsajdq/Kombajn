@@ -1,4 +1,5 @@
-import { state, saveState } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
 
@@ -27,6 +28,7 @@ export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'de
 }
 
 function updateUrlOnPanelClose() {
+    const state = getState();
     const newPath = `/${state.currentPage}`;
     if (window.location.pathname !== newPath) {
         history.pushState({}, '', newPath);
@@ -34,74 +36,89 @@ function updateUrlOnPanelClose() {
 }
 
 export function toggleCommandPalette(force?: boolean) {
-    state.ui.isCommandPaletteOpen = force ?? !state.ui.isCommandPaletteOpen;
-    if (state.ui.isCommandPaletteOpen) {
-        state.ui.commandPaletteQuery = '';
-    }
-    updateUI(['command-palette']);
-    if (state.ui.isCommandPaletteOpen) {
+    const state = getState();
+    const isOpen = force ?? !state.ui.isCommandPaletteOpen;
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            isCommandPaletteOpen: isOpen,
+            commandPaletteQuery: isOpen ? '' : prevState.ui.commandPaletteQuery,
+        }
+    }), ['command-palette']);
+    
+    if (isOpen) {
         document.getElementById('command-palette-input')?.focus();
     }
 }
 
 export function toggleTaskFilters(force?: boolean) {
-    state.ui.tasks.isFilterOpen = force ?? !state.ui.tasks.isFilterOpen;
-    updateUI(['page']);
+    setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isFilterOpen: force ?? !prevState.ui.tasks.isFilterOpen } } }), ['page']);
 }
 
 export function openProjectPanel(projectId: string) {
     if (document.activeElement instanceof HTMLElement) {
         lastFocusedElement = document.activeElement;
     }
-    state.ui.openedProjectId = projectId;
-    state.ui.openedClientId = null;
-    state.ui.openedDealId = null;
-    state.ui.openedProjectTab = 'overview';
-    state.ui.isWikiEditing = false;
-    updateUI(['side-panel']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            openedProjectId: projectId,
+            openedClientId: null,
+            openedDealId: null,
+            openedProjectTab: 'overview',
+            isWikiEditing: false,
+        }
+    }), ['side-panel']);
 }
 
 export function openClientPanel(clientId: string) {
     if (document.activeElement instanceof HTMLElement) {
         lastFocusedElement = document.activeElement;
     }
-    state.ui.openedClientId = clientId;
-    state.ui.openedProjectId = null;
-    state.ui.openedDealId = null;
-    updateUI(['side-panel']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            openedClientId: clientId,
+            openedProjectId: null,
+            openedDealId: null,
+        }
+    }), ['side-panel']);
 }
 
 export function openDealPanel(dealId: string) {
     if (document.activeElement instanceof HTMLElement) {
         lastFocusedElement = document.activeElement;
     }
-    state.ui.openedDealId = dealId;
-    state.ui.openedProjectId = null;
-    state.ui.openedClientId = null;
-    updateUI(['side-panel']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            openedDealId: dealId,
+            openedProjectId: null,
+            openedClientId: null,
+        }
+    }), ['side-panel']);
 }
 
 export function closeSidePanels(shouldRender = true) {
+    const state = getState();
     let changed = false;
-    if (state.ui.openedProjectId) {
-        state.ui.openedProjectId = null;
-        changed = true;
-    }
-    if (state.ui.openedClientId) {
-        state.ui.openedClientId = null;
-        changed = true;
-    }
-    if (state.ui.openedDealId) {
-        state.ui.openedDealId = null;
+    if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
         changed = true;
     }
 
     if (changed) {
-        state.ui.isWikiEditing = false;
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                openedProjectId: null,
+                openedClientId: null,
+                openedDealId: null,
+                isWikiEditing: false,
+            }
+        }), shouldRender ? ['side-panel'] : []);
+
         updateUrlOnPanelClose();
-        if (shouldRender) {
-            updateUI(['side-panel']);
-        }
+        
         if (lastFocusedElement) {
             lastFocusedElement.focus();
             lastFocusedElement = null;
@@ -127,24 +144,30 @@ export function showModal(type: AppState['ui']['modal']['type'], data?: any) {
             modalData.dueDate = dueDate.toISOString().slice(0, 10);
         }
     }
-    state.ui.modal = { isOpen: true, type, data: modalData, justOpened: true };
-    updateUI(['modal']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            modal: { isOpen: true, type, data: modalData, justOpened: true }
+        }
+    }), ['modal']);
 }
 
 export function closeModal(shouldRender = true) {
+    const state = getState();
     if(state.ui.modal.isOpen){
         const modalType = state.ui.modal.type;
-        state.ui.modal = { isOpen: false, type: null, data: undefined, justOpened: false };
-        state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
-        saveState();
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                modal: { isOpen: false, type: null, data: undefined, justOpened: false },
+                mention: { query: null, target: null, activeIndex: 0, rect: null },
+            }
+        }), shouldRender ? ['modal'] : []);
 
         if (modalType === 'taskDetail') {
             updateUrlOnPanelClose();
         }
 
-        if (shouldRender) {
-            updateUI(['modal']);
-        }
         if (lastFocusedElement) {
             lastFocusedElement.focus();
             lastFocusedElement = null;

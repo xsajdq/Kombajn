@@ -1,9 +1,10 @@
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 import { updateUI } from '../app-renderer.ts';
 
 export async function handleUpdateProfile(form: HTMLFormElement) {
+    const state = getState();
     if (!state.currentUser) return;
 
     const nameInput = form.querySelector('#profile-full-name') as HTMLInputElement;
@@ -20,6 +21,7 @@ export async function handleUpdateProfile(form: HTMLFormElement) {
     const payload: { id: string; name: string; avatarUrl?: string } = {
         id: state.currentUser.id,
         name: name,
+        avatarUrl: state.currentUser.avatarUrl,
     };
 
     try {
@@ -35,21 +37,22 @@ export async function handleUpdateProfile(form: HTMLFormElement) {
 
         const [updatedProfile] = await apiPut('profiles', payload);
 
-        state.currentUser.name = updatedProfile.name;
-        state.currentUser.avatarUrl = updatedProfile.avatarUrl;
-        const userInList = state.users.find(u => u.id === state.currentUser!.id);
-        if (userInList) {
-            userInList.name = updatedProfile.name;
-            userInList.avatarUrl = updatedProfile.avatarUrl;
-        }
+        setState(prevState => {
+            const updatedUsers = prevState.users.map(u => 
+                u.id === prevState.currentUser!.id ? { ...u, ...updatedProfile } : u
+            );
+            return {
+                currentUser: { ...prevState.currentUser!, ...updatedProfile },
+                users: updatedUsers
+            };
+        }, ['page', 'header']);
+
 
         if (statusEl) {
             statusEl.textContent = t('settings.profile_updated');
             statusEl.style.color = 'var(--success-color)';
         }
         
-        updateUI(['page', 'header']);
-
     } catch (error) {
         console.error("Profile update failed:", error);
         if (statusEl) {
@@ -117,20 +120,23 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
 }
 
 export async function handleToggleKanbanViewMode() {
+    const state = getState();
     if (!state.currentUser) return;
 
     const currentMode = state.currentUser.kanbanViewMode || 'detailed';
     const newMode = currentMode === 'detailed' ? 'simple' : 'detailed';
 
-    state.currentUser.kanbanViewMode = newMode;
-    updateUI(['page']);
+    setState(prevState => ({
+        currentUser: { ...prevState.currentUser!, kanbanViewMode: newMode }
+    }), ['page']);
 
     try {
         await apiPut('profiles', { id: state.currentUser.id, kanbanViewMode: newMode });
     } catch (error) {
         console.error("Failed to save Kanban view preference:", error);
-        state.currentUser.kanbanViewMode = currentMode;
-        updateUI(['page']);
+        setState(prevState => ({
+            currentUser: { ...prevState.currentUser!, kanbanViewMode: currentMode }
+        }), ['page']);
         alert("Could not save your view preference. Please try again.");
     }
 }

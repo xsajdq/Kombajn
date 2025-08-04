@@ -1,5 +1,5 @@
 
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -19,34 +19,38 @@ export async function handlePlanProjectWithAi(name: string, clientId: string, go
         });
 
         const projectData = {
-            workspaceId: state.activeWorkspaceId,
+            workspaceId: getState().activeWorkspaceId,
             name: name,
             clientId: clientId,
             wikiContent: `Project Goal:\n\n> ${goal}`,
             privacy: 'private'
         };
         const [newProject] = await apiPost('projects', projectData);
-        state.projects.push(newProject);
 
         const creatorMember: Omit<ProjectMember, 'id'> = {
             projectId: newProject.id,
-            userId: state.currentUser!.id,
+            userId: getState().currentUser!.id,
             role: 'admin'
         };
         const [savedCreatorMember] = await apiPost('project_members', creatorMember);
-        state.projectMembers.push(savedCreatorMember);
-
+        
+        let newTasks: Task[] = [];
         if (suggestedTasks && suggestedTasks.length > 0) {
             const taskPayloads = suggestedTasks.map((task: AiSuggestedTask) => ({
-                workspaceId: state.activeWorkspaceId,
+                workspaceId: getState().activeWorkspaceId,
                 projectId: newProject.id,
                 name: task.name,
                 description: task.description,
                 status: 'backlog',
             }));
-            const newTasks = await apiPost('tasks', taskPayloads);
-            state.tasks.push(...newTasks);
+            newTasks = await apiPost('tasks', taskPayloads);
         }
+
+        setState(prevState => ({
+            projects: [...prevState.projects, newProject],
+            projectMembers: [...prevState.projectMembers, savedCreatorMember],
+            tasks: [...prevState.tasks, ...newTasks]
+        }), []);
 
         closeModal(false);
         openProjectPanel(newProject.id);
@@ -61,34 +65,8 @@ export async function handlePlanProjectWithAi(name: string, clientId: string, go
     }
 }
 
-export async function handleDeleteProject(projectId: string) {
-    const projectIndex = state.projects.findIndex(p => p.id === projectId);
-    if (projectIndex === -1) return;
-
-    const [removedProject] = state.projects.splice(projectIndex, 1);
-    const originalTasks = [...state.tasks];
-    const originalProjectMembers = [...state.projectMembers];
-    
-    state.tasks = state.tasks.filter(t => t.projectId !== projectId);
-    state.projectMembers = state.projectMembers.filter(pm => pm.projectId !== projectId);
-    closeSidePanels();
-
-    try {
-        await apiFetch(`/api?action=data&resource=projects`, {
-            method: 'DELETE',
-            body: JSON.stringify({ id: projectId }),
-        });
-    } catch (error) {
-        console.error("Failed to delete project:", error);
-        alert("Could not delete the project from the server. Reverting changes.");
-        state.projects.splice(projectIndex, 0, removedProject);
-        state.tasks = originalTasks;
-        state.projectMembers = originalProjectMembers;
-        updateUI(['page']);
-    }
-}
-
 export async function handleSyncProjectMembers(projectId: string, newMemberIds: Set<string>) {
+    const state = getState();
     const existingMembers = state.projectMembers.filter(pm => pm.projectId === projectId);
     const existingMemberIds = new Set(existingMembers.map(pm => pm.userId));
 
@@ -117,10 +95,10 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
         }));
     }
 
-    const removedMembersForRevert = state.projectMembers.filter(pm => membersToRemove.some(m => m.id === pm.id));
-    state.projectMembers = state.projectMembers.filter(pm => !membersToRemove.some(m => m.id === pm.id));
-    
-    updateUI(['side-panel']);
+    const originalProjectMembers = [...state.projectMembers];
+    setState(prevState => ({
+        projectMembers: prevState.projectMembers.filter(pm => !membersToRemove.some(m => m.id === pm.id))
+    }), ['side-panel']);
 
     try {
         const [addResults] = await Promise.all([
@@ -130,19 +108,21 @@ export async function handleSyncProjectMembers(projectId: string, newMemberIds: 
         
         if (addResults && addResults.length > 0) {
             const newMembers = addResults.flat().filter(Boolean);
-            state.projectMembers.push(...newMembers);
+            setState(prevState => ({
+                projectMembers: [...prevState.projectMembers, ...newMembers]
+            }), []);
         }
-        
     } catch (error) {
         console.error("Failed to sync project members:", error);
         alert("Could not update project members. Please refresh the page.");
-        state.projectMembers.push(...removedMembersForRevert);
+        setState({ projectMembers: originalProjectMembers }, []);
     } finally {
         updateUI(['side-panel']);
     }
 }
 
 export async function handleSyncProjectTags(projectId: string, newTagIds: Set<string>) {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 
@@ -155,41 +135,43 @@ export async function handleSyncProjectTags(projectId: string, newTagIds: Set<st
     if (tagsToAdd.length === 0 && tagsToRemove.length === 0) {
         return; // No changes needed
     }
+    
+    const originalProjectTags = [...state.projectTags];
 
-    const addPromises: Promise<any>[] = [];
-    if (tagsToAdd.length > 0) {
-        const addPayloads = tagsToAdd.map(tagId => ({
-            workspaceId: activeWorkspaceId,
-            projectId,
-            tagId,
-        }));
-        addPromises.push(apiPost('project_tags', addPayloads));
-    }
+    // Optimistic UI update
+    const optimisticallyAdded = tagsToAdd.map(tagId => ({
+        projectId,
+        tagId,
+        workspaceId: activeWorkspaceId,
+        id: `temp_${Date.now()}` // Temporary ID for local state
+    }));
 
-    const removePromises: Promise<any>[] = [];
-    for (const tagId of tagsToRemove) {
-        removePromises.push(
-            apiFetch('/api?action=data&resource=project_tags', {
-                method: 'DELETE',
-                body: JSON.stringify({ projectId, tagId }),
-            })
-        );
-    }
+    setState(prevState => ({
+        projectTags: [
+            ...prevState.projectTags.filter(pt => !(pt.projectId === projectId && tagsToRemove.includes(pt.tagId))),
+            ...optimisticallyAdded
+        ]
+    }), ['page', 'side-panel']);
 
     try {
+        const addPromises = tagsToAdd.map(tagId => apiPost('project_tags', { workspaceId: activeWorkspaceId, projectId, tagId }));
+        const removePromises = tagsToRemove.map(tagId => apiFetch('/api?action=data&resource=project_tags', { method: 'DELETE', body: JSON.stringify({ projectId, tagId }) }));
+        
         const [addResults] = await Promise.all([
             Promise.all(addPromises),
             Promise.all(removePromises),
         ]);
 
-        // Update state after successful API calls
-        state.projectTags = state.projectTags.filter(pt => !(pt.projectId === projectId && tagsToRemove.includes(pt.tagId)));
-        if (addResults && addResults.length > 0) {
-            const newLinks = addResults.flat().filter(Boolean);
-            state.projectTags.push(...newLinks);
-        }
+        // Replace temporary items with real ones from the server
+        setState(prevState => ({
+            projectTags: [
+                ...prevState.projectTags.filter(pt => !pt.id.startsWith('temp_')),
+                ...addResults.flat().filter(Boolean)
+            ]
+        }), []);
     } catch (error) {
         console.error("Failed to sync project tags:", error);
         alert("Could not update project tags. The data may be out of sync, please refresh.");
+        setState({ projectTags: originalProjectTags }, ['page', 'side-panel']);
     }
 }

@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 
 function getCaretPosition(element: HTMLElement): { range: Range | null, rect: DOMRect | null } {
@@ -14,15 +15,13 @@ function getCaretPosition(element: HTMLElement): { range: Range | null, rect: DO
 export function handleSlashCommandInput(inputDiv: HTMLElement) {
     const { range, rect } = getCaretPosition(inputDiv);
     if (!range || !rect) {
-        state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
-        updateUI(['slash-command-popover']);
+        setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['slash-command-popover']);
         return;
     }
 
     const textNode = range.startContainer;
     if (textNode.nodeType !== Node.TEXT_NODE) {
-        state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
-        updateUI(['slash-command-popover']);
+        setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['slash-command-popover']);
         return;
     }
 
@@ -33,20 +32,18 @@ export function handleSlashCommandInput(inputDiv: HTMLElement) {
         const query = textBeforeCursor.substring(slashPosition + 1);
         
         if (query.includes('\n') || query.includes(' ')) {
-            state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
+            setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['slash-command-popover']);
         } else {
             const slashRange = document.createRange();
             slashRange.setStart(textNode, slashPosition);
             slashRange.setEnd(textNode, slashPosition + 1);
             const slashRect = slashRange.getBoundingClientRect();
 
-            state.ui.slashCommand = { query, target: inputDiv, activeIndex: 0, rect: slashRect };
+            setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query, target: inputDiv, activeIndex: 0, rect: slashRect } } }), ['slash-command-popover']);
         }
     } else {
-        state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
+        setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['slash-command-popover']);
     }
-    
-    updateUI(['slash-command-popover']);
 }
 
 export function handleInsertSlashCommand(command: string, inputDiv: HTMLElement) {
@@ -79,8 +76,7 @@ export function handleInsertSlashCommand(command: string, inputDiv: HTMLElement)
             break;
     }
 
-    state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
-    updateUI(['slash-command-popover']);
+    setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['slash-command-popover']);
 }
 
 export function handleLiveMarkdown(inputDiv: HTMLElement) {

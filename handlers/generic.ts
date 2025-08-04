@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI, UIComponent } from '../app-renderer.ts';
 import { apiFetch } from '../services/api.ts';
 
@@ -15,7 +16,9 @@ export type ResourceName =
     | 'project_members'
     | 'tasks'
     | 'task_dependencies'
-    | 'attachments';
+    | 'attachments'
+    | 'clients'
+    | 'projects';
 
 // A type mapping resource names to their corresponding keys in the global state.
 type StateKey =
@@ -30,7 +33,9 @@ type StateKey =
     | 'projectMembers'
     | 'tasks'
     | 'dependencies'
-    | 'attachments';
+    | 'attachments'
+    | 'clients'
+    | 'projects';
 
 const resourceToStateMap: Record<ResourceName, StateKey> = {
     'automations': 'automations',
@@ -44,7 +49,9 @@ const resourceToStateMap: Record<ResourceName, StateKey> = {
     'project_members': 'projectMembers',
     'tasks': 'tasks',
     'task_dependencies': 'dependencies',
-    'attachments': 'attachments'
+    'attachments': 'attachments',
+    'clients': 'clients',
+    'projects': 'projects'
 };
 
 /**
@@ -54,28 +61,66 @@ const resourceToStateMap: Record<ResourceName, StateKey> = {
  * @param confirmMessage - The message to display in the confirmation dialog.
  */
 export async function handleOptimisticDelete(resource: ResourceName, id: string, confirmMessage: string) {
-    if (!confirm(confirmMessage)) return;
+    if (confirmMessage && !confirm(confirmMessage)) return;
 
     const stateKey = resourceToStateMap[resource];
-    const stateArray = state[stateKey] as any[];
-    
-    const itemIndex = stateArray.findIndex((item: any) => item.id === id);
-    if (itemIndex === -1) return;
+    const state = getState();
+    const originalState: Partial<any> = {};
+    let stateUpdate: Partial<any> = {};
 
-    // Optimistic UI update
-    const [removedItem] = stateArray.splice(itemIndex, 1);
-    
-    if (resource === 'project_sections') {
-        state.tasks.forEach(task => {
-            if (task.projectSectionId === id) {
-                task.projectSectionId = null;
-            }
-        });
+    // Prepare state update and backup
+    if (resource === 'clients') {
+        const clientIndex = state.clients.findIndex(c => c.id === id);
+        if (clientIndex === -1) return;
+        
+        originalState.clients = [...state.clients];
+        originalState.projects = [...state.projects];
+        originalState.tasks = [...state.tasks];
+        originalState.invoices = [...state.invoices];
+
+        const projectsToDelete = state.projects.filter(p => p.clientId === id).map(p => p.id);
+        stateUpdate.clients = state.clients.filter(c => c.id !== id);
+        stateUpdate.projects = state.projects.filter(p => p.clientId !== id);
+        stateUpdate.tasks = state.tasks.filter(t => !projectsToDelete.includes(t.projectId));
+        stateUpdate.invoices = state.invoices.filter(i => i.clientId !== id);
+
+    } else if (resource === 'projects') {
+        const projectIndex = state.projects.findIndex(p => p.id === id);
+        if (projectIndex === -1) return;
+
+        originalState.projects = [...state.projects];
+        originalState.tasks = [...state.tasks];
+        originalState.projectMembers = [...state.projectMembers];
+        originalState.projectSections = [...state.projectSections];
+
+        stateUpdate.projects = state.projects.filter(p => p.id !== id);
+        stateUpdate.tasks = state.tasks.filter(t => t.projectId !== id);
+        stateUpdate.projectMembers = state.projectMembers.filter(pm => pm.projectId !== id);
+        stateUpdate.projectSections = state.projectSections.filter(ps => ps.projectId !== id);
+
+    } else if (resource === 'project_sections') {
+        const sectionIndex = state.projectSections.findIndex(ps => ps.id === id);
+        if (sectionIndex === -1) return;
+
+        originalState.projectSections = [...state.projectSections];
+        originalState.tasks = [...state.tasks];
+
+        stateUpdate.projectSections = state.projectSections.filter(ps => ps.id !== id);
+        stateUpdate.tasks = state.tasks.map(task => 
+            task.projectSectionId === id ? { ...task, projectSectionId: null } : task
+        );
+    } else {
+        const stateArray = state[stateKey] as any[];
+        const itemIndex = stateArray.findIndex((item: any) => item.id === id);
+        if (itemIndex === -1) return;
+
+        originalState[stateKey] = [...stateArray];
+        stateUpdate[stateKey] = stateArray.filter((item: any) => item.id !== id);
     }
+    
+    // Optimistic UI update
+    setState(stateUpdate, ['page', 'modal', 'side-panel']);
 
-    // Determine UI scope. Project members are in side panel, others are on main page.
-    const uiScope: UIComponent[] = ['page', 'modal', 'side-panel'];
-    updateUI(uiScope);
 
     try {
         await apiFetch(`/api?action=data&resource=${resource}`, {
@@ -85,8 +130,6 @@ export async function handleOptimisticDelete(resource: ResourceName, id: string,
     } catch (error) {
         console.error(`Failed to delete ${resource}:`, error);
         alert(`Could not delete item. Reverting change.`);
-        // Revert UI on failure
-        stateArray.splice(itemIndex, 0, removedItem);
-        updateUI(uiScope);
+        setState(originalState, ['page', 'modal', 'side-panel']);
     }
 }

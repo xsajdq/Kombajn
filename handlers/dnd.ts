@@ -1,9 +1,6 @@
 
-
-
-
-import { state } from '../state.ts';
-import { renderApp } from '../app-renderer.ts';
+import { getState, setState } from '../state.ts';
+import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
@@ -17,6 +14,7 @@ let draggedItemType: 'task' | 'deal' | 'widget' | 'pipeline-stage' | 'kanban-sta
 
 export function handleDragStart(e: DragEvent) {
     const target = e.target as HTMLElement;
+    const state = getState();
     const taskCard = target.closest<HTMLElement>('.task-card');
     const dealCard = target.closest<HTMLElement>('.deal-card');
     const widget = target.closest<HTMLElement>('[data-widget-id]');
@@ -101,6 +99,7 @@ export function handleDragOver(e: DragEvent) {
 
 export async function handleDrop(e: DragEvent) {
     e.preventDefault();
+    const state = getState();
     
     if (!draggedItemId || !draggedItemType || !state.currentUser) {
         return;
@@ -134,9 +133,13 @@ export async function handleDrop(e: DragEvent) {
         
         let newSortOrder: number;
         if (dropIndex === 0) {
-            newSortOrder = (sortOrderMap.get(tasksInColumn[0]?.id) || 1) / 2;
+            const firstTask = tasksInColumn[0];
+            const firstTaskSortOrder = firstTask ? sortOrderMap.get(firstTask.id) : 1;
+            newSortOrder = (firstTaskSortOrder || 1) / 2;
         } else if (dropIndex === tasksInColumn.length) {
-            newSortOrder = (sortOrderMap.get(tasksInColumn[tasksInColumn.length - 1]?.id) || 0) + 1;
+            const lastTask = tasksInColumn[tasksInColumn.length - 1];
+            const lastTaskSortOrder = lastTask ? sortOrderMap.get(lastTask.id) : 0;
+            newSortOrder = (lastTaskSortOrder || 0) + 1;
         } else {
             const before = sortOrderMap.get(tasksInColumn[dropIndex - 1].id) || 0;
             const after = sortOrderMap.get(tasksInColumn[dropIndex].id) || 0;
@@ -144,21 +147,24 @@ export async function handleDrop(e: DragEvent) {
         }
 
         // Optimistic update
-        task.status = newStatus;
+        const updatedTask = { ...task, status: newStatus };
+        const updatedTasks = state.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+        
+        let updatedSortOrders = [...state.userTaskSortOrders];
         if (sortOrderRecord) {
-            sortOrderRecord.sortOrder = newSortOrder;
-            sortOrderRecord.status = newStatus;
+            updatedSortOrders = updatedSortOrders.map(o => o.id === sortOrderRecord.id ? { ...o, sortOrder: newSortOrder, status: newStatus } : o);
         } else {
-            state.userTaskSortOrders.push({
+            updatedSortOrders.push({
                 id: `temp-${Date.now()}`,
                 userId: state.currentUser.id,
                 taskId: task.id,
                 workspaceId: task.workspaceId,
                 status: newStatus,
                 sortOrder: newSortOrder
-            });
+            } as UserTaskSortOrder);
         }
-        renderApp();
+        setState({ tasks: updatedTasks, userTaskSortOrders: updatedSortOrders }, ['page']);
+
 
         try {
             await apiPut('tasks', { id: task.id, status: newStatus });
@@ -171,23 +177,12 @@ export async function handleDrop(e: DragEvent) {
             });
 
             if (originalTaskStatus !== newStatus) {
-                runAutomations('statusChange', { task, actorId: state.currentUser.id });
+                runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error("Failed to update task:", error);
             alert("Failed to update task. Reverting change.");
-            task.status = originalTaskStatus;
-            
-            // Revert sort order state
-            const sortOrderIndex = state.userTaskSortOrders.findIndex(o => o.taskId === task.id && o.userId === state.currentUser!.id);
-            if (sortOrderIndex > -1) {
-                if (originalSortOrderState) {
-                    state.userTaskSortOrders[sortOrderIndex] = originalSortOrderState;
-                } else {
-                    state.userTaskSortOrders.splice(sortOrderIndex, 1);
-                }
-            }
-            renderApp();
+            setState({ tasks: state.tasks, userTaskSortOrders: state.userTaskSortOrders }, ['page']);
         }
     }
 
@@ -200,9 +195,9 @@ export async function handleDrop(e: DragEvent) {
             const oldStage = deal.stage;
             const newActivityDate = new Date().toISOString();
             
-            deal.stage = newStage; // Optimistic update
-            deal.lastActivityAt = newActivityDate;
-            renderApp();
+            const updatedDeal = { ...deal, stage: newStage, lastActivityAt: newActivityDate };
+            const updatedDeals = state.deals.map(d => d.id === deal.id ? updatedDeal : d);
+            setState({ deals: updatedDeals }, ['page']);
 
             try {
                 await apiPut('deals', { id: deal.id, stage: newStage, lastActivityAt: newActivityDate });
@@ -213,8 +208,8 @@ export async function handleDrop(e: DragEvent) {
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
                 alert("Failed to update deal stage. Reverting change.");
-                deal.stage = oldStage;
-                renderApp();
+                const revertedDeals = state.deals.map(d => d.id === deal.id ? { ...d, stage: oldStage } : d);
+                setState({ deals: revertedDeals }, ['page']);
             }
         }
     }
@@ -239,13 +234,16 @@ export async function handleDrop(e: DragEvent) {
         const [draggedItem] = userWidgets.splice(draggedIndex, 1);
         userWidgets.splice(targetIndex, 0, draggedItem);
         
-        // Update sortOrder on the global state objects
-        userWidgets.forEach((widget, index) => {
-            const globalWidget = state.dashboardWidgets.find(w => w.id === widget.id);
-            if (globalWidget) globalWidget.sortOrder = index;
+        // Create a new full widget array with updated sort orders
+        const userWidgetsMap = new Map(userWidgets.map((w, index) => [w.id, { ...w, sortOrder: index }]));
+        const newDashboardWidgets = state.dashboardWidgets.map(w => {
+            if (userWidgetsMap.has(w.id)) {
+                return userWidgetsMap.get(w.id)!;
+            }
+            return w;
         });
 
-        renderApp();
+        setState({ dashboardWidgets: newDashboardWidgets }, ['page']);
 
         try {
             const updatePromises = userWidgets.map((widget, index) =>
@@ -255,8 +253,7 @@ export async function handleDrop(e: DragEvent) {
         } catch (error) {
             console.error("Could not save widget order:", error);
             alert("Could not save the new widget layout.");
-            state.dashboardWidgets = originalWidgets; // Revert
-            renderApp();
+            setState({ dashboardWidgets: originalWidgets }, ['page']); // Revert
         }
     }
     
@@ -296,7 +293,7 @@ export async function handleDrop(e: DragEvent) {
         if (draggedElement) {
             const isDraggingDown = (draggedElement.getBoundingClientRect().top - dropTargetKanbanStageRow.getBoundingClientRect().top) < 0;
             if (isDraggingDown) {
-                stageList.insertBefore(draggedElement, dropTargetStageRow.nextSibling);
+                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow.nextSibling);
             } else {
                 stageList.insertBefore(draggedElement, dropTargetStageRow);
             }

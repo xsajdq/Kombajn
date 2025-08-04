@@ -1,4 +1,4 @@
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPut } from '../services/api.ts';
 import { t } from '../i18n.ts';
@@ -31,7 +31,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step3_content'),
         preAction: () => {
             history.pushState({}, '', '/projects');
-            updateUI(['page', 'sidebar']);
+            setState({ currentPage: 'projects' }, ['page', 'sidebar']);
         }
     },
     {
@@ -40,7 +40,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step4_content'),
         preAction: () => {
             history.pushState({}, '', '/tasks');
-            updateUI(['page', 'sidebar']);
+            setState({ currentPage: 'tasks' }, ['page', 'sidebar']);
         }
     },
     {
@@ -49,7 +49,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step5_content'),
         preAction: () => {
             history.pushState({}, '', '/dashboard');
-            updateUI(['page', 'sidebar']);
+            setState({ currentPage: 'dashboard' }, ['page', 'sidebar']);
         }
     },
     {
@@ -67,7 +67,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step8_content'),
         preAction: () => {
             history.pushState({}, '', '/settings');
-            updateUI(['page', 'sidebar']);
+            setState({ currentPage: 'settings' }, ['page', 'sidebar']);
         }
     },
     {
@@ -75,7 +75,7 @@ export const onboardingSteps: OnboardingStep[] = [
         content: t('onboarding.step9_content'),
         preAction: () => {
             history.pushState({}, '', '/dashboard');
-            updateUI(['page', 'sidebar']);
+            setState({ currentPage: 'dashboard' }, ['page', 'sidebar']);
         }
     }
 ];
@@ -83,42 +83,57 @@ export const onboardingSteps: OnboardingStep[] = [
 
 export function startOnboarding() {
     console.log("Starting onboarding...");
-    state.ui.onboarding = { isActive: true, step: 0 };
-    updateUI(['onboarding']);
+    setState(prevState => ({
+        ui: { ...prevState.ui, onboarding: { isActive: true, step: 0 } }
+    }), ['onboarding']);
 }
 
 export function nextStep() {
-    const currentStep = state.ui.onboarding.step;
+    const currentStep = getState().ui.onboarding.step;
     if (currentStep >= onboardingSteps.length - 1) {
         finishOnboarding();
     } else {
         const nextStepIndex = currentStep + 1;
         const nextStepConfig = onboardingSteps[nextStepIndex];
         
-        state.ui.onboarding.step = nextStepIndex;
-
+        // The preAction will trigger its own setState and render.
+        // If there's no preAction, we trigger the render ourselves.
         if (nextStepConfig.preAction) {
+            // Update the step number silently before the action,
+            // so the action's render shows the correct new step.
+            setState(prevState => ({
+                ui: { ...prevState.ui, onboarding: { ...prevState.ui.onboarding, step: nextStepIndex } }
+            }), []);
             nextStepConfig.preAction();
         } else {
-            updateUI(['onboarding']);
+            setState(prevState => ({
+                ui: { ...prevState.ui, onboarding: { ...prevState.ui.onboarding, step: nextStepIndex } }
+            }), ['onboarding']);
         }
     }
 }
 
 export async function finishOnboarding() {
-    const { activeWorkspaceId } = state;
-    state.ui.onboarding.isActive = false;
-    updateUI(['onboarding']);
+    const { activeWorkspaceId } = getState();
+    
+    setState(prevState => ({
+        ui: { ...prevState.ui, onboarding: { isActive: false, step: 0 } }
+    }), ['onboarding']);
 
     if (activeWorkspaceId) {
-        const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
+        const workspace = getState().workspaces.find(w => w.id === activeWorkspaceId);
         if (workspace && !workspace.onboardingCompleted) {
+            // Optimistic update
+            setState(prevState => ({
+                workspaces: prevState.workspaces.map(w => w.id === activeWorkspaceId ? { ...w, onboardingCompleted: true } : w)
+            }), []);
             try {
-                workspace.onboardingCompleted = true;
                 await apiPut('workspaces', { id: activeWorkspaceId, onboardingCompleted: true });
                 console.log("Onboarding completed and saved.");
             } catch (error) {
-                if (workspace) workspace.onboardingCompleted = false;
+                 setState(prevState => ({
+                    workspaces: prevState.workspaces.map(w => w.id === activeWorkspaceId ? { ...w, onboardingCompleted: false } : w)
+                }), []);
                 console.error("Failed to save onboarding completion status:", error);
             }
         }

@@ -1,25 +1,27 @@
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { TaskFilters, FilterView } from '../types.ts';
 import { t } from '../i18n.ts';
 
 export function applyFilterView(viewId: string) {
+    const state = getState();
     const view = state.filterViews.find(v => v.id === viewId);
     if (view) {
-        state.ui.tasks.filters = { ...view.filters };
-        state.ui.tasks.activeFilterViewId = viewId;
-        updateUI(['page']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { ...view.filters }, activeFilterViewId: viewId } }
+        }), ['page']);
     }
 }
 
 export function resetFilters() {
-    state.ui.tasks.filters = { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false };
-    state.ui.tasks.activeFilterViewId = null;
-    updateUI(['page']);
+    setState(prevState => ({
+        ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false }, activeFilterViewId: null } }
+    }), ['page']);
 }
 
 export async function saveCurrentFilterView() {
+    const state = getState();
     const name = prompt("Enter a name for this filter view:");
     if (!name || !state.activeWorkspaceId || !state.currentUser) return;
 
@@ -32,9 +34,10 @@ export async function saveCurrentFilterView() {
 
     try {
         const [savedView] = await apiPost('filter_views', newView);
-        state.filterViews.push(savedView);
-        state.ui.tasks.activeFilterViewId = savedView.id;
-        updateUI(['page']);
+        setState(prevState => ({
+            filterViews: [...prevState.filterViews, savedView],
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, activeFilterViewId: savedView.id } }
+        }), ['page']);
     } catch (error) {
         console.error("Failed to save filter view:", error);
         alert("Could not save the filter view.");
@@ -42,6 +45,7 @@ export async function saveCurrentFilterView() {
 }
 
 export async function updateActiveFilterView() {
+    const state = getState();
     const viewId = state.ui.tasks.activeFilterViewId;
     if (!viewId) return;
 
@@ -49,20 +53,24 @@ export async function updateActiveFilterView() {
     if (!viewInState) return;
     
     const originalFilters = { ...viewInState.filters };
-    viewInState.filters = { ...state.ui.tasks.filters };
-    updateUI(['page']);
+    
+    setState(prevState => ({
+        filterViews: prevState.filterViews.map(v => v.id === viewId ? { ...v, filters: { ...prevState.ui.tasks.filters } } : v)
+    }), ['page']);
 
     try {
-        await apiPut('filter_views', { id: viewId, filters: viewInState.filters });
+        await apiPut('filter_views', { id: viewId, filters: state.ui.tasks.filters });
     } catch (error) {
         console.error("Failed to update filter view:", error);
         alert("Could not update the filter view.");
-        viewInState.filters = originalFilters;
-        updateUI(['page']);
+        setState(prevState => ({
+            filterViews: prevState.filterViews.map(v => v.id === viewId ? { ...v, filters: originalFilters } : v)
+        }), ['page']);
     }
 }
 
 export async function deleteActiveFilterView() {
+    const state = getState();
     const viewId = state.ui.tasks.activeFilterViewId;
     if (!viewId) return;
 
@@ -71,8 +79,13 @@ export async function deleteActiveFilterView() {
     const viewIndex = state.filterViews.findIndex(v => v.id === viewId);
     if (viewIndex === -1) return;
 
-    const [removedView] = state.filterViews.splice(viewIndex, 1);
-    resetFilters();
+    const originalViews = [...state.filterViews];
+    
+    setState(prevState => ({
+        filterViews: prevState.filterViews.filter(v => v.id !== viewId),
+        ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { text: '', assigneeId: '', priority: '', projectId: '', status: '', dateRange: 'all', tagIds: [], isArchived: false }, activeFilterViewId: null } }
+    }), ['page']);
+
 
     try {
         await apiFetch('/api?action=data&resource=filter_views', {
@@ -82,8 +95,7 @@ export async function deleteActiveFilterView() {
     } catch (error) {
         console.error("Failed to delete filter view:", error);
         alert("Could not delete the filter view.");
-        state.filterViews.splice(viewIndex, 0, removedView);
-        applyFilterView(viewId);
+        setState({ filterViews: originalViews, ui: { ...state.ui, tasks: { ...state.ui.tasks, activeFilterViewId: viewId } } }, ['page']);
     }
 }
 
@@ -99,8 +111,8 @@ export function handleFilterChange(element: HTMLInputElement | HTMLSelectElement
     }
 
     if (key) {
-        (state.ui.tasks.filters as any)[key] = value;
-        state.ui.tasks.activeFilterViewId = null;
-        updateUI(['page']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { ...prevState.ui.tasks.filters, [key]: value }, activeFilterViewId: null } }
+        }), ['page']);
     }
 }

@@ -1,6 +1,5 @@
-
 // handlers/pipeline.ts
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { PipelineStage } from '../types.ts';
@@ -23,7 +22,7 @@ export async function handleCreateDefaultStages(workspaceId: string) {
 
     try {
         const newStages = await apiPost('pipeline_stages', payloads);
-        state.pipelineStages.push(...newStages);
+        setState(prevState => ({ pipelineStages: [...prevState.pipelineStages, ...newStages] }), []);
         return newStages;
     } catch (error) {
         console.error("Failed to create default pipeline stages:", error);
@@ -32,6 +31,7 @@ export async function handleCreateDefaultStages(workspaceId: string) {
 }
 
 export async function handleCreateStage(name: string) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
 
     const openStages = state.pipelineStages.filter(s => s.workspaceId === state.activeWorkspaceId && s.category === 'open');
@@ -46,8 +46,7 @@ export async function handleCreateStage(name: string) {
 
     try {
         const [newStage] = await apiPost('pipeline_stages', payload);
-        state.pipelineStages.push(newStage);
-        updateUI(['page']);
+        setState(prevState => ({ pipelineStages: [...prevState.pipelineStages, newStage] }), ['page']);
     } catch (error) {
         console.error("Failed to create pipeline stage:", error);
         alert("Could not create stage.");
@@ -55,24 +54,30 @@ export async function handleCreateStage(name: string) {
 }
 
 export async function handleUpdateStage(id: string, name: string) {
+    const state = getState();
     const stage = state.pipelineStages.find(s => s.id === id);
     if (!stage || !name.trim()) return;
 
     const originalName = stage.name;
-    stage.name = name.trim();
-    updateUI(['page']);
+    
+    setState(prevState => ({
+        pipelineStages: prevState.pipelineStages.map(s => s.id === id ? { ...s, name: name.trim() } : s)
+    }), ['page']);
+
 
     try {
         await apiPut('pipeline_stages', { id, name: name.trim() });
     } catch (error) {
         console.error("Failed to update stage:", error);
         alert("Could not update stage name.");
-        stage.name = originalName;
-        updateUI(['page']);
+        setState(prevState => ({
+            pipelineStages: prevState.pipelineStages.map(s => s.id === id ? { ...s, name: originalName } : s)
+        }), ['page']);
     }
 }
 
 export async function handleDeleteStage(id: string) {
+    const state = getState();
     const stage = state.pipelineStages.find(s => s.id === id);
     if (!stage || stage.category !== 'open') return;
 
@@ -84,9 +89,11 @@ export async function handleDeleteStage(id: string) {
 
     if (!confirm(`Are you sure you want to delete the "${stage.name}" stage?`)) return;
 
-    const stageIndex = state.pipelineStages.findIndex(s => s.id === id);
-    const [removedStage] = state.pipelineStages.splice(stageIndex, 1);
-    updateUI(['page']);
+    const originalStages = [...state.pipelineStages];
+    setState(prevState => ({
+        pipelineStages: prevState.pipelineStages.filter(s => s.id !== id)
+    }), ['page']);
+
 
     try {
         await apiFetch('/api?action=data&resource=pipeline_stages', {
@@ -96,24 +103,23 @@ export async function handleDeleteStage(id: string) {
     } catch (error) {
         console.error("Failed to delete stage:", error);
         alert("Could not delete stage.");
-        state.pipelineStages.splice(stageIndex, 0, removedStage);
-        updateUI(['page']);
+        setState({ pipelineStages: originalStages }, ['page']);
     }
 }
 
 export async function handleReorderStages(orderedIds: string[]) {
+    const state = getState();
     const originalOrder = [...state.pipelineStages];
     
     // Optimistic update
-    orderedIds.forEach((id, index) => {
-        const stage = state.pipelineStages.find(s => s.id === id);
-        if (stage) {
-            stage.sortOrder = index;
-        }
-    });
-    // Sort the state array based on the new order
-    state.pipelineStages.sort((a, b) => a.sortOrder - b.sortOrder);
-    updateUI(['page']);
+    const reorderedStages = state.pipelineStages.map(stage => {
+        const newIndex = orderedIds.indexOf(stage.id);
+        // Keep non-open stages at the end
+        if (stage.category !== 'open') return { ...stage, sortOrder: orderedIds.length + (stage.category === 'won' ? 0 : 1) };
+        return { ...stage, sortOrder: newIndex };
+    }).sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    setState({ pipelineStages: reorderedStages }, ['page']);
 
     try {
         const updatePromises = orderedIds.map((id, index) => 
@@ -123,7 +129,6 @@ export async function handleReorderStages(orderedIds: string[]) {
     } catch (error) {
         console.error("Failed to reorder stages:", error);
         alert("Could not save the new stage order.");
-        state.pipelineStages = originalOrder; // Revert on failure
-        updateUI(['page']);
+        setState({ pipelineStages: originalOrder }, ['page']); // Revert on failure
     }
 }

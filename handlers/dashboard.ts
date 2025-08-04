@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { DashboardWidget, DashboardWidgetType } from '../types.ts';
@@ -7,6 +8,7 @@ import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 let isCreatingDefaults = false;
 
 export function getKpiMetrics() {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) {
         return { totalRevenue: 0, activeProjects: 0, totalClients: 0, overdueProjects: 0 };
@@ -33,12 +35,20 @@ export function getKpiMetrics() {
 }
 
 export function toggleEditMode() {
-    state.ui.dashboard.isEditing = !state.ui.dashboard.isEditing;
-    updateUI(['page']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            dashboard: {
+                ...prevState.ui.dashboard,
+                isEditing: !prevState.ui.dashboard.isEditing
+            }
+        }
+    }), ['page']);
 }
 
 export async function createDefaultWidgets() {
     if (isCreatingDefaults) return;
+    const state = getState();
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
     isCreatingDefaults = true;
@@ -54,9 +64,9 @@ export async function createDefaultWidgets() {
         ];
 
         const savedWidgets = await apiPost('dashboard_widgets', defaultWidgets);
-        state.dashboardWidgets.push(...savedWidgets);
-        state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-        updateUI(['page']);
+        setState(prevState => ({
+            dashboardWidgets: [...prevState.dashboardWidgets, ...savedWidgets].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        }), ['page']);
     } catch (error) {
         console.error("Failed to create default widgets:", error);
     } finally {
@@ -66,6 +76,7 @@ export async function createDefaultWidgets() {
 
 
 export async function addWidget(type: DashboardWidgetType, metricType?: DashboardWidget['config']['metric']) {
+    const state = getState();
     if (!state.currentUser || !state.activeWorkspaceId) return;
 
     const userWidgets = state.dashboardWidgets.filter(w => 
@@ -88,8 +99,9 @@ export async function addWidget(type: DashboardWidgetType, metricType?: Dashboar
     
     try {
         const [savedWidget] = await apiPost('dashboard_widgets', newWidgetPayload);
-        state.dashboardWidgets.push(savedWidget);
-        state.dashboardWidgets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        setState(prevState => ({
+            dashboardWidgets: [...prevState.dashboardWidgets, savedWidget].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+        }), []);
         closeModal(false);
         updateUI(['page']);
     } catch (error) {
@@ -99,24 +111,28 @@ export async function addWidget(type: DashboardWidgetType, metricType?: Dashboar
 }
 
 export async function removeWidget(widgetId: string) {
+    const state = getState();
     const widgetIndex = state.dashboardWidgets.findIndex(w => w.id === widgetId);
     if (widgetIndex === -1) return;
+    
+    const originalWidgets = [...state.dashboardWidgets];
+    setState(prevState => ({
+        dashboardWidgets: prevState.dashboardWidgets.filter(w => w.id !== widgetId)
+    }), ['page']);
 
-    const [removedWidget] = state.dashboardWidgets.splice(widgetIndex, 1);
-    updateUI(['page']);
     try {
         await apiFetch(`/api?action=data&resource=dashboard_widgets`, {
             method: 'DELETE',
             body: JSON.stringify({ id: widgetId }),
         });
     } catch (error) {
-        state.dashboardWidgets.splice(widgetIndex, 0, removedWidget);
-        updateUI(['page']);
+        setState({ dashboardWidgets: originalWidgets }, ['page']);
         alert("Could not remove widget.");
     }
 }
 
 export function showConfigureWidgetModal(widgetId: string) {
+    const state = getState();
     const widget = state.dashboardWidgets.find(w => w.id === widgetId);
     if (widget) {
         showModal('configureWidget', { widget });
@@ -124,6 +140,7 @@ export function showConfigureWidgetModal(widgetId: string) {
 }
 
 export async function handleWidgetConfigSave(widgetId: string) {
+    const state = getState();
     const widget = state.dashboardWidgets.find(w => w.id === widgetId);
     if (!widget) return;
 
@@ -136,20 +153,26 @@ export async function handleWidgetConfigSave(widgetId: string) {
         newConfig.userId = userId;
     }
     
-    widget.config = newConfig;
+    // Optimistic update
+    setState(prevState => ({
+        dashboardWidgets: prevState.dashboardWidgets.map(w => w.id === widgetId ? { ...w, config: newConfig } : w)
+    }), []);
 
     try {
         await apiPut('dashboard_widgets', { id: widgetId, config: newConfig });
         closeModal(false);
         updateUI(['page']);
     } catch(error) {
-        widget.config = originalConfig;
         alert("Failed to save widget configuration.");
-        updateUI(['page']);
+        // Revert on failure
+        setState(prevState => ({
+            dashboardWidgets: prevState.dashboardWidgets.map(w => w.id === widgetId ? { ...w, config: originalConfig } : w)
+        }), ['page']);
     }
 }
 
 export async function handleGridColumnsChange(newCount: number) {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 
@@ -157,33 +180,45 @@ export async function handleGridColumnsChange(newCount: number) {
     if (!workspace) return;
 
     const originalCount = workspace.dashboardGridColumns;
-    workspace.dashboardGridColumns = newCount;
-    updateUI(['page']);
+    
+    // Optimistic update
+    setState(prevState => ({
+        workspaces: prevState.workspaces.map(w => w.id === activeWorkspaceId ? { ...w, dashboardGridColumns: newCount } : w)
+    }), ['page']);
 
     try {
         await apiPut('workspaces', { id: workspace.id, dashboardGridColumns: newCount });
     } catch (error) {
         console.error("Failed to update grid columns:", error);
-        workspace.dashboardGridColumns = originalCount;
-        updateUI(['page']);
+        // Revert on failure
+        setState(prevState => ({
+            workspaces: prevState.workspaces.map(w => w.id === activeWorkspaceId ? { ...w, dashboardGridColumns: originalCount } : w)
+        }), ['page']);
         alert("Could not save your grid preference.");
     }
 }
 
 export async function handleSwitchTaskWidgetTab(widgetId: string, filter: string) {
+    const state = getState();
     const widget = state.dashboardWidgets.find(w => w.id === widgetId);
     if (!widget || widget.type !== 'todaysTasks') return;
 
     const originalFilter = widget.config.taskFilter;
-    widget.config.taskFilter = filter as 'overdue' | 'today' | 'tomorrow';
-    updateUI(['page']);
+    const newConfig = { ...widget.config, taskFilter: filter as 'overdue' | 'today' | 'tomorrow' };
+    
+    // Optimistic update
+    setState(prevState => ({
+        dashboardWidgets: prevState.dashboardWidgets.map(w => w.id === widgetId ? { ...w, config: newConfig } : w)
+    }), ['page']);
 
     try {
-        await apiPut('dashboard_widgets', { id: widgetId, config: widget.config });
+        await apiPut('dashboard_widgets', { id: widgetId, config: newConfig });
     } catch (error) {
         console.error("Failed to save widget tab preference:", error);
-        widget.config.taskFilter = originalFilter;
-        updateUI(['page']);
         alert("Could not save your preference.");
+         // Revert on failure
+        setState(prevState => ({
+            dashboardWidgets: prevState.dashboardWidgets.map(w => w.id === widgetId ? { ...w, config: { ...w.config, taskFilter: originalFilter } } : w)
+        }), ['page']);
     }
 }

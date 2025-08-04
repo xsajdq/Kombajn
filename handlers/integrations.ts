@@ -1,11 +1,10 @@
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
-import { renderApp } from '../app-renderer.ts';
+import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Integration } from '../types.ts';
 
 export function connectIntegration(provider: 'slack' | 'google_drive') {
-    const { activeWorkspaceId, currentUser } = state;
+    const { activeWorkspaceId, currentUser } = getState();
     if (!activeWorkspaceId || !currentUser) return;
     
     // The backend will handle the redirect to the provider's auth page.
@@ -26,8 +25,7 @@ export function connectIntegration(provider: 'slack' | 'google_drive') {
         if (success) {
             // Refetch integrations to get the new connected status
             const integrations = await apiFetch(`/api?action=data&resource=integrations`);
-            state.integrations = integrations;
-            renderApp();
+            setState({ integrations }, ['all']);
         } else if (error) {
             alert(`Failed to connect with ${provider}: ${error}`);
         }
@@ -44,18 +42,18 @@ export function connectIntegration(provider: 'slack' | 'google_drive') {
 
 
 export async function disconnectIntegration(provider: 'slack' | 'google_drive') {
-    const { activeWorkspaceId } = state;
+    const { activeWorkspaceId } = getState();
     if (!activeWorkspaceId) return;
 
-    const integration = state.integrations.find(i => i.workspaceId === activeWorkspaceId && i.provider === provider);
+    const integration = getState().integrations.find(i => i.workspaceId === activeWorkspaceId && i.provider === provider);
     if (!integration) return;
 
     try {
         // Instead of deleting, we'll set it to inactive. This preserves settings.
         const [updatedIntegration] = await apiPut('integrations', { id: integration.id, isActive: false, settings: {} });
-        integration.isActive = updatedIntegration.isActive;
-        integration.settings = updatedIntegration.settings;
-        renderApp();
+        setState(prevState => ({
+            integrations: prevState.integrations.map(i => i.id === integration.id ? { ...i, isActive: updatedIntegration.isActive, settings: updatedIntegration.settings } : i)
+        }), ['page']);
     } catch (error) {
         console.error(`Failed to disconnect ${provider} integration:`, error);
         alert(`Could not disconnect ${provider}.`);

@@ -1,9 +1,11 @@
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { PlanId, PlanChange } from '../types.ts';
 import { apiPut } from '../services/api.ts';
 
 export async function handlePlanChange(newPlanId: PlanId) {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (workspace && workspace.subscription.planId !== newPlanId) {
@@ -20,19 +22,22 @@ export async function handlePlanChange(newPlanId: PlanId) {
         
         try {
             const [updatedWorkspace] = await apiPut('workspaces', payload);
-            const index = state.workspaces.findIndex(w => w.id === workspace.id);
-            if (index !== -1) {
-                state.workspaces[index] = {
-                    ...state.workspaces[index],
-                    ...updatedWorkspace,
-                    subscription: {
-                        planId: updatedWorkspace.subscriptionPlanId,
-                        status: updatedWorkspace.subscriptionStatus
-                    },
-                    planHistory: updatedWorkspace.planHistory || []
-                };
-            }
-            updateUI(['page']);
+            setState(prevState => ({
+                workspaces: prevState.workspaces.map(w => {
+                    if (w.id === workspace.id) {
+                        return {
+                            ...w,
+                            ...updatedWorkspace,
+                            subscription: {
+                                planId: updatedWorkspace.subscriptionPlanId,
+                                status: updatedWorkspace.subscriptionStatus
+                            },
+                            planHistory: updatedWorkspace.planHistory || []
+                        };
+                    }
+                    return w;
+                })
+            }), ['page']);
         } catch (error) {
             console.error("Failed to change plan:", error);
             alert("Failed to change plan. Please try again.");
@@ -42,15 +47,24 @@ export async function handlePlanChange(newPlanId: PlanId) {
 
 
 export async function handleCancelSubscription() {
+    const state = getState();
     if (!state.activeWorkspaceId) return;
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (workspace) {
         const originalStatus = workspace.subscription.status;
         const originalPlan = workspace.subscription.planId;
         
-        workspace.subscription.status = 'canceled';
-        workspace.subscription.planId = 'free';
-        updateUI(['page']);
+        // Optimistic update
+        setState(prevState => ({
+            workspaces: prevState.workspaces.map(w => w.id === workspace.id ? {
+                ...w,
+                subscription: {
+                    ...w.subscription,
+                    status: 'canceled',
+                    planId: 'free'
+                }
+            } : w)
+        }), ['page']);
 
         try {
             await apiPut('workspaces', { 
@@ -61,9 +75,17 @@ export async function handleCancelSubscription() {
         } catch (error) {
             console.error("Failed to cancel subscription:", error);
             alert("Failed to cancel subscription. Please try again.");
-            workspace.subscription.status = originalStatus;
-            workspace.subscription.planId = originalPlan;
-            updateUI(['page']);
+            // Revert on failure
+            setState(prevState => ({
+                workspaces: prevState.workspaces.map(w => w.id === workspace.id ? {
+                    ...w,
+                    subscription: {
+                        ...w.subscription,
+                        status: originalStatus,
+                        planId: originalPlan
+                    }
+                } : w)
+            }), ['page']);
         }
     }
 }

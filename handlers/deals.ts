@@ -1,11 +1,11 @@
 
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { apiFetch, apiPost, apiPut } from '../services/api.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Deal, Client, User, DealActivity } from '../types.ts';
 
 export async function handleAddDealActivity(dealId: string, type: DealActivity['type'], content: string) {
+    const state = getState();
     const { activeWorkspaceId, currentUser } = state;
     if (!activeWorkspaceId || !currentUser || !content.trim()) return;
 
@@ -19,16 +19,17 @@ export async function handleAddDealActivity(dealId: string, type: DealActivity['
 
     try {
         const [newActivity] = await apiPost('deal_activities', payload);
-        state.dealActivities.push(newActivity);
+        
+        const newActivityDate = new Date().toISOString();
+        const updatedDealData = { id: dealId, lastActivityAt: newActivityDate };
+        
+        setState(prevState => ({
+            dealActivities: [...prevState.dealActivities, newActivity],
+            deals: prevState.deals.map(d => d.id === dealId ? { ...d, lastActivityAt: newActivityDate } : d)
+        }), ['side-panel']);
 
-        const deal = state.deals.find(d => d.id === dealId);
-        if (deal) {
-            const newActivityDate = new Date().toISOString();
-            deal.lastActivityAt = newActivityDate;
-            await apiPut('deals', { id: dealId, lastActivityAt: newActivityDate });
-        }
+        await apiPut('deals', updatedDealData);
 
-        updateUI(['side-panel']);
     } catch (error) {
         console.error("Failed to add deal activity:", error);
         alert("Could not save the activity. Please try again.");
@@ -36,6 +37,7 @@ export async function handleAddDealActivity(dealId: string, type: DealActivity['
 }
 
 export async function handleSendDealEmail(dealId: string, to: string, subject: string, body: string, form: HTMLFormElement) {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 

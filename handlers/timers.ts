@@ -1,6 +1,7 @@
 
 
-import { state } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { TimeLog } from '../types.ts';
@@ -8,22 +9,26 @@ import { parseDurationStringToSeconds } from '../utils.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 
 export function startTimer(taskId: string) {
+    const state = getState();
     if (!state.activeTimers[taskId]) {
-        state.activeTimers[taskId] = Date.now();
-        updateUI(['page']);
+        setState({ activeTimers: { ...state.activeTimers, [taskId]: Date.now() } }, ['page']);
     }
 }
 
 export function stopTimer(taskId: string) {
+    const state = getState();
     if (state.activeTimers[taskId]) {
         const startTime = state.activeTimers[taskId];
         const trackedSeconds = (Date.now() - startTime) / 1000;
-        delete state.activeTimers[taskId];
+        const newActiveTimers = { ...state.activeTimers };
+        delete newActiveTimers[taskId];
+        setState({ activeTimers: newActiveTimers }, []);
         showModal('addCommentToTimeLog', { taskId, trackedSeconds });
     }
 }
 
 export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds: number, comment?: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) return;
 
@@ -38,10 +43,14 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
 
     try {
         const [savedLog] = await apiPost('time_logs', timeLogPayload);
-        state.timeLogs.push(savedLog);
         
-        task.lastActivityAt = new Date().toISOString();
-        await apiPut('tasks', { id: taskId, lastActivityAt: task.lastActivityAt });
+        const updatedTask = { ...task, lastActivityAt: new Date().toISOString() };
+        setState(prevState => ({
+            timeLogs: [...prevState.timeLogs, savedLog],
+            tasks: prevState.tasks.map(t => t.id === taskId ? updatedTask : t)
+        }), []);
+        
+        await apiPut('tasks', { id: taskId, lastActivityAt: updatedTask.lastActivityAt });
 
         closeModal(false);
         updateUI(['modal', 'page', 'side-panel']);
@@ -52,6 +61,7 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
 }
 
 export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: number, createdAt: string, comment?: string) {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) {
         throw new Error("Task or user not found.");
@@ -71,25 +81,34 @@ export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: nu
     };
 
     const [savedLog] = await apiPost('time_logs', timeLogPayload);
-    state.timeLogs.push(savedLog);
+    setState(prevState => ({ timeLogs: [...prevState.timeLogs, savedLog] }), []);
     closeModal();
     updateUI(['page', 'side-panel']);
 }
 
 export function startGlobalTimer() {
+    const state = getState();
     if (!state.ui.globalTimer.isRunning) {
-        state.ui.globalTimer.isRunning = true;
-        state.ui.globalTimer.startTime = Date.now();
-        updateUI(['header']);
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                globalTimer: { isRunning: true, startTime: Date.now() }
+            }
+        }), ['header']);
     }
 }
 
 export function stopGlobalTimer() {
+    const state = getState();
     const { isRunning, startTime } = state.ui.globalTimer;
     if (isRunning && startTime) {
         const trackedSeconds = (Date.now() - startTime) / 1000;
-        state.ui.globalTimer.isRunning = false;
-        state.ui.globalTimer.startTime = null;
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                globalTimer: { isRunning: false, startTime: null }
+            }
+        }), []);
         showModal('assignGlobalTime', { trackedSeconds });
     }
 }

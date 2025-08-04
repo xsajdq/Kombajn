@@ -1,13 +1,12 @@
-
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { InvoiceLineItem } from '../types.ts';
+import type { InvoiceLineItem, TimeLog, Expense, Task } from '../types.ts';
 import { t } from '../i18n.ts';
 import { apiPut } from '../services/api.ts';
 import { showModal } from './ui.ts';
 
 export function handleGenerateInvoiceItems() {
+    const state = getState();
     const clientSelect = document.getElementById('invoiceClient') as HTMLSelectElement | null;
     const clientId = clientSelect?.value;
 
@@ -81,33 +80,47 @@ export function handleGenerateInvoiceItems() {
         });
     });
 
-    state.ui.modal.data.items = newItems;
-    state.ui.modal.data.sourceLogIds = unbilledTimeLogs.map(l => l.id);
-    state.ui.modal.data.sourceExpenseIds = unbilledExpenses.map(e => e.id);
-    updateUI(['modal']);
+    setState(prevState => ({
+        ui: {
+            ...prevState.ui,
+            modal: {
+                ...prevState.ui.modal,
+                data: {
+                    ...prevState.ui.modal.data,
+                    items: newItems,
+                    sourceLogIds: unbilledTimeLogs.map(l => l.id),
+                    sourceExpenseIds: unbilledExpenses.map(e => e.id),
+                }
+            }
+        }
+    }), ['modal']);
 }
 
 export async function handleToggleInvoiceStatus(invoiceId: string) {
+    const state = getState();
     const invoice = state.invoices.find(inv => inv.id === invoiceId);
     if (invoice) {
         const originalStatus = invoice.status;
         const newStatus = originalStatus === 'paid' ? 'pending' : 'paid';
         
-        invoice.status = newStatus;
-        updateUI(['page']);
+        setState(prevState => ({ 
+            invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...invoice, status: newStatus } : i)
+        }), ['page']);
 
         try {
             await apiPut('invoices', { id: invoiceId, status: newStatus });
         } catch (error) {
             console.error("Failed to toggle invoice status:", error);
-            invoice.status = originalStatus;
-            updateUI(['page']);
+            setState(prevState => ({ 
+                invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, status: originalStatus } : i)
+            }), ['page']);
             alert("Could not update invoice status. Please try again.");
         }
     }
 }
 
 export async function handleSendInvoiceByEmail(invoiceId: string) {
+    const state = getState();
     const gmailIntegration = state.integrations.find(i => i.workspaceId === state.activeWorkspaceId && i.provider === 'google_gmail' && i.isActive);
 
     if (gmailIntegration) {
@@ -151,16 +164,18 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
 
     const originalEmailStatus = invoice.emailStatus;
     const originalSentAt = invoice.sentAt;
-    invoice.emailStatus = 'sent';
-    invoice.sentAt = new Date().toISOString();
-    updateUI(['page']);
+    
+    setState(prevState => ({
+        invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: 'sent', sentAt: new Date().toISOString() } : i)
+    }), ['page']);
+
 
     try {
-        await apiPut('invoices', { id: invoiceId, emailStatus: 'sent', sentAt: invoice.sentAt });
+        await apiPut('invoices', { id: invoiceId, emailStatus: 'sent', sentAt: new Date().toISOString() });
     } catch (error) {
         console.error("Failed to update invoice email status:", error);
-        invoice.emailStatus = originalEmailStatus;
-        invoice.sentAt = originalSentAt;
-        updateUI(['page']);
+        setState(prevState => ({
+            invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: originalEmailStatus, sentAt: originalSentAt } : i)
+        }), ['page']);
     }
 }
