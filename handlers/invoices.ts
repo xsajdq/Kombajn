@@ -2,8 +2,30 @@ import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem, TimeLog, Expense, Task } from '../types.ts';
 import { t } from '../i18n.ts';
-import { apiPut } from '../services/api.ts';
+import { apiPut, apiFetch } from '../services/api.ts';
 import { showModal } from './ui.ts';
+
+export async function fetchInvoicesForWorkspace(workspaceId: string) {
+    console.log(`Fetching invoice data for workspace ${workspaceId}...`);
+    try {
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&invoicesOnly=true`);
+        if (!data) throw new Error("Invoice data fetch returned null.");
+
+        setState(prevState => ({
+            invoices: data.invoices || [],
+            ui: {
+                ...prevState.ui,
+                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: workspaceId, isLoading: false },
+            }
+        }), []);
+        console.log(`Successfully fetched invoice data for workspace ${workspaceId}.`);
+    } catch (error) {
+        console.error("Failed to fetch invoice data:", error);
+        setState(prevState => ({
+            ui: { ...prevState.ui, invoices: { ...prevState.ui.invoices, isLoading: false, loadedWorkspaceId: null } }
+        }), ['page']);
+    }
+}
 
 export function handleGenerateInvoiceItems() {
     const state = getState();

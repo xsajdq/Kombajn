@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
@@ -8,6 +9,7 @@ import { apiPut, apiPost } from '../services/api.ts';
 import { showModal } from './ui.ts';
 import { handleReorderStages } from './pipeline.ts';
 import { handleReorderKanbanStages } from './kanban.ts';
+import { t } from '../i18n.ts';
 
 let draggedItemId: string | null = null;
 let draggedItemType: 'task' | 'deal' | 'widget' | 'pipeline-stage' | 'kanban-stage' | null = null;
@@ -181,7 +183,7 @@ export async function handleDrop(e: DragEvent) {
             }
         } catch (error) {
             console.error("Failed to update task:", error);
-            alert("Failed to update task. Reverting change.");
+            alert(t('errors.task_update_failed'));
             setState({ tasks: state.tasks, userTaskSortOrders: state.userTaskSortOrders }, ['page']);
         }
     }
@@ -207,7 +209,7 @@ export async function handleDrop(e: DragEvent) {
                 }
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
-                alert("Failed to update deal stage. Reverting change.");
+                alert(t('errors.deal_update_failed'));
                 const revertedDeals = state.deals.map(d => d.id === deal.id ? { ...d, stage: oldStage } : d);
                 setState({ deals: revertedDeals }, ['page']);
             }
@@ -252,7 +254,7 @@ export async function handleDrop(e: DragEvent) {
             await Promise.all(updatePromises);
         } catch (error) {
             console.error("Could not save widget order:", error);
-            alert("Could not save the new widget layout.");
+            alert(t('errors.widget_layout_save_failed'));
             setState({ dashboardWidgets: originalWidgets }, ['page']); // Revert
         }
     }
@@ -295,7 +297,7 @@ export async function handleDrop(e: DragEvent) {
             if (isDraggingDown) {
                 stageList.insertBefore(draggedElement, dropTargetKanbanStageRow.nextSibling);
             } else {
-                stageList.insertBefore(draggedElement, dropTargetStageRow);
+                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow);
             }
         }
         

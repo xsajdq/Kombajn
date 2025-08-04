@@ -25,7 +25,7 @@ export async function createNotification(
 
     let text = '';
     const actor = state.users.find(u => u.id === data.actorId);
-    const actorName = actor?.name || actor?.initials || 'System';
+    const actorName = actor?.name || actor?.initials || t('misc.system');
 
     let action: Notification['action'] = null;
     let targetWorkspaceId = data.workspaceId;
@@ -154,7 +154,7 @@ export async function markAllNotificationsAsRead() {
         );
     } catch (error) {
         console.error("Failed to mark all notifications as read:", error);
-        alert("Could not mark all notifications as read. Please try again.");
+        alert(t('errors.notification_read_failed'));
         setState({ notifications: originalNotifications }, ['header']);
     }
 }

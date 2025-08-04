@@ -149,7 +149,7 @@ export async function handleFormSubmit() {
             const name = (document.getElementById('aiProjectName') as HTMLInputElement).value;
             const clientId = (document.getElementById('aiProjectClient') as HTMLSelectElement).value;
             const goal = (document.getElementById('aiProjectGoal') as HTMLTextAreaElement).value;
-            if (!name || !clientId || !goal) return alert("Please fill all fields.");
+            if (!name || !clientId || !goal) return alert(t('errors.fill_all_fields'));
             await projectHandlers.handlePlanProjectWithAi(name, clientId, goal);
             return; 
         }
@@ -229,7 +229,7 @@ export async function handleFormSubmit() {
         }
     } catch (error) {
         console.error("Form submission error:", error);
-        alert(`An error occurred: ${(error as Error).message}`);
+        alert(`${t('errors.generic_error')}: ${(error as Error).message}`);
     } finally {
         if (type !== 'aiProjectPlanner') {
             closeModal();

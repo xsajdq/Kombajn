@@ -32,73 +32,38 @@ export async function fetchInitialData(session: Session) {
 }
 
 export async function fetchWorkspaceData(workspaceId: string) {
-    console.log(`Fetching data for workspace ${workspaceId}...`);
+    console.log(`Fetching core data for workspace ${workspaceId}...`);
     
     try {
-        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}`);
-        if (!data) throw new Error("Workspace data fetch returned null.");
+        // Fetch only the essential data for the dashboard and project/client overviews.
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&coreOnly=true`);
+        if (!data) throw new Error("Workspace core data fetch returned null.");
 
         setState(prevState => ({
             dashboardWidgets: (data.dashboardWidgets || []).sort((a: DashboardWidget, b: DashboardWidget) => (a.sortOrder || 0) - (b.sortOrder || 0)),
             projects: data.projects || [],
-            tasks: data.tasks || [],
             clients: data.clients || [],
             clientContacts: data.clients.flatMap((c: any) => c.clientContacts || []),
-            invoices: data.invoices || [],
-            timeLogs: data.timeLogs || [],
-            comments: data.comments || [],
-            taskAssignees: data.taskAssignees || [],
-            projectSections: data.projectSections || [],
-            taskViews: data.taskViews || [],
-            reviews: data.reviews || [],
-            timeOffRequests: data.timeOffRequests || [],
-            userTaskSortOrders: data.userTaskSortOrders || [],
             projectMembers: data.projectMembers || [],
-            objectives: data.objectives || [],
-            keyResults: data.keyResults || [],
-            inventoryItems: data.inventoryItems || [],
-            inventoryAssignments: data.inventoryAssignments || [],
-            budgets: data.budgets || [],
-            deals: data.deals || [],
-            dealActivities: data.dealActivities || [],
-            pipelineStages: data.pipelineStages || [],
-            kanbanStages: data.kanbanStages || [],
-            automations: data.automations || [],
             tags: data.tags || [],
-            taskTags: data.taskTags || [],
             projectTags: data.projectTags || [],
             clientTags: data.clientTags || [],
-            customFieldDefinitions: data.customFieldDefinitions || [],
-            customFieldValues: data.customFieldValues || [],
-            projectTemplates: data.projectTemplates || [],
-            wikiHistory: data.wikiHistory || [],
-            channels: data.channels || [],
-            chatMessages: data.chatMessages || [],
-            calendarEvents: data.calendarEvents || [],
-            expenses: data.expenses || [],
+            timeOffRequests: data.timeOffRequests || [],
+            reviews: data.reviews || [],
+            // Set loaded state for dashboard
             ui: {
                 ...prevState.ui,
-                dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: workspaceId },
-                projects: { ...prevState.ui.projects, loadedWorkspaceId: workspaceId },
-                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: workspaceId },
-                clients: { ...prevState.ui.clients, loadedWorkspaceId: workspaceId },
-                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: workspaceId },
-                sales: { ...prevState.ui.sales, loadedWorkspaceId: workspaceId },
+                dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: workspaceId, isLoading: false },
             }
         }), []);
         
-        console.log(`Successfully fetched data for workspace ${workspaceId}.`);
+        console.log(`Successfully fetched core data for workspace ${workspaceId}.`);
     } catch (error) {
-        console.error("Failed to fetch workspace data:", error);
+        console.error("Failed to fetch core workspace data:", error);
         setState(prevState => ({
             ui: {
                 ...prevState.ui,
-                dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: null },
-                projects: { ...prevState.ui.projects, loadedWorkspaceId: null },
-                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: null },
-                clients: { ...prevState.ui.clients, loadedWorkspaceId: null },
-                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: null },
-                sales: { ...prevState.ui.sales, loadedWorkspaceId: null },
+                dashboard: { ...prevState.ui.dashboard, isLoading: false, loadedWorkspaceId: null },
             }
         }), []);
         throw error; // Re-throw the error to be caught by the bootstrap process

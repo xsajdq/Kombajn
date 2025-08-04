@@ -16,7 +16,7 @@ export async function handleUpdateProfile(form: HTMLFormElement) {
     if (!name) return;
 
     if (button) button.disabled = true;
-    if (statusEl) statusEl.textContent = 'Saving...';
+    if (statusEl) statusEl.textContent = t('misc.saving');
 
     const payload: { id: string; name: string; avatarUrl?: string } = {
         id: state.currentUser.id,
@@ -80,7 +80,7 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
 
     if (newPassword.length < 6) {
         if (statusEl) {
-            statusEl.textContent = 'Password must be at least 6 characters.';
+            statusEl.textContent = t('errors.password_too_short');
             statusEl.style.color = 'var(--danger-color)';
         }
         return;
@@ -95,7 +95,7 @@ export async function handleUpdatePassword(form: HTMLFormElement) {
     }
 
     if (button) button.disabled = true;
-    if (statusEl) statusEl.textContent = 'Saving...';
+    if (statusEl) statusEl.textContent = t('misc.saving');
     
     try {
         await apiFetch('/api?action=auth-update-password', { method: 'POST', body: JSON.stringify({ newPassword }) });
@@ -137,6 +137,6 @@ export async function handleToggleKanbanViewMode() {
         setState(prevState => ({
             currentUser: { ...prevState.currentUser!, kanbanViewMode: currentMode }
         }), ['page']);
-        alert("Could not save your view preference. Please try again.");
+        alert(t('errors.view_preference_save_failed'));
     }
 }

@@ -11,6 +11,39 @@ import { getWorkspaceKanbanWorkflow } from './main.ts';
 declare const gapi: any;
 declare const google: any;
 
+export async function fetchTasksForWorkspace(workspaceId: string) {
+    console.log(`Fetching task data for workspace ${workspaceId}...`);
+    try {
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&tasksOnly=true`);
+        if (!data) throw new Error("Task data fetch returned null.");
+
+        setState(prevState => ({
+            tasks: data.tasks || [],
+            taskAssignees: data.taskAssignees || [],
+            projectSections: data.projectSections || [],
+            taskViews: data.taskViews || [],
+            userTaskSortOrders: data.userTaskSortOrders || [],
+            taskTags: data.taskTags || [],
+            comments: data.comments || [],
+            dependencies: data.dependencies || [],
+            customFieldValues: data.customFieldValues || [],
+            tags: data.tags ? [...prevState.tags.filter(t => !data.tags.some((dt: Tag) => dt.id === t.id)), ...data.tags] : prevState.tags,
+            customFieldDefinitions: data.customFieldDefinitions ? [...prevState.customFieldDefinitions.filter(d => !data.customFieldDefinitions.some((dd: CustomFieldDefinition) => dd.id === d.id)), ...data.customFieldDefinitions] : prevState.customFieldDefinitions,
+            ui: {
+                ...prevState.ui,
+                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: workspaceId, isLoading: false },
+            }
+        }), []);
+        console.log(`Successfully fetched task data for workspace ${workspaceId}.`);
+    } catch (error) {
+        console.error("Failed to fetch task data:", error);
+        setState(prevState => ({
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: false, loadedWorkspaceId: null } }
+        }), ['page']);
+    }
+}
+
+
 export function openTaskDetail(taskId: string) {
     showModal('taskDetail', { taskId });
 }

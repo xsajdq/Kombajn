@@ -1,12 +1,14 @@
 
 
 
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { showModal, closeModal } from './ui.ts';
 import type { TimeLog } from '../types.ts';
 import { parseDurationStringToSeconds } from '../utils.ts';
 import { apiPost, apiPut } from '../services/api.ts';
+import { t } from '../i18n.ts';
 
 export function startTimer(taskId: string) {
     const state = getState();
@@ -56,7 +58,7 @@ export async function handleSaveTimeLogAndComment(taskId: string, trackedSeconds
         updateUI(['modal', 'page', 'side-panel']);
     } catch(error) {
         console.error("Failed to save time log:", error);
-        alert("Could not save time log. Please try again.");
+        alert(t('errors.time_log_save_failed'));
     }
 }
 
@@ -64,11 +66,11 @@ export async function handleSaveManualTimeLog(taskId: string, trackedSeconds: nu
     const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task || !state.currentUser) {
-        throw new Error("Task or user not found.");
+        throw new Error(t('errors.task_or_user_not_found'));
     }
 
     if (trackedSeconds <= 0) {
-        throw new Error("Invalid time amount.");
+        throw new Error(t('errors.invalid_time_amount'));
     }
 
     const timeLogPayload = {
