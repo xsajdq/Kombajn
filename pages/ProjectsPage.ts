@@ -8,7 +8,7 @@ import { can } from '../permissions.ts';
 type ProjectWithComputedData = ReturnType<typeof getFilteredAndSortedProjects>[0];
 
 function getFilteredAndSortedProjects() {
-    const { text: filterText, tagIds: filterTagIds } = state.ui.projects.filters;
+    const { text: filterText, tagIds: filterTagIds, status: filterStatus } = state.ui.projects.filters;
     const { sortBy } = state.ui.projects;
     const today = new Date().toISOString().slice(0, 10);
 
@@ -43,6 +43,9 @@ function getFilteredAndSortedProjects() {
             const projectTagIds = new Set(state.projectTags.filter(pt => pt.projectId === p.id).map(pt => pt.tagId));
             return filterTagIds.every(tagId => projectTagIds.has(tagId));
         });
+    }
+    if (filterStatus !== 'all') {
+        projects = projects.filter(p => p.computed.status === filterStatus);
     }
 
     // Sorting
@@ -289,6 +292,14 @@ export function ProjectsPage() {
                     <div class="relative flex-grow">
                         <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
                         <input type="text" id="project-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" value="${filters.text}" placeholder="Search projects...">
+                    </div>
+                    <div class="relative">
+                        <select id="project-status-filter" class="form-control" data-filter-key="status">
+                            <option value="all">${t('projects.all_statuses')}</option>
+                            <option value="on_track" ${filters.status === 'on_track' ? 'selected' : ''}>${t('projects.status_on_track')}</option>
+                            <option value="at_risk" ${filters.status === 'at_risk' ? 'selected' : ''}>${t('projects.status_at_risk')}</option>
+                            <option value="completed" ${filters.status === 'completed' ? 'selected' : ''}>${t('projects.status_completed')}</option>
+                        </select>
                     </div>
                      <div class="relative" id="project-filter-tags-container">
                         <button id="project-filter-tags-toggle" class="w-full sm:w-48 form-control text-left flex justify-between items-center">

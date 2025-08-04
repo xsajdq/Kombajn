@@ -107,7 +107,9 @@ function renderGoalCard(goal: Objective) {
 }
 
 export function GoalsPage() {
-    const filterText = state.ui.goals.filters.text.toLowerCase();
+    const { text, status, ownerId } = state.ui.goals.filters;
+    const filterText = text.toLowerCase();
+    
     let goals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');
     
     if (filterText) {
@@ -116,21 +118,37 @@ export function GoalsPage() {
             (g.description || '').toLowerCase().includes(filterText)
         );
     }
+    if (status !== 'all') {
+        goals = goals.filter(g => g.status === status);
+    }
+    if (ownerId !== 'all') {
+        goals = goals.filter(g => g.ownerId === ownerId);
+    }
 
     const canManage = can('manage_goals');
+    const workspaceUsers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter(Boolean);
 
     const content = goals.length > 0 ? `
         ${renderCategoryCards(goals)}
         <div class="bg-content p-4 rounded-lg">
-            <div class="flex items-center gap-4">
-                 <div class="relative flex-grow">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="relative md:col-span-1">
                     <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                    <input type="text" id="goal-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" placeholder="${t('goals.search_goals')}" value="${state.ui.goals.filters.text}">
+                    <input type="text" id="goal-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md text-sm" placeholder="${t('goals.search_goals')}" value="${text}">
                 </div>
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background">
-                    <span class="material-icons-sharp text-base">filter_list</span>
-                    ${t('goals.filter')}
-                </button>
+                <select id="goal-filter-status" class="form-control" data-filter-key="status">
+                    <option value="all">${t('goals.all_statuses')}</option>
+                    <option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>${t('goals.status_in_progress')}</option>
+                    <option value="completed" ${status === 'completed' ? 'selected' : ''}>${t('goals.status_completed')}</option>
+                    <option value="on_hold" ${status === 'on_hold' ? 'selected' : ''}>${t('goals.status_on_hold')}</option>
+                </select>
+                <select id="goal-filter-owner" class="form-control" data-filter-key="ownerId">
+                    <option value="all">${t('goals.all_owners')}</option>
+                    ${workspaceUsers.map(u => `<option value="${u!.id}" ${ownerId === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
+                </select>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

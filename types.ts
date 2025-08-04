@@ -509,7 +509,7 @@ export interface Deal {
     workspaceId: string;
     name: string;
     clientId: string;
-    stageId: string;
+    stage: string;
     value: number;
     ownerId: string;
     expectedCloseDate?: string; // YYYY-MM-DD
@@ -780,7 +780,11 @@ export interface AppState {
              filters: { text: string; };
         };
         goals: {
-            filters: { text: string; };
+            filters: { 
+                text: string;
+                status: string;
+                ownerId: string;
+            };
         };
         inventory: {
             filters: { text: string; };
@@ -813,6 +817,7 @@ export interface AppState {
             filters: {
                 text: string;
                 tagIds: string[];
+                status: 'all' | 'on_track' | 'at_risk' | 'completed';
             };
             sortBy: ProjectSortByOption;
         };

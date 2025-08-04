@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
@@ -408,7 +409,7 @@ export function SettingsPage() {
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('settings.title')}</h2>
             <div class="flex flex-col md:flex-row gap-8">
-                <nav class="flex flex-row md:flex-col md:w-56 shrink-0 overflow-x-auto -mx-4 px-4 md:m-0 md:p-0">
+                <nav class="flex flex-row md:flex-col md:w-56 shrink-0 overflow-x-auto -mx-4 px-4 md:m-0 md:p-0" id="settings-nav">
                     <ul class="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1">
                         ${availableNavItems.map(item => `
                             <li>

@@ -172,7 +172,28 @@ export function handleChange(e: Event) {
         }
         return;
     }
+
+    if (target.id === 'invoiceClient' || target.id === 'invoiceIssueDate' || target.id === 'invoiceDueDate') {
+        if (state.ui.modal.type === 'addInvoice') {
+            let key: string;
+            if (target.id === 'invoiceClient') {
+                key = 'clientId';
+            } else {
+                key = (target.id).replace('invoice', '').charAt(0).toLowerCase() + (target.id).replace('invoice', '').slice(1);
+            }
+            state.ui.modal.data[key] = (target as HTMLInputElement).value;
+            updateUI(['modal']);
+        }
+        return;
+    }
     
+    if (target.id === 'project-status-filter') {
+        const status = (target as HTMLSelectElement).value as 'all' | 'on_track' | 'at_risk' | 'completed';
+        state.ui.projects.filters.status = status;
+        updateUI(['page']);
+        return;
+    }
+
     const taskFilterInput = target.closest('#task-filter-panel input, #task-filter-panel select');
     if (taskFilterInput) {
         if (taskFilterInput.id === 'saved-views-select') {
@@ -213,6 +234,16 @@ export function handleChange(e: Event) {
         }
         state.ui.projects.filters.tagIds = Array.from(currentTags);
         updateUI(['page']);
+        return;
+    }
+
+    const goalFilter = target.closest<HTMLSelectElement>('#goal-filter-status, #goal-filter-owner');
+    if (goalFilter) {
+        const key = goalFilter.dataset.filterKey as 'status' | 'ownerId';
+        if (key) {
+            state.ui.goals.filters[key] = goalFilter.value;
+            updateUI(['page']);
+        }
         return;
     }
 
@@ -263,15 +294,6 @@ export function handleChange(e: Event) {
         const itemId = checklistItemCheckbox.dataset.itemId;
         if (taskId && itemId) {
             taskHandlers.handleToggleChecklistItem(taskId, itemId);
-        }
-        return;
-    }
-
-    if (target.id === 'invoiceClient' || target.id === 'invoiceIssueDate' || target.id === 'invoiceDueDate') {
-        if (state.ui.modal.type === 'addInvoice') {
-            const key = (target.id).replace('invoice', '').charAt(0).toLowerCase() + (target.id).replace('invoice', '').slice(1);
-            state.ui.modal.data[key] = (target as HTMLInputElement).value;
-            updateUI(['modal']);
         }
         return;
     }

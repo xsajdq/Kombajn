@@ -145,7 +145,7 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
             </div>
             <div class="side-panel-content">
                 <div class="deal-pipeline-visualizer">
-                    ${stages.map(stage => `<div class="pipeline-stage ${deal.stageId === stage.id ? 'active' : ''}">${stage.name}</div>`).join('')}
+                    ${stages.map(stage => `<div class="pipeline-stage ${deal.stage === stage.id ? 'active' : ''}">${stage.name}</div>`).join('')}
                 </div>
                 <div class="deal-kpi-grid">
                     <div class="deal-kpi-item">

@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -881,7 +882,7 @@ export function Modal() {
             // If editing a deal, its current stage might not be 'open' but should be in the list to be visible.
             const stagesForSelect = [...openStages];
             if (isEdit && deal) {
-                const currentStage = state.pipelineStages.find(s => s.id === deal.stageId);
+                const currentStage = state.pipelineStages.find(s => s.id === deal.stage);
                 if (currentStage && !stagesForSelect.some(s => s.id === currentStage.id)) {
                     stagesForSelect.push(currentStage);
                     stagesForSelect.sort((a, b) => a.sortOrder - b.sortOrder);
@@ -889,7 +890,7 @@ export function Modal() {
             }
             stageSelectHtml = `
                 <select id="dealStage" class="${formControlClasses}" required>
-                    ${stagesForSelect.map(s => `<option value="${s.id}" ${deal?.stageId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    ${stagesForSelect.map(s => `<option value="${s.id}" ${deal?.stage === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
                 </select>
             `;
         }

@@ -128,7 +128,7 @@ export function getInitialState(): AppState {
             settings: { activeTab: 'general' },
             dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null, activeTab: 'my_day' },
             hr: { activeTab: 'employees', filters: { text: '' } },
-            goals: { filters: { text: '' } },
+            goals: { filters: { text: '', status: 'all', ownerId: 'all' } },
             inventory: { filters: { text: '' } },
             onboarding: { isActive: false, step: 0 },
             sales: { isLoading: false, loadedWorkspaceId: null },
@@ -145,7 +145,7 @@ export function getInitialState(): AppState {
                 isLoading: false, 
                 loadedWorkspaceId: null, 
                 viewMode: 'grid',
-                filters: { text: '', tagIds: [] },
+                filters: { text: '', tagIds: [], status: 'all' },
                 sortBy: 'name',
             },
             globalTimer: {

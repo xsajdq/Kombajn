@@ -3,7 +3,7 @@
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState } from '../types.ts';
+import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState, ProjectSortByOption } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -96,6 +96,29 @@ function closeMobileMenu() {
 export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as HTMLElement;
+
+    // --- Projects Page UI Handlers ---
+    const projectViewModeBtn = target.closest<HTMLElement>('[data-project-view-mode]');
+    if (projectViewModeBtn) {
+        const viewMode = projectViewModeBtn.dataset.projectViewMode as 'grid' | 'portfolio';
+        if (state.ui.projects.viewMode !== viewMode) {
+            state.ui.projects.viewMode = viewMode;
+            updateUI(['page']);
+        }
+        return;
+    }
+
+    const projectSortByBtn = target.closest<HTMLElement>('[data-project-sort-by]');
+    if (projectSortByBtn) {
+        const sortBy = projectSortByBtn.dataset.projectSortBy as ProjectSortByOption;
+        if (state.ui.projects.sortBy !== sortBy) {
+            state.ui.projects.sortBy = sortBy;
+            updateUI(['page']);
+        }
+        projectSortByBtn.closest('.dropdown-menu')?.classList.add('hidden');
+        return;
+    }
+
 
     // --- Time Picker Logic ---
     const timePickerOption = target.closest<HTMLElement>('.time-picker-option');
@@ -614,6 +637,15 @@ export async function handleClick(e: MouseEvent) {
         }
     }
 
+    const goalCard = target.closest<HTMLElement>('.goal-card');
+    if (goalCard && !target.closest('input')) {
+        const goalId = goalCard.dataset.goalId;
+        if (goalId) {
+            uiHandlers.showModal('addGoal', { goalId });
+        }
+        return;
+    }
+
     const authTab = target.closest<HTMLElement>('[data-auth-tab]');
     if (authTab) {
         const tabName = authTab.dataset.authTab;
@@ -630,4 +662,22 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-add-widget-type]')) { const btn = target.closest<HTMLElement>('[data-add-widget-type]')!; dashboardHandlers.addWidget(btn.dataset.addWidgetType as any, btn.dataset.metricType as any); return; }
     if (target.closest<HTMLElement>('.remove-widget-btn')) { dashboardHandlers.removeWidget(target.closest<HTMLElement>('.remove-widget-btn')!.dataset.removeWidgetId!); return; }
     if (target.closest<HTMLElement>('[data-configure-widget-id]')) { dashboardHandlers.showConfigureWidgetModal(target.closest<HTMLElement>('[data-configure-widget-id]')!.dataset.configureWidgetId!); return; }
+
+    const hrTab = target.closest<HTMLElement>('[data-hr-tab]');
+    if (hrTab) {
+        e.preventDefault();
+        teamHandlers.handleSwitchHrTab(hrTab.dataset.hrTab as any);
+        return;
+    }
+
+    const settingsTab = target.closest<HTMLElement>('[data-tab]');
+    if (settingsTab && settingsTab.closest('#settings-nav')) { // Check if it's within the settings sidebar nav
+        e.preventDefault();
+        const tabId = settingsTab.dataset.tab as any;
+        if (state.ui.settings.activeTab !== tabId) {
+            state.ui.settings.activeTab = tabId;
+            updateUI(['page']);
+        }
+        return;
+    }
 }

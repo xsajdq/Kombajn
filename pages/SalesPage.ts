@@ -50,8 +50,8 @@ function renderKanbanBoard() {
     const dealsByStage: { [key: string]: Deal[] } = {};
     stages.forEach(stage => dealsByStage[stage.id] = []);
     deals.forEach(deal => {
-        if (dealsByStage[deal.stageId]) {
-            dealsByStage[deal.stageId].push(deal);
+        if (dealsByStage[deal.stage]) {
+            dealsByStage[deal.stage].push(deal);
         }
     });
 

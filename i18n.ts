@@ -54,6 +54,7 @@ const translations = {
             status_on_track: 'On Track',
             status_at_risk: 'At Risk',
             status_completed: 'Completed',
+            all_statuses: 'All Statuses',
         },
         goals: {
             title: 'Goals & Objectives',
@@ -77,6 +78,10 @@ const translations = {
             status_in_progress: 'In Progress',
             status_completed: 'Completed',
             status_on_hold: 'On Hold',
+            filter_status: 'Status',
+            filter_owner: 'Owner',
+            all_statuses: 'All Statuses',
+            all_owners: 'All Owners',
         },
         inventory: {
             title: 'Inventory Management',
@@ -463,6 +468,7 @@ const translations = {
             status_on_track: 'W toku',
             status_at_risk: 'Zagrożony',
             status_completed: 'Ukończony',
+            all_statuses: 'Wszystkie statusy',
         },
         goals: {
             title: 'Cele i Zadania',
@@ -486,6 +492,10 @@ const translations = {
             status_in_progress: 'W Trakcie',
             status_completed: 'Ukończony',
             status_on_hold: 'Wstrzymany',
+            filter_status: 'Status',
+            filter_owner: 'Właściciel',
+            all_statuses: 'Wszystkie statusy',
+            all_owners: 'Wszyscy',
         },
         inventory: {
             title: 'Zarządzanie Inwentarzem',
