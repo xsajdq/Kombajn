@@ -1,5 +1,6 @@
 
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -91,7 +92,14 @@ export async function initSalesPage() {
     if (!activeWorkspaceId) return;
 
     if (state.ui.sales.loadedWorkspaceId !== activeWorkspaceId) {
-        setState(prevState => ({ ui: { ...prevState.ui, sales: { ...prevState.ui.sales, isLoading: true } } }), ['page']);
+        // Set loading state and loaded ID immediately to prevent re-fetching loops.
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                sales: { ...prevState.ui.sales, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        
         await fetchSalesDataForWorkspace(activeWorkspaceId);
     }
 }

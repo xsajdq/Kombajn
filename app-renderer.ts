@@ -1,4 +1,3 @@
-
 import { getState, setState } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
@@ -40,7 +39,7 @@ async function AppLayout() {
         ${Sidebar()}
         <div class="flex-1 flex flex-col overflow-hidden relative">
             ${AppHeader({ currentUser: state.currentUser, activeWorkspaceId: state.activeWorkspaceId! })}
-            <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 sm:p-8 lg:p-10">
                 ${pageContent}
             </main>
             

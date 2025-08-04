@@ -1,5 +1,6 @@
 
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
@@ -270,7 +271,14 @@ export async function initTasksPage() {
     if (!activeWorkspaceId) return;
 
     if (state.ui.tasks.loadedWorkspaceId !== activeWorkspaceId) {
-        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: true } } }), ['page']);
+        // Set loading state and loaded ID immediately to prevent re-fetching loops.
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                tasks: { ...prevState.ui.tasks, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        
         await fetchTasksForWorkspace(activeWorkspaceId);
     }
     

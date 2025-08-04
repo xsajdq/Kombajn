@@ -57,7 +57,7 @@
 
   /* == Breadcrumbs == */
   .breadcrumb-container {
-    @apply flex items-center gap-2 text-sm text-text-subtle px-4 sm:px-6 lg:px-8 py-2 border-b border-border-color bg-content flex-wrap;
+    @apply flex items-center gap-2 text-sm text-text-subtle px-6 sm:px-8 lg:px-10 py-2 border-b border-border-color bg-content flex-wrap;
   }
   .breadcrumb-item {
       @apply flex items-center gap-2;
