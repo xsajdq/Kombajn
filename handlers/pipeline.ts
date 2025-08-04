@@ -1,3 +1,4 @@
+
 // handlers/pipeline.ts
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -75,7 +76,7 @@ export async function handleDeleteStage(id: string) {
     const stage = state.pipelineStages.find(s => s.id === id);
     if (!stage || stage.category !== 'open') return;
 
-    const dealsInStage = state.deals.some(d => d.stageId === id);
+    const dealsInStage = state.deals.some(d => d.stage === id);
     if (dealsInStage) {
         alert(t('settings.deals_in_stage_warning'));
         return;

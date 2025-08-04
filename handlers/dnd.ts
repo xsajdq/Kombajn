@@ -194,26 +194,26 @@ export async function handleDrop(e: DragEvent) {
     // Handle Deal Drop
     const dealColumn = (e.target as HTMLElement).closest<HTMLElement>('[data-stage-id]');
     if (dealColumn && draggedItemType === 'deal') {
-        const newStageId = dealColumn.dataset.stageId!;
+        const newStage = dealColumn.dataset.stageId!;
         const deal = state.deals.find(d => d.id === draggedItemId);
-        if (deal && newStageId && deal.stageId !== newStageId) {
-            const oldStageId = deal.stageId;
+        if (deal && newStage && deal.stage !== newStage) {
+            const oldStage = deal.stage;
             const newActivityDate = new Date().toISOString();
             
-            deal.stageId = newStageId; // Optimistic update
+            deal.stage = newStage; // Optimistic update
             deal.lastActivityAt = newActivityDate;
             renderApp();
 
             try {
-                await apiPut('deals', { id: deal.id, stageId: newStageId, lastActivityAt: newActivityDate });
-                const newStage = state.pipelineStages.find(s => s.id === newStageId);
-                if (newStage?.category === 'won') {
+                await apiPut('deals', { id: deal.id, stage: newStage, lastActivityAt: newActivityDate });
+                const newStageData = state.pipelineStages.find(s => s.id === newStage);
+                if (newStageData?.category === 'won') {
                     showModal('dealWon', { dealId: deal.id, clientId: deal.clientId, dealName: deal.name });
                 }
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
                 alert("Failed to update deal stage. Reverting change.");
-                deal.stageId = oldStageId;
+                deal.stage = oldStage;
                 renderApp();
             }
         }
@@ -296,9 +296,9 @@ export async function handleDrop(e: DragEvent) {
         if (draggedElement) {
             const isDraggingDown = (draggedElement.getBoundingClientRect().top - dropTargetKanbanStageRow.getBoundingClientRect().top) < 0;
             if (isDraggingDown) {
-                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow.nextSibling);
+                stageList.insertBefore(draggedElement, dropTargetStageRow.nextSibling);
             } else {
-                stageList.insertBefore(draggedElement, dropTargetKanbanStageRow);
+                stageList.insertBefore(draggedElement, dropTargetStageRow);
             }
         }
         
