@@ -313,11 +313,6 @@ export async function handleSaveWorkspaceSettings() {
     }
 }
 
-export function handleSwitchHrTab(tab: 'employees' | 'requests' | 'vacation' | 'history' | 'reviews') {
-    state.ui.hr.activeTab = tab;
-    updateUI(['page']);
-}
-
 export async function handleUpdateEmployeeNotes(userId: string, contractNotes: string, employmentNotes: string) {
     const user = state.users.find(u => u.id === userId);
     if (user) {
@@ -465,25 +460,6 @@ export async function handleSetVacationAllowance(userId: string, hours: number) 
         alert("Could not save vacation allowance. Please try again.");
         user.vacationAllowanceHours = originalAllowance;
         updateUI(['page']);
-    }
-}
-
-export async function handleRemoveUserFromProject(projectMemberId: string) {
-    const memberIndex = state.projectMembers.findIndex(pm => pm.id === projectMemberId);
-    if (memberIndex === -1) return;
-    
-    const [removedMember] = state.projectMembers.splice(memberIndex, 1);
-    updateUI(['side-panel']);
-    
-    try {
-        await apiFetch('/api?action=data&resource=project_members', {
-            method: 'DELETE',
-            body: JSON.stringify({ id: projectMemberId }),
-        });
-    } catch(error) {
-        state.projectMembers.splice(memberIndex, 0, removedMember);
-        updateUI(['side-panel']);
-        alert("Failed to remove user from project.");
     }
 }
 

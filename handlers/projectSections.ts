@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
@@ -36,35 +37,6 @@ export async function handleRenameProjectSection(id: string, newName: string) {
         console.error("Failed to update project section:", error);
         alert("Could not update the project section.");
         section.name = originalName;
-        updateUI(['page']);
-    }
-}
-
-export async function handleDeleteProjectSection(id: string) {
-    if (!confirm("Are you sure you want to delete this section? Tasks in this section will not be deleted.")) {
-        return;
-    }
-
-    const sectionIndex = state.projectSections.findIndex(ps => ps.id === id);
-    if (sectionIndex === -1) return;
-
-    const [removedSection] = state.projectSections.splice(sectionIndex, 1);
-    state.tasks.forEach(task => {
-        if (task.projectSectionId === id) {
-            task.projectSectionId = null;
-        }
-    });
-    updateUI(['page']);
-
-    try {
-        await apiFetch('/api?action=data&resource=project_sections', {
-            method: 'DELETE',
-            body: JSON.stringify({ id }),
-        });
-    } catch (error) {
-        console.error("Failed to delete project section:", error);
-        alert("Could not delete the project section.");
-        state.projectSections.splice(sectionIndex, 0, removedSection);
         updateUI(['page']);
     }
 }

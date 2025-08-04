@@ -1,10 +1,11 @@
+
 // handlers/tags.ts
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import type { Tag } from '../types.ts';
 
-type TaggableEntity = 'project' | 'client' | 'task';
+export type TaggableEntity = 'project' | 'client' | 'task';
 
 // A more specific type for the join state keys
 type JoinStateKey = 'projectTags' | 'clientTags' | 'taskTags';

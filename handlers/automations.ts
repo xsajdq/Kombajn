@@ -33,7 +33,7 @@ export async function runAutomations(triggerType: 'statusChange', data: { task: 
             if (action.type === 'assignUser') {
                 changesToPersist.assignees = { toAdd: [action.userId], toRemove: originalAssignees.map(a => a.userId) };
                 state.taskAssignees = state.taskAssignees.filter(a => a.taskId !== task.id);
-                state.taskAssignees.push({ taskId: task.id, userId: action.userId, workspaceId: task.workspaceId });
+                state.taskAssignees.push({ taskId: task.id, userId: action.userId, workspaceId: task.workspaceId } as any);
             }
         }
     }
@@ -95,24 +95,5 @@ export async function handleSaveAutomation(automationId: string | null, projectI
     } catch (error) {
         console.error("Failed to save automation:", error);
         alert("Could not save automation.");
-    }
-}
-
-export async function handleDeleteAutomation(automationId: string) {
-    const automationIndex = state.automations.findIndex(a => a.id === automationId);
-    if (automationIndex === -1) return;
-
-    const [removedAutomation] = state.automations.splice(automationIndex, 1);
-    updateUI(['modal']);
-
-    try {
-        await apiFetch('/api?action=data&resource=automations', {
-            method: 'DELETE',
-            body: JSON.stringify({ id: automationId }),
-        });
-    } catch (error) {
-        state.automations.splice(automationIndex, 0, removedAutomation);
-        updateUI(['modal']);
-        alert("Could not delete automation.");
     }
 }
