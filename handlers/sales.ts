@@ -14,9 +14,9 @@ export async function fetchSalesDataForWorkspace(workspaceId: string) {
             pipelineStages: data.pipelineStages || [],
             ui: {
                 ...prevState.ui,
-                sales: { ...prevState.ui.sales, loadedWorkspaceId: workspaceId, isLoading: false },
+                sales: { ...prevState.ui.sales, isLoading: false },
             }
-        }), []);
+        }), ['page']);
         console.log(`Successfully fetched sales data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch sales data:", error);

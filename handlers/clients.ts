@@ -15,9 +15,9 @@ export async function fetchClientsForWorkspace(workspaceId: string) {
             tags: data.tags ? [...prevState.tags.filter(t => !data.tags.some((dt: Tag) => dt.id === t.id)), ...data.tags] : prevState.tags,
             ui: {
                 ...prevState.ui,
-                clients: { ...prevState.ui.clients, loadedWorkspaceId: workspaceId, isLoading: false },
+                clients: { ...prevState.ui.clients, isLoading: false },
             }
-        }), []);
+        }), ['page']);
         console.log(`Successfully fetched client data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch client data:", error);

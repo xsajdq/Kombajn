@@ -31,9 +31,9 @@ export async function fetchTasksForWorkspace(workspaceId: string) {
             customFieldDefinitions: data.customFieldDefinitions ? [...prevState.customFieldDefinitions.filter(d => !data.customFieldDefinitions.some((dd: CustomFieldDefinition) => dd.id === d.id)), ...data.customFieldDefinitions] : prevState.customFieldDefinitions,
             ui: {
                 ...prevState.ui,
-                tasks: { ...prevState.ui.tasks, loadedWorkspaceId: workspaceId, isLoading: false },
+                tasks: { ...prevState.ui.tasks, isLoading: false },
             }
-        }), []);
+        }), ['page']);
         console.log(`Successfully fetched task data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch task data:", error);

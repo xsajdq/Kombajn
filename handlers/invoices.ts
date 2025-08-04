@@ -15,9 +15,9 @@ export async function fetchInvoicesForWorkspace(workspaceId: string) {
             invoices: data.invoices || [],
             ui: {
                 ...prevState.ui,
-                invoices: { ...prevState.ui.invoices, loadedWorkspaceId: workspaceId, isLoading: false },
+                invoices: { ...prevState.ui.invoices, isLoading: false },
             }
-        }), []);
+        }), ['page']);
         console.log(`Successfully fetched invoice data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch invoice data:", error);
