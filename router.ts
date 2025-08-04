@@ -1,10 +1,9 @@
-
 import { getState, setState } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
-import { ClientsPage } from './pages/ClientsPage.ts';
-import { TasksPage } from './pages/TasksPage.ts';
+import { ClientsPage, initClientsPage } from './pages/ClientsPage.ts';
+import { TasksPage, initTasksPage } from './pages/TasksPage.ts';
 import { ReportsPage } from './pages/ReportsPage.ts';
-import { InvoicesPage } from './pages/InvoicesPage.ts';
+import { InvoicesPage, initInvoicesPage } from './pages/InvoicesPage.ts';
 import { AIAssistantPage } from './pages/AIAssistantPage.ts';
 import { SettingsPage } from './pages/SettingsPage.ts';
 import { DashboardPage } from './pages/DashboardPage.ts';
@@ -12,7 +11,7 @@ import { HRPage } from './pages/TeamPage.ts';
 import { BillingPage } from './pages/BillingPage.ts';
 import { ChatPage } from './pages/ChatPage.ts';
 import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
-import { SalesPage } from './pages/SalesPage.ts';
+import { SalesPage, initSalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
@@ -77,12 +76,12 @@ export async function router() {
     // The sidebar logic in tandem with this prevents users from seeing or accessing unauthorized pages.
     switch (newPage) {
         case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
-        case 'clients':         return can('view_clients') ? ClientsPage() : DashboardPage();
-        case 'tasks':           return can('view_tasks') ? TasksPage() : DashboardPage();
+        case 'clients':         await initClientsPage(); return can('view_clients') ? ClientsPage() : DashboardPage();
+        case 'tasks':           await initTasksPage(); return can('view_tasks') ? TasksPage() : DashboardPage();
         case 'team-calendar':   return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
-        case 'sales':           return can('view_sales') ? SalesPage() : DashboardPage();
-        case 'invoices':        return can('view_invoices') ? InvoicesPage() : DashboardPage();
+        case 'sales':           await initSalesPage(); return can('view_sales') ? SalesPage() : DashboardPage();
+        case 'invoices':        await initInvoicesPage(); return can('view_invoices') ? InvoicesPage() : DashboardPage();
         case 'ai-assistant':    return can('view_ai_assistant') ? AIAssistantPage() : DashboardPage();
         case 'settings':        return can('view_settings') ? SettingsPage() : DashboardPage();
         case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();

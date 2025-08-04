@@ -1,9 +1,11 @@
 
-import { getState } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 import { formatCurrency, getUserInitials } from '../utils.ts';
+import { fetchSalesDataForWorkspace } from '../handlers/sales.ts';
 
 function renderDealCard(deal: Deal) {
     const state = getState();
@@ -42,9 +44,9 @@ function renderKanbanBoard() {
         return `
             <div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
                 <span class="material-icons-sharp text-5xl text-text-subtle">construction</span>
-                <h3 class="text-lg font-medium mt-4">Pipeline Not Set Up</h3>
-                <p class="text-sm text-text-subtle mt-1">An administrator needs to configure deal stages in Settings > Pipeline.</p>
-                ${can('manage_workspace_settings') ? `<a href="/settings" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Go to Settings</a>` : ''}
+                <h3 class="text-lg font-medium mt-4">${t('sales.pipeline_not_setup_title')}</h3>
+                <p class="text-sm text-text-subtle mt-1">${t('sales.pipeline_not_setup_desc')}</p>
+                ${can('manage_workspace_settings') ? `<a href="/settings" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('sales.go_to_settings')}</a>` : ''}
             </div>
         `;
     }
@@ -81,6 +83,17 @@ function renderKanbanBoard() {
             </div>
         </div>
     `;
+}
+
+export async function initSalesPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.sales.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({ ui: { ...prevState.ui, sales: { ...prevState.ui.sales, isLoading: true } } }), ['page']);
+        await fetchSalesDataForWorkspace(activeWorkspaceId);
+    }
 }
 
 export function SalesPage() {

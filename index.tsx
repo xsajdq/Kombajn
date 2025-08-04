@@ -10,6 +10,7 @@ import * as auth from './services/auth.ts';
 import { fetchInitialData, fetchWorkspaceData } from './handlers/main.ts';
 import type { Session } from '@supabase/supabase-js';
 import { getState } from './state.ts';
+import { t } from './i18n.ts';
 
 let isBootstrapping = false;
 let hasBootstrapped = false;
@@ -66,9 +67,9 @@ async function main() {
     };
     const showError = (message: string) => {
         app.innerHTML = `<div class="flex flex-col items-center justify-center h-screen text-center p-4">
-            <h3 class="text-xl font-semibold mb-2">Failed to Load Application</h3>
+            <h3 class="text-xl font-semibold mb-2">${t('errors.load_failed_title')}</h3>
             <p class="text-text-subtle mb-4 max-w-md">${message}</p>
-            <button onclick="window.location.reload()" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Refresh</button>
+            <button onclick="window.location.reload()" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('errors.refresh')}</button>
         </div>`;
     };
 
@@ -192,7 +193,7 @@ async function main() {
         }, 1000);
     } catch (error) {
         console.error("Application initialization failed:", error);
-        const errorMessage = (error as Error).message || 'Could not initialize the application.';
+        const errorMessage = (error as Error).message || t('errors.init_failed_message');
         showError(errorMessage);
     }
 }

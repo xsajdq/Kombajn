@@ -1,3 +1,5 @@
+
+
 import { getState } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
@@ -13,6 +15,7 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { getStorableHtmlFromContentEditable } from '../handlers/editor.ts';
 import * as pipelineHandlers from '../handlers/pipeline.ts';
 import * as tagHandlers from '../handlers/tags.ts';
+import { t } from '../i18n.ts';
 
 
 export async function handleSubmit(e: SubmitEvent) {
@@ -24,7 +27,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
         const errorDiv = document.getElementById('login-error')!;
         const button = document.getElementById('login-submit-btn') as HTMLButtonElement;
-        button.textContent = 'Logging in...';
+        button.textContent = t('auth.logging_in');
         button.disabled = true;
         errorDiv.style.display = 'none';
 
@@ -34,7 +37,7 @@ export async function handleSubmit(e: SubmitEvent) {
         } catch (err: any) {
             errorDiv.textContent = err.message;
             errorDiv.style.display = 'block';
-            button.textContent = 'Log In';
+            button.textContent = t('auth.login_button');
             button.disabled = false;
         }
         return;
@@ -46,7 +49,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const password = (document.getElementById('registerPassword') as HTMLInputElement).value;
         const errorDiv = document.getElementById('register-error')!;
         const button = document.getElementById('register-submit-btn') as HTMLButtonElement;
-        button.textContent = 'Registering...';
+        button.textContent = t('auth.registering');
         button.disabled = true;
         errorDiv.style.display = 'none';
 
@@ -56,7 +59,7 @@ export async function handleSubmit(e: SubmitEvent) {
         } catch (err: any) {
             errorDiv.textContent = err.message;
             errorDiv.style.display = 'block';
-            button.textContent = 'Register';
+            button.textContent = t('auth.register_button');
             button.disabled = false;
         }
         return;

@@ -3,6 +3,7 @@ import { renderApp } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';
 import { supabase } from './supabase.ts';
+import { t } from '../i18n.ts';
 
 export async function login(email: string, password: string): Promise<void> {
     if (!supabase) throw new Error("Supabase client not initialized.");
@@ -11,7 +12,7 @@ export async function login(email: string, password: string): Promise<void> {
     if (error) {
         // Provide a user-friendly error message
         if (error.message.includes('Invalid login credentials')) {
-            throw new Error('Invalid email or password.');
+            throw new Error(t('errors.invalid_credentials'));
         }
         throw error;
     }
@@ -34,7 +35,7 @@ export async function signup(name: string, email: string, password: string): Pro
 
     if (error) {
         if (error.message.includes('User already registered')) {
-            throw new Error('A user with this email already exists.');
+            throw new Error(t('errors.user_exists'));
         }
         throw error;
     }

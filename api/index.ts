@@ -1,4 +1,3 @@
-
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -311,136 +310,121 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId } = req.query;
+                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
             
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
                 if (memberError || !membership) return res.status(403).json({ error: 'User is not a member of this workspace.' });
             
-                const [
-                    dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
-                    automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
-                    projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes, pipelineStagesRes, kanbanStagesRes
-                ] = await Promise.all([
-                    supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
-                    supabase.from('projects').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId),
-                    supabase.from('invoices').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('time_logs').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('comments').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id),
-                    supabase.from('objectives').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('key_results').select('*').in('objective_id', (await supabase.from('objectives').select('id').eq('workspace_id', workspaceId)).data?.map(o => o.id) || []),
-                    supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('deals').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('automations').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('client_tags').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('project_templates').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('wiki_history').select('*'), // This might need a workspace_id filter in the future
-                    supabase.from('channels').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('chat_messages').select('*'), // This should be filtered by channels
-                    supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('expenses').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId),
-                    supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId),
-                ]);
-            
-                const allResults = [
-                    dashboardWidgetsRes, projectsRes, tasksRes, clientsRes, invoicesRes, timeLogsRes, commentsRes,
-                    taskAssigneesRes, projectSectionsRes, taskViewsRes, timeOffRequestsRes, userTaskSortOrdersRes,
-                    objectivesRes, keyResultsRes, inventoryItemsRes, inventoryAssignmentsRes, dealsRes, dealActivitiesRes,
-                    automationsRes, tagsRes, taskTagsRes, projectTagsRes, clientTagsRes, customFieldDefinitionsRes, customFieldValuesRes,
-                    projectTemplatesRes, wikiHistoryRes, channelsRes, chatMessagesRes, calendarEventsRes, expensesRes,
-                    budgetsRes, reviewsRes, pipelineStagesRes, kanbanStagesRes
-                ];
-                for (const r of allResults) {
-                    if (r.error) throw new Error(`Dashboard data fetch failed: ${r.error.message}`);
-                }
-            
-                // Sequentially fetch project_members based on fetched projects
-                const projects = projectsRes.data || [];
-                const projectIds = projects.map(p => p.id);
-                const { data: projectMembersData, error: projectMembersError } =
-                    projectIds.length > 0
-                    ? await supabase.from('project_members').select('*').in('project_id', projectIds)
-                    : { data: [], error: null };
-                if (projectMembersError) throw projectMembersError;
+                let queries: { [key: string]: any } = {};
 
-                // Fetch and attach invoice line items
-                const invoices = invoicesRes.data || [];
-                if (invoices.length > 0) {
-                    const invoiceIds = invoices.map(i => i.id);
-                    const { data: lineItems, error: lineItemsError } = await supabase.from('invoice_line_items').select('*').in('invoice_id', invoiceIds);
-                    if (lineItemsError) throw lineItemsError;
+                if (coreOnly === 'true') {
+                    queries['dashboardWidgets'] = supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId);
+                    queries['projects'] = supabase.from('projects').select('*').eq('workspace_id', workspaceId);
+                    queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);
+                    const { data: projectsData, error: pError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
+                    if (pError) throw pError;
+                    const projectIds = projectsData.map(p => p.id);
+                    queries['projectMembers'] = projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null });
+                    queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
+                    queries['projectTags'] = supabase.from('project_tags').select('*').eq('workspace_id', workspaceId);
+                    queries['clientTags'] = supabase.from('client_tags').select('*').eq('workspace_id', workspaceId);
+                    queries['timeOffRequests'] = supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId);
+                    queries['reviews'] = supabase.from('reviews').select('*').eq('workspace_id', workspaceId);
+                } else if (tasksOnly === 'true') {
+                    queries['tasks'] = supabase.from('tasks').select('*').eq('workspace_id', workspaceId);
+                    queries['taskAssignees'] = supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId);
+                    queries['projectSections'] = supabase.from('project_sections').select('*').eq('workspace_id', workspaceId);
+                    queries['taskViews'] = supabase.from('task_views').select('*').eq('workspace_id', workspaceId);
+                    queries['userTaskSortOrders'] = supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id);
+                    queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
+                    queries['taskTags'] = supabase.from('task_tags').select('*').eq('workspace_id', workspaceId);
+                    queries['comments'] = supabase.from('comments').select('*').eq('workspace_id', workspaceId);
+                    queries['dependencies'] = supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId);
+                    queries['customFieldDefinitions'] = supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId);
+                    queries['customFieldValues'] = supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId);
+                } else if (clientsOnly === 'true') {
+                    queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);
+                    queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
+                    queries['clientTags'] = supabase.from('client_tags').select('*').eq('workspace_id', workspaceId);
+                } else if (invoicesOnly === 'true') {
+                    queries['invoices'] = supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId);
+                } else if (salesOnly === 'true') {
+                    queries['deals'] = supabase.from('deals').select('*').eq('workspace_id', workspaceId);
+                    queries['dealActivities'] = supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId);
+                    queries['pipelineStages'] = supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId);
+                } else {
+                    // Fallback to full data fetch if no specific flag is provided
+                    const { data: projectsData, error: pError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
+                    if (pError) throw pError;
+                    const projectIds = projectsData.map(p => p.id);
+
+                    const { data: objectivesData, error: oError } = await supabase.from('objectives').select('id').eq('workspace_id', workspaceId);
+                    if (oError) throw oError;
+                    const objectiveIds = objectivesData.map(o => o.id);
                     
-                    const lineItemsByInvoiceId = new Map();
-                    for (const item of lineItems) {
-                        if (!lineItemsByInvoiceId.has(item.invoice_id)) {
-                            lineItemsByInvoiceId.set(item.invoice_id, []);
-                        }
-                        lineItemsByInvoiceId.get(item.invoice_id)!.push(item);
+                    queries = {
+                        dashboardWidgets: supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
+                        projects: supabase.from('projects').select('*').eq('workspace_id', workspaceId),
+                        tasks: supabase.from('tasks').select('*').eq('workspace_id', workspaceId),
+                        clients: supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId),
+                        invoices: supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId),
+                        timeLogs: supabase.from('time_logs').select('*').eq('workspace_id', workspaceId),
+                        comments: supabase.from('comments').select('*').eq('workspace_id', workspaceId),
+                        taskAssignees: supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId),
+                        projectSections: supabase.from('project_sections').select('*').eq('workspace_id', workspaceId),
+                        taskViews: supabase.from('task_views').select('*').eq('workspace_id', workspaceId),
+                        timeOffRequests: supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId),
+                        userTaskSortOrders: supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id),
+                        objectives: supabase.from('objectives').select('*').eq('workspace_id', workspaceId),
+                        keyResults: objectiveIds.length > 0 ? supabase.from('key_results').select('*').in('objective_id', objectiveIds) : Promise.resolve({ data: [], error: null }),
+                        inventoryItems: supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId),
+                        inventoryAssignments: supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId),
+                        deals: supabase.from('deals').select('*').eq('workspace_id', workspaceId),
+                        dealActivities: supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId),
+                        automations: supabase.from('automations').select('*').eq('workspace_id', workspaceId),
+                        tags: supabase.from('tags').select('*').eq('workspace_id', workspaceId),
+                        taskTags: supabase.from('task_tags').select('*').eq('workspace_id', workspaceId),
+                        projectTags: supabase.from('project_tags').select('*').eq('workspace_id', workspaceId),
+                        clientTags: supabase.from('client_tags').select('*').eq('workspace_id', workspaceId),
+                        customFieldDefinitions: supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId),
+                        customFieldValues: supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId),
+                        projectTemplates: supabase.from('project_templates').select('*').eq('workspace_id', workspaceId),
+                        wikiHistory: supabase.from('wiki_history').select('*'), // This might need a workspace_id filter in the future
+                        channels: supabase.from('channels').select('*').eq('workspace_id', workspaceId),
+                        chatMessages: supabase.from('chat_messages').select('*'), // This should be filtered by channels
+                        calendarEvents: supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId),
+                        expenses: supabase.from('expenses').select('*').eq('workspace_id', workspaceId),
+                        budgets: supabase.from('budgets').select('*').eq('workspace_id', workspaceId),
+                        reviews: supabase.from('reviews').select('*').eq('workspace_id', workspaceId),
+                        pipelineStages: supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId),
+                        kanbanStages: supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId),
+                        projectMembers: projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null }),
+                    };
+                }
+
+                const queryEntries = Object.entries(queries);
+                const results = await Promise.all(queryEntries.map(([, query]) => query));
+
+                const responseData: { [key: string]: any } = {};
+                for (let i = 0; i < results.length; i++) {
+                    const key = queryEntries[i][0];
+                    const { data, error } = results[i];
+                    if (error) {
+                        console.error(`Error fetching ${key}:`, error);
+                        throw new Error(`Failed to fetch data for ${key}: ${error.message}`);
                     }
-            
-                    for (const invoice of invoices) {
-                        (invoice as any).items = lineItemsByInvoiceId.get(invoice.id) || [];
-                    }
+                    responseData[key] = data;
+                }
+
+                if ((invoicesOnly === 'true' || !Object.keys(req.query).some(q => q.includes('Only'))) && responseData.invoices) {
+                    responseData.invoices.forEach((inv: any) => {
+                        inv.items = inv.invoice_line_items;
+                        delete inv.invoice_line_items;
+                    });
                 }
             
-                return res.status(200).json(keysToCamel({
-                    dashboardWidgets: dashboardWidgetsRes.data,
-                    projects: projects,
-                    tasks: tasksRes.data,
-                    clients: clientsRes.data,
-                    invoices: invoices,
-                    timeLogs: timeLogsRes.data,
-                    comments: commentsRes.data,
-                    taskAssignees: taskAssigneesRes.data,
-                    projectSections: projectSectionsRes.data,
-                    taskViews: taskViewsRes.data,
-                    timeOffRequests: timeOffRequestsRes.data,
-                    userTaskSortOrders: userTaskSortOrdersRes.data,
-                    projectMembers: projectMembersData,
-                    objectives: objectivesRes.data,
-                    keyResults: keyResultsRes.data,
-                    inventoryItems: inventoryItemsRes.data,
-                    inventoryAssignments: inventoryAssignmentsRes.data,
-                    deals: dealsRes.data,
-                    dealActivities: dealActivitiesRes.data,
-                    pipelineStages: pipelineStagesRes.data,
-                    kanbanStages: kanbanStagesRes.data,
-                    automations: automationsRes.data,
-                    tags: tagsRes.data,
-                    taskTags: taskTagsRes.data,
-                    projectTags: projectTagsRes.data,
-                    clientTags: clientTagsRes.data,
-                    customFieldDefinitions: customFieldDefinitionsRes.data,
-                    customFieldValues: customFieldValuesRes.data,
-                    projectTemplates: projectTemplatesRes.data,
-                    wikiHistory: wikiHistoryRes.data,
-                    channels: channelsRes.data,
-                    chatMessages: chatMessagesRes.data,
-                    calendarEvents: calendarEventsRes.data,
-                    expenses: expensesRes.data,
-                    budgets: budgetsRes.data,
-                    reviews: reviewsRes.data,
-                }));
+                return res.status(200).json(keysToCamel(responseData));
             }
             
              // ============================================================================

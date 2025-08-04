@@ -109,13 +109,13 @@ const commonChartOptions = {
 };
 
 const renderKpiCard = (title: string, value: string, icon: string, colorClass: string) => `
-    <div class="kpi-card">
-        <div class="kpi-icon ${colorClass}">
+    <div class="bg-content p-4 rounded-lg flex items-center gap-4">
+        <div class="p-3 rounded-full ${colorClass}">
             <span class="material-icons-sharp">${icon}</span>
         </div>
         <div>
-            <p class="kpi-title">${title}</p>
-            <strong class="kpi-value">${value}</strong>
+            <p class="text-sm text-text-subtle">${title}</p>
+            <strong class="text-2xl font-semibold">${value}</strong>
         </div>
     </div>
 `;
@@ -132,9 +132,9 @@ function renderProductivityReports({ tasks }: { tasks: Task[] }) {
             ${renderKpiCard(t('reports.kpi_tasks_completed'), completedTasks.length.toString(), 'check_circle', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
             ${renderKpiCard(t('reports.kpi_avg_completion_time'), formatDuration(avgCompletionSeconds), 'timer', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
         </div>
-        <div class="card md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_task_velocity_title')}</h4></div><div class="h-64"><canvas id="taskVelocityChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_team_workload_title')}</h4></div><div class="h-64"><canvas id="teamWorkloadChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_tasks_by_priority_title')}</h4></div><div class="h-64"><canvas id="tasksByPriorityChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_task_velocity_title')}</h4></div><div class="h-64"><canvas id="taskVelocityChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_team_workload_title')}</h4></div><div class="h-64"><canvas id="teamWorkloadChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_tasks_by_priority_title')}</h4></div><div class="h-64"><canvas id="tasksByPriorityChart"></canvas></div></div>
     `;
 }
 
@@ -151,9 +151,9 @@ function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }) {
              ${renderKpiCard(t('reports.kpi_total_time_tracked'), formatDuration(timeLogs.reduce((s,l) => s + l.trackedSeconds, 0)), 'schedule', 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300')}
              ${renderKpiCard(t('reports.kpi_billable_hours'), formatDuration(billableTime), 'attach_money', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
         </div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_project_title')}</h4></div><div class="h-64"><canvas id="timeByProjectChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_user_title')}</h4></div><div class="h-64"><canvas id="timeByUserChart"></canvas></div></div>
-        <div class="card md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_billable_time_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="billableTimeChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_project_title')}</h4></div><div class="h-64"><canvas id="timeByProjectChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_time_by_user_title')}</h4></div><div class="h-64"><canvas id="timeByUserChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm md:col-span-2"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_billable_time_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="billableTimeChart"></canvas></div></div>
     `;
 }
 
@@ -169,9 +169,9 @@ function renderFinancialReports({ invoices, expenses }: { invoices: Invoice[], e
             ${renderKpiCard(t('reports.kpi_net_profit'), formatCurrency(totalRevenue - totalExpenses, 'PLN'), 'trending_up', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
             ${renderKpiCard(t('reports.kpi_outstanding_revenue'), formatCurrency(outstandingRevenue, 'PLN'), 'hourglass_top', 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300')}
         </div>
-        <div class="card md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_revenue_cost_profit_title')}</h4></div><div class="h-64"><canvas id="revenueCostProfitChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_invoice_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="invoiceStatusChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_top_clients_title')}</h4></div><div class="h-64"><canvas id="topClientsChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_revenue_cost_profit_title')}</h4></div><div class="h-64"><canvas id="revenueCostProfitChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_invoice_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="invoiceStatusChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_top_clients_title')}</h4></div><div class="h-64"><canvas id="topClientsChart"></canvas></div></div>
     `;
 }
 
@@ -195,9 +195,9 @@ function renderGoalsReports({ objectives }: { objectives: Objective[] }) {
             ${renderKpiCard(t('goals.avg_progress'), `${avgProgress}%`, 'trending_up', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
             ${renderKpiCard(t('reports.milestones_completed'), completedMilestones.toString(), 'task_alt', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
         </div>
-        <div class="card md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_progress_by_goal_title')}</h4></div><div class="h-64"><canvas id="progressByGoalChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_goal_completion_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="goalCompletionChart"></canvas></div></div>
-        <div class="card"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_milestone_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="milestoneStatusChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm md:col-span-2 lg:col-span-4"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_progress_by_goal_title')}</h4></div><div class="h-64"><canvas id="progressByGoalChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_goal_completion_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="goalCompletionChart"></canvas></div></div>
+        <div class="bg-content p-4 rounded-lg shadow-sm"><div class="flex justify-between items-center mb-4"><h4 class="font-semibold">${t('reports.report_milestone_status_title')}</h4></div><div class="h-64 flex items-center justify-center"><canvas id="milestoneStatusChart"></canvas></div></div>
     `;
 }
 

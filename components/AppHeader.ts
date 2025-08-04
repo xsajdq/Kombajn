@@ -32,7 +32,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                         </select>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 sm:gap-4">
                     <div id="global-timer-container" class="flex items-center gap-2">
                         <span class="font-mono text-sm font-medium ${isRunning ? 'text-primary' : ''}" id="global-timer-display">
                             ${formatDuration(elapsedSeconds)}

@@ -1,9 +1,19 @@
-
-
-import { getState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate, filterItems } from '../utils.ts';
+import { fetchClientsForWorkspace } from '../handlers/clients.ts';
+
+export async function initClientsPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.clients.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({ ui: { ...prevState.ui, clients: { ...prevState.ui.clients, isLoading: true } } }), ['page']);
+        await fetchClientsForWorkspace(activeWorkspaceId);
+    }
+}
 
 export function ClientsPage() {
     const state = getState();

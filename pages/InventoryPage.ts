@@ -114,7 +114,7 @@ export function InventoryPage() {
                 <h4 class="font-semibold mb-3">${t('inventory.inventory_by_category')}</h4>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     ${categories.map(cat => `
-                        <div class="border border-border-color p-3 rounded-md flex justify-between items-start">
+                        <div class="border border-border-color p-4 rounded-md flex justify-between items-start">
                            <div>
                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-background">${cat.name}</span>
                                 <p class="text-xs text-text-subtle mt-2">${t('inventory.items')}</p>

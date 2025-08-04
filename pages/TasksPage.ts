@@ -1,10 +1,12 @@
-import { getState } from '../state.ts';
+
+
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User, ProjectSection, SortByOption, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
-import { openTaskDetail } from '../handlers/tasks.ts';
+import { openTaskDetail, fetchTasksForWorkspace } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
 
@@ -109,8 +111,8 @@ function renderBoardView(filteredTasks: Task[]) {
     if (kanbanStages.length === 0) {
         return `<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
             <span class="material-icons-sharp text-5xl text-text-subtle">view_week</span>
-            <h3 class="text-lg font-medium mt-4">No Kanban Board Columns</h3>
-            <p class="text-sm text-text-subtle mt-1">Please configure your Kanban board columns in Settings.</p>
+            <h3 class="text-lg font-medium mt-4">${t('tasks.no_kanban_columns_title')}</h3>
+            <p class="text-sm text-text-subtle mt-1">${t('tasks.no_kanban_columns_desc')}</p>
         </div>`;
     }
 
@@ -206,7 +208,7 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
                             <h4 class="font-semibold">${section.name}</h4>
                             <span class="text-sm text-text-subtle">${tasks.length}</span>
                         </div>
-                        <button class="btn-icon" data-delete-resource="project_sections" data-delete-id="${section.id}" data-delete-confirm="Are you sure you want to delete this section?"><span class="material-icons-sharp text-base">delete</span></button>
+                        <button class="btn-icon" data-delete-resource="project_sections" data-delete-id="${section.id}" data-delete-confirm="Are you sure you want to delete this section? Tasks in this section will not be deleted."><span class="material-icons-sharp text-base">delete</span></button>
                     </summary>
                     <div class="task-list-modern">
                         ${tasks.map(renderTaskRow).join('')}
@@ -262,7 +264,16 @@ function renderWorkloadView(filteredTasks: Task[]) {
     return `<div>Workload View Placeholder</div>`;
 }
 
-export function initTasksPage() {
+export async function initTasksPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.tasks.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: true } } }), ['page']);
+        await fetchTasksForWorkspace(activeWorkspaceId);
+    }
+    
     if (getState().ui.tasks.viewMode === 'gantt') {
         // initGanttChart(getFilteredTasks());
     }
@@ -270,8 +281,15 @@ export function initTasksPage() {
 
 export function TasksPage() {
     const state = getState();
-    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy } = state.ui.tasks;
+    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy, isLoading } = state.ui.tasks;
     const canManage = can('manage_tasks');
+
+    if (isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
+
     const filteredTasks = getFilteredTasks();
     const { projectId } = state.ui.tasks.filters;
     const projectSections = state.projectSections.filter(ps => !projectId || ps.projectId === projectId);

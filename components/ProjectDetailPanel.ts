@@ -76,7 +76,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                         <div class="kpi-value overdue">${overdueTasksCount}</div>
                     </div>
                 </div>
-                <div class="card" style="margin-top: 1.5rem;">
+                <div class="bg-content p-4 rounded-lg shadow-sm" style="margin-top: 1.5rem;">
                     <h4>Project Wiki Preview</h4>
                     <div class="project-wiki-view ${!hasWikiContent ? 'not-prose' : ''}">
                          ${hasWikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent.substring(0, 500) + (project.wikiContent.length > 500 ? '...' : ''))) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}
@@ -217,7 +217,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         const files = state.attachments.filter(a => a.projectId === projectId);
         return `
             <div class="side-panel-content">
-                <div class="card">
+                <div class="bg-content p-4 rounded-lg shadow-sm">
                     <div class="project-files-header">
                         <h4>${t('panels.tab_files')} (${files.length})</h4>
                         <label for="project-file-upload" class="btn btn-secondary btn-sm ${!canEditProject ? 'disabled' : ''}">
@@ -264,7 +264,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
 
         return `
         <div class="side-panel-content">
-            <div class="card">
+            <div class="bg-content p-4 rounded-lg shadow-sm">
                 <h4>${t('panels.project_access')} (${projectMembers.length})</h4>
                 <div class="team-member-list">
                     ${projectMembers.map(pm => {
@@ -288,7 +288,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                         </div>`}).join('')}
                 </div>
             </div>
-            <div class="card" style="margin-top: 1.5rem;">
+            <div class="bg-content p-4 rounded-lg shadow-sm" style="margin-top: 1.5rem;">
                 <h4>${t('panels.invite_to_project')}</h4>
                 <form id="add-project-member-form" data-project-id="${projectId}">
                      <div class="invite-form-grid">
@@ -404,7 +404,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         const expenses = state.expenses.filter(e => e.projectId === projectId);
         return `
             <div class="side-panel-content">
-                <div class="card">
+                <div class="bg-content p-4 rounded-lg shadow-sm">
                     <div class="flex justify-between items-center mb-4">
                         <h4>${t('modals.expenses')} (${expenses.length})</h4>
                         <button class="btn btn-secondary btn-sm" data-modal-target="addExpense" data-project-id="${projectId}">
@@ -434,7 +434,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
     
         return `
             <div class="side-panel-content">
-                <div class="card">
+                <div class="bg-content p-4 rounded-lg shadow-sm">
                     <h4>${t('modals.tags')}</h4>
                     <div id="project-tags-selector" class="multiselect-container mt-4" data-entity-type="project" data-entity-id="${project.id}">
                         <div class="multiselect-display">

@@ -1,11 +1,9 @@
-
-
-
-import { getState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
 import type { Invoice } from '../types.ts';
 import { can } from '../permissions.ts';
+import { fetchInvoicesForWorkspace } from '../handlers/invoices.ts';
 
 function getFilteredInvoices() {
     const state = getState();
@@ -145,6 +143,17 @@ function renderInvoicesList() {
             </div>
         </div>
     `;
+}
+
+export async function initInvoicesPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.invoices.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({ ui: { ...prevState.ui, invoices: { ...prevState.ui.invoices, isLoading: true } } }), ['page']);
+        await fetchInvoicesForWorkspace(activeWorkspaceId);
+    }
 }
 
 export function InvoicesPage() {

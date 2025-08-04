@@ -1,4 +1,5 @@
 
+
 import { t } from '../i18n.ts';
 import { getState } from '../state.ts';
 
@@ -15,7 +16,7 @@ function renderSetupPage() {
             <div class="bg-content p-8 rounded-lg shadow-md max-w-lg w-full text-center">
                 <h3 class="text-xl font-bold">${t('setup.request_pending_title')}</h3>
                 <p class="mt-4 leading-relaxed text-text-subtle">${t('setup.request_pending_message').replace('{workspaceName}', workspaceName)}</p>
-                <button class="mt-6 px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" data-logout-button>Log Out</button>
+                <button class="mt-6 px-4 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background" data-logout-button>${t('auth.logout')}</button>
             </div>
         `;
     }
@@ -49,7 +50,7 @@ function renderSetupPage() {
 
             </div>
              <div class="text-center mt-8">
-                <button class="text-sm text-text-subtle hover:underline" data-logout-button>Log Out</button>
+                <button class="text-sm text-text-subtle hover:underline" data-logout-button>${t('auth.logout')}</button>
             </div>
         </div>
     `;
@@ -59,8 +60,8 @@ export function AuthPage({ isSetup = false } = {}) {
     const content = isSetup ? renderSetupPage() : `
         <div class="bg-content rounded-lg shadow-md max-w-md w-full">
             <div class="flex border-b border-border-color">
-                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px active" data-auth-tab="login">Login</button>
-                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px" data-auth-tab="register">Register</button>
+                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px active" data-auth-tab="login">${t('auth.login_tab')}</button>
+                <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px" data-auth-tab="register">${t('auth.register_tab')}</button>
             </div>
             <div id="auth-form-container" class="p-8">
                 ${renderLoginForm()}
@@ -78,17 +79,17 @@ export function AuthPage({ isSetup = false } = {}) {
 export function renderLoginForm() {
     return `
         <form id="loginForm" novalidate class="space-y-4">
-            <h3 class="text-center text-xl font-bold mb-6">Welcome Back</h3>
+            <h3 class="text-center text-xl font-bold mb-6">${t('auth.welcome_back')}</h3>
             <div id="login-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>
             <div class="flex flex-col gap-1.5">
-                <label for="loginEmail" class="text-sm font-medium text-text-subtle">Email</label>
+                <label for="loginEmail" class="text-sm font-medium text-text-subtle">${t('auth.email_label')}</label>
                 <input type="email" id="loginEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="email">
             </div>
             <div class="flex flex-col gap-1.5">
-                <label for="loginPassword" class="text-sm font-medium text-text-subtle">Password</label>
+                <label for="loginPassword" class="text-sm font-medium text-text-subtle">${t('auth.password_label')}</label>
                 <input type="password" id="loginPassword" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="current-password">
             </div>
-            <button type="submit" id="login-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('modals.save') === 'Save' ? 'Log In' : 'Zaloguj'}</button>
+            <button type="submit" id="login-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('auth.login_button')}</button>
         </form>
     `;
 }
@@ -96,21 +97,21 @@ export function renderLoginForm() {
 export function renderRegisterForm() {
     return `
         <form id="registerForm" novalidate class="space-y-4">
-            <h3 class="text-center text-xl font-bold mb-6">Create Account</h3>
+            <h3 class="text-center text-xl font-bold mb-6">${t('auth.create_account_title')}</h3>
             <div id="register-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>
             <div class="flex flex-col gap-1.5">
-                <label for="registerName" class="text-sm font-medium text-text-subtle">Full Name</label>
+                <label for="registerName" class="text-sm font-medium text-text-subtle">${t('auth.full_name_label')}</label>
                 <input type="text" id="registerName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="name">
             </div>
             <div class="flex flex-col gap-1.5">
-                <label for="registerEmail" class="text-sm font-medium text-text-subtle">Email</label>
+                <label for="registerEmail" class="text-sm font-medium text-text-subtle">${t('auth.email_label')}</label>
                 <input type="email" id="registerEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required autocomplete="email">
             </div>
             <div class="flex flex-col gap-1.5">
-                <label for="registerPassword" class="text-sm font-medium text-text-subtle">Password (min. 6 characters)</label>
+                <label for="registerPassword" class="text-sm font-medium text-text-subtle">${t('auth.password_label_min')}</label>
                 <input type="password" id="registerPassword" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" required minlength="6" autocomplete="new-password">
             </div>
-            <button type="submit" id="register-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Register</button>
+            <button type="submit" id="register-submit-btn" class="w-full mt-6 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('auth.register_button')}</button>
         </form>
     `;
 }

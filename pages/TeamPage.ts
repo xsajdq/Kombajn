@@ -38,7 +38,7 @@ async function renderEmployeesTab() {
             <div class="flex items-center gap-2">
                 <div class="relative">
                      <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Search by name or email..." value="${state.ui.hr.filters.text}">
+                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="${t('hr.search_placeholder')}" value="${state.ui.hr.filters.text}">
                 </div>
                 ${canInviteUsers ? `
                 <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" id="hr-invite-member-btn" ${userLimitReached ? 'disabled' : ''} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
@@ -52,7 +52,7 @@ async function renderEmployeesTab() {
                 <div class="px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid md:grid-cols-[2fr,1.5fr,2fr,auto] md:gap-4">
                     <div>${t('hr.employee')}</div>
                     <div>${t('hr.role')}</div>
-                    <div>Email</div>
+                    <div>${t('hr.email_col')}</div>
                     <div class="text-right">${t('hr.actions')}</div>
                 </div>
                 <div class="hr-table-body">
@@ -80,7 +80,7 @@ async function renderEmployeesTab() {
                                 <span class="text-text-subtle">${user.email || t('misc.not_applicable')}</span>
                             </div>
                             <div class="flex justify-end items-center gap-1 md:p-4 actions-on-hover">
-                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="View/Edit Details">
+                                <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="${t('hr.view_details_title')}">
                                     <span class="material-icons-sharp text-lg">edit_note</span>
                                 </button>
                                 ${canRemoveUsers && !isOwner && !isSelf ? `
@@ -166,7 +166,7 @@ function renderRequestsTab() {
                 </div>
             </div>
             <div>
-                <h4 class="font-semibold mb-3">Leave Requests (${pendingLeaveRequests.length})</h4>
+                <h4 class="font-semibold mb-3">${t('hr.leave_requests_title')} (${pendingLeaveRequests.length})</h4>
                 <div class="space-y-3">
                     ${pendingLeaveRequests.length > 0 ? pendingLeaveRequests.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
@@ -175,7 +175,7 @@ function renderRequestsTab() {
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                     <div>
-                                        <strong class="text-sm font-semibold">${user?.name || 'Unknown User'}</strong>
+                                        <strong class="text-sm font-semibold">${user?.name || t('hr.unknown_user')}</strong>
                                         <p class="text-xs text-text-subtle">${t(`team_calendar.leave_type_${request.type}`)}</p>
                                     </div>
                                 </div>
@@ -185,8 +185,8 @@ function renderRequestsTab() {
                                     <span>${formatDate(request.endDate, {month: 'short', day: 'numeric'})}</span>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-reject-request-id="${request.id}" title="Reject"><span class="material-icons-sharp text-lg">close</span></button>
-                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-success" data-approve-request-id="${request.id}" title="Approve"><span class="material-icons-sharp text-lg">check</span></button>
+                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-reject-request-id="${request.id}" title="${t('hr.reject')}"><span class="material-icons-sharp text-lg">close</span></button>
+                                    <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-success" data-approve-request-id="${request.id}" title="${t('hr.approve')}"><span class="material-icons-sharp text-lg">check</span></button>
                                 </div>
                             </div>
                         `;
