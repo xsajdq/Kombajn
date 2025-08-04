@@ -1,3 +1,5 @@
+
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
@@ -145,14 +147,17 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
     window.open(mailtoLink, '_self');
 
     const originalEmailStatus = invoice.emailStatus;
+    const originalSentAt = invoice.sentAt;
     invoice.emailStatus = 'sent';
+    invoice.sentAt = new Date().toISOString();
     updateUI(['page']);
 
     try {
-        await apiPut('invoices', { id: invoiceId, emailStatus: 'sent' });
+        await apiPut('invoices', { id: invoiceId, emailStatus: 'sent', sentAt: invoice.sentAt });
     } catch (error) {
         console.error("Failed to update invoice email status:", error);
         invoice.emailStatus = originalEmailStatus;
+        invoice.sentAt = originalSentAt;
         updateUI(['page']);
     }
 }
