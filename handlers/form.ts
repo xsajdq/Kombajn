@@ -1,10 +1,10 @@
-import { getState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
 import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
 import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment, Budget } from '../types.ts';
 import { t } from '../i18n.ts';
-import { renderApp, updateUI } from '../app-renderer.ts';
+import { updateUI } from '../app-renderer.ts';
 import * as timerHandlers from './timers.ts';
 import * as hrHandlers from './team.ts';
 import * as dashboardHandlers from './dashboard.ts';
@@ -22,8 +22,6 @@ export async function handleFormSubmit() {
     const activeWorkspaceId = state.activeWorkspaceId;
     if (!activeWorkspaceId || !state.currentUser) return;
 
-    // The task detail modal has its own internal forms (like comments)
-    // which are handled by specific submit listeners, not this generic one.
     if (type === 'taskDetail') {
         return;
     }
@@ -53,25 +51,20 @@ export async function handleFormSubmit() {
 
             if (clientId) {
                 [savedClient] = await apiPut('clients', { ...clientData, id: clientId });
-                const index = state.clients.findIndex(c => c.id === clientId);
-                if (index !== -1) {
-                    state.clients[index] = { ...state.clients[index], ...savedClient };
-                }
+                setState(prevState => ({
+                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...savedClient } : c)
+                }), []);
             } else {
                 [savedClient] = await apiPost('clients', clientData);
-                state.clients.push({ ...savedClient, contacts: [] });
+                setState(prevState => ({ clients: [...prevState.clients, { ...savedClient, contacts: [] }] }), []);
             }
 
-            // Handle contacts
             const contactRows = form.querySelectorAll<HTMLElement>('.contact-form-row');
             const contactPromises: Promise<any>[] = [];
 
             contactRows.forEach(row => {
                 const nameInput = row.querySelector<HTMLInputElement>('[data-field="name"]');
-                if (!nameInput || !nameInput.value.trim()) {
-                    return; // Skip empty/newly added but unfilled rows
-                }
-
+                if (!nameInput || !nameInput.value.trim()) return;
                 const contactId = row.dataset.contactId!;
                 const isNew = contactId.startsWith('new-');
                 
@@ -84,27 +77,19 @@ export async function handleFormSubmit() {
                     phone: (row.querySelector<HTMLInputElement>('[data-field="phone"]'))!.value.trim() || undefined,
                     role: (row.querySelector<HTMLInputElement>('[data-field="role"]'))!.value.trim() || undefined,
                 };
-
-                if (isNew) {
-                    contactPromises.push(apiPost('client_contacts', contactPayload));
-                } else {
-                    contactPromises.push(apiPut('client_contacts', contactPayload));
-                }
+                if (isNew) contactPromises.push(apiPost('client_contacts', contactPayload));
+                else contactPromises.push(apiPut('client_contacts', contactPayload));
             });
 
             const deletedContactIds = (document.getElementById('deleted-contact-ids') as HTMLInputElement).value.split(',').filter(Boolean);
-            deletedContactIds.forEach(id => {
-                contactPromises.push(apiFetch('/api?action=data&resource=client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) }));
-            });
+            deletedContactIds.forEach(id => contactPromises.push(apiFetch('/api?action=data&resource=client_contacts', { method: 'DELETE', body: JSON.stringify({ id }) })));
 
             await Promise.all(contactPromises.map(p => p.catch(e => console.error("Contact save error:", e))));
             
-            // Update client in state with all fresh contacts from DB
-            const clientInState = state.clients.find(c => c.id === savedClient.id);
-            if (clientInState) {
-                const allContactsForClient = await apiFetch(`/api?action=data&resource=client_contacts&clientId=${savedClient.id}`);
-                clientInState.contacts = allContactsForClient || [];
-            }
+            const allContactsForClient = await apiFetch(`/api?action=data&resource=client_contacts&clientId=${savedClient.id}`);
+            setState(prevState => ({
+                clients: prevState.clients.map(c => c.id === savedClient.id ? { ...c, contacts: allContactsForClient || [] } : c)
+            }), ['page', 'side-panel']);
         }
 
         if (type === 'addProject') {
@@ -113,7 +98,7 @@ export async function handleFormSubmit() {
             const isEdit = !!projectId;
 
             if (!isEdit && usage.projects >= planLimits.projects) {
-                alert(t('billing.limit_reached_projects').replace('{planName}', workspace.subscription.planId));
+                alert(t('billing.limit_reached_projects', {planName: workspace.subscription.planId}));
                 return;
             }
 
@@ -125,7 +110,7 @@ export async function handleFormSubmit() {
                 workspaceId: activeWorkspaceId,
                 name: name,
                 clientId: clientId,
-                wikiContent: isEdit ? state.projects.find(p => p.id === projectId)!.wikiContent : '',
+                wikiContent: isEdit ? getState().projects.find(p => p.id === projectId)!.wikiContent : '',
                 hourlyRate: parseFloat((document.getElementById('projectHourlyRate') as HTMLInputElement).value) || undefined,
                 privacy: (document.querySelector('input[name="privacy"]:checked') as HTMLInputElement).value as Project['privacy'],
                 budgetHours: parseFloat((document.getElementById('projectBudgetHours') as HTMLInputElement).value) || undefined,
@@ -137,49 +122,26 @@ export async function handleFormSubmit() {
 
             if (isEdit) {
                 [savedProject] = await apiPut('projects', { ...projectData, id: projectId });
-                const index = state.projects.findIndex(p => p.id === projectId);
-                if (index !== -1) {
-                    state.projects[index] = { ...state.projects[index], ...savedProject };
-                }
+                setState(prevState => ({ projects: prevState.projects.map(p => p.id === projectId ? { ...p, ...savedProject } : p) }), []);
             } else {
                 [savedProject] = await apiPost('projects', projectData);
-                state.projects.push(savedProject);
-    
-                // ALWAYS add the creator as admin
-                const creatorMember: Omit<ProjectMember, 'id'> = {
-                    projectId: savedProject.id,
-                    userId: state.currentUser.id,
-                    role: 'admin'
-                };
+                setState(prevState => ({ projects: [...prevState.projects, savedProject] }), []);
+                
+                const creatorMember: Omit<ProjectMember, 'id'> = { projectId: savedProject.id, userId: state.currentUser!.id, role: 'admin' };
                 const [savedCreatorMember] = await apiPost('project_members', creatorMember);
-                state.projectMembers.push(savedCreatorMember);
+                setState(prevState => ({ projectMembers: [...prevState.projectMembers, savedCreatorMember] }), []);
             }
             
-             // Handle tags
             const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="project_tags"]:checked');
             const newTagIds = new Set(Array.from(tagCheckboxes).map(cb => cb.value));
             await projectHandlers.handleSyncProjectTags(savedProject.id, newTagIds);
 
-
-            // Handle members for both edit and create
             if (projectData.privacy === 'private') {
                 const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
                 const newMemberIds = new Set(Array.from(memberCheckboxes).map(cb => cb.value));
-                
-                if (isEdit) {
-                    await projectHandlers.handleSyncProjectMembers(savedProject.id, newMemberIds);
-                } else if (newMemberIds.size > 0) {
-                     const membersToAdd: Omit<ProjectMember, 'id'>[] = Array.from(newMemberIds)
-                        .filter(id => id !== state.currentUser!.id) // Don't re-add creator
-                        .map(userId => ({ projectId: savedProject.id, userId, role: 'editor' }));
-                    if(membersToAdd.length > 0) {
-                        const savedMembers = await apiPost('project_members', membersToAdd);
-                        state.projectMembers.push(...savedMembers);
-                    }
-                }
+                await projectHandlers.handleSyncProjectMembers(savedProject.id, newMemberIds);
             } else if (isEdit && projectData.privacy === 'public') {
-                // If switching from private to public, remove all non-creator members
-                await projectHandlers.handleSyncProjectMembers(savedProject.id, new Set([state.currentUser.id]));
+                await projectHandlers.handleSyncProjectMembers(savedProject.id, new Set([state.currentUser!.id]));
             }
         }
 
@@ -187,12 +149,9 @@ export async function handleFormSubmit() {
             const name = (document.getElementById('aiProjectName') as HTMLInputElement).value;
             const clientId = (document.getElementById('aiProjectClient') as HTMLSelectElement).value;
             const goal = (document.getElementById('aiProjectGoal') as HTMLTextAreaElement).value;
-            if (!name || !clientId || !goal) {
-                alert("Please fill all fields.");
-                return;
-            }
+            if (!name || !clientId || !goal) return alert("Please fill all fields.");
             await projectHandlers.handlePlanProjectWithAi(name, clientId, goal);
-            return;
+            return; 
         }
 
         if (type === 'addGoal') {
@@ -201,3 +160,80 @@ export async function handleFormSubmit() {
             const isEdit = !!goalId;
 
             const title = (form.querySelector('#goalTitle') as HTMLInputElement).value;
+            const description = (form.querySelector('#goalDescription') as HTMLTextAreaElement).value;
+            const ownerId = (form.querySelector('#goalOwner') as HTMLSelectElement).value;
+            const dueDate = (form.querySelector('#goalDueDate') as HTMLInputElement).value;
+            const category = (form.querySelector('#goalCategory') as HTMLInputElement).value;
+            const priority = (form.querySelector('#goalPriority') as HTMLSelectElement).value;
+            const status = (form.querySelector('#goalStatus') as HTMLSelectElement).value;
+            const targetValue = parseFloat((form.querySelector('#goalTargetValue') as HTMLInputElement).value) || 0;
+            const currentValue = parseFloat((form.querySelector('#goalCurrentValue') as HTMLInputElement).value) || 0;
+            const valueUnit = (form.querySelector('#goalValueUnit') as HTMLInputElement).value;
+
+            const goalPayload = {
+                workspaceId: activeWorkspaceId,
+                title, description, ownerId, dueDate, category, priority, status, targetValue, currentValue, valueUnit
+            };
+
+            let savedGoal;
+            if (isEdit) {
+                [savedGoal] = await apiPut('objectives', { ...goalPayload, id: goalId });
+                setState(prevState => ({ objectives: prevState.objectives.map(o => o.id === goalId ? savedGoal : o) }), []);
+            } else {
+                [savedGoal] = await apiPost('objectives', goalPayload);
+                setState(prevState => ({ objectives: [...prevState.objectives, savedGoal] }), []);
+            }
+
+            const milestoneInputs = Array.from(form.querySelectorAll<HTMLElement>('.milestone-item'));
+            const milestonePromises = milestoneInputs.map(item => {
+                const id = item.dataset.id!;
+                const isNew = id.startsWith('new-');
+                const text = (item.querySelector('.milestone-input') as HTMLInputElement).value;
+                const krPayload = {
+                    objectiveId: savedGoal.id,
+                    title: text,
+                    type: 'number',
+                    startValue: 0,
+                    targetValue: 1,
+                    completed: (item.querySelector('.milestone-checkbox') as HTMLInputElement)?.checked || false,
+                };
+                if (isNew) {
+                    return apiPost('key_results', krPayload);
+                } else {
+                    return apiPut('key_results', { ...krPayload, id });
+                }
+            });
+            await Promise.all(milestonePromises);
+            const keyResultsForGoal = await apiFetch(`/api?action=data&resource=key_results&objectiveId=${savedGoal.id}`);
+            setState(prevState => ({ keyResults: [...prevState.keyResults.filter(kr => kr.objectiveId !== savedGoal.id), ...keyResultsForGoal] }), []);
+        }
+
+        if (type === 'addReview') {
+            const form = document.getElementById('addReviewForm') as HTMLFormElement;
+            const employeeId = form.dataset.employeeId!;
+            const rating = parseInt((form.querySelector('#reviewRating') as HTMLSelectElement).value, 10);
+            const notes = (form.querySelector('#reviewNotes') as HTMLTextAreaElement).value;
+
+            if (employeeId && rating && notes) {
+                const payload: Omit<Review, 'id' | 'createdAt'> = {
+                    workspaceId: activeWorkspaceId,
+                    employeeId,
+                    reviewerId: state.currentUser!.id,
+                    reviewDate: new Date().toISOString().slice(0, 10),
+                    rating,
+                    notes,
+                };
+                const [newReview] = await apiPost('reviews', payload);
+                setState(prevState => ({ reviews: [...prevState.reviews, newReview] }), ['page']);
+            }
+        }
+    } catch (error) {
+        console.error("Form submission error:", error);
+        alert(`An error occurred: ${(error as Error).message}`);
+    } finally {
+        if (type !== 'aiProjectPlanner') {
+            closeModal();
+            updateUI(['page', 'side-panel']);
+        }
+    }
+}

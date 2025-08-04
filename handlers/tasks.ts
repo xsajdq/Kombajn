@@ -646,7 +646,7 @@ export async function handleToggleProjectTaskStatus(taskId: string) {
     if (!task) return;
 
     const originalStatus = task.status;
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    const newStatus: Task['status'] = task.status === 'done' ? 'todo' : 'done';
     
     const updatedTasks = state.tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
     setState({ tasks: updatedTasks }, ['side-panel']);
