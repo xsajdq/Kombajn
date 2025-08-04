@@ -1,5 +1,6 @@
+
 import { GenerateContentResponse } from "@google/genai";
-import { state } from './state.ts';
+import { getState, setState } from './state.ts';
 import { t } from './i18n.ts';
 import { formatDate } from './utils.ts';
 import { updateUI } from "./app-renderer.ts";
@@ -10,6 +11,7 @@ declare const jspdf: any;
 
 export function generateInvoicePDF(invoiceId: string, options: { outputType?: 'download' | 'datauristring' } = {}) {
     const { outputType = 'download' } = options;
+    const state = getState();
     const activeWorkspaceId = state.activeWorkspaceId;
     const invoice = state.invoices.find(inv => inv.id === invoiceId && inv.workspaceId === activeWorkspaceId);
     const client = state.clients.find(c => c.id === invoice?.clientId && c.workspaceId === activeWorkspaceId);
@@ -151,8 +153,7 @@ export async function sendSlackNotification(userId: string, message: string, wor
 }
 
 export async function handleAiTaskGeneration(promptText: string) {
-    state.ai = { loading: true, error: null, suggestedTasks: null };
-    updateUI(['page']);
+    setState({ ai: { loading: true, error: null, suggestedTasks: null } }, ['page']);
 
     try {
         const suggestedTasks: AiSuggestedTask[] = await apiFetch('/api?action=generate-tasks', {
@@ -161,14 +162,12 @@ export async function handleAiTaskGeneration(promptText: string) {
         });
         
         if (Array.isArray(suggestedTasks)) {
-            state.ai = { loading: false, error: null, suggestedTasks: suggestedTasks };
+            setState({ ai: { loading: false, error: null, suggestedTasks: suggestedTasks } }, ['page']);
         } else {
             throw new Error("AI response was not in the expected format.");
         }
     } catch (error) {
         console.error("AI task generation failed:", error);
-        state.ai = { loading: false, error: (error as Error).message, suggestedTasks: null };
-    } finally {
-        updateUI(['page']);
+        setState({ ai: { loading: false, error: (error as Error).message, suggestedTasks: null } }, ['page']);
     }
 }

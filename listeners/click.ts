@@ -1,5 +1,5 @@
 
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
 import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState, ProjectSortByOption } from '../types.ts';
@@ -25,7 +25,6 @@ import * as okrHandlers from '../handlers/okr.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as integrationHandlers from '../handlers/integrations.ts';
 import * as filterHandlers from '../handlers/filters.ts';
-import * as clientHandlers from '../handlers/clients.ts';
 import * as projectHandlers from '../handlers/projects.ts';
 import * as userHandlers from '../handlers/user.ts';
 import * as taskViewHandlers from '../handlers/taskViews.ts';
@@ -45,7 +44,7 @@ function closeDynamicMenus() {
 function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
     closeDynamicMenus();
 
-    const task = state.tasks.find(t => t.id === taskId);
+    const task = getState().tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const menu = document.createElement('div');
@@ -102,29 +101,19 @@ export async function handleClick(e: MouseEvent) {
         const groupPath = tabButton.dataset.tabGroup!.split('.');
         const tabValue = tabButton.dataset.tabValue;
 
-        let currentStateSlice = state as any;
-        for (let i = 0; i < groupPath.length - 1; i++) {
-            currentStateSlice = currentStateSlice[groupPath[i]];
-        }
+        setState(prevState => {
+            const newState = { ...prevState };
+            let currentStateSlice = newState as any;
+            for (let i = 0; i < groupPath.length - 1; i++) {
+                currentStateSlice = currentStateSlice[groupPath[i]];
+            }
+            const finalKey = groupPath[groupPath.length - 1];
+            if (currentStateSlice[finalKey] !== tabValue) {
+                currentStateSlice[finalKey] = tabValue;
+            }
+            return newState;
+        }, ['page', 'side-panel', 'modal', 'header']);
         
-        const finalKey = groupPath[groupPath.length - 1];
-        if (currentStateSlice[finalKey] !== tabValue) {
-            currentStateSlice[finalKey] = tabValue;
-            
-            // Determine which parts of the UI need to be updated
-            const updateScopeMap: {[key: string]: any} = {
-                'ui.settings.activeTab': ['page'],
-                'ui.hr.activeTab': ['page'],
-                'ui.reports.activeTab': ['page'],
-                'ui.dashboard.activeTab': ['page'],
-                'ui.openedProjectTab': ['side-panel'],
-                'ui.dealDetail.activeTab': ['side-panel'],
-                'ui.taskDetail.activeTab': ['modal'],
-                'ui.notifications.activeTab': ['header'],
-            };
-            const scopeKey = tabButton.dataset.tabGroup!;
-            updateUI(updateScopeMap[scopeKey] || ['page']);
-        }
         return;
     }
 
@@ -133,30 +122,43 @@ export async function handleClick(e: MouseEvent) {
     const deleteButton = target.closest<HTMLElement>('[data-delete-resource]');
     if (deleteButton) {
         const { deleteResource, deleteId, deleteConfirm } = deleteButton.dataset;
-        if (deleteResource && deleteId && deleteConfirm) {
-            handleOptimisticDelete(deleteResource as ResourceName, deleteId, deleteConfirm);
+        if (deleteResource && deleteId) {
+            handleOptimisticDelete(deleteResource as ResourceName, deleteId, deleteConfirm || `Are you sure you want to delete this item?`);
         }
         return;
     }
+
+    // --- START: Task Page UI Handlers ---
+    if (target.closest('[data-toggle-task-filters]')) {
+        uiHandlers.toggleTaskFilters();
+        return;
+    }
+    const sortByBtn = target.closest<HTMLElement>('[data-sort-by]');
+    if (sortByBtn) {
+        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, sortBy: sortByBtn.dataset.sortBy as SortByOption } } }), ['page']);
+        sortByBtn.closest('.dropdown-menu')?.classList.add('hidden');
+        return;
+    }
+     const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
+    if(viewModeBtn){
+        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, viewMode: viewModeBtn.dataset.viewMode as any } } }), ['page']);
+        return;
+    }
+    // --- END: Task Page UI Handlers ---
+
 
     // --- Projects Page UI Handlers ---
     const projectViewModeBtn = target.closest<HTMLElement>('[data-project-view-mode]');
     if (projectViewModeBtn) {
         const viewMode = projectViewModeBtn.dataset.projectViewMode as 'grid' | 'portfolio';
-        if (state.ui.projects.viewMode !== viewMode) {
-            state.ui.projects.viewMode = viewMode;
-            updateUI(['page']);
-        }
+        setState(prevState => ({ ui: { ...prevState.ui, projects: { ...prevState.ui.projects, viewMode: viewMode } } }), ['page']);
         return;
     }
 
     const projectSortByBtn = target.closest<HTMLElement>('[data-project-sort-by]');
     if (projectSortByBtn) {
         const sortBy = projectSortByBtn.dataset.projectSortBy as ProjectSortByOption;
-        if (state.ui.projects.sortBy !== sortBy) {
-            state.ui.projects.sortBy = sortBy;
-            updateUI(['page']);
-        }
+        setState(prevState => ({ ui: { ...prevState.ui, projects: { ...prevState.ui.projects, sortBy: sortBy } } }), ['page']);
         projectSortByBtn.closest('.dropdown-menu')?.classList.add('hidden');
         return;
     }
@@ -195,29 +197,28 @@ export async function handleClick(e: MouseEvent) {
 
     const timesheetUserOption = target.closest<HTMLElement>('.timesheet-user-option');
     if (timesheetUserOption) {
-        const userId = timesheetUserOption.dataset.timesheetUserId;
-        const allUsers = timesheetUserOption.dataset.timesheetUserAll;
-        const myTime = timesheetUserOption.dataset.timesheetUserMe;
+        const allUsers = timesheetUserOption.dataset.timesheetUserAll === 'true';
+        const myTime = timesheetUserOption.dataset.timesheetUserMe === 'true';
 
-        if (myTime) {
-            state.ui.teamCalendarSelectedUserIds = [];
-        } else if (allUsers) {
-            state.ui.teamCalendarSelectedUserIds = ['all'];
-        } else if (userId) {
+        setState(prevState => {
+            if (myTime) {
+                return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: [] } };
+            }
+            if (allUsers) {
+                return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: ['all'] } };
+            }
             const checkbox = timesheetUserOption.querySelector('input[type="checkbox"]') as HTMLInputElement;
             checkbox.checked = !checkbox.checked;
-            
-            const selectedIds = new Set(state.ui.teamCalendarSelectedUserIds.filter(id => id !== 'all'));
+            const userId = checkbox.value;
+            const selectedIds = new Set(prevState.ui.teamCalendarSelectedUserIds.filter(id => id !== 'all'));
             if (checkbox.checked) {
                 selectedIds.add(userId);
             } else {
                 selectedIds.delete(userId);
             }
-            state.ui.teamCalendarSelectedUserIds = Array.from(selectedIds);
-        }
-        
-        updateUI(['page']);
-        // Don't close dropdown on multi-select
+            return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: Array.from(selectedIds) } };
+        }, ['page']);
+
         if (myTime || allUsers) {
             document.getElementById('timesheet-user-dropdown')?.classList.add('hidden');
         }
@@ -263,15 +264,14 @@ export async function handleClick(e: MouseEvent) {
     if (roleMenuButton) {
         e.stopPropagation();
         const existingMenu = document.getElementById('dynamic-role-menu');
-        // If menu is already open for THIS button, close it. Otherwise, open a new one.
         if (existingMenu && existingMenu.dataset.ownerId === roleMenuButton.dataset.roleMenuForMemberId) {
             closeDynamicMenus();
             return;
         }
 
-        closeDynamicMenus(); // Close any other open menu
+        closeDynamicMenus();
         const memberId = roleMenuButton.dataset.roleMenuForMemberId!;
-        const member = state.workspaceMembers.find(m => m.id === memberId);
+        const member = getState().workspaceMembers.find(m => m.id === memberId);
         if (!member) return;
 
         const menu = document.createElement('div');
@@ -370,31 +370,21 @@ export async function handleClick(e: MouseEvent) {
 
     const createTaskFromSelectionBtn = target.closest('#create-task-from-selection-btn');
     if (createTaskFromSelectionBtn) {
-        const { selectedText, context } = state.ui.textSelectionPopover;
+        const { selectedText, context } = getState().ui.textSelectionPopover;
         if (selectedText && context) {
-            const modalData: {
-                taskName: string;
-                projectId?: string;
-                taskDescription?: string;
-            } = {
-                taskName: selectedText
-            };
+            const modalData: { taskName: string; projectId?: string; taskDescription?: string; } = { taskName: selectedText };
     
             if (context.type === 'project') {
                 modalData.projectId = context.id;
             } else if (context.type === 'task') {
-                const sourceTask = state.tasks.find(t => t.id === context.id);
+                const sourceTask = getState().tasks.find(t => t.id === context.id);
                 if (sourceTask) {
                     modalData.projectId = sourceTask.projectId;
                     modalData.taskDescription = `From task: [${sourceTask.name}](#/tasks/${sourceTask.id})`;
                 }
             }
             
-            // Hide popover first
-            state.ui.textSelectionPopover.isOpen = false;
-            updateUI(['text-selection-popover']);
-    
-            // Then show modal
+            setState(prevState => ({ ui: { ...prevState.ui, textSelectionPopover: { ...prevState.ui.textSelectionPopover, isOpen: false } } }), ['text-selection-popover']);
             uiHandlers.showModal('addTask', modalData);
         }
         return;
@@ -403,8 +393,8 @@ export async function handleClick(e: MouseEvent) {
     const slashCommandItem = target.closest<HTMLElement>('.slash-command-item');
     if (slashCommandItem) {
         const command = slashCommandItem.dataset.command as string;
-        if (command && state.ui.slashCommand.target) {
-            handleInsertSlashCommand(command, state.ui.slashCommand.target);
+        if (command && getState().ui.slashCommand.target) {
+            handleInsertSlashCommand(command, getState().ui.slashCommand.target);
         }
         return;
     }
@@ -415,11 +405,11 @@ export async function handleClick(e: MouseEvent) {
         const commentId = replyBtn.dataset.replyToCommentId!;
         const container = document.getElementById(`reply-form-container-${commentId}`);
         if (container) {
-            if (container.innerHTML) { // Form is open, so close it
+            if (container.innerHTML) {
                 container.innerHTML = '';
-            } else { // Form is closed, so open it
+            } else {
                 container.innerHTML = `
-                    <form class="reply-form" data-task-id="${state.ui.modal.data.taskId}" data-parent-id="${commentId}">
+                    <form class="reply-form" data-task-id="${getState().ui.modal.data.taskId}" data-parent-id="${commentId}">
                         <div class="rich-text-input-container">
                             <div class="rich-text-input" contenteditable="true" data-placeholder="${t('modals.add_comment')}"></div>
                         </div>
@@ -438,7 +428,7 @@ export async function handleClick(e: MouseEvent) {
     const editCommentBtn = target.closest<HTMLElement>('[data-edit-comment-id]');
     if (editCommentBtn) {
         const commentId = editCommentBtn.dataset.editCommentId!;
-        const comment = state.comments.find(c => c.id === commentId);
+        const comment = getState().comments.find(c => c.id === commentId);
         if (!comment) return;
 
         const commentBody = document.getElementById(`comment-body-${commentId}`);
@@ -477,42 +467,36 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    // Cancel reply button
     if (target.closest('.cancel-reply-btn')) {
         target.closest('.reply-form-container')!.innerHTML = '';
         return;
     }
     
-    // React button
     const reactBtn = target.closest<HTMLElement>('[data-react-to-comment-id]');
     if (reactBtn) {
         const commentId = reactBtn.dataset.reactToCommentId!;
         const picker = document.getElementById(`reaction-picker-${commentId}`);
         if(picker) {
             const isHidden = picker.classList.contains('hidden');
-            // Close all other pickers
             document.querySelectorAll('.reaction-picker').forEach(p => p.classList.add('hidden'));
             if(isHidden) picker.classList.remove('hidden');
         }
         return;
     }
     
-    // Close reaction pickers if clicking outside
     if (!target.closest('.reaction-picker') && !target.closest('[data-react-to-comment-id]')) {
         document.querySelectorAll('.reaction-picker').forEach(p => p.classList.add('hidden'));
     }
     
-    // Emoji button in picker
     const emojiBtn = target.closest<HTMLElement>('.reaction-picker button[data-emoji]');
     if (emojiBtn) {
         const commentId = emojiBtn.closest('.reaction-picker')!.id.replace('reaction-picker-', '');
         const emoji = emojiBtn.dataset.emoji!;
         taskHandlers.handleToggleReaction(commentId, emoji);
-        emojiBtn.closest('.reaction-picker')!.classList.add('hidden'); // Close picker after reaction
+        emojiBtn.closest('.reaction-picker')!.classList.add('hidden');
         return;
     }
     
-    // Reaction chip button (to toggle)
     const reactionChip = target.closest<HTMLElement>('.reaction-chip');
     if (reactionChip) {
         const commentId = reactionChip.dataset.commentId!;
@@ -525,7 +509,7 @@ export async function handleClick(e: MouseEvent) {
     if (reminderBtn) {
         e.stopPropagation();
         const taskId = reminderBtn.dataset.setReminderForTaskId!;
-        const task = state.tasks.find(t => t.id === taskId);
+        const task = getState().tasks.find(t => t.id === taskId);
         if (!task) return;
     
         document.getElementById('reminder-popover')?.remove();
@@ -551,7 +535,7 @@ export async function handleClick(e: MouseEvent) {
         document.body.appendChild(popover);
         const btnRect = reminderBtn.getBoundingClientRect();
         popover.style.top = `${btnRect.bottom + 5}px`;
-        popover.style.left = `${btnRect.left - popover.offsetWidth + btnRect.width}px`; // Align right
+        popover.style.left = `${btnRect.left - popover.offsetWidth + btnRect.width}px`;
         
         popover.addEventListener('click', (popoverEvent) => {
             popoverEvent.stopPropagation();
@@ -588,8 +572,6 @@ export async function handleClick(e: MouseEvent) {
     if (!target.closest('#reminder-popover') && !target.closest('[data-set-reminder-for-task-id]')) {
         document.getElementById('reminder-popover')?.remove();
     }
-
-    // --- END: New Handlers for Comments & Reactions ---
 
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
@@ -636,6 +618,7 @@ export async function handleClick(e: MouseEvent) {
         document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.add('hidden'));
     }
 
+    const state = getState();
     if (!target.closest('.task-card-menu-btn')) closeDynamicMenus();
     if (!target.closest('#notification-bell') && !target.closest('.absolute.top-full.right-0')) {
         if(state.ui.isNotificationsOpen) notificationHandlers.toggleNotificationsPopover(false);
@@ -651,12 +634,9 @@ export async function handleClick(e: MouseEvent) {
             const isDifferentPage = window.location.pathname !== navLink.pathname || window.location.search !== navLink.search;
             if (isDifferentPage) {
                 history.pushState({}, '', navLink.href);
-                // Page is changing. We must update the page content, the sidebar for active state,
-                // the header for breadcrumbs, and close any open side panels.
-                state.ui.openedProjectId = null;
-                state.ui.openedClientId = null;
-                state.ui.openedDealId = null;
-                updateUI(['page', 'sidebar', 'header', 'side-panel']);
+                setState(prevState => ({
+                    ui: { ...prevState.ui, openedProjectId: null, openedClientId: null, openedDealId: null }
+                }), ['page', 'sidebar', 'header', 'side-panel']);
             }
             if (navLink.closest('#app-sidebar')) {
                 closeMobileMenu();
@@ -665,65 +645,35 @@ export async function handleClick(e: MouseEvent) {
         }
     }
 
-    if (target.closest('#help-btn')) {
-        uiHandlers.showModal('keyboardShortcuts');
-        return;
-    }
-
+    if (target.closest('#help-btn')) { uiHandlers.showModal('keyboardShortcuts'); return; }
     const modalTarget = target.closest<HTMLElement>('[data-modal-target]');
     if (modalTarget) {
-        if (target.closest('.fab-option')) {
-            fabContainer?.classList.remove('is-open');
-        }
+        if (target.closest('.fab-option')) { fabContainer?.classList.remove('is-open'); }
         uiHandlers.showModal(modalTarget.dataset.modalTarget as any, { ...modalTarget.dataset });
         return;
     }
     const saveModalBtn = target.closest('#modal-save-btn');
-    if (saveModalBtn) {
-        formHandlers.handleFormSubmit();
-        return;
-    }
-    if (target.closest('.btn-close-modal') || target.matches('.fixed.inset-0.bg-black\\/50')) {
-        uiHandlers.closeModal();
-        return;
-    }
-
+    if (saveModalBtn) { formHandlers.handleFormSubmit(); return; }
+    if (target.closest('.btn-close-modal') || target.matches('.fixed.inset-0.bg-black\\/50')) { uiHandlers.closeModal(); return; }
     if (target.closest('.btn-close-panel, #side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
     
     const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id], .dashboard-project-item');
-    if (projectCard && !target.closest('button, a, .multiselect-container')) {
-        uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!);
-        return;
-    }
-
+    if (projectCard && !target.closest('button, a, .multiselect-container')) { uiHandlers.updateUrlAndShowDetail('project', projectCard.dataset.projectId!); return; }
     const clientCard = target.closest<HTMLElement>('[data-client-id]:not([data-modal-target])');
-    if (clientCard && !target.closest('button, a, .multiselect-container')) {
-        uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!);
-        return;
-    }
-    
+    if (clientCard && !target.closest('button, a, .multiselect-container')) { uiHandlers.updateUrlAndShowDetail('client', clientCard.dataset.clientId!); return; }
     const dealCard = target.closest<HTMLElement>('.deal-card');
-    if (dealCard && !target.closest('button, a')) {
-        uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!);
-        return;
-    }
+    if (dealCard && !target.closest('button, a')) { uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!); return; }
     
     const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item, .timesheet-entry');
     if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
         const taskId = taskCardOrRow.dataset.taskId;
-        if (taskId) {
-            uiHandlers.updateUrlAndShowDetail('task', taskId);
-            return;
-        }
+        if (taskId) { uiHandlers.updateUrlAndShowDetail('task', taskId); return; }
     }
 
     const goalCard = target.closest<HTMLElement>('.goal-card');
     if (goalCard && !target.closest('input')) {
         const goalId = goalCard.dataset.goalId;
-        if (goalId) {
-            uiHandlers.showModal('addGoal', { goalId });
-        }
-        return;
+        if (goalId) { uiHandlers.showModal('addGoal', { goalId }); }
     }
 
     const authTab = target.closest<HTMLElement>('[data-auth-tab]');
@@ -736,7 +686,6 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     if (target.closest<HTMLElement>('[data-logout-button]')) { auth.logout(); return; }
-
     if (target.closest<HTMLElement>('[data-add-widget-type]')) { const btn = target.closest<HTMLElement>('[data-add-widget-type]')!; dashboardHandlers.addWidget(btn.dataset.addWidgetType as any, btn.dataset.metricType as any); return; }
     if (target.closest<HTMLElement>('[data-approve-join-request-id]')) { teamHandlers.handleApproveJoinRequest(target.closest<HTMLElement>('[data-approve-join-request-id]')!.dataset.approveJoinRequestId!); return; }
     if (target.closest<HTMLElement>('[data-reject-join-request-id]')) { teamHandlers.handleRejectJoinRequest(target.closest<HTMLElement>('[data-reject-join-request-id]')!.dataset.rejectJoinRequestId!); return; }
@@ -759,62 +708,30 @@ export async function handleClick(e: MouseEvent) {
     if (target.closest<HTMLElement>('[data-channel-id]')) { mainHandlers.handleSwitchChannel(target.closest<HTMLElement>('[data-channel-id]')!.dataset.channelId!); return; }
     if (target.closest<HTMLElement>('[data-approve-request-id]')) { teamHandlers.handleApproveTimeOffRequest(target.closest<HTMLElement>('[data-approve-request-id]')!.dataset.approveRequestId!); return; }
     if (target.closest<HTMLElement>('[data-reject-request-id]')) { uiHandlers.showModal('rejectTimeOffRequest', { requestId: target.closest<HTMLElement>('[data-reject-request-id]')!.dataset.rejectRequestId! }); return; }
-    if (target.closest<HTMLElement>('[data-delete-client-id]')) { clientHandlers.handleDeleteClient(target.closest<HTMLElement>('[data-delete-client-id]')!.dataset.deleteClientId!); return; }
-    if (target.closest<HTMLElement>('[data-delete-project-id]')) { projectHandlers.handleDeleteProject(target.closest<HTMLElement>('[data-delete-project-id]')!.dataset.deleteProjectId!); return; }
     const ganttViewModeBtn = target.closest<HTMLElement>('[data-gantt-view-mode]');
-    if (ganttViewModeBtn) {
-        taskHandlers.handleChangeGanttViewMode(ganttViewModeBtn.dataset.ganttViewMode as any);
-        return;
-    }
+    if (ganttViewModeBtn) { taskHandlers.handleChangeGanttViewMode(ganttViewModeBtn.dataset.ganttViewMode as any); return; }
     const taskStatusToggle = target.closest<HTMLElement>('.task-status-toggle');
-    if (taskStatusToggle) {
-        taskHandlers.handleToggleProjectTaskStatus(taskStatusToggle.dataset.taskId!);
-        return;
-    }
-    if (target.closest('#restart-onboarding-btn')) {
-        onboardingHandlers.startOnboarding();
-        return;
-    }
-    if (target.closest('.onboarding-next-btn')) {
-        onboardingHandlers.nextStep();
-        return;
-    }
-    if (target.closest('.onboarding-skip-btn')) {
-        onboardingHandlers.finishOnboarding();
-        return;
-    }
+    if (taskStatusToggle) { taskHandlers.handleToggleProjectTaskStatus(taskStatusToggle.dataset.taskId!); return; }
+    if (target.closest('#restart-onboarding-btn')) { onboardingHandlers.startOnboarding(); return; }
+    if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
+    if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
     const mentionItem = target.closest<HTMLElement>('.mention-item');
     if (mentionItem) {
         const userId = mentionItem.dataset.mentionId!;
         const user = state.users.find(u => u.id === userId);
-        if (user && state.ui.mention.target) {
-            handleInsertMention(user, state.ui.mention.target);
-        }
+        if (user && state.ui.mention.target) { handleInsertMention(user, state.ui.mention.target); }
         return;
     }
-    if (target.closest<HTMLElement>('[data-connect-provider]')) {
-        integrationHandlers.connectIntegration(target.closest<HTMLElement>('[data-connect-provider]')!.dataset.connectProvider as any);
-        return;
-    }
-    if (target.closest<HTMLElement>('[data-disconnect-provider]')) {
-        integrationHandlers.disconnectIntegration(target.closest<HTMLElement>('[data-disconnect-provider]')!.dataset.disconnectProvider as any);
-        return;
-    }
-    if (target.closest('#reset-task-filters')) {
-        filterHandlers.resetFilters();
-        return;
-    }
-    if (target.closest('#save-filter-view-btn')) {
-        filterHandlers.saveCurrentFilterView();
-        return;
-    }
-    if (target.closest('#update-filter-view-btn')) {
-        filterHandlers.updateActiveFilterView();
-        return;
-    }
+    if (target.closest<HTMLElement>('[data-connect-provider]')) { integrationHandlers.connectIntegration(target.closest<HTMLElement>('[data-connect-provider]')!.dataset.connectProvider as any); return; }
+    if (target.closest<HTMLElement>('[data-disconnect-provider]')) { integrationHandlers.disconnectIntegration(target.closest<HTMLElement>('[data-disconnect-provider]')!.dataset.disconnectProvider as any); return; }
+    if (target.closest('#reset-task-filters')) { filterHandlers.resetFilters(); return; }
+    if (target.closest('#save-filter-view-btn')) { filterHandlers.saveCurrentFilterView(); return; }
+    if (target.closest('#update-filter-view-btn')) { filterHandlers.updateActiveFilterView(); return; }
     if (target.closest('#remove-logo-btn')) {
-        const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-        if (workspace) { workspace.companyLogo = ''; teamHandlers.handleSaveWorkspaceSettings(); }
+        setState(prevState => ({
+            workspaces: prevState.workspaces.map(w => w.id === prevState.activeWorkspaceId ? { ...w, companyLogo: '' } : w)
+        }), []);
+        teamHandlers.handleSaveWorkspaceSettings();
         return;
     }
     if (target.closest('#save-workspace-settings-btn')) { teamHandlers.handleSaveWorkspaceSettings(); return; }
@@ -830,34 +747,20 @@ export async function handleClick(e: MouseEvent) {
     if (checklistItemCheckbox) {
         const taskId = state.ui.modal.data?.taskId;
         const itemId = (checklistItemCheckbox as HTMLInputElement).dataset.itemId!;
-        if (taskId && itemId) {
-            taskHandlers.handleToggleChecklistItem(taskId, itemId);
-        }
+        if (taskId && itemId) { taskHandlers.handleToggleChecklistItem(taskId, itemId); }
         return;
     }
     const deleteChecklistItemBtn = target.closest<HTMLElement>('.delete-checklist-item-btn');
     if (deleteChecklistItemBtn) {
         const taskId = state.ui.modal.data?.taskId;
         const itemId = deleteChecklistItemBtn.dataset.itemId!;
-        if (taskId && itemId) {
-            taskHandlers.handleDeleteChecklistItem(taskId, itemId);
-        }
+        if (taskId && itemId) { taskHandlers.handleDeleteChecklistItem(taskId, itemId); }
         return;
     }
     const subtaskCheckbox = target.closest<HTMLElement>('.subtask-checkbox');
     if (subtaskCheckbox) {
         const subtaskId = (subtaskCheckbox as HTMLInputElement).dataset.subtaskId!;
-        if (subtaskId) {
-            taskHandlers.handleToggleSubtaskStatus(subtaskId);
-        }
-        return;
-    }
-    const deleteSubtaskBtn = target.closest<HTMLElement>('.delete-subtask-btn');
-    if (deleteSubtaskBtn) {
-        const subtaskId = deleteSubtaskBtn.dataset.subtaskId!;
-        if (subtaskId) {
-            taskHandlers.handleDeleteSubtask(subtaskId);
-        }
+        if (subtaskId) { taskHandlers.handleToggleSubtaskStatus(subtaskId); }
         return;
     }
     if (target.closest<HTMLElement>('[data-copy-link]')) {
@@ -866,15 +769,10 @@ export async function handleClick(e: MouseEvent) {
         navigator.clipboard.writeText(url);
         const originalText = target.closest<HTMLElement>('[data-copy-link]')!.title;
         target.closest<HTMLElement>('[data-copy-link]')!.title = t('misc.copied');
-        setTimeout(() => {
-            target.closest<HTMLElement>('[data-copy-link]')!.title = originalText;
-        }, 1500);
+        setTimeout(() => { target.closest<HTMLElement>('[data-copy-link]')!.title = originalText; }, 1500);
         return;
     }
-    if (target.closest('#add-project-section-btn')) {
-        uiHandlers.showModal('addProjectSection', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId });
-        return;
-    }
+    if (target.closest('#add-project-section-btn')) { uiHandlers.showModal('addProjectSection', { projectId: target.closest<HTMLElement>('[data-project-id]')!.dataset.projectId }); return; }
     const editTaskViewBtn = target.closest<HTMLElement>('.edit-task-view-btn');
     if (editTaskViewBtn) {
         const item = editTaskViewBtn.closest<HTMLElement>('.task-view-item')!;
@@ -907,39 +805,21 @@ export async function handleClick(e: MouseEvent) {
     const milestoneCheckbox = target.closest<HTMLInputElement>('.milestone-checkbox');
     if (milestoneCheckbox) {
         const milestoneId = milestoneCheckbox.dataset.milestoneId!;
-        if (milestoneId) {
-            goalHandlers.handleToggleMilestone(milestoneId);
-        }
+        if (milestoneId) { goalHandlers.handleToggleMilestone(milestoneId); }
         return;
     }
     const savePipelineStageBtn = target.closest<HTMLElement>('[data-save-pipeline-stage]');
     if (savePipelineStageBtn) {
         const stageId = savePipelineStageBtn.dataset.savePipelineStage!;
         const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
-        if (input) {
-            pipelineHandlers.handleUpdateStage(stageId, input.value);
-        }
+        if (input) { pipelineHandlers.handleUpdateStage(stageId, input.value); }
         return;
     }
     const saveKanbanStageBtn = target.closest<HTMLElement>('[data-save-kanban-stage]');
     if (saveKanbanStageBtn) {
         const stageId = saveKanbanStageBtn.dataset.saveKanbanStage!;
         const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
-        if (input) {
-            kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value);
-        }
-        return;
-    }
-    const deleteAttachmentBtn = target.closest<HTMLElement>('.delete-attachment-btn');
-    if (deleteAttachmentBtn) {
-        const attachmentId = deleteAttachmentBtn.dataset.attachmentId!;
-        if (confirm("Are you sure you want to delete this attachment?")) {
-            handleOptimisticDelete('attachments', attachmentId, '');
-        }
-        return;
-    }
-    if (target.closest<HTMLElement>('[data-delete-client-id]')) {
-        clientHandlers.handleDeleteClient(target.closest<HTMLElement>('[data-delete-client-id]')!.dataset.deleteClientId!);
+        if (input) { kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value); }
         return;
     }
 
@@ -949,9 +829,7 @@ export async function handleClick(e: MouseEvent) {
         const tagId = removeTagBtn.dataset.tagId!;
         const entityType = container.dataset.entityType as TaggableEntity;
         const entityId = container.dataset.entityId!;
-        if (entityType && entityId && tagId) {
-            tagHandlers.handleToggleTag(entityType, entityId, tagId);
-        }
+        if (entityType && entityId && tagId) { tagHandlers.handleToggleTag(entityType, entityId, tagId); }
         return;
     }
     if (target.closest('#create-project-from-deal-btn')) {
@@ -996,45 +874,35 @@ export async function handleClick(e: MouseEvent) {
     }
     const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
     if (clientFilterStatusBtn) {
-        state.ui.clients.filters.status = clientFilterStatusBtn.dataset.clientFilterStatus as any;
-        updateUI(['page']);
+        setState(prevState => ({ ui: { ...prevState.ui, clients: { ...prevState.ui.clients, filters: { ...prevState.ui.clients.filters, status: clientFilterStatusBtn.dataset.clientFilterStatus as any } } } }), ['page']);
         return;
     }
     const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
     if (teamCalendarViewBtn) {
-        state.ui.teamCalendarView = teamCalendarViewBtn.dataset.teamCalendarView as any;
-        updateUI(['page']);
+        setState(prevState => ({ ui: { ...prevState.ui, teamCalendarView: teamCalendarViewBtn.dataset.teamCalendarView as any } }), ['page']);
         return;
     }
     const calendarNavBtn = target.closest<HTMLElement>('[data-calendar-nav]');
     if (calendarNavBtn) {
         const direction = calendarNavBtn.dataset.calendarNav;
         const targetCalendar = calendarNavBtn.dataset.targetCalendar;
-        const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
-        const viewKey = targetCalendar === 'team' ? 'teamCalendarView' : 'tasks.viewMode';
         
-        const currentDate = new Date(state.ui[dateKey as 'teamCalendarDate'] + 'T12:00:00Z');
-        let viewMode: string = state.ui.teamCalendarView;
-        if(targetCalendar !== 'team') viewMode = state.ui.tasks.viewMode;
+        setState(prevState => {
+            const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
+            const viewKey = targetCalendar === 'team' ? prevState.ui.teamCalendarView : prevState.ui.tasks.viewMode;
+            const currentDate = new Date(prevState.ui[dateKey] + 'T12:00:00Z');
 
-        if (direction === 'prev') {
-            if (viewMode === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
-            else if (viewMode === 'week' || viewMode === 'workload' || viewMode === 'timesheet') currentDate.setDate(currentDate.getDate() - 7);
-            else if (viewMode === 'day') currentDate.setDate(currentDate.getDate() - 1);
-        } else {
-            if (viewMode === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
-            else if (viewMode === 'week' || viewMode === 'workload' || viewMode === 'timesheet') currentDate.setDate(currentDate.getDate() + 7);
-            else if (viewMode === 'day') currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        state.ui[dateKey as 'teamCalendarDate'] = currentDate.toISOString().slice(0, 10);
-        updateUI(['page']);
-        return;
-    }
-    const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
-    if(viewModeBtn){
-        state.ui.tasks.viewMode = viewModeBtn.dataset.viewMode as any;
-        updateUI(['page']);
+            if (direction === 'prev') {
+                if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
+                else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() - 7);
+                else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() - 1);
+            } else {
+                if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
+                else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() + 7);
+                else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() + 1);
+            }
+            return { ui: { ...prevState.ui, [dateKey]: currentDate.toISOString().slice(0, 10) } };
+        }, ['page']);
         return;
     }
 

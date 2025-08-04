@@ -1,12 +1,14 @@
 
 
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
 import type { Invoice } from '../types.ts';
 import { can } from '../permissions.ts';
 
 function getFilteredInvoices() {
+    const state = getState();
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
     const startDate = new Date(dateStart + 'T00:00:00Z');
     const endDate = new Date(dateEnd + 'T23:59:59Z');
@@ -34,6 +36,7 @@ function getFilteredInvoices() {
 }
 
 function renderInvoicesList() {
+    const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return '';
 
@@ -145,6 +148,7 @@ function renderInvoicesList() {
 }
 
 export function InvoicesPage() {
+    const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return '';
 

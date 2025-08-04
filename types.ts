@@ -1,5 +1,7 @@
 
 
+export type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'text-selection-popover' | 'all';
+
 export interface User {
     id: string;
     name?: string;
@@ -199,18 +201,21 @@ export interface Tag {
 }
 
 export interface TaskTag {
+    id?: string;
     taskId: string;
     tagId: string;
     workspaceId: string;
 }
 
 export interface ProjectTag {
+    id?: string;
     projectId: string;
     tagId: string;
     workspaceId: string;
 }
 
 export interface ClientTag {
+    id?: string;
     clientId: string;
     tagId: string;
     workspaceId: string;

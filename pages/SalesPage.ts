@@ -1,11 +1,12 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 import { formatCurrency, getUserInitials } from '../utils.ts';
 
 function renderDealCard(deal: Deal) {
+    const state = getState();
     const client = state.clients.find(c => c.id === deal.clientId);
     const owner = state.users.find(u => u.id === deal.ownerId);
 
@@ -31,6 +32,7 @@ function renderDealCard(deal: Deal) {
 }
 
 function renderKanbanBoard() {
+    const state = getState();
     const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
     const stages = state.pipelineStages
         .filter(s => s.workspaceId === state.activeWorkspaceId)
@@ -82,6 +84,7 @@ function renderKanbanBoard() {
 }
 
 export function SalesPage() {
+    const state = getState();
     const canManage = can('manage_deals');
     const { sales: { isLoading } } = state.ui;
 

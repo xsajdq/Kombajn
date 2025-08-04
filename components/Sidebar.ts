@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Permission } from '../types.ts';
@@ -13,6 +12,7 @@ type NavItem = {
 };
 
 export function Sidebar() {
+    const state = getState();
     const allNavItems: NavItem[] = [
         { id: 'dashboard', icon: 'dashboard', text: t('sidebar.dashboard'), permission: 'view_dashboard' },
         { id: 'goals', icon: 'track_changes', text: t('sidebar.goals'), permission: 'view_goals' },

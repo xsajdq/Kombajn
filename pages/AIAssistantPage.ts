@@ -1,8 +1,10 @@
 
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 
 export function AIAssistantPage() {
+    const state = getState();
     const { loading, error, suggestedTasks } = state.ai;
     const workspaceProjects = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId);
 

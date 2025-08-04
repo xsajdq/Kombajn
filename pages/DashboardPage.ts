@@ -1,5 +1,6 @@
 
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment, CalendarEvent, TimeOffRequest, PublicHoliday, User } from '../types.ts';
 import { formatDuration, formatDate, formatCurrency } from '../utils.ts';
@@ -43,6 +44,7 @@ function renderQuickActions() {
 }
 
 function renderTodaysSchedule() {
+    const state = getState();
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
     const todayDate = new Date(todayStr + 'T12:00:00Z');
@@ -100,6 +102,7 @@ function renderTodaysSchedule() {
 }
 
 function renderMyTasks(currentUser: User) {
+    const state = getState();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().slice(0, 10);
@@ -172,6 +175,7 @@ function renderMyTasks(currentUser: User) {
 }
 
 function renderProjectsAndSummary(currentUser: User) {
+    const state = getState();
     // Active Projects
     const myProjects = state.projects.filter(p => 
         p.workspaceId === state.activeWorkspaceId &&
@@ -218,7 +222,7 @@ function renderProjectsAndSummary(currentUser: User) {
 
 
 function renderMyDayDashboard() {
-    const { currentUser } = state;
+    const { currentUser } = getState();
     if (!currentUser) return '';
 
     return `
@@ -238,6 +242,7 @@ function renderMyDayDashboard() {
 
 
 function renderOverviewDashboard() {
+    const state = getState();
     const { currentUser, activeWorkspaceId, dashboardWidgets } = state;
     if (!currentUser || !activeWorkspaceId) return '';
 
@@ -263,6 +268,7 @@ function renderOverviewDashboard() {
 }
 
 function renderWidget(widget: DashboardWidget) {
+    const state = getState();
     const isEditing = state.ui.dashboard.isEditing;
     const { type, config } = widget;
     let content = '';
@@ -328,6 +334,7 @@ export function initDashboardCharts() {
 }
 
 export function DashboardPage() {
+    const state = getState();
     const { currentUser, activeWorkspaceId, ui: { dashboard: { isLoading, isEditing, activeTab } } } = state;
     if (!currentUser || !activeWorkspaceId) return '';
     

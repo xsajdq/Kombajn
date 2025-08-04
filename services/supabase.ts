@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import type { Notification, Task, Deal } from '../types.ts';
 import { keysToCamel } from '../utils.ts';
 
@@ -49,7 +49,8 @@ export async function initSupabase() {
 }
 
 export async function subscribeToUserChannel() {
-    if (!supabase || !state.currentUser || (userChannel && (userChannel.state === 'joined' || userChannel.state === 'joining'))) return;
+    const { currentUser } = getState();
+    if (!supabase || !currentUser || (userChannel && (userChannel.state === 'joined' || userChannel.state === 'joining'))) return;
 
     if (userChannel) await supabase.removeChannel(userChannel);
 
@@ -62,7 +63,7 @@ export async function subscribeToUserChannel() {
     // Explicitly set the auth token for the realtime client
     supabase.realtime.setAuth(session.access_token);
 
-    const userId = state.currentUser.id;
+    const userId = currentUser.id;
     userChannel = supabase.channel(`user-notifications:${userId}`);
     userChannel
         .on(
@@ -76,10 +77,12 @@ export async function subscribeToUserChannel() {
             (payload) => {
                 console.log('Realtime: New notification received!', payload);
                 const newNotification = keysToCamel(payload.new) as Notification;
-                if (!state.notifications.some(n => n.id === newNotification.id)) {
-                    state.notifications.unshift(newNotification);
-                    window.dispatchEvent(new CustomEvent('ui-update', { detail: ['header'] }));
-                }
+                setState(prevState => {
+                    if (!prevState.notifications.some(n => n.id === newNotification.id)) {
+                        return { notifications: [newNotification, ...prevState.notifications] };
+                    }
+                    return prevState;
+                }, ['header']);
             }
         )
         .subscribe(async (status, err) => {
@@ -117,16 +120,20 @@ export async function switchWorkspaceChannel(workspaceId: string) {
                 console.log('Realtime: Task change received!', payload);
                 const eventType = payload.eventType;
                 const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Task;
-                const index = state.tasks.findIndex(t => t.id === record.id);
+                
+                setState(prevState => {
+                    let newTasks = [...prevState.tasks];
+                    const index = newTasks.findIndex(t => t.id === record.id);
 
-                if (eventType === 'UPDATE') {
-                    if (index > -1) state.tasks[index] = { ...state.tasks[index], ...record };
-                } else if (eventType === 'INSERT') {
-                    if (index === -1) state.tasks.push(record);
-                } else if (eventType === 'DELETE') {
-                    if (index > -1) state.tasks.splice(index, 1);
-                }
-                window.dispatchEvent(new CustomEvent('ui-update', { detail: ['page'] }));
+                    if (eventType === 'UPDATE') {
+                        if (index > -1) newTasks[index] = { ...newTasks[index], ...record };
+                    } else if (eventType === 'INSERT') {
+                        if (index === -1) newTasks.push(record);
+                    } else if (eventType === 'DELETE') {
+                        if (index > -1) newTasks.splice(index, 1);
+                    }
+                    return { tasks: newTasks };
+                }, ['page']);
             }
         )
         .on(
@@ -136,16 +143,19 @@ export async function switchWorkspaceChannel(workspaceId: string) {
                 console.log('Realtime: Deal change received!', payload);
                 const eventType = payload.eventType;
                 const record = keysToCamel(eventType === 'DELETE' ? payload.old : payload.new) as Deal;
-                const index = state.deals.findIndex(d => d.id === record.id);
+                setState(prevState => {
+                    let newDeals = [...prevState.deals];
+                    const index = newDeals.findIndex(d => d.id === record.id);
 
-                if (eventType === 'UPDATE') {
-                    if (index > -1) state.deals[index] = { ...state.deals[index], ...record };
-                } else if (eventType === 'INSERT') {
-                    if (index === -1) state.deals.push(record);
-                } else if (eventType === 'DELETE') {
-                    if (index > -1) state.deals.splice(index, 1);
-                }
-                window.dispatchEvent(new CustomEvent('ui-update', { detail: ['page'] }));
+                    if (eventType === 'UPDATE') {
+                        if (index > -1) newDeals[index] = { ...newDeals[index], ...record };
+                    } else if (eventType === 'INSERT') {
+                        if (index === -1) newDeals.push(record);
+                    } else if (eventType === 'DELETE') {
+                        if (index > -1) newDeals.splice(index, 1);
+                    }
+                    return { deals: newDeals };
+                }, ['page']);
             }
         )
         .subscribe((status, err) => {

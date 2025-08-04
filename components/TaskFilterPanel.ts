@@ -1,10 +1,10 @@
 
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User, Project, Tag, FilterView } from '../types.ts';
 
 export function TaskFilterPanel() {
+    const state = getState();
     const { filters, activeFilterViewId } = state.ui.tasks;
     const { activeWorkspaceId, currentUser } = state;
 

@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import type { Task } from '../types.ts';
@@ -15,6 +14,7 @@ function getPriorityClass(priority: Task['priority']): string {
 }
 
 export function renderTaskCard(task: Task) {
+    const state = getState();
     const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
     const completedSubtasks = subtasks.filter(s => s.status === 'done').length;

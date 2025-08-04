@@ -1,10 +1,11 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import type { User } from '../types.ts';
 import { t } from '../i18n.ts';
 import { getUserInitials } from '../utils.ts';
 
 export function MentionPopover() {
+    const state = getState();
     const { query, activeIndex, rect } = state.ui.mention;
     if (query === null || !rect) return '';
 

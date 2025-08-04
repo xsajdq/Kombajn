@@ -1,11 +1,12 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
 import { formatDuration, getUserInitials } from '../utils.ts';
 import { Breadcrumbs } from './Breadcrumbs.ts';
 
 export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
+    const state = getState();
     const userNotifications = state.notifications.filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId);
     const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
@@ -66,6 +67,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
 }
 
 export function NotificationsPopover({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
+    const state = getState();
     const allNotifications = state.notifications
         .filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

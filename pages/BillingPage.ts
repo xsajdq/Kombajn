@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS } from '../utils.ts';
 import type { PlanId } from '../types.ts';
@@ -12,7 +13,7 @@ export function BillingPage() {
             <p class="text-sm text-text-subtle">${t('billing.access_denied_desc')}</p>
         </div>`;
     }
-
+    const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return 'Error: Active workspace not found.';
 

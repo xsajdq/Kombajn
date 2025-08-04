@@ -1,9 +1,9 @@
 
-
 import { t } from '../i18n.ts';
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 
 function renderSetupPage() {
+    const state = getState();
     const { currentUser, workspaceJoinRequests, workspaces } = state;
     if (!currentUser) return '';
 

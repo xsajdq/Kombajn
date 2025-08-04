@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem } from '../types.ts';
@@ -12,20 +11,15 @@ declare const DOMPurify: any;
 export async function handleInput(e: Event) {
     const target = e.target as HTMLElement;
 
-    // Map of live search input IDs to the state update function
     const liveSearchInputs: { [key: string]: (value: string) => void } = {
-        'project-search-input': (value) => state.ui.projects.filters.text = value,
-        'task-filter-text': (value) => {
-            state.ui.tasks.filters.text = value;
-            state.ui.tasks.activeFilterViewId = null;
-        },
-        'client-search-input': (value) => state.ui.clients.filters.text = value,
-        'employee-search': (value) => state.ui.hr.filters.text = value,
-        'goal-search-input': (value) => state.ui.goals.filters.text = value,
-        'inventory-search-input': (value) => state.ui.inventory.filters.text = value,
+        'project-search-input': (value) => setState(prevState => ({ ui: { ...prevState.ui, projects: { ...prevState.ui.projects, filters: { ...prevState.ui.projects.filters, text: value } } } }), ['page']),
+        'task-filter-text': (value) => setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { ...prevState.ui.tasks.filters, text: value }, activeFilterViewId: null } } }), ['page']),
+        'client-search-input': (value) => setState(prevState => ({ ui: { ...prevState.ui, clients: { ...prevState.ui.clients, filters: { ...prevState.ui.clients.filters, text: value } } } }), ['page']),
+        'employee-search': (value) => setState(prevState => ({ ui: { ...prevState.ui, hr: { ...prevState.ui.hr, filters: { ...prevState.ui.hr.filters, text: value } } } }), ['page']),
+        'goal-search-input': (value) => setState(prevState => ({ ui: { ...prevState.ui, goals: { ...prevState.ui.goals, filters: { ...prevState.ui.goals.filters, text: value } } } }), ['page']),
+        'inventory-search-input': (value) => setState(prevState => ({ ui: { ...prevState.ui, inventory: { ...prevState.ui.inventory, filters: { ...prevState.ui.inventory.filters, text: value } } } }), ['page']),
     };
 
-    // Handle live search with focus preservation
     if (target.id in liveSearchInputs && target instanceof HTMLInputElement) {
         const inputElement = target;
         const activeElementId = inputElement.id;
@@ -34,41 +28,39 @@ export async function handleInput(e: Event) {
 
         liveSearchInputs[inputElement.id](inputElement.value);
 
-        await updateUI(['page']);
-
-        const restoredInput = document.getElementById(activeElementId) as HTMLInputElement | null;
-        if (restoredInput) {
-            restoredInput.focus();
-            if (selectionStart !== null && selectionEnd !== null) {
-                restoredInput.setSelectionRange(selectionStart, selectionEnd);
+        // The updateUI is now handled by setState, but it's async.
+        // We use a microtask (setTimeout 0) to try and restore focus after the render.
+        setTimeout(() => {
+            const restoredInput = document.getElementById(activeElementId) as HTMLInputElement | null;
+            if (restoredInput) {
+                restoredInput.focus();
+                if (selectionStart !== null && selectionEnd !== null) {
+                    restoredInput.setSelectionRange(selectionStart, selectionEnd);
+                }
             }
-        }
+        }, 0);
         return;
     }
 
-    // Command Palette live search
     if (target.id === 'command-palette-input') {
         const query = (target as HTMLInputElement).value;
         handleCommandSearch(query);
         return;
     }
 
-    // Task comment draft saving
-    if (target.id === 'task-comment-input' && state.ui.modal.type === 'taskDetail') {
-        const taskId = state.ui.modal.data?.taskId;
+    if (target.id === 'task-comment-input' && getState().ui.modal.type === 'taskDetail') {
+        const taskId = getState().ui.modal.data?.taskId;
         if (taskId) {
             localStorage.setItem(`comment-draft-${taskId}`, target.innerHTML);
         }
     }
 
-    // Handle rich text editor features
     if (target.matches('.rich-text-input')) {
         handleMentionInput(target);
         handleSlashCommandInput(target);
         handleLiveMarkdown(target);
     }
 
-    // Live Markdown preview for Wiki editor
     if (target.matches('#project-wiki-editor')) {
         const editor = target as HTMLTextAreaElement;
         const preview = document.getElementById('project-wiki-preview');
@@ -79,7 +71,6 @@ export async function handleInput(e: Event) {
         return;
     }
     
-    // Invoice item row input
     const invoiceItemRow = target.closest<HTMLElement>('.invoice-item-row');
     if (invoiceItemRow) {
         const itemId = invoiceItemRow.dataset.itemId!;
@@ -90,13 +81,15 @@ export async function handleInput(e: Event) {
             value = parseFloat(value) || 0;
         }
     
-        if (state.ui.modal.type === 'addInvoice') {
-            const item = state.ui.modal.data.items.find((i: any) => i.id.toString() === itemId);
-            if (item) {
-                (item as any)[field] = value;
-                updateUI(['modal']);
+        setState(prevState => {
+            if (prevState.ui.modal.type === 'addInvoice') {
+                const updatedItems = prevState.ui.modal.data.items.map((item: any) => 
+                    item.id.toString() === itemId ? { ...item, [field]: value } : item
+                );
+                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: updatedItems } } } };
             }
-        }
+            return prevState;
+        }, ['modal']);
         return;
     }
 }

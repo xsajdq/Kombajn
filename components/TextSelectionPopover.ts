@@ -1,7 +1,9 @@
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 
 export function TextSelectionPopover() {
+    const state = getState();
     const { isOpen, top, left } = state.ui.textSelectionPopover;
     if (!isOpen) return '';
 

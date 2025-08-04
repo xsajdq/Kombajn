@@ -1,6 +1,5 @@
 
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Project, Client, Deal } from '../types.ts';
 
@@ -13,6 +12,7 @@ type BreadcrumbItem = {
 };
 
 function renderSwitcher(item: BreadcrumbItem) {
+    const state = getState();
     let entities: (Project | Client | Deal)[] = [];
     let entityType = item.switcherType!;
     
@@ -56,6 +56,7 @@ function renderSwitcher(item: BreadcrumbItem) {
 }
 
 export function Breadcrumbs() {
+    const state = getState();
     const { currentPage, ui } = state;
     const breadcrumbs: BreadcrumbItem[] = [{ text: t('sidebar.dashboard'), link: '/dashboard' }];
 

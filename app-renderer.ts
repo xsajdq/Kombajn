@@ -1,5 +1,5 @@
 
-import { state } from './state.ts';
+import { getState, setState } from './state.ts';
 import { router } from './router.ts';
 import { Sidebar } from './components/Sidebar.ts';
 import { ProjectDetailPanel } from './components/ProjectDetailPanel.ts';
@@ -17,10 +17,13 @@ import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
 import { SlashCommandPopover } from './components/SlashCommandPopover.ts';
 import { TextSelectionPopover } from './components/TextSelectionPopover.ts';
+import { diff } from './dom-diff.ts';
+import type { UIComponent as UIComponentType } from './types.ts';
 
-export type UIComponent = 'header' | 'sidebar' | 'page' | 'modal' | 'side-panel' | 'fab' | 'onboarding' | 'command-palette' | 'mention-popover' | 'slash-command-popover' | 'text-selection-popover' | 'all';
+export type UIComponent = UIComponentType;
 
 async function AppLayout() {
+    const state = getState();
     if (!state.currentUser) {
         return AuthPage();
     }
@@ -59,7 +62,7 @@ async function AppLayout() {
 }
 
 function renderSidePanel() {
-    const { openedProjectId, openedClientId, openedDealId } = state.ui;
+    const { openedProjectId, openedClientId, openedDealId } = getState().ui;
     if (openedProjectId) return ProjectDetailPanel({ projectId: openedProjectId });
     if (openedClientId) return ClientDetailPanel({ clientId: openedClientId });
     if (openedDealId) return DealDetailPanel({ dealId: openedDealId });
@@ -67,6 +70,7 @@ function renderSidePanel() {
 }
 
 function postRenderActions() {
+    const state = getState();
     document.documentElement.lang = state.settings.language;
     if (state.settings.theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -87,7 +91,8 @@ function postRenderActions() {
             // Autofocus the first focusable element
             modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
         }
-        state.ui.modal.justOpened = false;
+        // This is a transient flag, reset it without causing re-render loops.
+        setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
     }
 
     if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
@@ -108,6 +113,7 @@ export async function renderApp() {
     
     app.innerHTML = await AppLayout();
     
+    const state = getState();
     if (!state.currentUser || state.currentPage === 'setup') {
         return;
     }
@@ -120,63 +126,99 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
     if (!app) return;
 
     for (const component of componentsToUpdate) {
+        if (component === 'all') {
+            await renderApp();
+            return;
+        }
+
+        let oldNode: Element | null = null;
+        let newContentString: string | Promise<string> = '';
+        let isContainer = false;
+
+        const state = getState();
+
         switch (component) {
             case 'header':
-                const header = app.querySelector('header');
-                if (header) header.outerHTML = AppHeader({ currentUser: state.currentUser!, activeWorkspaceId: state.activeWorkspaceId! });
+                oldNode = app.querySelector('header');
+                newContentString = AppHeader({ currentUser: state.currentUser!, activeWorkspaceId: state.activeWorkspaceId! });
                 break;
             case 'sidebar':
-                const sidebar = app.querySelector('aside');
-                if (sidebar) sidebar.outerHTML = Sidebar();
+                oldNode = app.querySelector('aside');
+                newContentString = Sidebar();
                 break;
             case 'page':
-                const main = app.querySelector('main');
-                if (main) main.innerHTML = await router();
+                oldNode = app.querySelector('main');
+                newContentString = router(); // router is async
+                isContainer = true;
                 break;
             case 'modal':
-                const modalContainer = document.getElementById('modal-container');
-                if (modalContainer) modalContainer.innerHTML = state.ui.modal.isOpen ? Modal() : '';
+                oldNode = document.getElementById('modal-container');
+                newContentString = state.ui.modal.isOpen ? Modal() : '';
+                isContainer = true;
                 break;
             case 'side-panel':
-                const sidePanelContainer = document.getElementById('side-panel-container');
-                const sidePanelOverlay = document.getElementById('side-panel-overlay');
+                oldNode = document.getElementById('side-panel-container');
                 const shouldBeOpen = !!(state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId);
-                if (sidePanelContainer) {
-                    sidePanelContainer.innerHTML = renderSidePanel();
-                    sidePanelContainer.classList.toggle('is-open', shouldBeOpen);
-                }
-                if (sidePanelOverlay) {
+                const sidePanelOverlay = document.getElementById('side-panel-overlay');
+                 if (sidePanelOverlay) {
                     sidePanelOverlay.classList.toggle('opacity-100', shouldBeOpen);
                     sidePanelOverlay.classList.toggle('pointer-events-auto', shouldBeOpen);
                     sidePanelOverlay.classList.toggle('opacity-0', !shouldBeOpen);
                     sidePanelOverlay.classList.toggle('pointer-events-none', !shouldBeOpen);
                 }
+                newContentString = renderSidePanel();
+                isContainer = true;
                 break;
             case 'command-palette':
-                const commandPaletteContainer = document.getElementById('command-palette-container');
-                if (commandPaletteContainer) commandPaletteContainer.innerHTML = state.ui.isCommandPaletteOpen ? CommandPalette() : '';
+                oldNode = document.getElementById('command-palette-container');
+                newContentString = state.ui.isCommandPaletteOpen ? CommandPalette() : '';
+                isContainer = true;
                 break;
             case 'fab':
-                const fabContainer = document.getElementById('fab-container');
-                if (fabContainer) fabContainer.innerHTML = FloatingActionButton();
+                oldNode = document.getElementById('fab-container');
+                newContentString = FloatingActionButton();
+                isContainer = true;
                 break;
              case 'onboarding':
-                const onboardingContainer = document.getElementById('onboarding-container');
-                if (onboardingContainer) onboardingContainer.innerHTML = state.ui.onboarding.isActive ? OnboardingGuide() : '';
+                oldNode = document.getElementById('onboarding-container');
+                newContentString = state.ui.onboarding.isActive ? OnboardingGuide() : '';
+                isContainer = true;
                 break;
             case 'mention-popover':
-                 const mentionContainer = document.getElementById('mention-popover-container');
-                if (mentionContainer) mentionContainer.innerHTML = MentionPopover();
+                 oldNode = document.getElementById('mention-popover-container');
+                newContentString = MentionPopover();
+                isContainer = true;
                 break;
             case 'slash-command-popover':
-                const slashContainer = document.getElementById('slash-command-popover-container');
-                if (slashContainer) slashContainer.innerHTML = SlashCommandPopover();
+                oldNode = document.getElementById('slash-command-popover-container');
+                newContentString = SlashCommandPopover();
+                isContainer = true;
                 break;
             case 'text-selection-popover':
-                const popoverContainer = document.getElementById('text-selection-popover-container');
-                if (popoverContainer) popoverContainer.innerHTML = TextSelectionPopover();
+                oldNode = document.getElementById('text-selection-popover-container');
+                newContentString = TextSelectionPopover();
+                isContainer = true;
                 break;
         }
+
+        if (oldNode) {
+            const resolvedContent = await Promise.resolve(newContentString);
+            const tempContainer = document.createElement(oldNode.tagName);
+            tempContainer.innerHTML = resolvedContent;
+
+            if (isContainer) {
+                diff(oldNode, tempContainer);
+            } else {
+                const newNode = tempContainer.firstElementChild;
+                if (newNode) {
+                    diff(oldNode, newNode);
+                } else if(oldNode.parentNode) {
+                    // This handles cases where a component might render to nothing
+                    oldNode.parentNode.replaceChild(tempContainer, oldNode);
+                }
+            }
+        }
     }
+    
     postRenderActions();
 }

@@ -1,6 +1,6 @@
 
 
-import { state, getInitialState } from './state.ts';
+import { getInitialState, setState, resetState, subscribe } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
 import { getTaskCurrentTrackedSeconds, formatDuration } from './utils.ts';
@@ -9,6 +9,7 @@ import { startOnboarding } from './handlers/onboarding.ts';
 import * as auth from './services/auth.ts';
 import { fetchInitialData, fetchWorkspaceData } from './handlers/main.ts';
 import type { Session } from '@supabase/supabase-js';
+import { getState } from './state.ts';
 
 let isBootstrapping = false;
 let hasBootstrapped = false;
@@ -22,30 +23,37 @@ export async function bootstrapApp(session: Session) {
     await fetchInitialData(session);
 
     // 2. Determine active workspace
-    const userWorkspaces = state.workspaceMembers.filter(m => m.userId === state.currentUser?.id);
+    const currentState = getState();
+    const userWorkspaces = currentState.workspaceMembers.filter(m => m.userId === currentState.currentUser?.id);
+    let activeWorkspaceId: string | null = null;
+    let currentPage = currentState.currentPage;
+
     if (userWorkspaces.length > 0) {
         const lastActiveId = localStorage.getItem('activeWorkspaceId');
         const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
-        state.activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
-        localStorage.setItem('activeWorkspaceId', state.activeWorkspaceId!);
+        activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
+        localStorage.setItem('activeWorkspaceId', activeWorkspaceId!);
         
-        if (state.currentPage === 'auth' || state.currentPage === 'setup') state.currentPage = 'dashboard';
+        if (currentPage === 'auth' || currentPage === 'setup') {
+            currentPage = 'dashboard';
+        }
     } else {
-        state.currentPage = 'setup';
-        state.activeWorkspaceId = null;
+        currentPage = 'setup';
+        activeWorkspaceId = null;
         localStorage.removeItem('activeWorkspaceId');
     }
-
-    history.replaceState({}, '', `/${state.currentPage}`);
+    
+    setState({ activeWorkspaceId, currentPage }, []);
+    history.replaceState({}, '', `/${currentPage}`);
     
     // 3. Fetch all detailed workspace data. If this fails, the error will be caught by main().
-    if (state.activeWorkspaceId && state.currentPage !== 'setup') {
-        await fetchWorkspaceData(state.activeWorkspaceId);
+    if (activeWorkspaceId && currentPage !== 'setup') {
+        await fetchWorkspaceData(activeWorkspaceId);
     }
     
     // 4. Subscribe to channels after fetching data
-    if (state.currentUser) await subscribeToUserChannel();
-    if (state.activeWorkspaceId) await switchWorkspaceChannel(state.activeWorkspaceId);
+    if (getState().currentUser) await subscribeToUserChannel();
+    if (activeWorkspaceId) await switchWorkspaceChannel(activeWorkspaceId);
     
     isBootstrapping = false;
 }
@@ -67,16 +75,22 @@ async function main() {
     showLoader();
 
     try {
+        // Connect the state management to the UI renderer.
+        subscribe(updateUI);
+        
         setupEventListeners();
         window.addEventListener('popstate', () => {
             // When using browser back/forward, close any open side panels
             // and update all main layout components.
-            state.ui.openedProjectId = null;
-            state.ui.openedClientId = null;
-            state.ui.openedDealId = null;
-            updateUI(['page', 'sidebar', 'header', 'side-panel']);
+            setState(prevState => ({
+                ui: {
+                    ...prevState.ui,
+                    openedProjectId: null,
+                    openedClientId: null,
+                    openedDealId: null,
+                }
+            }), ['page', 'sidebar', 'header', 'side-panel']);
         });
-        window.addEventListener('ui-update', (e: CustomEvent) => updateUI(e.detail));
 
         await initSupabase();
         if (!supabase) throw new Error("Supabase client failed to initialize.");
@@ -92,12 +106,13 @@ async function main() {
             await renderApp();
             
             // 3. Handle post-render actions like onboarding
-            const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+            const { workspaces, activeWorkspaceId } = getState();
+            const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
             if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
                 setTimeout(() => startOnboarding(), 500);
             }
         } else {
-            state.currentPage = 'auth';
+            setState({ currentPage: 'auth' }, []);
             await renderApp();
         }
         
@@ -116,7 +131,8 @@ async function main() {
                     await bootstrapApp(session);
                     hasBootstrapped = true;
                     await renderApp();
-                    const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+                    const { workspaces, activeWorkspaceId } = getState();
+                    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
                     if (activeWorkspace && !activeWorkspace.onboardingCompleted) {
                         setTimeout(() => startOnboarding(), 500);
                     }
@@ -130,16 +146,16 @@ async function main() {
                 await unsubscribeAll();
                 isBootstrapping = false;
                 hasBootstrapped = false;
-                Object.assign(state, getInitialState());
-                state.currentUser = null;
-                state.currentPage = 'auth';
+                resetState();
+                setState({ currentUser: null, currentPage: 'auth' }, []);
                 await renderApp();
             }
         });
         
         setInterval(() => {
             try {
-                const { isRunning, startTime } = state.ui.globalTimer;
+                const { ui, activeTimers, tasks, currentPage } = getState();
+                const { isRunning, startTime } = ui.globalTimer;
                 if (isRunning && startTime) {
                     const elapsedSeconds = (Date.now() - startTime) / 1000;
                     const formattedTime = formatDuration(elapsedSeconds);
@@ -147,10 +163,10 @@ async function main() {
                     if (display && display.textContent !== formattedTime) display.textContent = formattedTime;
                 }
                 
-                if (Object.keys(state.activeTimers).length === 0 && !state.ui.openedProjectId && state.currentPage !== 'dashboard') return;
+                if (Object.keys(activeTimers).length === 0 && !ui.openedProjectId && currentPage !== 'dashboard') return;
 
-                Object.keys(state.activeTimers).forEach(taskId => {
-                    const task = state.tasks.find(t => t.id === taskId);
+                Object.keys(activeTimers).forEach(taskId => {
+                    const task = tasks.find(t => t.id === taskId);
                     if (task) {
                         const currentSeconds = getTaskCurrentTrackedSeconds(task);
                         const formattedTime = formatDuration(currentSeconds);
@@ -160,10 +176,10 @@ async function main() {
                     }
                 });
 
-                if (state.ui.openedProjectId) {
+                if (ui.openedProjectId) {
                     const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
                     if (projectTotalTimeEl) {
-                        const projectTasks = state.tasks.filter(t => t.projectId === state.ui.openedProjectId);
+                        const projectTasks = tasks.filter(t => t.projectId === ui.openedProjectId);
                         const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
                         const formattedTotalTime = formatDuration(totalSeconds);
                         if (projectTotalTimeEl.textContent !== formattedTotalTime) projectTotalTimeEl.textContent = formattedTotalTime;

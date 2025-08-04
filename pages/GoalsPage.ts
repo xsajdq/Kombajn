@@ -1,5 +1,5 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Objective, KeyResult } from '../types.ts';
@@ -62,6 +62,7 @@ function renderCategoryCards(goals: Objective[]) {
 }
 
 function renderGoalCard(goal: Objective) {
+    const state = getState();
     const milestones = state.keyResults.filter(kr => kr.objectiveId === goal.id);
     const progress = (goal.targetValue && goal.targetValue > 0) ? Math.min(100, Math.max(0, (goal.currentValue / goal.targetValue) * 100)) : 0;
     const priorityClasses: Record<string, string> = {
@@ -107,6 +108,7 @@ function renderGoalCard(goal: Objective) {
 }
 
 export function GoalsPage() {
+    const state = getState();
     const { text, status, ownerId } = state.ui.goals.filters;
     
     const allGoals = state.objectives.filter(o => o.workspaceId === state.activeWorkspaceId && o.status !== 'archived');

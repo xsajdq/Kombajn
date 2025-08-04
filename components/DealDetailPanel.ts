@@ -1,10 +1,11 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import type { Deal, Task, DealActivity } from '../types.ts';
 
 function renderActivityTab(deal: Deal) {
+    const state = getState();
     const activities = state.dealActivities
         .filter(a => a.dealId === deal.id)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -88,6 +89,7 @@ function renderActivityTab(deal: Deal) {
 }
 
 function renderTasksTab(deal: Deal) {
+    const state = getState();
     const tasks = state.tasks.filter(t => t.dealId === deal.id);
     return `
         <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-deal-id="${deal.id}" style="margin-bottom: 1rem;">
@@ -109,6 +111,7 @@ function renderTasksTab(deal: Deal) {
 }
 
 export function DealDetailPanel({ dealId }: { dealId: string }) {
+    const state = getState();
     const deal = state.deals.find(d => d.id === dealId && d.workspaceId === state.activeWorkspaceId);
     if (!deal) return '';
 

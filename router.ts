@@ -1,6 +1,5 @@
 
-
-import { state } from './state.ts';
+import { getState, setState } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage } from './pages/ClientsPage.ts';
 import { TasksPage } from './pages/TasksPage.ts';
@@ -24,9 +23,10 @@ import { InventoryPage } from './pages/InventoryPage.ts';
 import { BudgetPage } from './pages/BudgetPage.ts';
 
 export async function router() {
+    let state = getState();
     // If no user is authenticated, always show the authentication page.
     if (!state.currentUser) {
-        state.currentPage = 'auth';
+        setState({ currentPage: 'auth' }, []);
         return AuthPage();
     }
     
@@ -41,12 +41,20 @@ export async function router() {
     const isCustomTaskView = page === 'task-view';
     const newPage = isCustomTaskView ? 'tasks' : (page || 'dashboard') as AppState['currentPage'];
     
-    state.currentPage = newPage;
-    state.ui.activeTaskViewId = isCustomTaskView ? id : null;
-
+    // Update state without triggering re-render, as this function is called during a render cycle.
+    setState(prevState => ({
+        currentPage: newPage,
+        ui: {
+            ...prevState.ui,
+            activeTaskViewId: isCustomTaskView ? id : null
+        }
+    }), []);
+    
     // This part handles opening a detail view from a direct URL load (deep linking).
+    // Re-fetch state after potential update.
+    state = getState();
     if (id && !isCustomTaskView) {
-        switch (state.currentPage) {
+        switch (newPage) {
             case 'projects':
                 if (state.ui.openedProjectId !== id) openProjectPanel(id);
                 break;
@@ -67,7 +75,7 @@ export async function router() {
     // This router now guards every route with a permission check.
     // If a user doesn't have permission, they are redirected to the dashboard.
     // The sidebar logic in tandem with this prevents users from seeing or accessing unauthorized pages.
-    switch (state.currentPage) {
+    switch (newPage) {
         case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
         case 'clients':         return can('view_clients') ? ClientsPage() : DashboardPage();
         case 'tasks':           return can('view_tasks') ? TasksPage() : DashboardPage();

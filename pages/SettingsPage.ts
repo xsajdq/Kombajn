@@ -1,10 +1,11 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
 import { can } from '../permissions.ts';
 
 export function SettingsPage() {
+    const state = getState();
     const { activeTab } = state.ui.settings;
     const canManage = can('manage_workspace_settings');
 
@@ -413,10 +414,10 @@ export function SettingsPage() {
                     <ul class="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1">
                         ${availableNavItems.map(item => `
                             <li>
-                                <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab="${item.id}">
+                                <button type="button" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap w-full ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab-group="ui.settings.activeTab" data-tab-value="${item.id}">
                                     <span class="material-icons-sharp">${item.icon}</span>
                                     ${item.text}
-                                </a>
+                                </button>
                             </li>
                         `).join('')}
                     </ul>

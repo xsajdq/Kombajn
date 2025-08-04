@@ -1,5 +1,5 @@
 
-import { state } from './state.ts';
+import { getState } from './state.ts';
 import { t } from './i18n.ts';
 import type { Task, PlanId, User, TimeOffRequest, PublicHoliday } from './types.ts';
 
@@ -98,15 +98,16 @@ export function parseDurationStringToHours(durationStr: string): number | null {
 
 
 export function getTaskTotalTrackedSeconds(taskId: string): number {
-    return state.timeLogs
+    return getState().timeLogs
         .filter(log => log.taskId === taskId)
         .reduce((sum, log) => sum + log.trackedSeconds, 0);
 }
 
 export function getTaskCurrentTrackedSeconds(task: Task): number {
+    const { activeTimers } = getState();
     const totalLoggedSeconds = getTaskTotalTrackedSeconds(task.id);
-    if (state.activeTimers[task.id]) {
-        const startTime = state.activeTimers[task.id];
+    if (activeTimers[task.id]) {
+        const startTime = activeTimers[task.id];
         const elapsedSeconds = (Date.now() - startTime) / 1000;
         return totalLoggedSeconds + elapsedSeconds;
     }
@@ -114,7 +115,7 @@ export function getTaskCurrentTrackedSeconds(task: Task): number {
 }
 
 export function formatDate(dateString: string, options: Intl.DateTimeFormatOptions = {}): string {
-    const locale = state.settings.language === 'pl' ? 'pl-PL' : 'en-GB';
+    const locale = getState().settings.language === 'pl' ? 'pl-PL' : 'en-GB';
     if (!dateString) return '';
     
     const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -129,7 +130,7 @@ export function formatDate(dateString: string, options: Intl.DateTimeFormatOptio
 
 export function formatCurrency(amount: number | null | undefined, currency = 'PLN'): string {
     if (amount == null) return t('misc.not_applicable');
-    const locale = state.settings.language === 'pl' ? 'pl-PL' : 'en-US';
+    const locale = getState().settings.language === 'pl' ? 'pl-PL' : 'en-US';
     return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: currency,
@@ -139,19 +140,20 @@ export function formatCurrency(amount: number | null | undefined, currency = 'PL
 }
 
 export function getUsage(workspaceId: string) {
+    const { projects, workspaceMembers, invoices } = getState();
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const projects = state.projects.filter(p => p.workspaceId === workspaceId).length;
-    const users = state.workspaceMembers.filter(m => m.workspaceId === workspaceId).length;
-    const invoicesThisMonth = state.invoices.filter(i => {
+    const projectsCount = projects.filter(p => p.workspaceId === workspaceId).length;
+    const users = workspaceMembers.filter(m => m.workspaceId === workspaceId).length;
+    const invoicesThisMonth = invoices.filter(i => {
         if (i.workspaceId !== workspaceId) return false;
         const issueDate = new Date(i.issueDate);
         return issueDate.getMonth() === currentMonth && issueDate.getFullYear() === currentYear;
     }).length;
 
-    return { projects, users, invoicesThisMonth };
+    return { projects: projectsCount, users, invoicesThisMonth };
 }
 
 export function calculateBusinessDays(startDateStr: string, endDateStr: string, holidays: { date: string }[]): number {

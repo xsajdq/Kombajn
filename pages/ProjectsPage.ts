@@ -1,18 +1,19 @@
 
 
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
-import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds, getUserInitials } from '../utils.ts';
+import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds, getUserInitials, filterItems } from '../utils.ts';
 import { can } from '../permissions.ts';
 
 type ProjectWithComputedData = ReturnType<typeof getFilteredAndSortedProjects>[0];
 
 function getFilteredAndSortedProjects() {
-    const { text: filterText, tagIds: filterTagIds, status: filterStatus } = state.ui.projects.filters;
+    const state = getState();
     const { sortBy } = state.ui.projects;
     const today = new Date().toISOString().slice(0, 10);
 
-    let projects = state.projects
+    let projectsWithComputedData = state.projects
         .filter(p => {
             if (p.workspaceId !== state.activeWorkspaceId) return false;
             if (p.privacy === 'public') return true;
@@ -34,23 +35,27 @@ function getFilteredAndSortedProjects() {
             return { ...project, computed: { progress, status, latestDueDate, overdueTasksCount } };
         });
 
-    // Filtering
-    if (filterText) {
-        projects = projects.filter(p => p.name.toLowerCase().includes(filterText.toLowerCase()));
+    // Filtering using the generic utility
+    const filters: any = {
+        ...state.ui.projects.filters
+    };
+    if (filters.status && filters.status !== 'all') {
+        filters['computed.status'] = filters.status;
     }
-    if (filterTagIds.length > 0) {
-        projects = projects.filter(p => {
-            const projectTagIds = new Set(state.projectTags.filter(pt => pt.projectId === p.id).map(pt => pt.tagId));
-            return filterTagIds.every(tagId => projectTagIds.has(tagId));
-        });
-    }
-    if (filterStatus !== 'all') {
-        projects = projects.filter(p => p.computed.status === filterStatus);
-    }
+    delete filters.status;
+    
+    let filteredProjects = filterItems(
+        projectsWithComputedData,
+        filters,
+        ['name'],
+        state.projectTags,
+        'projectId'
+    );
+    
 
     // Sorting
     const statusOrder = { at_risk: 0, on_track: 1, completed: 2 };
-    projects.sort((a, b) => {
+    filteredProjects.sort((a, b) => {
         switch (sortBy) {
             case 'name': return a.name.localeCompare(b.name);
             case 'status': return statusOrder[a.computed.status] - statusOrder[b.computed.status];
@@ -63,11 +68,12 @@ function getFilteredAndSortedProjects() {
         }
     });
 
-    return projects;
+    return filteredProjects;
 }
 
 
 function renderGridView(projects: ProjectWithComputedData[]) {
+    const state = getState();
     const canManage = can('manage_projects');
 
     if (projects.length === 0) {
@@ -162,6 +168,7 @@ function renderGridView(projects: ProjectWithComputedData[]) {
 }
 
 function renderPortfolioView(projects: ProjectWithComputedData[]) {
+    const state = getState();
     return `
     <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
         <table class="portfolio-table">
@@ -236,6 +243,7 @@ function renderPortfolioView(projects: ProjectWithComputedData[]) {
 }
 
 export function ProjectsPage() {
+    const state = getState();
     const { activeWorkspaceId } = state;
     const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!activeWorkspace) return '';

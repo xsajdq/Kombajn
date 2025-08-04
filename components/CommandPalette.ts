@@ -1,10 +1,11 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getCommands } from '../handlers/commands.ts';
 
 // This function is now responsible ONLY for rendering the list of items.
 export function renderCommandPaletteList(results?: any) {
+    const state = getState();
     const query = state.ui.commandPaletteQuery;
     const activeIndex = state.ui.commandPaletteActiveIndex;
 
@@ -81,6 +82,7 @@ export function renderCommandPaletteList(results?: any) {
 
 // This function renders the main shell and the initial list content.
 export function CommandPalette() {
+    const state = getState();
     return `
         <div class="command-palette-overlay">
             <div class="command-palette">

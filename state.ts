@@ -1,15 +1,10 @@
 
 
-import type { AppState } from './types.ts';
+import type { AppState, UIComponent } from './types.ts';
 
-export function generateId(): string {
-    // A more robust ID generator
-    return Date.now().toString(36) + Math.random().toString(36).substring(2);
-}
+export const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-// saveState is no longer needed as the server is the source of truth.
-export function saveState() {
-    // This function can be used to save settings to localStorage
+function saveSettingsToLocalStorage(state: AppState) {
     const settingsToSave = {
         theme: state.settings.theme,
         language: state.settings.language,
@@ -22,13 +17,9 @@ export function getInitialState(): AppState {
     const oneMonthAgo = new Date(now);
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    // Load settings from localStorage
     const savedSettings = JSON.parse(localStorage.getItem('kombajn-settings') || '{}');
-
     const theme: 'light' | 'dark' | 'minimal' = savedSettings.theme || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     
-    // This is now the blueprint for a clean, empty state.
-    // Data will be fetched from the API.
     return {
         currentPage: 'dashboard',
         currentUser: null,
@@ -157,5 +148,73 @@ export function getInitialState(): AppState {
     };
 }
 
-// The state is now initialized as a clean slate.
-export const state: AppState = getInitialState();
+let state: AppState = getInitialState();
+
+// --- Subscription system ---
+type Subscriber = (componentsToUpdate: UIComponent[]) => void;
+const subscribers: Subscriber[] = [];
+
+export function subscribe(callback: Subscriber) {
+    subscribers.push(callback);
+    // Return an unsubscribe function
+    return () => {
+        const index = subscribers.indexOf(callback);
+        if (index > -1) {
+            subscribers.splice(index, 1);
+        }
+    };
+}
+// --- End subscription system ---
+
+function isObject(item: any): item is Record<string, any> {
+  return (item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function deepAssign(target: any, source: any) {
+    if (!isObject(target) || !isObject(source)) return;
+
+    Object.keys(source).forEach(key => {
+        const targetValue = target[key];
+        const sourceValue = source[key];
+
+        if (isObject(sourceValue) && isObject(targetValue)) {
+            deepAssign(targetValue, sourceValue);
+        } else {
+            target[key] = sourceValue;
+        }
+    });
+}
+
+// The only way to get the state
+export function getState(): Readonly<AppState> {
+    return state;
+}
+
+// The only way to update the state
+export function setState(newStateSlice: Partial<AppState> | ((prevState: AppState) => Partial<AppState>), componentsToUpdate: UIComponent[]) {
+    const slice = typeof newStateSlice === 'function' ? newStateSlice(state) : newStateSlice;
+
+    // Deeply assign the properties from the slice to the existing state object to mutate it.
+    deepAssign(state, slice);
+
+    // If settings were changed, persist them to localStorage
+    if (slice.settings) {
+        saveSettingsToLocalStorage(state);
+    }
+
+    // Notify subscribers about the UI update
+    for (const subscriber of subscribers) {
+        subscriber(componentsToUpdate);
+    }
+}
+
+// Function to reset the state, e.g., on logout
+export function resetState() {
+    const initialState = getInitialState();
+    // Clear all keys from the current state object
+    Object.keys(state).forEach(key => {
+        delete (state as any)[key];
+    });
+    // Assign all properties from the initial state to the now-empty state object
+    Object.assign(state, initialState);
+}

@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getVacationInfo, getUserInitials } from '../utils.ts';
 import type { Role, User, WorkspaceMember, TimeOffRequest, Review } from '../types.ts';
@@ -8,6 +7,7 @@ import { PLANS } from '../utils.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 
 async function renderEmployeesTab() {
+    const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
     if (!activeWorkspace) return 'Error: Active workspace not found.';
 
@@ -49,7 +49,7 @@ async function renderEmployeesTab() {
         </div>
         <div class="bg-content rounded-lg shadow-sm">
             <div class="w-full text-sm">
-                <div class="px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid md:grid-cols-[2fr_1.5fr_2fr_auto] md:gap-4">
+                <div class="px-4 py-3 bg-background text-xs font-semibold text-text-subtle uppercase hidden md:grid md:grid-cols-[2fr,1.5fr,2fr,auto] md:gap-4">
                     <div>${t('hr.employee')}</div>
                     <div>${t('hr.role')}</div>
                     <div>Email</div>
@@ -121,6 +121,7 @@ async function renderEmployeesTab() {
 }
 
 function renderRequestsTab() {
+    const state = getState();
      const pendingLeaveRequests = state.timeOffRequests.filter(r => 
         r.workspaceId === state.activeWorkspaceId && r.status === 'pending'
      );
@@ -197,6 +198,7 @@ function renderRequestsTab() {
 }
 
 function renderVacationTab() {
+    const state = getState();
     const workspaceUsers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => state.users.find(u => u.id === m.userId)!)
@@ -255,6 +257,7 @@ function renderVacationTab() {
 }
 
 function renderHistoryTab() {
+    const state = getState();
     const history = state.timeOffRequests
         .filter(r => r.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -309,6 +312,7 @@ function renderHistoryTab() {
 }
 
 function renderReviewsTab() {
+    const state = getState();
     const members = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
         .map(m => state.users.find(u => u.id === m.userId)!)
@@ -381,7 +385,8 @@ export async function HRPage() {
     }
     
     await fetchPublicHolidays(new Date().getFullYear());
-
+    
+    const state = getState();
     const { activeTab } = state.ui.hr;
     let tabContent = '';
     switch(activeTab) {
@@ -406,7 +411,7 @@ export async function HRPage() {
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
                     ${navItems.map(item => `
-                        <a href="#" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-hr-tab="${item.id}">${item.text}</a>
+                        <button type="button" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.hr.activeTab" data-tab-value="${item.id}">${item.text}</button>
                     `).join('')}
                 </nav>
             </div>

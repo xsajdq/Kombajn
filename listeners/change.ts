@@ -1,6 +1,4 @@
-
-
-import { state, saveState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
 import * as teamHandlers from '../handlers/team.ts';
@@ -14,6 +12,7 @@ import { t } from '../i18n.ts';
 
 export function handleChange(e: Event) {
     const target = e.target as HTMLElement;
+    const state = getState();
 
     const followUpToggle = target.closest<HTMLInputElement>('[data-toggle-follow-up]');
     if (followUpToggle) {
@@ -43,10 +42,10 @@ export function handleChange(e: Event) {
         const modalType = state.ui.modal.type;
         if (modalType === 'taskDetail' || modalType === 'subtaskDetail') {
             let taskId = state.ui.modal.data?.taskId;
-            if (target.dataset.taskId) {
-                taskId = target.dataset.taskId;
+            if ((target as HTMLElement).dataset.taskId) {
+                taskId = (target as HTMLElement).dataset.taskId;
             }
-            const field = target.dataset.field as keyof Task;
+            const field = (target as HTMLElement).dataset.field as keyof Task;
             const value = (target as HTMLInputElement).value;
 
             if (taskId && field) {
@@ -122,8 +121,8 @@ export function handleChange(e: Event) {
         return;
     }
     
-    if (target.id === 'theme-switcher') { state.settings.theme = (target as HTMLSelectElement).value as 'light' | 'dark' | 'minimal'; saveState(); updateUI(['all']); return; }
-    if (target.id === 'language-switcher') { state.settings.language = (target as HTMLSelectElement).value as 'en' | 'pl'; saveState(); updateUI(['all']); return; }
+    if (target.id === 'theme-switcher') { setState(prevState => ({ settings: { ...prevState.settings, theme: (target as HTMLSelectElement).value as 'light' | 'dark' | 'minimal' } }), ['all']); return; }
+    if (target.id === 'language-switcher') { setState(prevState => ({ settings: { ...prevState.settings, language: (target as HTMLSelectElement).value as 'en' | 'pl' } }), ['all']); return; }
 
     if (target.id === 'dashboard-grid-columns') {
         const newCount = parseInt((target as HTMLSelectElement).value, 10);
@@ -133,20 +132,22 @@ export function handleChange(e: Event) {
     
     if (target.id === 'attachment-file-input' && (target as HTMLInputElement).files?.length) {
         const file = (target as HTMLInputElement).files![0];
-        const taskId = target.dataset.taskId!;
+        const taskId = (target as HTMLElement).dataset.taskId!;
         taskHandlers.handleAddAttachment(taskId, file);
     }
     if (target.id === 'project-file-upload' && (target as HTMLInputElement).files?.length) {
         const file = (target as HTMLInputElement).files![0];
-        const projectId = target.dataset.projectId!;
+        const projectId = (target as HTMLElement).dataset.projectId!;
         mainHandlers.handleFileUpload(projectId, file);
     }
     if (target.id === 'logo-upload' && (target as HTMLInputElement).files?.length) {
         const file = (target as HTMLInputElement).files![0];
         const reader = new FileReader();
         reader.onload = (event) => {
-            const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-            if (workspace) { workspace.companyLogo = event.target?.result as string; teamHandlers.handleSaveWorkspaceSettings(); }
+            setState(prevState => ({
+                workspaces: prevState.workspaces.map(w => w.id === prevState.activeWorkspaceId ? { ...w, companyLogo: event.target?.result as string } : w)
+            }), []);
+            teamHandlers.handleSaveWorkspaceSettings(); 
         };
         reader.readAsDataURL(file);
     }
@@ -167,8 +168,9 @@ export function handleChange(e: Event) {
     if (invoiceFilter) {
         const key = invoiceFilter.dataset.filterKey as keyof AppState['ui']['invoiceFilters'];
         if (['dateStart', 'dateEnd', 'clientId', 'status'].includes(key)) {
-            (state.ui.invoiceFilters as any)[key] = invoiceFilter.value;
-            updateUI(['page']);
+            setState(prevState => ({
+                ui: { ...prevState.ui, invoiceFilters: { ...prevState.ui.invoiceFilters, [key]: invoiceFilter.value } }
+            }), ['page']);
         }
         return;
     }
@@ -181,16 +183,18 @@ export function handleChange(e: Event) {
             } else {
                 key = (target.id).replace('invoice', '').charAt(0).toLowerCase() + (target.id).replace('invoice', '').slice(1);
             }
-            state.ui.modal.data[key] = (target as HTMLInputElement).value;
-            updateUI(['modal']);
+            setState(prevState => ({
+                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, [key]: (target as HTMLInputElement).value } } }
+            }), ['modal']);
         }
         return;
     }
     
     if (target.id === 'project-status-filter') {
         const status = (target as HTMLSelectElement).value as 'all' | 'on_track' | 'at_risk' | 'completed';
-        state.ui.projects.filters.status = status;
-        updateUI(['page']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, projects: { ...prevState.ui.projects, filters: { ...prevState.ui.projects.filters, status: status } } }
+        }), ['page']);
         return;
     }
 
@@ -207,15 +211,18 @@ export function handleChange(e: Event) {
         if (taskFilterInput.matches('input[type="checkbox"][data-filter-key="tagIds"]')) {
             const tagId = (taskFilterInput as HTMLInputElement).value;
             const isChecked = (taskFilterInput as HTMLInputElement).checked;
-            const currentTags = new Set(state.ui.tasks.filters.tagIds);
-            if (isChecked) {
-                currentTags.add(tagId);
-            } else {
-                currentTags.delete(tagId);
-            }
-            state.ui.tasks.filters.tagIds = Array.from(currentTags);
-            state.ui.tasks.activeFilterViewId = null;
-            updateUI(['page']);
+            
+            setState(prevState => {
+                const currentTags = new Set(prevState.ui.tasks.filters.tagIds);
+                if (isChecked) {
+                    currentTags.add(tagId);
+                } else {
+                    currentTags.delete(tagId);
+                }
+                return {
+                    ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, filters: { ...prevState.ui.tasks.filters, tagIds: Array.from(currentTags) }, activeFilterViewId: null } }
+                };
+            }, ['page']);
         } else {
             filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
         }
@@ -226,14 +233,17 @@ export function handleChange(e: Event) {
     if (projectTagFilterCheckbox) {
         const tagId = projectTagFilterCheckbox.value;
         const isChecked = projectTagFilterCheckbox.checked;
-        const currentTags = new Set(state.ui.projects.filters.tagIds);
-        if (isChecked) {
-            currentTags.add(tagId);
-        } else {
-            currentTags.delete(tagId);
-        }
-        state.ui.projects.filters.tagIds = Array.from(currentTags);
-        updateUI(['page']);
+        setState(prevState => {
+            const currentTags = new Set(prevState.ui.projects.filters.tagIds);
+            if (isChecked) {
+                currentTags.add(tagId);
+            } else {
+                currentTags.delete(tagId);
+            }
+            return {
+                ui: { ...prevState.ui, projects: { ...prevState.ui.projects, filters: { ...prevState.ui.projects.filters, tagIds: Array.from(currentTags) } } }
+            };
+        }, ['page']);
         return;
     }
 
@@ -241,30 +251,34 @@ export function handleChange(e: Event) {
     if (goalFilter) {
         const key = goalFilter.dataset.filterKey as 'status' | 'ownerId';
         if (key) {
-            state.ui.goals.filters[key] = goalFilter.value;
-            updateUI(['page']);
+            setState(prevState => ({
+                ui: { ...prevState.ui, goals: { ...prevState.ui.goals, filters: { ...prevState.ui.goals.filters, [key]: goalFilter.value } } }
+            }), ['page']);
         }
         return;
     }
 
     if (target.id === 'automation-project-selector') {
         const projectId = (target as HTMLSelectElement).value;
-        state.ui.modal.data = { ...state.ui.modal.data, selectedProjectId: projectId };
-        updateUI(['modal']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+        }), ['modal']);
         return;
     }
 
     if (target.id === 'timeLogProject') {
         const projectId = (target as HTMLSelectElement).value;
-        state.ui.modal.data.selectedProjectId = projectId;
-        updateUI(['modal']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+        }), ['modal']);
         return;
     }
 
     if (target.id === 'assign-time-project-select') {
         const projectId = (target as HTMLSelectElement).value;
-        state.ui.modal.data.selectedProjectId = projectId;
-        updateUI(['modal']);
+        setState(prevState => ({
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+        }), ['modal']);
         return;
     }
 

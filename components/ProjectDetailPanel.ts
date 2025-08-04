@@ -1,5 +1,5 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import type { Task, ProjectRole, Attachment, Objective, KeyResult, Expense } from '../types.ts';
@@ -19,6 +19,7 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function ProjectDetailPanel({ projectId }: { projectId: string }) {
+    const state = getState();
     const project = state.projects.find(p => p.id === projectId && p.workspaceId === state.activeWorkspaceId);
     if (!project) return '';
 
@@ -502,7 +503,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                                 <button id="save-as-template-btn" class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-id="${project.id}">
                                     <span class="material-icons-sharp text-base">content_copy</span> ${t('panels.save_as_template')}
                                 </button>
-                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-project-id="${project.id}">
+                                <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-resource="projects" data-delete-id="${project.id}" data-delete-confirm="Are you sure you want to delete this project and all its tasks? This is irreversible.">
                                     <span class="material-icons-sharp text-base">delete</span>
                                     Delete
                                 </button>
@@ -516,7 +517,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
             </div>
             <nav class="side-panel-tabs" role="tablist" aria-label="Project sections">
                 ${tabs.map(tab => `
-                    <button class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
+                    <button class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab-group="ui.openedProjectTab" data-tab-value="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
                         ${tab.text}
                     </button>
                 `).join('')}

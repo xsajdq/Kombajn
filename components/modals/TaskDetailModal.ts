@@ -1,5 +1,4 @@
-
-import { state } from '../../state.ts';
+import { getState } from '../../state.ts';
 import { t } from '../../i18n.ts';
 import { formatDuration, formatDate, getUserInitials } from '../../utils.ts';
 import { can } from '../../permissions.ts';
@@ -21,6 +20,7 @@ function renderCommentBody(content: string) {
 };
 
 function renderComment(comment: Comment) {
+    const state = getState();
     const user = state.users.find(u => u.id === comment.userId);
     const userName = user?.name || getUserInitials(user) || 'User';
     const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -86,6 +86,7 @@ function renderComment(comment: Comment) {
 }
 
 function renderTimeLog(item: TimeLog) {
+    const state = getState();
     const user = state.users.find(u => u.id === item.userId);
     const userName = user?.name || getUserInitials(user) || 'User';
     return `
@@ -108,6 +109,7 @@ function renderTimeLog(item: TimeLog) {
 }
 
 function renderActivityTab(task: Task) {
+    const state = getState();
     const comments = state.comments.filter(c => c.taskId === task.id);
     const timeLogs = state.timeLogs.filter(tl => tl.taskId === task.id);
     
@@ -214,6 +216,7 @@ function renderChecklistTab(task: Task) {
 }
 
 function renderSubtasksTab(task: Task) {
+    const state = getState();
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
     return `
         <div class="space-y-4">
@@ -245,6 +248,7 @@ function renderSubtasksTab(task: Task) {
 }
 
 function renderAttachmentsTab(task: Task) {
+    const state = getState();
     const attachments = state.attachments.filter(a => a.taskId === task.id);
     const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.isActive && i.workspaceId === state.activeWorkspaceId);
 
@@ -279,6 +283,7 @@ function renderAttachmentsTab(task: Task) {
 }
 
 function renderDependenciesTab(task: Task) {
+    const state = getState();
     const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
     const blockingTasks = dependencies.filter(d => d.blockedTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockingTaskId)).filter(Boolean);
     const blockedTasks = dependencies.filter(d => d.blockingTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockedTaskId)).filter(Boolean);
@@ -325,6 +330,7 @@ function renderDependenciesTab(task: Task) {
 }
 
 function renderSidebar(task: Task) {
+    const state = getState();
     const assignees = state.taskAssignees
         .filter(a => a.taskId === task.id)
         .map(a => state.users.find(u => u.id === a.userId))
@@ -495,6 +501,7 @@ function renderSidebar(task: Task) {
 }
 
 export function TaskDetailModal({ taskId }: { taskId: string }): string {
+    const state = getState();
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return `
         <div class="p-8 text-center text-text-subtle">

@@ -1,15 +1,15 @@
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 
 export function handleMouseUp(e: MouseEvent) {
     const target = e.target as HTMLElement;
+    const state = getState();
 
     // Don't show popover if we're clicking on the popover itself or an input/editable area
     if (target.closest('.text-selection-popover') || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         // If the click is inside an editable area but NOT a selection, close the popover.
         if (window.getSelection()?.isCollapsed && state.ui.textSelectionPopover.isOpen) {
-             state.ui.textSelectionPopover.isOpen = false;
-             updateUI(['text-selection-popover']);
+             setState(prevState => ({ ui: { ...prevState.ui, textSelectionPopover: { ...prevState.ui.textSelectionPopover, isOpen: false } } }), ['text-selection-popover']);
         }
         return;
     }
@@ -21,8 +21,7 @@ export function handleMouseUp(e: MouseEvent) {
     
     if (selection.isCollapsed || !selectionText) {
         if (state.ui.textSelectionPopover.isOpen) {
-            state.ui.textSelectionPopover.isOpen = false;
-            updateUI(['text-selection-popover']);
+            setState(prevState => ({ ui: { ...prevState.ui, textSelectionPopover: { ...prevState.ui.textSelectionPopover, isOpen: false } } }), ['text-selection-popover']);
         }
         return;
     }
@@ -52,18 +51,21 @@ export function handleMouseUp(e: MouseEvent) {
 
     if (context) {
         const rect = range.getBoundingClientRect();
-        state.ui.textSelectionPopover = {
-            isOpen: true,
-            top: rect.bottom + window.scrollY + 5,
-            left: rect.left + window.scrollX + (rect.width / 2),
-            selectedText: selectionText,
-            context: context
-        };
-        updateUI(['text-selection-popover']);
+        setState({
+            ui: {
+                ...state.ui,
+                textSelectionPopover: {
+                    isOpen: true,
+                    top: rect.bottom + window.scrollY + 5,
+                    left: rect.left + window.scrollX + (rect.width / 2),
+                    selectedText: selectionText,
+                    context: context
+                }
+            }
+        }, ['text-selection-popover']);
     } else {
         if (state.ui.textSelectionPopover.isOpen) {
-            state.ui.textSelectionPopover.isOpen = false;
-            updateUI(['text-selection-popover']);
+            setState(prevState => ({ ui: { ...prevState.ui, textSelectionPopover: { ...prevState.ui.textSelectionPopover, isOpen: false } } }), ['text-selection-popover']);
         }
     }
 }

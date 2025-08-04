@@ -1,9 +1,10 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { onboardingSteps } from '../handlers/onboarding.ts';
 import { t } from '../i18n.ts';
 
 export function OnboardingGuide() {
+    const state = getState();
     const { step } = state.ui.onboarding;
     const currentStep = onboardingSteps[step];
     if (!currentStep) return '';

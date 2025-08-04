@@ -1,11 +1,12 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate } from '../utils.ts';
 import type { Budget, Expense, Invoice } from '../types.ts';
 
 export function BudgetPage() {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
 

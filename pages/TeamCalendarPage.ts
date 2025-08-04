@@ -1,11 +1,12 @@
 
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
 import { formatDate, getUserInitials, formatDuration } from '../utils.ts';
 
 function getEventBarDetails(item: any) {
+    const state = getState();
     let colorClasses = '';
     let textColorClass = 'text-white';
     let text = '';
@@ -25,7 +26,7 @@ function getEventBarDetails(item: any) {
         title = item.name;
     } else if ('userId' in item && 'type' in item && ['vacation', 'sick_leave', 'other'].includes(item.type)) { // TimeOffRequest
         const user = state.users.find(u => u.id === item.userId);
-        const userName = user?.name || user?.initials || 'User';
+        const userName = user?.name || getUserInitials(user) || 'User';
         colorClasses = 'bg-green-500';
         textColorClass = 'text-white';
         text = `${userName}: ${t(`team_calendar.leave_type_${item.type}`)}`;
@@ -46,6 +47,7 @@ function getEventBarDetails(item: any) {
 }
 
 function getItemsForDay(dayDateString: string) {
+    const state = getState();
     const dayDate = new Date(dayDateString + 'T12:00:00Z');
     const items: (Task | TimeOffRequest | CalendarEvent | PublicHoliday)[] = [];
     
@@ -68,6 +70,7 @@ function getItemsForDay(dayDateString: string) {
 }
 
 function renderMonthView(year: number, month: number) {
+    const state = getState();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -207,6 +210,7 @@ function renderMonthView(year: number, month: number) {
 }
 
 function renderWeekView(currentDate: Date) {
+    const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -321,6 +325,7 @@ function renderWeekView(currentDate: Date) {
 }
 
 function renderWorkloadView(currentDate: Date) {
+    const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -445,6 +450,7 @@ function getUserColor(userId: string): string {
 }
 
 function renderTimesheetView(currentDate: Date) {
+    const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
     const startDate = new Date(currentDate);
@@ -559,6 +565,7 @@ function renderDayView(currentDate: Date) {
 }
 
 export async function TeamCalendarPage() {
+    const state = getState();
     const { teamCalendarDate, teamCalendarView, teamCalendarSelectedUserIds } = state.ui;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
     const year = currentDate.getUTCFullYear();

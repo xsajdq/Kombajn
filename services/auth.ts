@@ -1,5 +1,4 @@
 // File: services/auth.ts
-import { state } from '../state.ts';
 import { renderApp } from '../app-renderer.ts';
 import type { User } from '../types.ts';
 import { apiFetch } from './api.ts';

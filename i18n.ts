@@ -1,6 +1,9 @@
 
 
-import { state } from './state';
+
+
+
+import { getState } from './state.ts';
 
 const translations = {
     en: {
@@ -734,7 +737,7 @@ const translations = {
             configure_widget: 'Konfiguruj widżet', add_widget: 'Dodaj widżet do pulpitu',
             wiki_history_title: 'Historia Wiki', version_from: 'Wersja z {date} przez {user}', restore: 'Przywróć',
             checklist: 'Lista kontrolna', subtasks: 'Podzadania', attachments: 'Załączniki', dependencies: 'Zależności',
-            add_subtask: 'Dodaj nowe podzadanie...', add_dependency: 'Dodaj zależność (zadanie musi być ukończone jako pierwsze)', select_task: 'Wybierz zadanie', blocked_by: 'Blokowane przez', blocking: 'Blokujące',
+            add_subtask: 'Dodaj nowe podzadanie...', add_dependency: 'Dodaj zależność (zadanie musi być ukońzone jako pierwsze)', select_task: 'Wybierz zadanie', blocked_by: 'Blokowane przez', blocking: 'Blokujące',
             add_attachment: 'Dodaj załącznik',
             attach_from_drive: 'Dołącz z Dysku Google',
             repeat: 'Powtarzaj', repeat_none: 'Nie powtarza się', repeat_daily: 'Codziennie', repeat_weekly: 'Tygodniowo', repeat_monthly: 'Miesięcznie',
@@ -834,7 +837,7 @@ const translations = {
 };
 
 export function t(key: string, replacements: { [key: string]: string } = {}): string {
-    const lang = state.settings.language;
+    const lang = getState().settings.language;
     let translation = key.split('.').reduce((obj: any, k) => obj && obj[k], translations[lang]);
 
     if (!translation) {

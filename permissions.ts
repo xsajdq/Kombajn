@@ -1,6 +1,8 @@
 
 
-import { state } from './state.ts';
+
+
+import { getState } from './state.ts';
 import type { Role, Permission } from './types.ts';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -40,7 +42,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 };
 
 export function can(permission: Permission): boolean {
-    const { currentUser, activeWorkspaceId, workspaceMembers } = state;
+    const { currentUser, activeWorkspaceId, workspaceMembers } = getState();
 
     if (!currentUser || !activeWorkspaceId || !workspaceMembers || workspaceMembers.length === 0) {
         return false;

@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 
@@ -15,6 +16,7 @@ function renderDetailItem(icon: string, label: string, value: string | undefined
 }
 
 export function ClientDetailPanel({ clientId }: { clientId: string }) {
+    const state = getState();
     const client = state.clients.find(c => c.id === clientId && c.workspaceId === state.activeWorkspaceId);
     if (!client) return '';
     const associatedProjects = state.projects.filter(p => p.clientId === clientId && p.workspaceId === state.activeWorkspaceId);
@@ -62,7 +64,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                                         <span class="material-icons-sharp text-base">edit</span>
                                         ${t('misc.edit')}
                                     </button>
-                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-client-id="${client.id}">
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-danger hover:bg-danger/10" data-delete-resource="clients" data-delete-id="${client.id}" data-delete-confirm="Are you sure you want to delete this client and all associated data (projects, tasks, invoices)? This is irreversible.">
                                         <span class="material-icons-sharp text-base">delete</span>
                                         Delete
                                     </button>

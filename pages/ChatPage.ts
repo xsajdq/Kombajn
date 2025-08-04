@@ -1,11 +1,11 @@
 
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate } from '../utils.ts';
 import type { Channel, ChatMessage, User } from '../types.ts';
 
 function renderChatMessage(message: ChatMessage) {
+    const state = getState();
     const user = state.users.find(u => u.id === message.userId);
     if (!user) return '';
 
@@ -32,6 +32,7 @@ function renderChatMessage(message: ChatMessage) {
 }
 
 export function ChatPage() {
+    const state = getState();
     const { activeWorkspaceId, currentUser } = state;
     const { activeChannelId } = state.ui;
     if (!activeWorkspaceId || !currentUser) {

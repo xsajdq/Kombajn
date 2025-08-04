@@ -1,8 +1,5 @@
 
-
-
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency } from '../utils.ts';
@@ -33,6 +30,7 @@ function getCategorySummaries(items: InventoryItem[]) {
 }
 
 export function InventoryPage() {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
 

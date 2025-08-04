@@ -1,4 +1,5 @@
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 
 type CommandItem = {
@@ -13,6 +14,7 @@ const COMMANDS: CommandItem[] = [
 ];
 
 export function SlashCommandPopover() {
+    const state = getState();
     const { query, activeIndex, rect, target } = state.ui.slashCommand;
     if (query === null || !rect || !target) return '';
 

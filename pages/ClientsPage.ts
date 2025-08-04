@@ -1,10 +1,12 @@
 
-import { state } from '../state.ts';
+
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate, filterItems } from '../utils.ts';
 
 export function ClientsPage() {
+    const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
 

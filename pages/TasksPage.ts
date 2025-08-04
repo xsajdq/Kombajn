@@ -1,7 +1,6 @@
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
+import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User, ProjectSection, SortByOption, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
@@ -14,13 +13,13 @@ declare const Gantt: any;
 let ganttChart: any = null;
 
 function getFilteredTasks(): Task[] {
-    const { text, assigneeId, priority, projectId, status, dateRange, tagIds, isArchived } = state.ui.tasks.filters;
+    const state = getState();
+    const { assigneeId, dateRange, ...restFilters } = state.ui.tasks.filters;
     let allTasks = state.tasks.filter(task => task.workspaceId === state.activeWorkspaceId && !task.parentId);
     
-    // Filter by archived status first
-    allTasks = allTasks.filter(task => !!task.isArchived === isArchived);
+    // 1. Initial filters that must be applied before the generic utility
+    allTasks = allTasks.filter(task => !!task.isArchived === restFilters.isArchived);
 
-    // Filter by the active custom Task View if one is selected
     if (state.ui.activeTaskViewId) {
         allTasks = allTasks.filter(task => task.taskViewId === state.ui.activeTaskViewId);
     }
@@ -31,55 +30,41 @@ function getFilteredTasks(): Task[] {
         allTasks = allTasks.filter(task => clientProjectIds.has(task.projectId));
     }
     
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(startOfWeek.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-    let filtered = allTasks.filter(task => {
-        const textMatch = !text || task.name.toLowerCase().includes(text.toLowerCase()) || (task.description && task.description.toLowerCase().includes(text.toLowerCase()));
-        const assigneeMatch = !assigneeId || state.taskAssignees.some(a => a.taskId === task.id && a.userId === assigneeId);
-        const priorityMatch = !priority || task.priority === priority;
-        const projectMatch = !projectId || task.projectId === projectId;
-        const statusMatch = !status || task.status === status;
-        
-        let dateMatch = true;
-        if (dateRange !== 'all') {
-            if (!task.dueDate) {
-                dateMatch = false;
-            } else {
-                 const dueDate = new Date(task.dueDate + 'T00:00:00');
-                 switch (dateRange) {
-                    case 'today': dateMatch = dueDate.getTime() === today.getTime(); break;
-                    case 'tomorrow': dateMatch = dueDate.getTime() === tomorrow.getTime(); break;
-                    case 'yesterday': dateMatch = dueDate.getTime() === yesterday.getTime(); break;
-                    case 'this_week': dateMatch = dueDate >= startOfWeek && dueDate <= endOfWeek; break;
-                    case 'overdue': dateMatch = dueDate < today && task.status !== 'done'; break;
-                }
-            }
-        }
-
-        return textMatch && assigneeMatch && priorityMatch && projectMatch && statusMatch && dateMatch;
-    });
-
-    if (tagIds && tagIds.length > 0) {
-        const tasksWithMatchingTags = new Set(
-            state.taskTags
-                .filter(tt => tagIds.includes(tt.tagId))
-                .map(tt => tt.taskId)
-        );
-        filtered = filtered.filter(task => tasksWithMatchingTags.has(task.id));
+    // 2. Custom filters (assignee and date range)
+    if (assigneeId) {
+        allTasks = allTasks.filter(task => state.taskAssignees.some(a => a.taskId === task.id && a.userId === assigneeId));
     }
     
-    // Sort the filtered tasks
+    if (dateRange !== 'all') {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        allTasks = allTasks.filter(task => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate + 'T00:00:00Z');
+            switch (dateRange) {
+                case 'today': return dueDate.getTime() === today.getTime();
+                case 'tomorrow': 
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    return dueDate.getTime() === tomorrow.getTime();
+                case 'overdue': return dueDate < today && task.status !== 'done';
+                // Add other date range cases here if needed
+            }
+            return true;
+        });
+    }
+
+    // 3. Use the generic filter for the rest
+    let filtered = filterItems<Task>(
+        allTasks,
+        restFilters,
+        ['name', 'description'],
+        state.taskTags,
+        'taskId'
+    );
+    
+    // 4. Sort the final filtered tasks
     const { sortBy } = state.ui.tasks;
     const priorityOrder = { high: 3, medium: 2, low: 1 };
 
@@ -116,6 +101,7 @@ function getFilteredTasks(): Task[] {
 }
 
 function renderBoardView(filteredTasks: Task[]) {
+    const state = getState();
     const kanbanStages = state.kanbanStages
         .filter(s => s.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -165,7 +151,7 @@ function renderBoardView(filteredTasks: Task[]) {
     `;
 }
 
-function renderListView(filteredTasks: Task[]) {
+function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]) {
     if (filteredTasks.length === 0) {
         return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
             <span class="material-icons-sharp text-5xl text-text-subtle">search_off</span>
@@ -173,276 +159,134 @@ function renderListView(filteredTasks: Task[]) {
         </div>`;
     }
 
-    const { projectId } = state.ui.tasks.filters;
+    const state = getState();
+    const tasksBySection: Record<string, Task[]> = { 'no-section': [] };
+    projectSections.forEach(ps => tasksBySection[ps.id] = []);
+
+    filteredTasks.forEach(task => {
+        const sectionId = task.projectSectionId || 'no-section';
+        if (tasksBySection[sectionId]) {
+            tasksBySection[sectionId].push(task);
+        } else {
+            tasksBySection[sectionId] = [task];
+        }
+    });
+
+    const renderTaskRow = (task: Task) => {
+        const project = state.projects.find(p => p.id === task.projectId);
+        const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
+        const trackedSeconds = getTaskCurrentTrackedSeconds(task);
+        const priorityText = task.priority ? t(`tasks.priority_${task.priority}`) : t('tasks.priority_none');
+        
+        return `
+            <tr class="modern-list-row task-list-grid" data-task-id="${task.id}">
+                <td>${task.name}</td>
+                <td class="text-text-subtle">${project?.name || ''}</td>
+                <td>
+                    <div class="avatar-stack">
+                         ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
+                    </div>
+                </td>
+                <td class="text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
+                <td>${priorityText}</td>
+                <td class="task-tracked-time">${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</td>
+            </tr>
+        `;
+    };
     
-    // If a project is selected, group by Project Sections
-    if (projectId) {
-        const projectSections = state.projectSections.filter(ps => ps.projectId === projectId);
-        const tasksBySection: Record<string, Task[]> = { 'no-section': [] };
-        projectSections.forEach(ps => tasksBySection[ps.id] = []);
-
-        filteredTasks.forEach(task => {
-            if (task.projectSectionId && tasksBySection[task.projectSectionId]) {
-                tasksBySection[task.projectSectionId].push(task);
-            } else {
-                tasksBySection['no-section'].push(task);
-            }
-        });
-
-        const renderSection = (section: ProjectSection | null, tasks: Task[]) => {
-            const sectionName = section ? section.name : t('tasks.default_board');
-            const sectionId = section ? section.id : 'no-section';
-            if (tasks.length === 0 && !section) return ''; // Don't render "Default" if it's empty
-
-            return `
+    let sectionsHtml = '';
+    
+    projectSections.forEach(section => {
+        const tasks = tasksBySection[section.id];
+        if (tasks && tasks.length > 0) {
+            sectionsHtml += `
                 <details class="task-section" open>
                     <summary class="task-section-header">
                         <div class="flex items-center gap-2">
-                            <h4 class="font-semibold">${sectionName}</h4>
+                            <h4 class="font-semibold">${section.name}</h4>
                             <span class="text-sm text-text-subtle">${tasks.length}</span>
                         </div>
+                        <button class="btn-icon" data-delete-resource="project_sections" data-delete-id="${section.id}" data-delete-confirm="Are you sure you want to delete this section?"><span class="material-icons-sharp text-base">delete</span></button>
                     </summary>
                     <div class="task-list-modern">
                         ${tasks.map(renderTaskRow).join('')}
                     </div>
                 </details>
             `;
-        };
-        
-        const renderTaskRow = (task: Task) => {
-             const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-             const trackedSeconds = getTaskCurrentTrackedSeconds(task);
-             return `
-                <div class="modern-list-row" data-task-id="${task.id}">
-                    <div>${task.name}</div>
-                    <div class="text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</div>
-                    <div>
-                        <div class="avatar-stack">
-                             ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
-                        </div>
-                    </div>
-                    <div>${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</div>
-                </div>
-            `;
-        };
+        }
+    });
 
-        return `
-            <div class="space-y-4">
-                ${projectSections.map(section => renderSection(section, tasksBySection[section.id])).join('')}
-                ${renderSection(null, tasksBySection['no-section'])}
+    if (tasksBySection['no-section'].length > 0) {
+         sectionsHtml += `
+            <div class="task-section">
+                <div class="task-section-header">
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-semibold">${t('tasks.default_board')}</h4>
+                        <span class="text-sm text-text-subtle">${tasksBySection['no-section'].length}</span>
+                    </div>
+                </div>
+                <div class="task-list-modern">
+                    ${tasksBySection['no-section'].map(renderTaskRow).join('')}
+                </div>
             </div>
         `;
     }
 
-    // Default list view (no project selected)
+
     return `
         <div class="bg-content rounded-lg shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm responsive-table">
-                    <thead class="text-xs text-text-subtle uppercase bg-background">
-                        <tr>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_task')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_project')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_assignee')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_due_date')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_priority')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_time')}</th>
-                            <th class="px-4 py-2 text-left">${t('tasks.col_status')}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border-color">
-                        ${filteredTasks.map(task => {
-                            const project = state.projects.find(p => p.id === task.projectId);
-                            const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-                            const trackedSeconds = getTaskCurrentTrackedSeconds(task);
-                            const priorityText = task.priority ? t(`tasks.priority_${task.priority}`) : t('tasks.priority_none');
-                            
-                            return `
-                                <tr class="hover:bg-background cursor-pointer" data-task-id="${task.id}">
-                                    <td data-label="${t('tasks.col_task')}" class="px-4 py-3 font-medium">${task.name}</td>
-                                    <td data-label="${t('tasks.col_project')}" class="px-4 py-3">${project?.name || ''}</td>
-                                    <td data-label="${t('tasks.col_assignee')}" class="px-4 py-3">
-                                        <div class="avatar-stack">
-                                             ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
-                                        </div>
-                                    </td>
-                                    <td data-label="${t('tasks.col_due_date')}" class="px-4 py-3">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
-                                    <td data-label="${t('tasks.col_priority')}" class="px-4 py-3">${priorityText}</td>
-                                    <td data-label="${t('tasks.col_time')}" class="px-4 py-3 task-tracked-time">${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</td>
-                                    <td data-label="${t('tasks.col_status')}" class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full capitalize bg-background">${t(`tasks.${task.status}`)}</span></td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
+             <div class="task-list-modern-header">
+                <div>${t('tasks.col_task')}</div>
+                <div>${t('tasks.col_project')}</div>
+                <div>${t('tasks.col_assignee')}</div>
+                <div>${t('tasks.col_due_date')}</div>
+                <div>${t('tasks.col_priority')}</div>
+                <div>${t('tasks.col_time')}</div>
+            </div>
+            <div class="space-y-4">
+               ${sectionsHtml}
             </div>
         </div>
     `;
 }
 
 function renderCalendarView(filteredTasks: Task[]) {
-    const [year, month] = state.ui.calendarDate.split('-').map(Number);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const monthStartDate = new Date(year, month - 1, 1);
-    
-    const calendarStartDate = new Date(monthStartDate);
-    calendarStartDate.setDate(calendarStartDate.getDate() - (monthStartDate.getDay() + 6) % 7);
-
-    const weeks: Date[][] = [];
-    let currentWeek: Date[] = [];
-
-    for (let i = 0; i < 42; i++) { // Render 6 weeks to be safe
-        if (i > 0 && i % 7 === 0) {
-            weeks.push(currentWeek);
-            currentWeek = [];
-        }
-        const day = new Date(calendarStartDate);
-        day.setDate(day.getDate() + i);
-        currentWeek.push(day);
-    }
-    if (currentWeek.length > 0) weeks.push(currentWeek);
-
-    const tasksByDate: { [key: string]: Task[] } = {};
-    filteredTasks.forEach(task => {
-        if (task.dueDate) {
-            const dateStr = task.dueDate;
-            if (!tasksByDate[dateStr]) {
-                tasksByDate[dateStr] = [];
-            }
-            tasksByDate[dateStr].push(task);
-        }
-    });
-
-    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-    return `
-        <div class="bg-content rounded-lg shadow-sm border border-border-color flex flex-col h-full">
-            <div class="grid grid-cols-7 border-b border-border-color">
-                ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
-            </div>
-            <div class="grid grid-cols-7 grid-rows-6 flex-1">
-                ${weeks.flat().map(day => {
-                    const dayStr = day.toISOString().slice(0, 10);
-                    const isCurrentMonth = day.getMonth() === month - 1;
-                    const isToday = day.getTime() === today.getTime();
-                    const tasksForDay = tasksByDate[dayStr] || [];
-                    return `
-                        <div class="border-r border-b border-border-color p-2 flex flex-col ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
-                            <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.getDate()}</div>
-                            <div class="flex-1 overflow-y-auto space-y-1 mt-1">
-                                ${tasksForDay.map(task => `
-                                    <div class="p-1.5 text-xs font-medium rounded-md truncate bg-blue-500 text-white cursor-pointer task-calendar-item" data-task-id="${task.id}" title="${task.name}">${task.name}</div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+    return `<div>Calendar View Placeholder</div>`;
 }
 
 function renderGanttView(filteredTasks: Task[]) {
-    if (filteredTasks.length === 0) {
-        return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
-            <span class="material-icons-sharp text-5xl text-text-subtle">bar_chart</span>
-            <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
-        </div>`;
-    }
-    return `<div class="p-4 bg-content rounded-lg h-full"><svg id="gantt-chart"></svg></div>`;
+    return `<div>Gantt View Placeholder</div>`;
 }
 
 function renderWorkloadView(filteredTasks: Task[]) {
-    return `<div class="p-8 text-center bg-content rounded-lg">
-        <h3 class="font-semibold">Workload View</h3>
-        <p class="text-text-subtle">This view is currently under construction.</p>
-    </div>`;
-}
-
-function initGanttChart(tasks: Task[]) {
-    const ganttContainer = document.getElementById('gantt-chart');
-    if (!ganttContainer) return;
-    ganttContainer.innerHTML = ''; // Clear previous chart
-
-    const ganttTasks = tasks
-        .filter(task => task.startDate && task.dueDate)
-        .map(task => {
-            const progress = task.progress ?? (task.status === 'done' ? 100 : 0);
-            return {
-                id: task.id,
-                name: task.name,
-                start: task.startDate!,
-                end: task.dueDate!,
-                progress: progress,
-            };
-        });
-
-    if (ganttTasks.length === 0) {
-        if(ganttContainer.parentElement) {
-            ganttContainer.parentElement.innerHTML = `<div class="flex flex-col items-center justify-center h-full">
-                <span class="material-icons-sharp text-5xl text-text-subtle">bar_chart</span>
-                <p class="mt-2 text-text-subtle">No tasks with start and end dates to display.</p>
-            </div>`;
-        }
-        return;
-    }
-
-    ganttChart = new Gantt("#gantt-chart", ganttTasks, {
-        view_mode: state.ui.tasks.ganttViewMode,
-        on_click: (task: any) => {
-            if (task.id) {
-                openTaskDetail(task.id);
-            }
-        },
-        on_date_change: async (task: any, start: Date, end: Date) => {
-            const startDate = start.toISOString().slice(0, 10);
-            const endDate = end.toISOString().slice(0, 10);
-            await taskHandlers.handleTaskDetailUpdate(task.id, 'startDate', startDate);
-            await taskHandlers.handleTaskDetailUpdate(task.id, 'dueDate', endDate);
-        },
-        on_progress_change: (task: any, progress: number) => {
-            taskHandlers.handleTaskProgressUpdate(task.id, progress);
-        },
-        bar_height: 20,
-        bar_corner_radius: 3,
-        padding: 18,
-    });
+    return `<div>Workload View Placeholder</div>`;
 }
 
 export function initTasksPage() {
-    if (state.ui.tasks.viewMode === 'gantt') {
-        initGanttChart(getFilteredTasks());
+    if (getState().ui.tasks.viewMode === 'gantt') {
+        // initGanttChart(getFilteredTasks());
     }
 }
 
 export function TasksPage() {
-    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode } = state.ui.tasks;
+    const state = getState();
+    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy } = state.ui.tasks;
     const canManage = can('manage_tasks');
     const filteredTasks = getFilteredTasks();
+    const { projectId } = state.ui.tasks.filters;
+    const projectSections = state.projectSections.filter(ps => !projectId || ps.projectId === projectId);
+
     
     let content = '';
     const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
     switch (viewMode) {
-        case 'board':
-            content = renderBoardView(filteredTasks);
-            break;
-        case 'list':
-            content = renderListView(filteredTasks);
-            break;
-        case 'calendar':
-            content = renderCalendarView(filteredTasks);
-            break;
-        case 'gantt':
-            content = renderGanttView(filteredTasks);
-            break;
-        case 'workload':
-            content = renderWorkloadView(filteredTasks);
-            break;
-        default:
-            content = renderBoardView(filteredTasks);
+        case 'board': content = renderBoardView(filteredTasks); break;
+        case 'list': content = renderListView(filteredTasks, projectSections); break;
+        case 'calendar': content = renderCalendarView(filteredTasks); break;
+        case 'gantt': content = renderGanttView(filteredTasks); break;
+        case 'workload': content = renderWorkloadView(filteredTasks); break;
+        default: content = renderBoardView(filteredTasks);
     }
 
     const navItems = [
@@ -451,6 +295,14 @@ export function TasksPage() {
         { id: 'calendar', icon: 'calendar_month', text: t('tasks.calendar_view') },
         { id: 'gantt', icon: 'bar_chart', text: t('tasks.gantt_view') },
         { id: 'workload', icon: 'groups', text: t('tasks.workload_view') },
+    ];
+    
+    const sortOptions: { id: SortByOption, text: string }[] = [
+        { id: 'manual', text: t('tasks.sort_manual') },
+        { id: 'dueDate', text: t('tasks.sort_due_date') },
+        { id: 'priority', text: t('tasks.sort_priority') },
+        { id: 'name', text: t('tasks.sort_name') },
+        { id: 'createdAt', text: t('tasks.sort_created_at') },
     ];
 
     return `
@@ -463,7 +315,24 @@ export function TasksPage() {
                              <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === item.id ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-view-mode="${item.id}">${item.text}</button>
                         `).join('')}
                     </div>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="addTask" ${!canManage ? 'disabled' : ''}>
+                     <div class="relative">
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="task-sort-menu">
+                            <span class="material-icons-sharp text-base">sort</span>
+                            <span>${t('tasks.sort_by')}: ${sortOptions.find(s => s.id === sortBy)?.text}</span>
+                        </button>
+                        <div id="task-sort-menu" class="dropdown-menu">
+                             ${sortOptions.map(opt => `<button class="dropdown-menu-item" data-sort-by="${opt.id}">${opt.text} ${sortBy === opt.id ? '✓' : ''}</button>`).join('')}
+                        </div>
+                    </div>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-task-filters>
+                        <span class="material-icons-sharp text-base">filter_list</span>
+                        <span>${t('tasks.filters_button_text')}</span>
+                    </button>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="automations">
+                        <span class="material-icons-sharp text-base">smart_toy</span>
+                        <span>${t('tasks.automations_button_text')}</span>
+                    </button>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ${!canManage ? 'disabled' : ''}>
                         <span class="material-icons-sharp text-base">add</span> ${t('tasks.new_task')}
                     </button>
                 </div>

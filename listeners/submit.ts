@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
 import * as auth from '../services/auth.ts';
@@ -136,7 +135,7 @@ export async function handleSubmit(e: SubmitEvent) {
         }
     } else if (target.id === 'add-automation-form') {
         const form = target as HTMLFormElement;
-        const projectId = state.ui.modal.data?.projectId;
+        const projectId = getState().ui.modal.data?.projectId;
         const automationId = form.dataset.automationId || null;
         const name = (form.querySelector('input[name="automation-name"]') as HTMLInputElement).value;
         const triggerStatus = (form.querySelector('select[name="automation-trigger-status"]') as HTMLSelectElement).value as Task['status'];
@@ -158,6 +157,7 @@ export async function handleSubmit(e: SubmitEvent) {
         }
     } else if (target.id === 'chat-form') {
         const inputDiv = document.getElementById('chat-message-input') as HTMLElement;
+        const state = getState();
         if (inputDiv && state.ui.activeChannelId) {
             const content = getStorableHtmlFromContentEditable(inputDiv);
             if (content.trim()) {
@@ -169,7 +169,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const form = target as HTMLFormElement;
         const isReply = form.classList.contains('reply-form');
         const parentId = isReply ? form.dataset.parentId : null;
-        const taskId = form.dataset.taskId || state.ui.modal.data.taskId;
+        const taskId = form.dataset.taskId || getState().ui.modal.data.taskId;
         const inputDiv = form.querySelector<HTMLElement>('.rich-text-input');
         
         if (taskId && inputDiv) {

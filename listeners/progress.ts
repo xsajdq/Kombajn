@@ -1,4 +1,3 @@
-import { state } from '../state.ts';
 import { handleTaskProgressUpdate } from '../handlers/tasks.ts';
 
 let isDraggingProgress = false;

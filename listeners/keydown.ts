@@ -1,5 +1,4 @@
-
-import { state } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import * as uiHandlers from '../handlers/ui.ts';
 import * as commandHandlers from '../handlers/commands.ts';
@@ -13,6 +12,7 @@ let gKeyTimeout: number | null = null;
 
 export function handleKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
+    const state = getState();
 
     // Command Palette
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -28,9 +28,7 @@ export function handleKeydown(e: KeyboardEvent) {
         } else if (state.ui.isCommandPaletteOpen) {
             uiHandlers.toggleCommandPalette(false);
         } else if (state.ui.mention.target || state.ui.slashCommand.target) {
-            state.ui.mention = { query: null, target: null, activeIndex: 0, rect: null };
-            state.ui.slashCommand = { query: null, target: null, activeIndex: 0, rect: null };
-            updateUI(['mention-popover', 'slash-command-popover']);
+            setState(prevState => ({ ui: { ...prevState.ui, mention: { query: null, target: null, activeIndex: 0, rect: null }, slashCommand: { query: null, target: null, activeIndex: 0, rect: null } } }), ['mention-popover', 'slash-command-popover']);
         } else if (state.ui.modal.isOpen) {
             uiHandlers.closeModal();
         } else if (state.ui.openedClientId || state.ui.openedProjectId || state.ui.openedDealId) {
@@ -55,54 +53,51 @@ export function handleKeydown(e: KeyboardEvent) {
         const items = activePopover.querySelectorAll('.mention-item, .slash-command-item, .command-item');
         if (items.length === 0) return;
 
-        let activeIndex: number;
-        let stateSlice: any;
-        const isCommandPalette = !state.ui.mention.target && !state.ui.slashCommand.target;
+        let activeIndex: number = 0;
+        let popoverType: 'mention' | 'slash' | 'command' = 'command';
 
         if (state.ui.mention.target) {
-            stateSlice = state.ui.mention;
-            activeIndex = stateSlice.activeIndex;
+            activeIndex = state.ui.mention.activeIndex;
+            popoverType = 'mention';
         } else if (state.ui.slashCommand.target) {
-            stateSlice = state.ui.slashCommand;
-            activeIndex = stateSlice.activeIndex;
-        } else { // command palette
+            activeIndex = state.ui.slashCommand.activeIndex;
+            popoverType = 'slash';
+        } else {
             activeIndex = state.ui.commandPaletteActiveIndex;
         }
 
+        let newIndex = activeIndex;
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            activeIndex = (activeIndex + 1) % items.length;
+            newIndex = (activeIndex + 1) % items.length;
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            activeIndex = (activeIndex - 1 + items.length) % items.length;
+            newIndex = (activeIndex - 1 + items.length) % items.length;
         } else if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
             const activeItem = items[activeIndex] as HTMLElement;
             if (activeItem) {
-                if (state.ui.mention.target) {
+                if (popoverType === 'mention') {
                     const userId = activeItem.dataset.mentionId!;
                     const user = state.users.find(u => u.id === userId);
-                    if (user) handleInsertMention(user, state.ui.mention.target);
-                } else if (state.ui.slashCommand.target) {
+                    if (user) handleInsertMention(user, state.ui.mention.target!);
+                } else if (popoverType === 'slash') {
                     const command = activeItem.dataset.command as string;
-                    handleInsertSlashCommand(command, state.ui.slashCommand.target);
+                    handleInsertSlashCommand(command, state.ui.slashCommand.target!);
                 } else {
                     commandHandlers.handleCommandPaletteSelection(activeItem);
                 }
             }
             return;
         }
-
-        if (isCommandPalette) {
-            if (state.ui.commandPaletteActiveIndex !== activeIndex) {
-                state.ui.commandPaletteActiveIndex = activeIndex;
-                updateUI(['command-palette']);
-            }
-        } else { // mention or slash command
-            if (stateSlice.activeIndex !== activeIndex) {
-                stateSlice.activeIndex = activeIndex;
-                if (state.ui.mention.target) updateUI(['mention-popover']);
-                else if (state.ui.slashCommand.target) updateUI(['slash-command-popover']);
+        
+        if (newIndex !== activeIndex) {
+             if (popoverType === 'mention') {
+                setState(prevState => ({ ui: { ...prevState.ui, mention: { ...prevState.ui.mention, activeIndex: newIndex } } }), ['mention-popover']);
+            } else if (popoverType === 'slash') {
+                setState(prevState => ({ ui: { ...prevState.ui, slashCommand: { ...prevState.ui.slashCommand, activeIndex: newIndex } } }), ['slash-command-popover']);
+            } else {
+                setState(prevState => ({ ui: { ...prevState.ui, commandPaletteActiveIndex: newIndex } }), ['command-palette']);
             }
         }
         return;
@@ -167,7 +162,7 @@ export function handleKeydown(e: KeyboardEvent) {
             history.pushState({}, '', keyMap[e.key]);
             updateUI(['page', 'sidebar']);
         }
-        state.ui.gKeyPressed = false;
+        setState(prevState => ({ ui: { ...prevState.ui, gKeyPressed: false } }), []);
         if (gKeyTimeout) clearTimeout(gKeyTimeout);
         gKeyTimeout = null;
         return;
@@ -183,10 +178,12 @@ export function handleKeydown(e: KeyboardEvent) {
 
         if (e.key === 'g') {
             e.preventDefault();
-            state.ui.gKeyPressed = true;
+            setState(prevState => ({ ui: { ...prevState.ui, gKeyPressed: true } }), []);
             if (gKeyTimeout) clearTimeout(gKeyTimeout);
             gKeyTimeout = window.setTimeout(() => {
-                if (state.ui.gKeyPressed) state.ui.gKeyPressed = false;
+                if (getState().ui.gKeyPressed) {
+                     setState(prevState => ({ ui: { ...prevState.ui, gKeyPressed: false } }), []);
+                }
                 gKeyTimeout = null;
             }, 2000);
             return;
