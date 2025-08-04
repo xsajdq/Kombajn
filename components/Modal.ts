@@ -516,6 +516,8 @@ export function Modal() {
     if (state.ui.modal.type === 'sendInvoiceEmail') {
         const invoice = state.invoices.find(i => i.id === modalData.invoiceId);
         const client = invoice ? state.clients.find(c => c.id === invoice.clientId) : null;
+        const primaryContact = client?.contacts?.[0];
+        const clientEmail = primaryContact?.email || client?.email;
         const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         const subject = t('invoices.email_template_subject').replace('{invoiceNumber}', invoice?.invoiceNumber || '').replace('{companyName}', workspace?.companyName || '');
         const bodyText = t('invoices.email_template_body').replace('{invoiceNumber}', invoice?.invoiceNumber || '').replace('{companyName}', workspace?.companyName || '');
@@ -524,7 +526,7 @@ export function Modal() {
             <form id="send-invoice-email-form" data-invoice-id="${invoice?.id}" class="space-y-4">
                 <div class="${formGroupClasses}">
                     <label for="email-to" class="${labelClasses}">To:</label>
-                    <input type="email" id="email-to" class="${formControlClasses}" value="${client?.email || ''}" required>
+                    <input type="email" id="email-to" class="${formControlClasses}" value="${clientEmail || ''}" required>
                 </div>
                 <div class="${formGroupClasses}">
                     <label for="email-subject" class="${labelClasses}">Subject:</label>

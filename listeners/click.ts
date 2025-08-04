@@ -670,6 +670,80 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
+    // --- START: Re-implemented View & Filter Handlers ---
+
+    // Tasks Page: View switcher (Board, List, etc.)
+    const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
+    if (viewModeBtn) {
+        const viewMode = viewModeBtn.dataset.viewMode as 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
+        if (state.ui.tasks.viewMode !== viewMode) {
+            state.ui.tasks.viewMode = viewMode;
+            updateUI(['page']);
+        }
+        return;
+    }
+
+    // Clients Page: Status filter (All, Active, Archived)
+    const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
+    if (clientFilterStatusBtn) {
+        const status = clientFilterStatusBtn.dataset.clientFilterStatus as 'all' | 'active' | 'archived';
+        if (state.ui.clients.filters.status !== status) {
+            state.ui.clients.filters.status = status;
+            updateUI(['page']);
+        }
+        return;
+    }
+
+    // Team Calendar Page: View switcher (Month, Week, etc.)
+    const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
+    if (teamCalendarViewBtn) {
+        const view = teamCalendarViewBtn.dataset.teamCalendarView as TeamCalendarView;
+        if (state.ui.teamCalendarView !== view) {
+            state.ui.teamCalendarView = view;
+            updateUI(['page']);
+        }
+        return;
+    }
+
+    // Team Calendar Page: Prev/Next navigation
+    const teamCalendarNav = target.closest<HTMLElement>('[data-calendar-nav][data-target-calendar="team"]');
+    if (teamCalendarNav) {
+        const direction = teamCalendarNav.dataset.calendarNav as 'prev' | 'next';
+        const currentDate = new Date(state.ui.teamCalendarDate + 'T12:00:00Z');
+        
+        switch (state.ui.teamCalendarView) {
+            case 'month':
+                currentDate.setUTCMonth(currentDate.getUTCMonth() + (direction === 'next' ? 1 : -1));
+                break;
+            case 'week':
+            case 'workload':
+            case 'timesheet':
+                currentDate.setUTCDate(currentDate.getUTCDate() + (direction === 'next' ? 7 : -7));
+                break;
+            case 'day':
+                currentDate.setUTCDate(currentDate.getUTCDate() + (direction === 'next' ? 1 : -1));
+                break;
+        }
+
+        state.ui.teamCalendarDate = currentDate.toISOString().slice(0, 10);
+        updateUI(['page']);
+        return;
+    }
+
+    // Tasks Page: Calendar view Prev/Next navigation
+    const calendarNav = target.closest<HTMLElement>('[data-calendar-nav]');
+    if (calendarNav && !calendarNav.dataset.targetCalendar) {
+        const direction = calendarNav.dataset.calendarNav as 'prev' | 'next';
+        const [year, month] = state.ui.calendarDate.split('-').map(Number);
+        const newDate = new Date(year, month - 1, 1);
+        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+        state.ui.calendarDate = newDate.toISOString().slice(0, 7);
+        updateUI(['page']);
+        return;
+    }
+
+    // --- END: Re-implemented View & Filter Handlers ---
+
     const settingsTab = target.closest<HTMLElement>('[data-tab]');
     if (settingsTab && settingsTab.closest('#settings-nav')) { // Check if it's within the settings sidebar nav
         e.preventDefault();
@@ -677,6 +751,21 @@ export async function handleClick(e: MouseEvent) {
         if (state.ui.settings.activeTab !== tabId) {
             state.ui.settings.activeTab = tabId;
             updateUI(['page']);
+        }
+        return;
+    }
+
+    const addMilestoneBtn = target.closest('#add-milestone-btn');
+    if (addMilestoneBtn) {
+        goalHandlers.handleAddMilestone();
+        return;
+    }
+
+    const removeMilestoneBtn = target.closest('.remove-milestone-btn');
+    if (removeMilestoneBtn) {
+        const milestoneItem = removeMilestoneBtn.closest<HTMLElement>('.milestone-item');
+        if (milestoneItem && milestoneItem.dataset.id) {
+            goalHandlers.handleRemoveMilestone(milestoneItem.dataset.id);
         }
         return;
     }
