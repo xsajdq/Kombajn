@@ -1,8 +1,3 @@
-
-
-
-
-
 import { getState } from './state.ts';
 
 const translations = {
@@ -195,6 +190,8 @@ const translations = {
             update_view: 'Update View',
             delete_view: 'Delete View',
             save_as_new: 'Save as New',
+            no_kanban_columns_title: "No board columns configured",
+            no_kanban_columns_desc: "An admin needs to configure Kanban board columns in the workspace settings."
         },
         sales: {
             title: 'Sales Pipeline',
@@ -203,7 +200,10 @@ const translations = {
             deal_value: 'Value',
             deal_owner: 'Owner',
             deal_client: 'Client',
-            expected_close: 'Expected Close'
+            expected_close: 'Expected Close',
+            pipeline_not_setup_title: "Pipeline not set up",
+            pipeline_not_setup_desc: "An admin needs to configure deal stages in the workspace settings.",
+            go_to_settings: "Go to Settings"
         },
         calendar: { prev_month: 'Previous month', next_month: 'Next month', weekdays: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }, month_view: 'Month', week_view: 'Week', day_view: 'Day' },
         team_calendar: { title: 'Team Calendar', add_event: 'Add Event', add_leave: 'Add Leave Request', time_off: 'Time Off', event: 'Event', on_call: 'On-call', public_holiday: 'Public Holiday', leave_type_vacation: 'Vacation', leave_type_sick_leave: 'Sick Leave', leave_type_other: 'Other', workload_view: 'Workload', timesheet_view: 'Timesheet', my_time_logs: 'My Time Logs', select_user: 'Select User...', all_users: 'All Users' },
@@ -609,6 +609,8 @@ const translations = {
             update_view: 'Aktualizuj Widok',
             delete_view: 'Usuń Widok',
             save_as_new: 'Zapisz jako Nowy',
+            no_kanban_columns_title: "Nie skonfigurowano kolumn tablicy",
+            no_kanban_columns_desc: "Administrator musi skonfigurować kolumny tablicy Kanban w ustawieniach obszaru roboczego."
         },
         sales: {
             title: 'Lejek Sprzedażowy',
@@ -617,7 +619,10 @@ const translations = {
             deal_value: 'Wartość',
             deal_owner: 'Właściciel',
             deal_client: 'Klient',
-            expected_close: 'Przewidywane zamknięcie'
+            expected_close: 'Przewidywane zamknięcie',
+            pipeline_not_setup_title: "Lejek sprzedaży nie został skonfigurowany",
+            pipeline_not_setup_desc: "Administrator musi skonfigurować etapy szans sprzedaży w ustawieniach obszaru roboczego.",
+            go_to_settings: "Przejdź do Ustawień"
         },
         calendar: { prev_month: 'Poprzedni miesiąc', next_month: 'Następny miesiąc', weekdays: { sun: 'Ndz', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' }, month_view: 'Miesiąc', week_view: 'Tydzień', day_view: 'Dzień' },
         team_calendar: { title: 'Kalendarz Zespołu', add_event: 'Dodaj wydarzenie', add_leave: 'Zgłoś urlop', time_off: 'Urlop', event: 'Wydarzenie', on_call: 'Dyżur', public_holiday: 'Święto', leave_type_vacation: 'Urlop wypoczynkowy', leave_type_sick_leave: 'Zwolnienie lekarskie', leave_type_other: 'Inny', workload_view: 'Obciążenie', timesheet_view: 'Ewidencja czasu', my_time_logs: 'Moje wpisy czasu', select_user: 'Wybierz użytkownika...', all_users: 'Wszyscy użytkownicy' },
