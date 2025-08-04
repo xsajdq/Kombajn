@@ -121,8 +121,11 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
 
     const client = state.clients.find(c => c.id === invoice.clientId);
     const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+    
+    const primaryContact = client?.contacts?.[0];
+    const clientEmail = primaryContact?.email || client?.email;
 
-    if (!client || !client.email) {
+    if (!client || !clientEmail) {
         alert(t('invoices.client_email_missing'));
         return;
     }
@@ -138,7 +141,7 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
 
     const encodedSubject = encodeURIComponent(subject);
     const encodedBody = encodeURIComponent(body);
-    let mailtoLink = `mailto:${client.email}?subject=${encodedSubject}&body=${encodedBody}`;
+    let mailtoLink = `mailto:${clientEmail}?subject=${encodedSubject}&body=${encodedBody}`;
 
     if (workspace.companyEmail) {
         mailtoLink += `&bcc=${encodeURIComponent(workspace.companyEmail)}`;
