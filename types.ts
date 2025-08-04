@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     name?: string;
@@ -264,7 +265,7 @@ export interface NotificationAction {
     taskId?: string;
 }
 
-export type NotificationType = 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request' | 'time_off_request';
+export type NotificationType = 'new_comment' | 'new_assignment' | 'status_change' | 'mention' | 'join_request' | 'time_off_request' | 'reminder' | 'unopened_invoice';
 
 export interface Notification {
     id: string;
@@ -289,6 +290,8 @@ export interface Invoice {
     items: InvoiceLineItem[];
     status: 'pending' | 'paid';
     emailStatus: 'sent' | 'not_sent';
+    sentAt?: string | null; // ISO 8601
+    openedAt?: string | null; // ISO 8601
 }
 export interface AiSuggestedTask {
     name: string;
@@ -625,6 +628,7 @@ export interface Budget {
 
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
+export type ProjectSortByOption = 'name' | 'status' | 'progress' | 'dueDate';
 export type TeamCalendarView = 'month' | 'week' | 'day' | 'workload' | 'timesheet';
 
 export interface AppState {
@@ -810,6 +814,7 @@ export interface AppState {
                 text: string;
                 tagIds: string[];
             };
+            sortBy: ProjectSortByOption;
         };
         globalTimer: {
             isRunning: boolean;

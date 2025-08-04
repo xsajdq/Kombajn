@@ -1,7 +1,5 @@
 
 
-
-
 import { state, saveState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -200,6 +198,21 @@ export function handleChange(e: Event) {
         } else {
             filterHandlers.handleFilterChange(taskFilterInput as HTMLInputElement | HTMLSelectElement);
         }
+        return;
+    }
+
+    const projectTagFilterCheckbox = target.closest<HTMLInputElement>('#project-filter-tags-dropdown input[type="checkbox"]');
+    if (projectTagFilterCheckbox) {
+        const tagId = projectTagFilterCheckbox.value;
+        const isChecked = projectTagFilterCheckbox.checked;
+        const currentTags = new Set(state.ui.projects.filters.tagIds);
+        if (isChecked) {
+            currentTags.add(tagId);
+        } else {
+            currentTags.delete(tagId);
+        }
+        state.ui.projects.filters.tagIds = Array.from(currentTags);
+        updateUI(['page']);
         return;
     }
 

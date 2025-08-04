@@ -1,3 +1,4 @@
+
 import { state } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import * as uiHandlers from '../handlers/ui.ts';
@@ -6,6 +7,7 @@ import * as onboardingHandlers from '../handlers/onboarding.ts';
 import { handleInsertMention } from './mentions.ts';
 import * as tagHandlers from '../handlers/tags.ts';
 import { handleInsertSlashCommand } from '../handlers/editor.ts';
+import * as goalHandlers from '../handlers/goals.ts';
 
 let gKeyTimeout: number | null = null;
 
@@ -118,6 +120,13 @@ export function handleKeydown(e: KeyboardEvent) {
             tagHandlers.handleToggleTag(entityType, entityId, '', newTagName);
             input.value = '';
         }
+        return;
+    }
+
+    // Handle new milestone creation on Enter
+    if (e.key === 'Enter' && target.id === 'new-milestone-input') {
+        e.preventDefault();
+        goalHandlers.handleAddMilestone();
         return;
     }
 

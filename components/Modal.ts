@@ -867,7 +867,33 @@ export function Modal() {
         const isEdit = !!modalData.dealId;
         const deal = isEdit ? state.deals.find(d => d.id === modalData.dealId) : null;
         title = isEdit ? t('modals.edit_deal_title') : t('modals.add_deal_title');
-        const stages = state.pipelineStages.filter(s => s.workspaceId === state.activeWorkspaceId && s.category === 'open').sort((a, b) => a.sortOrder - b.sortOrder);
+        const openStages = state.pipelineStages.filter(s => s.workspaceId === state.activeWorkspaceId && s.category === 'open').sort((a, b) => a.sortOrder - b.sortOrder);
+        const noStagesForNewDeal = !isEdit && openStages.length === 0;
+    
+        let stageSelectHtml = '';
+        if (noStagesForNewDeal) {
+            stageSelectHtml = `
+                <div class="form-control text-sm text-text-subtle bg-background/50 italic flex items-center justify-center p-2 text-center h-full">
+                    No open stages available. Please configure them in Settings > Pipeline.
+                </div>
+            `;
+        } else {
+            // If editing a deal, its current stage might not be 'open' but should be in the list to be visible.
+            const stagesForSelect = [...openStages];
+            if (isEdit && deal) {
+                const currentStage = state.pipelineStages.find(s => s.id === deal.stageId);
+                if (currentStage && !stagesForSelect.some(s => s.id === currentStage.id)) {
+                    stagesForSelect.push(currentStage);
+                    stagesForSelect.sort((a, b) => a.sortOrder - b.sortOrder);
+                }
+            }
+            stageSelectHtml = `
+                <select id="dealStage" class="${formControlClasses}" required>
+                    ${stagesForSelect.map(s => `<option value="${s.id}" ${deal?.stageId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                </select>
+            `;
+        }
+    
         body = `
             <form id="dealForm" class="space-y-4">
                 <input type="hidden" id="dealId" value="${deal?.id || ''}">
@@ -895,9 +921,7 @@ export function Modal() {
                     </div>
                     <div class="${formGroupClasses}">
                         <label for="dealStage" class="${labelClasses}">${t('modals.deal_stage')}</label>
-                        <select id="dealStage" class="${formControlClasses}" required>
-                            ${stages.map(s => `<option value="${s.id}" ${deal?.stageId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-                        </select>
+                        ${stageSelectHtml}
                     </div>
                     <div class="${formGroupClasses} sm:col-span-2">
                         <label for="dealExpectedCloseDate" class="${labelClasses}">${t('modals.deal_close_date')}</label>
@@ -906,6 +930,13 @@ export function Modal() {
                 </div>
             </form>
         `;
+
+        if (noStagesForNewDeal) {
+            footer = `
+                <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">${t('modals.cancel')}</button>
+                <button class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-hover disabled:opacity-50" id="modal-save-btn" disabled>${t('modals.save')}</button>
+            `;
+        }
     }
 
     if (state.ui.modal.type === 'dealWon') {

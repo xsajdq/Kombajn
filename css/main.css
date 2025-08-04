@@ -409,6 +409,20 @@
     @apply text-danger;
   }
 
+  /* == Projects Page (Portfolio View) == */
+  .portfolio-table { @apply w-full text-sm; }
+  .portfolio-table thead { @apply text-xs text-text-subtle uppercase bg-background; }
+  .portfolio-table th, .portfolio-table td { @apply px-4 py-3 align-middle; }
+  .portfolio-table tbody tr { @apply border-b border-border-color; }
+  .portfolio-table-row { @apply cursor-pointer hover:bg-background transition-colors; }
+  .status-badge { @apply px-2 py-1 text-xs font-semibold rounded-full; }
+  .status-badge-ontrack { @apply bg-primary/10 text-primary; }
+  .status-badge-atrisk { @apply bg-danger/10 text-danger; }
+  .status-badge-completed { @apply bg-success/10 text-success; }
+  .progress-bar-cell { @apply w-24; }
+  .progress-bar { @apply w-full bg-background rounded-full h-1.5; }
+  .progress-bar-inner { @apply h-1.5 rounded-full bg-primary; }
+
   /* Dashboard Edit Mode */
   .dashboard-editing [data-widget-id] {
     @apply relative;
@@ -817,4 +831,9 @@
   .timesheet-entry-content { @apply overflow-hidden; }
   .timesheet-entry-content strong { @apply block truncate font-semibold; }
   .timesheet-entry-content p { @apply truncate text-white/80; }
+
+  /* == Reminder Popover == */
+  .reminder-popover {
+    @apply absolute z-50 w-64 bg-content p-3 rounded-lg shadow-xl border border-border-color space-y-3;
+  }
 }

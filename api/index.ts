@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -571,7 +572,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         notificationsToCreate.push({
                             user_id: assignee.user_id,
                             workspace_id: task.workspace_id,
-                            type: 'mention', // Re-using mention type for simplicity
+                            type: 'reminder',
                             text: `Reminder for task: "${task.name}"`,
                             is_read: false,
                             action: { type: 'viewTask', taskId: task.id },

@@ -1,4 +1,5 @@
 
+
 import type { AppState } from './types.ts';
 
 export function generateId(): string {
@@ -144,7 +145,8 @@ export function getInitialState(): AppState {
                 isLoading: false, 
                 loadedWorkspaceId: null, 
                 viewMode: 'grid',
-                filters: { text: '', tagIds: [] }
+                filters: { text: '', tagIds: [] },
+                sortBy: 'name',
             },
             globalTimer: {
                 isRunning: false,

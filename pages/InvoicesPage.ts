@@ -1,4 +1,5 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
@@ -85,6 +86,7 @@ function renderInvoicesList() {
                                 <th class="px-4 py-2 text-left">${t('invoices.col_issued')}</th>
                                 <th class="px-4 py-2 text-left">${t('invoices.col_due')}</th>
                                 <th class="px-4 py-2 text-left">${t('invoices.col_total')}</th>
+                                <th class="px-4 py-2 text-left">Email Status</th>
                                 <th class="px-4 py-2 text-left">${t('invoices.col_status')}</th>
                                 <th class="px-4 py-2 text-right">${t('invoices.col_actions')}</th>
                             </tr>
@@ -95,6 +97,22 @@ function renderInvoicesList() {
                                 const total = invoice.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
                                 const statusClass = invoice.effectiveStatus === 'paid' ? 'bg-success/10 text-success' : invoice.effectiveStatus === 'overdue' ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning';
                                 
+                                let emailStatusHtml = `<span class="text-text-subtle">-</span>`;
+                                if (invoice.emailStatus === 'sent') {
+                                    if (invoice.openedAt) {
+                                        emailStatusHtml = `<div class="flex items-center gap-1 text-success" title="${t('invoices.opened')} ${formatDate(invoice.openedAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}">
+                                            <span class="material-icons-sharp text-base">visibility</span>
+                                            <span class="text-xs font-medium">${t('invoices.opened')}</span>
+                                        </div>`;
+                                    } else {
+                                        emailStatusHtml = `<div class="flex items-center gap-1 text-text-subtle" title="${t('invoices.not_opened')}">
+                                            <span class="material-icons-sharp text-base">visibility_off</span>
+                                            <span class="text-xs font-medium">${t('invoices.not_opened')}</span>
+                                        </div>`;
+                                    }
+                                }
+
+
                                 return `
                                     <tr>
                                         <td data-label="${t('invoices.col_number')}" class="px-4 py-3 font-medium">${invoice.invoiceNumber}</td>
@@ -102,6 +120,7 @@ function renderInvoicesList() {
                                         <td data-label="${t('invoices.col_issued')}" class="px-4 py-3">${formatDate(invoice.issueDate)}</td>
                                         <td data-label="${t('invoices.col_due')}" class="px-4 py-3">${formatDate(invoice.dueDate)}</td>
                                         <td data-label="${t('invoices.col_total')}" class="px-4 py-3">${formatCurrency(total, 'PLN')}</td>
+                                        <td data-label="Email Status" class="px-4 py-3">${emailStatusHtml}</td>
                                         <td data-label="${t('invoices.col_status')}" class="px-4 py-3">
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClass}">${t(`invoices.status_${invoice.effectiveStatus}`)}</span>
                                         </td>

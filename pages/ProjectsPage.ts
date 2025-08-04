@@ -1,17 +1,40 @@
 
+
 import { state } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds, getUserInitials } from '../utils.ts';
 import { can } from '../permissions.ts';
 
-function renderGridView() {
-    const { text: filterText, tagIds: filterTagIds } = state.ui.projects.filters;
-    let projects = state.projects.filter(p => {
-        if (p.workspaceId !== state.activeWorkspaceId) return false;
-        if (p.privacy === 'public') return true;
-        return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
-    });
+type ProjectWithComputedData = ReturnType<typeof getFilteredAndSortedProjects>[0];
 
+function getFilteredAndSortedProjects() {
+    const { text: filterText, tagIds: filterTagIds } = state.ui.projects.filters;
+    const { sortBy } = state.ui.projects;
+    const today = new Date().toISOString().slice(0, 10);
+
+    let projects = state.projects
+        .filter(p => {
+            if (p.workspaceId !== state.activeWorkspaceId) return false;
+            if (p.privacy === 'public') return true;
+            return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
+        })
+        .map(project => {
+            const tasks = state.tasks.filter(t => t.projectId === project.id);
+            const completedTasks = tasks.filter(t => t.status === 'done').length;
+            const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+            const overdueTasksCount = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
+            
+            let status: 'on_track' | 'at_risk' | 'completed' = 'on_track';
+            if (progress === 100 && tasks.length > 0) status = 'completed';
+            else if (overdueTasksCount > 0) status = 'at_risk';
+
+            const dueDates = tasks.filter(t => t.dueDate && t.status !== 'done').map(t => new Date(t.dueDate!));
+            const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => d.getTime()))) : null;
+
+            return { ...project, computed: { progress, status, latestDueDate, overdueTasksCount } };
+        });
+
+    // Filtering
     if (filterText) {
         projects = projects.filter(p => p.name.toLowerCase().includes(filterText.toLowerCase()));
     }
@@ -22,8 +45,26 @@ function renderGridView() {
         });
     }
 
+    // Sorting
+    const statusOrder = { at_risk: 0, on_track: 1, completed: 2 };
+    projects.sort((a, b) => {
+        switch (sortBy) {
+            case 'name': return a.name.localeCompare(b.name);
+            case 'status': return statusOrder[a.computed.status] - statusOrder[b.computed.status];
+            case 'progress': return b.computed.progress - a.computed.progress;
+            case 'dueDate':
+                if (!a.computed.latestDueDate) return 1;
+                if (!b.computed.latestDueDate) return -1;
+                return a.computed.latestDueDate.getTime() - b.computed.latestDueDate.getTime();
+            default: return 0;
+        }
+    });
 
-    const today = new Date().toISOString().slice(0, 10);
+    return projects;
+}
+
+
+function renderGridView(projects: ProjectWithComputedData[]) {
     const canManage = can('manage_projects');
 
     if (projects.length === 0) {
@@ -41,37 +82,17 @@ function renderGridView() {
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 projects-grid">
             ${projects.map(project => {
                 const client = state.clients.find(c => c.id === project.clientId);
-                const tasks = state.tasks.filter(t => t.projectId === project.id);
-                const completedTasks = tasks.filter(t => t.status === 'done').length;
-                const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
                 const members = state.projectMembers.filter(pm => pm.projectId === project.id);
                 const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
-                const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
                 const description = (project.wikiContent?.split('\n')[0] || '').substring(0, 100);
                 const projectTags = state.projectTags.filter(pt => pt.projectId === project.id).map(pt => state.tags.find(t => t.id === pt.tagId)).filter(Boolean);
-
-
-                let projectStatus = 'not_started';
-                let projectStatusText = 'Not Started';
-                if (tasks.length > 0) {
-                    if (progress === 100) {
-                        projectStatus = 'completed';
-                        projectStatusText = 'Completed';
-                    } else if (tasks.some(t => t.status === 'inprogress' || t.status === 'inreview') || progress > 0) {
-                        projectStatus = 'in_progress';
-                        projectStatusText = 'In Progress';
-                    }
-                }
-
-                const dueDates = tasks.filter(t => t.dueDate && t.status !== 'done').map(t => new Date(t.dueDate!));
-                const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => d.getTime()))) : null;
                 
                 return `
                     <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
                         <div class="flex justify-between items-start">
                             <h3 class="font-semibold text-base flex items-center gap-2">
                                 ${project.name}
-                                ${overdueTasks > 0 ? `<span class="material-icons-sharp text-danger text-base" title="${overdueTasks} overdue tasks">warning_amber</span>` : ''}
+                                ${project.computed.overdueTasksCount > 0 ? `<span class="material-icons-sharp text-danger text-base" title="${project.computed.overdueTasksCount} overdue tasks">warning_amber</span>` : ''}
                             </h3>
                              ${canManage ? `
                                 <div class="relative">
@@ -105,9 +126,9 @@ function renderGridView() {
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <span class="font-medium text-text-subtle">${t('panels.progress')}</span>
-                                <span>${Math.round(progress)}%</span>
+                                <span>${Math.round(project.computed.progress)}%</span>
                             </div>
-                            <div class="w-full bg-background rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: ${progress}%;"></div></div>
+                            <div class="w-full bg-background rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: ${project.computed.progress}%;"></div></div>
                         </div>
                         
                         <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-3">
@@ -137,15 +158,7 @@ function renderGridView() {
     `;
 }
 
-function renderPortfolioView() {
-    const projects = state.projects.filter(p => {
-        if (p.workspaceId !== state.activeWorkspaceId) return false;
-        if (p.privacy === 'public') return true;
-        return state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === state.currentUser?.id);
-    });
-
-    const today = new Date().toISOString().slice(0, 10);
-
+function renderPortfolioView(projects: ProjectWithComputedData[]) {
     return `
     <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
         <table class="portfolio-table">
@@ -161,29 +174,16 @@ function renderPortfolioView() {
             </thead>
             <tbody>
                 ${projects.map(project => {
-                    const tasks = state.tasks.filter(t => t.projectId === project.id);
-                    const completedTasks = tasks.filter(t => t.status === 'done').length;
-                    const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
-                    const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'done').length;
-
-                    let status: 'on_track' | 'at_risk' | 'completed' = 'on_track';
-                    let statusText = t('projects.status_on_track');
-                    let statusClass = 'status-badge-ontrack';
-
-                    if (progress === 100) {
-                        status = 'completed';
-                        statusText = t('projects.status_completed');
-                        statusClass = 'status-badge-completed';
-                    } else if (overdueTasks > 0) {
-                        status = 'at_risk';
-                        statusText = t('projects.status_at_risk');
-                        statusClass = 'status-badge-atrisk';
-                    }
+                    const statusText = t(`projects.status_${project.computed.status}`);
+                    const statusClass = {
+                        on_track: 'status-badge-ontrack',
+                        at_risk: 'status-badge-atrisk',
+                        completed: 'status-badge-completed',
+                    }[project.computed.status];
                     
-                    const dueDates = tasks.filter(t => t.dueDate && t.status !== 'done').map(t => new Date(t.dueDate!));
-                    const latestDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates.map(d => d.getTime()))) : null;
-
-                    const totalTrackedSeconds = tasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
+                    const totalTrackedSeconds = state.tasks
+                        .filter(t => t.projectId === project.id)
+                        .reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
                     const actualCost = project.hourlyRate ? (totalTrackedSeconds / 3600) * project.hourlyRate : null;
 
                     const members = state.projectMembers.filter(pm => pm.projectId === project.id);
@@ -201,13 +201,13 @@ function renderPortfolioView() {
                                 <div class="flex items-center gap-2">
                                     <div class="progress-bar-cell">
                                         <div class="progress-bar">
-                                            <div class="progress-bar-inner" style="width: ${progress}%;"></div>
+                                            <div class="progress-bar-inner" style="width: ${project.computed.progress}%;"></div>
                                         </div>
                                     </div>
-                                    <span class="text-xs text-text-subtle">${Math.round(progress)}%</span>
+                                    <span class="text-xs text-text-subtle">${Math.round(project.computed.progress)}%</span>
                                 </div>
                             </td>
-                            <td>${latestDueDate ? formatDate(latestDueDate.toISOString()) : t('misc.not_applicable')}</td>
+                            <td>${project.computed.latestDueDate ? formatDate(project.computed.latestDueDate.toISOString()) : t('misc.not_applicable')}</td>
                             <td>
                                 ${project.budgetCost ? `
                                     <div class="text-xs">
@@ -248,8 +248,10 @@ export function ProjectsPage() {
     const canCreateProject = usage.projects < planLimits.projects;
     const isAllowedToCreate = can('create_projects');
     
-    const { viewMode, filters } = state.ui.projects;
-    const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
+    const { viewMode, filters, sortBy } = state.ui.projects;
+    const workspaceTags = state.tags.filter(t => t.workspaceId === activeWorkspaceId);
+
+    const sortedAndFilteredProjects = getFilteredAndSortedProjects();
 
     return `
         <div class="space-y-6">
@@ -261,6 +263,20 @@ export function ProjectsPage() {
                         <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === 'portfolio' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-project-view-mode="portfolio">${t('projects.portfolio_view')}</button>
                     </div>
                     <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="project-sort-menu" aria-haspopup="true" aria-expanded="false">
+                                <span class="material-icons-sharp text-base">sort</span>
+                                <span>Sort</span>
+                            </button>
+                            <div id="project-sort-menu" class="dropdown-menu absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                                <div class="py-1">
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-sort-by="name">${t('tasks.sort_name')} ${sortBy === 'name' ? '✓' : ''}</button>
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-sort-by="status">${t('projects.col_status')} ${sortBy === 'status' ? '✓' : ''}</button>
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-sort-by="progress">${t('projects.col_progress')} ${sortBy === 'progress' ? '✓' : ''}</button>
+                                    <button class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-background" data-project-sort-by="dueDate">${t('projects.col_due_date')} ${sortBy === 'dueDate' ? '✓' : ''}</button>
+                                </div>
+                            </div>
+                        </div>
                         <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                             <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
                         </button>
@@ -293,7 +309,7 @@ export function ProjectsPage() {
                 </div>
             </div>
 
-            ${viewMode === 'portfolio' ? renderPortfolioView() : renderGridView()}
+            ${viewMode === 'portfolio' ? renderPortfolioView(sortedAndFilteredProjects) : renderGridView(sortedAndFilteredProjects)}
         </div>
     `;
 }
