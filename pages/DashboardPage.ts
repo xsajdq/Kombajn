@@ -179,7 +179,6 @@ function renderProjectsAndSummary(currentUser: User) {
     // Active Projects
     const myProjects = state.projects.filter(p => 
         p.workspaceId === state.activeWorkspaceId &&
-        !p.isArchived &&
         (p.privacy === 'public' || state.projectMembers.some(pm => pm.projectId === p.id && pm.userId === currentUser!.id))
     ).slice(0, 5);
 

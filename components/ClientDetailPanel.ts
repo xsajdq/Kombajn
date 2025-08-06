@@ -1,4 +1,5 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -50,7 +51,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
             <div class="side-panel-header">
                 <h2>${client.name}</h2>
                 <div class="flex items-center gap-2">
-                    <button class="btn-icon" data-copy-link="clients/${client.id}" title="${t('misc.copy_link')}">
+                    <button class="btn-icon" data-copy-link="clients/${client.slug || client.id}" title="${t('misc.copy_link')}">
                         <span class="material-icons-sharp">link</span>
                     </button>
                     ${canManage ? `

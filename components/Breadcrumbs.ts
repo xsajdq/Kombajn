@@ -1,4 +1,5 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Project, Client, Deal } from '../types.ts';
@@ -84,7 +85,7 @@ export function Breadcrumbs() {
             const project = state.projects.find(p => p.id === task.projectId);
             if (project) {
                 breadcrumbs.push({ text: t('sidebar.projects'), link: '/projects' });
-                breadcrumbs.push({ text: project.name, link: `/projects/${project.id}` });
+                breadcrumbs.push({ text: project.name, link: `/projects/${project.slug || project.id}` });
             } else {
                 breadcrumbs.push({ text: t('sidebar.tasks'), link: '/tasks' });
             }

@@ -1,4 +1,5 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
@@ -138,7 +139,7 @@ export function DealDetailPanel({ dealId }: { dealId: string }) {
         <div class="side-panel" role="region" aria-label="Deal Details Panel">
             <div class="side-panel-header">
                 <h2>${deal.name}</h2>
-                <button class="btn-icon" data-copy-link="sales/${deal.id}" title="${t('misc.copy_link')}">
+                <button class="btn-icon" data-copy-link="sales/${deal.slug || deal.id}" title="${t('misc.copy_link')}">
                     <span class="material-icons-sharp">link</span>
                 </button>
                 <button class="btn btn-secondary btn-sm" data-modal-target="addDeal" data-deal-id="${deal.id}">${t('misc.edit')}</button>

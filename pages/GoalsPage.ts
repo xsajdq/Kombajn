@@ -1,9 +1,28 @@
 
-import { getState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Objective, KeyResult } from '../types.ts';
 import { filterItems } from '../utils.ts';
+import { fetchGoalsForWorkspace } from '../handlers/goals.ts';
+
+export async function initGoalsPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.goals.loadedWorkspaceId !== activeWorkspaceId) {
+        // Set loading state and loaded ID immediately to prevent re-fetching loops.
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                goals: { ...prevState.ui.goals, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        
+        await fetchGoalsForWorkspace(activeWorkspaceId);
+    }
+}
 
 function renderKpiWidgets(goals: Objective[]) {
     const inProgress = goals.filter(g => g.status === 'in_progress').length;

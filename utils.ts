@@ -278,3 +278,19 @@ export function filterItems<T extends { id: string; [key: string]: any }>(
 
 
 export const keysToCamel = (obj: any) => convertKeys(obj, snakeToCamel);
+
+export function generateSlug(name: string, id: string): string {
+    const slugPart = name
+        .toLowerCase()
+        .replace(/ł/g, 'l') // Polish character normalization
+        .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e')
+        .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's')
+        .replace(/ź/g, 'z').replace(/ż/g, 'z')
+        .replace(/\s+/g, '-')       // Replace spaces with -
+        .replace(/[^\w-]+/g, '')  // Remove all non-word chars except hyphen
+        .replace(/--+/g, '-')       // Replace multiple - with single -
+        .replace(/^-+/, '')         // Trim - from start of text
+        .replace(/-+$/, '');        // Trim - from end of text
+
+    return `${slugPart}-${id}`;
+}

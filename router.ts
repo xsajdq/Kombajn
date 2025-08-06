@@ -19,7 +19,7 @@ import type { AppState } from './types.ts';
 import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 import { updateUI } from './app-renderer.ts';
-import { GoalsPage } from './pages/GoalsPage.ts';
+import { GoalsPage, initGoalsPage } from './pages/GoalsPage.ts';
 import { InventoryPage } from './pages/InventoryPage.ts';
 import { BudgetPage } from './pages/BudgetPage.ts';
 
@@ -37,7 +37,16 @@ export async function router() {
 
     const path = window.location.pathname || '/';
     const pathSegments = path.split('/').filter(p => p);
-    const [page, id] = pathSegments;
+    const [page, slugWithId] = pathSegments;
+    
+    let id = slugWithId;
+    if (slugWithId) {
+        // This regex will match a UUID at the end of a string.
+        const uuidMatch = slugWithId.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
+        if (uuidMatch) {
+            id = uuidMatch[0];
+        }
+    }
     
     const isCustomTaskView = page === 'task-view';
     const newPage = isCustomTaskView ? 'tasks' : (page || 'dashboard') as AppState['currentPage'];
@@ -89,7 +98,7 @@ export async function router() {
         case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();
         case 'hr':              return can('view_hr') ? await HRPage() : DashboardPage();
         case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
-        case 'goals':           return can('view_goals') ? GoalsPage() : DashboardPage();
+        case 'goals':           await initGoalsPage(); return can('view_goals') ? GoalsPage() : DashboardPage();
         case 'inventory':       return can('view_inventory') ? InventoryPage() : DashboardPage();
         case 'budget-and-expenses': return can('view_budgets') ? BudgetPage() : DashboardPage();
         case 'auth':            return AuthPage(); // Fallback case

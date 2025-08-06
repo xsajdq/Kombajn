@@ -1,4 +1,5 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
@@ -326,6 +327,9 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                     </p>
                 </div>
                 <div class="flex items-center gap-2">
+                     <button class="btn-icon" data-copy-link="projects/${project.slug || project.id}" title="${t('misc.copy_link')}">
+                        <span class="material-icons-sharp">link</span>
+                    </button>
                      <div class="relative">
                         <button class="btn-icon" data-menu-toggle="project-actions-${project.id}" aria-haspopup="true" aria-expanded="false" title="Project Actions">
                             <span class="material-icons-sharp">more_vert</span>

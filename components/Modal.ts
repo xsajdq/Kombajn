@@ -1,3 +1,5 @@
+
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -648,7 +650,19 @@ export function Modal() {
 
     if (state.ui.modal.type === 'taskDetail') {
         const task = state.tasks.find(t => t.id === modalData.taskId);
-        title = task?.name || t('modals.task_details_title');
+        if (task) {
+            const slug = task.slug || task.id;
+            title = `
+                <div class="flex items-center justify-between flex-1">
+                    <span>${task.name}</span>
+                    <button class="btn-icon -mr-2" data-copy-link="tasks/${slug}" title="${t('misc.copy_link')}">
+                        <span class="material-icons-sharp text-lg">link</span>
+                    </button>
+                </div>
+            `;
+        } else {
+            title = t('modals.task_details_title');
+        }
         body = TaskDetailModal({ taskId: modalData.taskId });
         footer = `<button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">${t('panels.close')}</button>`;
         maxWidth = 'max-w-4xl';
@@ -750,7 +764,7 @@ export function Modal() {
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="modal-backdrop">
             <div id="modal-content" class="bg-content rounded-lg shadow-xl w-full ${maxWidth} transition-all transform scale-95 opacity-0" role="dialog" aria-modal="true" aria-labelledby="modal-title">
                 <div class="flex justify-between items-center p-4 border-b border-border-color">
-                    <h3 class="text-lg font-semibold" id="modal-title">${title}</h3>
+                    <h3 class="text-lg font-semibold flex-1" id="modal-title">${title}</h3>
                     <button class="p-1 rounded-full hover:bg-background btn-close-modal" aria-label="Close modal">
                         <span class="material-icons-sharp">close</span>
                     </button>

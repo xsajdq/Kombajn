@@ -310,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly } = req.query;
+                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly, goalsOnly } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
             
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
@@ -318,7 +318,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 let queries: { [key: string]: any } = {};
 
-                if (coreOnly === 'true') {
+                if (goalsOnly === 'true') {
+                    queries['objectives'] = supabase.from('objectives').select('*').eq('workspace_id', workspaceId);
+                    
+                    const { data: objectivesData, error: oError } = await supabase.from('objectives').select('id').eq('workspace_id', workspaceId);
+                    if (oError) throw oError;
+                    const objectiveIds = objectivesData.map((o: any) => o.id);
+
+                    queries['keyResults'] = objectiveIds.length > 0 
+                        ? supabase.from('key_results').select('*').in('objective_id', objectiveIds) 
+                        : Promise.resolve({ data: [], error: null });
+
+                } else if (coreOnly === 'true') {
                     queries['dashboardWidgets'] = supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId);
                     queries['projects'] = supabase.from('projects').select('*').eq('workspace_id', workspaceId);
                     queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);

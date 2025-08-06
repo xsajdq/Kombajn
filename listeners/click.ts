@@ -1,3 +1,4 @@
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -721,6 +722,11 @@ export async function handleClick(e: MouseEvent) {
     if (goalCard && !target.closest('input')) {
         const goalId = goalCard.dataset.goalId;
         if (goalId) { uiHandlers.showModal('addGoal', { goalId }); }
+        return;
+    }
+    if (target.closest('#goals-analytics-btn')) {
+        alert('Analytics feature coming soon!');
+        return;
     }
 
     const authTab = target.closest<HTMLElement>('[data-auth-tab]');

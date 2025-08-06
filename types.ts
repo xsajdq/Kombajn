@@ -137,10 +137,10 @@ export interface Project {
     privacy: 'public' | 'private';
     budgetHours?: number;
     slug?: string;
+    isArchived?: boolean;
     // New fields
     budgetCost?: number;
     category?: string;
-    isArchived?: boolean;
 }
 
 export interface ProjectSection {
@@ -155,6 +155,7 @@ export interface Task {
     workspaceId: string;
     name: string;
     projectId: string;
+    slug?: string;
     projectSectionId?: string | null;
     taskViewId?: string | null;
     dealId?: string; // Link task to a sales deal
@@ -797,6 +798,8 @@ export interface AppState {
                 status: string;
                 ownerId: string;
             };
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
         };
         inventory: {
             filters: { text: string; };
