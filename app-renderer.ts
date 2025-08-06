@@ -158,6 +158,10 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
             case 'side-panel':
                 oldNode = document.getElementById('side-panel-container');
                 const shouldBeOpen = !!(state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId);
+
+                // Explicitly manage the container's class state here, so the diffing logic below works correctly.
+                oldNode?.classList.toggle('is-open', shouldBeOpen);
+                
                 const sidePanelOverlay = document.getElementById('side-panel-overlay');
                  if (sidePanelOverlay) {
                     sidePanelOverlay.classList.toggle('opacity-100', shouldBeOpen);
@@ -203,6 +207,14 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
         if (oldNode) {
             const resolvedContent = await Promise.resolve(newContentString);
             const tempContainer = document.createElement(oldNode.tagName);
+            
+            if (isContainer) {
+                // In updateUI, when diffing a container component like the main page content, the temporary container was created without any attributes. This caused the diffing algorithm to remove the attributes (like padding classes) from the actual DOM element. The fix is to copy the attributes from the old element to the temporary container before performing the diff, ensuring that essential layout styles are preserved during lazy-loading and other page updates.
+                for (const attr of oldNode.attributes) {
+                    tempContainer.setAttribute(attr.name, attr.value);
+                }
+            }
+            
             tempContainer.innerHTML = resolvedContent;
 
             if (isContainer) {

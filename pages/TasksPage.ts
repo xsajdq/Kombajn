@@ -463,12 +463,19 @@ export function TasksPage() {
                         `).join('')}
                     </div>
                      <div class="relative">
-                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="task-sort-menu">
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="task-sort-menu" aria-haspopup="true" aria-expanded="false">
                             <span class="material-icons-sharp text-base">sort</span>
                             <span>${t('tasks.sort_by')}: ${sortOptions.find(s => s.id === sortBy)?.text}</span>
                         </button>
-                        <div id="task-sort-menu" class="dropdown-menu">
-                             ${sortOptions.map(opt => `<button class="dropdown-menu-item" data-sort-by="${opt.id}">${opt.text} ${sortBy === opt.id ? '✓' : ''}</button>`).join('')}
+                        <div id="task-sort-menu" class="dropdown-menu absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
+                             <div class="py-1">
+                                ${sortOptions.map(opt => `
+                                    <button class="w-full text-left flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="${opt.id}">
+                                        <span>${opt.text}</span>
+                                        ${sortBy === opt.id ? '<span class="material-icons-sharp text-base">check</span>' : ''}
+                                    </button>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                     <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-toggle-task-filters>

@@ -1,4 +1,3 @@
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { InvoiceLineItem, Task, DashboardWidget, DashboardWidgetType, WikiHistory, User, CalendarEvent, Deal, Client, ProjectSection, Review } from '../types.ts';
@@ -552,7 +551,7 @@ export function Modal() {
         `;
         footer = `
             <button class="btn-close-modal">${t('modals.cancel')}</button>
-            <button class="btn btn-primary" id="modal-save-btn" type="submit" form="send-invoice-email-form">Send Email</button>
+            <button class="btn btn-primary" id="modal-save-btn" type="submit" form="send-invoice-email-form">${t('modals.send_email_button')}</button>
         `;
     }
 
