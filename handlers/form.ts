@@ -25,18 +25,77 @@ export async function handleFormSubmit() {
     if (type === 'taskDetail') {
         return;
     }
+    
+    if (type === 'sendInvoiceEmail') {
+        const form = document.getElementById('send-invoice-email-form') as HTMLFormElement;
+        const invoiceId = form.dataset.invoiceId!;
+        const to = (form.querySelector('#email-to') as HTMLInputElement).value;
+        const subject = (form.querySelector('#email-subject') as HTMLInputElement).value;
+        const body = (form.querySelector('#email-body') as HTMLTextAreaElement).value;
+
+        const button = document.getElementById('modal-save-btn') as HTMLButtonElement;
+        if (button) {
+            button.disabled = true;
+            button.textContent = t('misc.sending');
+        }
+
+        try {
+            const dataUri = await generateInvoicePDF(invoiceId, { outputType: 'datauristring' }) as string | null;
+            if (!dataUri) {
+                throw new Error("Failed to generate PDF for the invoice.");
+            }
+            const pdfBase64 = dataUri.substring(dataUri.indexOf(',') + 1);
+
+            await apiFetch('/api?action=send-invoice-gmail', {
+                method: 'POST',
+                body: JSON.stringify({
+                    workspaceId: state.activeWorkspaceId,
+                    invoiceId,
+                    to,
+                    subject,
+                    body,
+                    pdfBase64,
+                }),
+            });
+
+            const sentAt = new Date().toISOString();
+            await apiPut('invoices', { id: invoiceId, emailStatus: 'sent', sentAt });
+            setState(prevState => ({
+                invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: 'sent', sentAt } : i)
+            }), ['page']);
+
+            closeModal();
+
+        } catch (err) {
+            console.error("Failed to send invoice email:", err);
+            alert((err as Error).message);
+            if (button) {
+                button.disabled = false;
+                button.textContent = t('modals.send_email_button');
+            }
+        }
+        return; 
+    }
 
     const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!workspace) return;
     const usage = getUsage(activeWorkspaceId);
     const planLimits = PLANS[workspace.subscription.planId];
+    
+    const button = document.getElementById('modal-save-btn');
+    if (button) {
+        button.setAttribute('disabled', 'true');
+    }
 
     try {
         if (type === 'addClient') {
             const form = document.getElementById('clientForm') as HTMLFormElement;
             const clientId = (form.querySelector('#clientId') as HTMLInputElement).value;
             const name = (form.querySelector('#clientName') as HTMLInputElement).value;
-            if (!name) return;
+            if (!name) {
+                alert(t('errors.fill_all_fields'));
+                return;
+            };
 
             const clientData: Partial<Client> = {
                 workspaceId: activeWorkspaceId,
@@ -52,7 +111,7 @@ export async function handleFormSubmit() {
             if (clientId) {
                 [savedClient] = await apiPut('clients', { ...clientData, id: clientId });
                 setState(prevState => ({
-                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...savedClient } : c)
+                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...savedClient, contacts: c.contacts } : c)
                 }), []);
             } else {
                 [savedClient] = await apiPost('clients', clientData);
@@ -104,7 +163,10 @@ export async function handleFormSubmit() {
 
             const name = (document.getElementById('projectName') as HTMLInputElement).value;
             const clientId = (document.getElementById('projectClient') as HTMLSelectElement).value;
-            if (!name || !clientId) return;
+            if (!name || !clientId) {
+                 alert(t('errors.fill_all_fields'));
+                 return;
+            }
 
             const projectData: Partial<Project> = {
                 workspaceId: activeWorkspaceId,
@@ -192,7 +254,7 @@ export async function handleFormSubmit() {
                 const krPayload = {
                     objectiveId: savedGoal.id,
                     title: text,
-                    type: 'number',
+                    type: 'number' as const,
                     startValue: 0,
                     targetValue: 1,
                     completed: (item.querySelector('.milestone-checkbox') as HTMLInputElement)?.checked || false,
@@ -227,10 +289,151 @@ export async function handleFormSubmit() {
                 setState(prevState => ({ reviews: [...prevState.reviews, newReview] }), ['page']);
             }
         }
+        
+        if (type === 'addTask') {
+            const form = document.getElementById('taskForm') as HTMLFormElement;
+            const name = (form.querySelector('#taskName') as HTMLInputElement).value;
+            const projectId = (form.querySelector('#taskProject') as HTMLSelectElement).value;
+            if (!name || !projectId) {
+                alert(t('modals.select_a_project_error'));
+                return;
+            }
+            
+            const workflow = getWorkspaceKanbanWorkflow(activeWorkspaceId);
+
+            const taskData: Partial<Task> = {
+                workspaceId: activeWorkspaceId,
+                name,
+                projectId,
+                description: (form.querySelector('#taskDescription') as HTMLTextAreaElement).value || undefined,
+                projectSectionId: (form.querySelector('#projectSection') as HTMLSelectElement).value || undefined,
+                taskViewId: (form.querySelector('#taskView') as HTMLSelectElement).value || undefined,
+                status: workflow === 'advanced' ? 'backlog' : 'todo',
+                startDate: (form.querySelector('#taskStartDate') as HTMLInputElement).value || undefined,
+                dueDate: (form.querySelector('#taskDueDate') as HTMLInputElement).value || undefined,
+                priority: (form.querySelector('#taskPriority') as HTMLSelectElement).value as Task['priority'] || null,
+                estimatedHours: parseDurationStringToHours((form.querySelector('#taskEstimatedHours') as HTMLInputElement).value) || undefined,
+                type: (form.querySelector('#taskType') as HTMLSelectElement).value as Task['type'] || null,
+                isArchived: false,
+                createdAt: new Date().toISOString(),
+                dealId: data.dealId
+            };
+            
+            const [savedTask] = await apiPost('tasks', taskData);
+            
+            const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
+            const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
+            if (assigneeIds.length > 0) {
+                const assigneePayloads = assigneeIds.map(userId => ({ taskId: savedTask.id, userId, workspaceId: activeWorkspaceId }));
+                const savedAssignees = await apiPost('task_assignees', assigneePayloads);
+                setState(prevState => ({ taskAssignees: [...prevState.taskAssignees, ...savedAssignees] }), []);
+            }
+            
+            const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskTags"]:checked');
+            const tagIds = Array.from(tagCheckboxes).map(cb => cb.value);
+            if (tagIds.length > 0) {
+                const tagPayloads = tagIds.map(tagId => ({ taskId: savedTask.id, tagId, workspaceId: activeWorkspaceId }));
+                const savedTags = await apiPost('task_tags', tagPayloads);
+                setState(prevState => ({ taskTags: [...prevState.taskTags, ...savedTags] }), []);
+            }
+
+            setState(prevState => ({ tasks: [...prevState.tasks, savedTask] }), []);
+        }
+
+        if (type === 'addInvoice') {
+            if (usage.invoicesThisMonth >= planLimits.invoices) {
+                alert(t('billing.limit_reached_invoices', {planName: workspace.subscription.planId}));
+                return;
+            }
+            const form = document.getElementById('invoiceForm') as HTMLFormElement;
+            const clientId = (form.querySelector('#invoiceClient') as HTMLSelectElement).value;
+            const issueDate = (form.querySelector('#invoiceIssueDate') as HTMLInputElement).value;
+            const dueDate = (form.querySelector('#invoiceDueDate') as HTMLInputElement).value;
+
+            const invoiceData: Partial<Invoice> = {
+                workspaceId: activeWorkspaceId,
+                clientId,
+                issueDate,
+                dueDate,
+                status: 'pending',
+                emailStatus: 'not_sent',
+            };
+
+            const [savedInvoice] = await apiPost('invoices', invoiceData);
+            
+            const itemRows = form.querySelectorAll<HTMLElement>('.invoice-item-row');
+            const lineItems: Omit<InvoiceLineItem, 'id'>[] = [];
+            itemRows.forEach(row => {
+                lineItems.push({
+                    invoiceId: savedInvoice.id,
+                    description: (row.querySelector<HTMLInputElement>('[data-field="description"]'))!.value,
+                    quantity: parseFloat((row.querySelector<HTMLInputElement>('[data-field="quantity"]'))!.value),
+                    unitPrice: parseFloat((row.querySelector<HTMLInputElement>('[data-field="unitPrice"]'))!.value),
+                });
+            });
+
+            const savedLineItems = await apiPost('invoice_line_items', lineItems);
+            
+            const fullInvoice = { ...savedInvoice, items: savedLineItems };
+            setState(prevState => ({ invoices: [...prevState.invoices, fullInvoice] }), []);
+
+            const { sourceLogIds, sourceExpenseIds } = data;
+            if (sourceLogIds?.length) {
+                await apiPut('time_logs', sourceLogIds.map((id: string) => ({ id, invoice_id: savedInvoice.id })));
+            }
+            if (sourceExpenseIds?.length) {
+                await apiPut('expenses', sourceExpenseIds.map((id: string) => ({ id, invoice_id: savedInvoice.id })));
+            }
+        }
+
+        if (type === 'addDeal') {
+            const form = document.querySelector('form') as HTMLFormElement; // Assume generic form as it's not implemented yet
+            const dealId = (form.querySelector('#dealId') as HTMLInputElement)?.value;
+            const isEdit = !!dealId;
+            
+            const dealData: Partial<Deal> = {
+                workspaceId: activeWorkspaceId,
+                name: (form.querySelector('#dealName') as HTMLInputElement).value,
+                clientId: (form.querySelector('#dealClient') as HTMLSelectElement).value,
+                value: parseFloat((form.querySelector('#dealValue') as HTMLInputElement).value),
+                ownerId: (form.querySelector('#dealOwner') as HTMLSelectElement).value,
+                stage: (form.querySelector('#dealStage') as HTMLSelectElement).value,
+                expectedCloseDate: (form.querySelector('#dealCloseDate') as HTMLInputElement).value || undefined,
+                lastActivityAt: new Date().toISOString(),
+            };
+
+            let savedDeal;
+            if (isEdit) {
+                [savedDeal] = await apiPut('deals', { ...dealData, id: dealId });
+                setState(prevState => ({ deals: prevState.deals.map(d => d.id === dealId ? savedDeal : d) }), []);
+            } else {
+                [savedDeal] = await apiPost('deals', dealData);
+                setState(prevState => ({ deals: [...prevState.deals, savedDeal] }), []);
+            }
+        }
+
+        if (type === 'addManualTimeLog') {
+            const form = document.getElementById('manualTimeLogForm') as HTMLFormElement;
+            const taskId = (form.querySelector('#timeLogTask') as HTMLSelectElement).value;
+            const trackedSeconds = parseInt((form.querySelector('#time-picker-seconds') as HTMLInputElement).value, 10);
+            const dateWorked = (form.querySelector('#timeLogDate') as HTMLInputElement).value;
+            const startTime = (form.querySelector('#timeLogStartTime') as HTMLInputElement).value;
+            const comment = (form.querySelector('#timeLogComment') as HTMLTextAreaElement).value;
+            
+            const createdAt = new Date(`${dateWorked}T${startTime || '00:00:00'}`).toISOString();
+
+            if (taskId) {
+                await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, createdAt, comment);
+            }
+        }
+        
     } catch (error) {
         console.error("Form submission error:", error);
         alert(`${t('errors.generic_error')}: ${(error as Error).message}`);
     } finally {
+        if (button) {
+            button.removeAttribute('disabled');
+        }
         if (type !== 'aiProjectPlanner') {
             closeModal();
             updateUI(['page', 'side-panel']);
