@@ -1,5 +1,7 @@
 
+
 import { getState, setState } from '../state.ts';
+import { apiFetch } from '../services/api.ts';
 
 interface NagerHoliday {
     date: string; // "2024-01-01"
@@ -45,5 +47,32 @@ export async function fetchPublicHolidays(year: number) {
     } catch (error) {
         console.error("Error fetching public holidays:", error);
         // Silently fail, the calendar will just not show holidays.
+    }
+}
+
+export async function fetchTeamCalendarDataForWorkspace(workspaceId: string) {
+    console.log(`Fetching team calendar data for workspace ${workspaceId}...`);
+    try {
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&teamCalendarOnly=true`);
+        if (!data) throw new Error("Team Calendar data fetch returned null.");
+
+        setState(prevState => ({
+            tasks: [...prevState.tasks.filter(i => i.workspaceId !== workspaceId), ...(data.tasks || [])],
+            calendarEvents: [...prevState.calendarEvents.filter(i => i.workspaceId !== workspaceId), ...(data.calendarEvents || [])],
+            timeLogs: [...prevState.timeLogs.filter(i => i.workspaceId !== workspaceId), ...(data.timeLogs || [])],
+            ui: {
+                ...prevState.ui,
+                teamCalendar: { ...prevState.ui.teamCalendar, isLoading: false },
+            }
+        }), ['page']);
+        console.log(`Successfully fetched team calendar data for workspace ${workspaceId}.`);
+    } catch (error) {
+        console.error("Failed to fetch team calendar data:", error);
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                teamCalendar: { ...prevState.ui.teamCalendar, isLoading: false, loadedWorkspaceId: null }
+            }
+        }), ['page']);
     }
 }

@@ -19,6 +19,7 @@ export async function fetchTasksForWorkspace(workspaceId: string) {
 
         setState(prevState => ({
             tasks: data.tasks || [],
+            kanbanStages: data.kanbanStages || [],
             taskAssignees: data.taskAssignees || [],
             projectSections: data.projectSections || [],
             taskViews: data.taskViews || [],
