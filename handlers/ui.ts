@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { AppState } from '../types.ts';
@@ -6,21 +7,37 @@ import type { AppState } from '../types.ts';
 let lastFocusedElement: HTMLElement | null = null;
 
 export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'deal', id: string) {
+    const state = getState();
+    let path = '';
+    let slug = '';
+
     switch (type) {
         case 'project':
+            const project = state.projects.find(p => p.id === id);
+            slug = project?.slug || id;
+            path = `/projects/${slug}`;
             openProjectPanel(id);
-            history.pushState({ id }, '', `/projects/${id}`);
+            history.pushState({ id }, '', path);
             break;
         case 'client':
+            const client = state.clients.find(c => c.id === id);
+            slug = client?.slug || id;
+            path = `/clients/${slug}`;
             openClientPanel(id);
-            history.pushState({ id }, '', `/clients/${id}`);
+            history.pushState({ id }, '', path);
             break;
         case 'deal':
+            const deal = state.deals.find(d => d.id === id);
+            slug = deal?.slug || id;
+            path = `/sales/${slug}`;
             openDealPanel(id);
-            history.pushState({ id }, '', `/sales/${id}`);
+            history.pushState({ id }, '', path);
             break;
         case 'task':
-            history.pushState({ id }, '', `/tasks/${id}`);
+            const task = state.tasks.find(t => t.id === id);
+            slug = task?.slug || id;
+            path = `/tasks/${slug}`;
+            history.pushState({ id }, '', path);
             showModal('taskDetail', { taskId: id });
             return; 
     }

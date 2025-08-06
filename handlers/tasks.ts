@@ -1,3 +1,5 @@
+
+
 import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction } from '../types.ts';
@@ -5,7 +7,7 @@ import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
-import { parseDurationStringToHours } from '../utils.ts';
+import { parseDurationStringToHours, generateSlug } from '../utils.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
 
 declare const gapi: any;
@@ -224,13 +226,19 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
         return;
     }
     
-    const updatedTask = { ...task, [field]: finalValue };
+    const updatedTaskPayload: { id: string; [key: string]: any } = { id: taskId, [field]: finalValue };
+
+    if (field === 'name') {
+        updatedTaskPayload.slug = generateSlug(finalValue, taskId);
+    }
+
+    const updatedTask = { ...task, ...updatedTaskPayload };
 
     const updatedTasks = state.tasks.map(t => t.id === taskId ? updatedTask as Task : t);
     setState({ tasks: updatedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
 
     try {
-        await apiPut('tasks', { id: taskId, [field]: finalValue });
+        await apiPut('tasks', updatedTaskPayload);
     } catch (error) {
         console.error(`Failed to update task field ${field}:`, error);
         alert(`Could not update task. Reverting change.`);

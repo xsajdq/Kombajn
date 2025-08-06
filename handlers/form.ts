@@ -1,7 +1,9 @@
+
+
 import { getState, setState } from '../state.ts';
 import { closeModal } from './ui.ts';
 import { createNotification } from './notifications.ts';
-import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds } from '../utils.ts';
+import { getUsage, PLANS, parseDurationStringToHours, parseDurationStringToSeconds, generateSlug } from '../utils.ts';
 import type { Invoice, InvoiceLineItem, Task, ProjectMember, Project, ProjectTemplate, Channel, Automation, Objective, KeyResult, Expense, TimeOffRequest, CalendarEvent, Deal, Client, ClientContact, TaskTag, Review, InventoryItem, InventoryAssignment, Budget } from '../types.ts';
 import { t } from '../i18n.ts';
 import { updateUI } from '../app-renderer.ts';
@@ -106,16 +108,19 @@ export async function handleFormSubmit() {
                 status: (form.querySelector('#clientStatus') as HTMLSelectElement).value as Client['status'] || 'active',
             };
 
-            let savedClient: Client;
+            let finalClient: Client;
 
             if (clientId) {
-                [savedClient] = await apiPut('clients', { ...clientData, id: clientId });
+                clientData.slug = generateSlug(name, clientId);
+                [finalClient] = await apiPut('clients', { ...clientData, id: clientId });
                 setState(prevState => ({
-                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...savedClient, contacts: c.contacts } : c)
+                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...finalClient, contacts: c.contacts } : c)
                 }), []);
             } else {
-                [savedClient] = await apiPost('clients', clientData);
-                setState(prevState => ({ clients: [...prevState.clients, { ...savedClient, contacts: [] }] }), []);
+                let [savedClient] = await apiPost('clients', clientData);
+                const slug = generateSlug(savedClient.name, savedClient.id);
+                const [clientWithSlug] = await apiPut('clients', { id: savedClient.id, slug });
+                finalClient = { ...savedClient, ...clientWithSlug };
             }
 
             const contactRows = form.querySelectorAll<HTMLElement>('.contact-form-row');
@@ -129,7 +134,7 @@ export async function handleFormSubmit() {
                 
                 const contactPayload = {
                     id: isNew ? undefined : contactId,
-                    clientId: savedClient.id,
+                    clientId: finalClient.id,
                     workspaceId: activeWorkspaceId,
                     name: nameInput.value.trim(),
                     email: (row.querySelector<HTMLInputElement>('[data-field="email"]'))!.value.trim() || undefined,
@@ -145,10 +150,15 @@ export async function handleFormSubmit() {
 
             await Promise.all(contactPromises.map(p => p.catch(e => console.error("Contact save error:", e))));
             
-            const allContactsForClient = await apiFetch(`/api?action=data&resource=client_contacts&clientId=${savedClient.id}`);
-            setState(prevState => ({
-                clients: prevState.clients.map(c => c.id === savedClient.id ? { ...c, contacts: allContactsForClient || [] } : c)
-            }), ['page', 'side-panel']);
+            const allContactsForClient = await apiFetch(`/api?action=data&resource=client_contacts&clientId=${finalClient.id}`);
+
+            if (clientId) {
+                 setState(prevState => ({
+                    clients: prevState.clients.map(c => c.id === clientId ? { ...c, ...finalClient, contacts: allContactsForClient || [] } : c)
+                }), ['page', 'side-panel']);
+            } else {
+                setState(prevState => ({ clients: [...prevState.clients, { ...finalClient, contacts: allContactsForClient || [] }] }), ['page', 'side-panel']);
+            }
         }
 
         if (type === 'addProject') {
@@ -180,30 +190,35 @@ export async function handleFormSubmit() {
                 category: (document.getElementById('projectCategory') as HTMLInputElement).value || undefined,
             };
 
-            let savedProject;
+            let finalProject;
 
             if (isEdit) {
-                [savedProject] = await apiPut('projects', { ...projectData, id: projectId });
-                setState(prevState => ({ projects: prevState.projects.map(p => p.id === projectId ? { ...p, ...savedProject } : p) }), []);
+                projectData.slug = generateSlug(name, projectId);
+                [finalProject] = await apiPut('projects', { ...projectData, id: projectId });
+                setState(prevState => ({ projects: prevState.projects.map(p => p.id === projectId ? { ...p, ...finalProject } : p) }), []);
             } else {
-                [savedProject] = await apiPost('projects', projectData);
-                setState(prevState => ({ projects: [...prevState.projects, savedProject] }), []);
+                let [savedProject] = await apiPost('projects', projectData);
+                const slug = generateSlug(savedProject.name, savedProject.id);
+                const [projectWithSlug] = await apiPut('projects', { id: savedProject.id, slug });
+                finalProject = { ...savedProject, ...projectWithSlug };
+
+                setState(prevState => ({ projects: [...prevState.projects, finalProject] }), []);
                 
-                const creatorMember: Omit<ProjectMember, 'id'> = { projectId: savedProject.id, userId: state.currentUser!.id, role: 'admin' };
+                const creatorMember: Omit<ProjectMember, 'id'> = { projectId: finalProject.id, userId: state.currentUser!.id, role: 'admin' };
                 const [savedCreatorMember] = await apiPost('project_members', creatorMember);
                 setState(prevState => ({ projectMembers: [...prevState.projectMembers, savedCreatorMember] }), []);
             }
             
             const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="project_tags"]:checked');
             const newTagIds = new Set(Array.from(tagCheckboxes).map(cb => cb.value));
-            await projectHandlers.handleSyncProjectTags(savedProject.id, newTagIds);
+            await projectHandlers.handleSyncProjectTags(finalProject.id, newTagIds);
 
             if (projectData.privacy === 'private') {
                 const memberCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="project_members"]:checked');
                 const newMemberIds = new Set(Array.from(memberCheckboxes).map(cb => cb.value));
-                await projectHandlers.handleSyncProjectMembers(savedProject.id, newMemberIds);
+                await projectHandlers.handleSyncProjectMembers(finalProject.id, newMemberIds);
             } else if (isEdit && projectData.privacy === 'public') {
-                await projectHandlers.handleSyncProjectMembers(savedProject.id, new Set([state.currentUser!.id]));
+                await projectHandlers.handleSyncProjectMembers(finalProject.id, new Set([state.currentUser!.id]));
             }
         }
 
@@ -319,7 +334,12 @@ export async function handleFormSubmit() {
                 dealId: data.dealId
             };
             
-            const [savedTask] = await apiPost('tasks', taskData);
+            let [savedTask] = await apiPost('tasks', taskData);
+
+            // Generate and save slug
+            const slug = generateSlug(savedTask.name, savedTask.id);
+            const [taskWithSlug] = await apiPut('tasks', { id: savedTask.id, slug });
+            savedTask = { ...savedTask, ...taskWithSlug };
             
             const assigneeCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskAssignees"]:checked');
             const assigneeIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
@@ -402,13 +422,17 @@ export async function handleFormSubmit() {
                 lastActivityAt: new Date().toISOString(),
             };
 
-            let savedDeal;
+            let finalDeal;
             if (isEdit) {
-                [savedDeal] = await apiPut('deals', { ...dealData, id: dealId });
-                setState(prevState => ({ deals: prevState.deals.map(d => d.id === dealId ? savedDeal : d) }), []);
+                dealData.slug = generateSlug(dealData.name!, dealId);
+                [finalDeal] = await apiPut('deals', { ...dealData, id: dealId });
+                setState(prevState => ({ deals: prevState.deals.map(d => d.id === dealId ? finalDeal : d) }), []);
             } else {
-                [savedDeal] = await apiPost('deals', dealData);
-                setState(prevState => ({ deals: [...prevState.deals, savedDeal] }), []);
+                let [savedDeal] = await apiPost('deals', dealData);
+                const slug = generateSlug(savedDeal.name, savedDeal.id);
+                const [dealWithSlug] = await apiPut('deals', { id: savedDeal.id, slug });
+                finalDeal = { ...savedDeal, ...dealWithSlug };
+                setState(prevState => ({ deals: [...prevState.deals, finalDeal] }), []);
             }
         }
 
