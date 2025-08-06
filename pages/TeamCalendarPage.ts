@@ -1,5 +1,3 @@
-
-
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
@@ -281,7 +279,7 @@ function renderWeekView(currentDate: Date) {
         let userRowsHtml = '';
         leaveByUser.forEach((events, userId) => {
             const user = state.users.find(u => u.id === userId);
-            const userName = user?.name || user?.initials || t('team_calendar.public_holiday');
+            const userName = user?.name || getUserInitials(user) || t('team_calendar.public_holiday');
             
             let eventBars = '';
             events.forEach(event => {

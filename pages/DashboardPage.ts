@@ -1,9 +1,8 @@
 
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment, CalendarEvent, TimeOffRequest, PublicHoliday, User } from '../types.ts';
-import { formatDuration, formatDate, formatCurrency } from '../utils.ts';
+import { formatDuration, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import { apiFetch } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
@@ -15,6 +14,52 @@ function destroyCharts() {
     Object.values(charts).forEach(chart => chart.destroy());
     charts = {};
 }
+
+// Chart utility - copied from ReportsPage for consistency
+const chartColors = {
+    primary: 'rgba(59, 130, 246, 0.8)',
+    primaryHover: 'rgba(59, 130, 246, 1)',
+    text: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151',
+    grid: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+};
+
+const commonChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: false,
+        },
+        tooltip: {
+            backgroundColor: 'rgba(var(--content-bg-rgb), 0.9)',
+            titleColor: 'rgba(var(--text-color-rgb), 1)',
+            bodyColor: 'rgba(var(--subtle-text-color-rgb), 1)',
+            borderColor: 'rgba(var(--border-color-rgb), 1)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 6,
+            usePointStyle: true,
+            boxPadding: 3,
+        }
+    },
+    scales: {
+        x: {
+            ticks: { color: chartColors.text, font: { size: 10 } },
+            grid: { drawOnChartArea: false, drawBorder: false },
+        },
+        y: {
+            ticks: { color: chartColors.text, font: { size: 10 } },
+            grid: { color: chartColors.grid, borderDash: [2, 4] },
+            border: { display: false }
+        }
+    },
+    elements: {
+        bar: {
+            borderRadius: 4,
+        }
+    }
+};
+
 
 function renderWelcomeCard(currentUser: User) {
     return `
@@ -302,22 +347,128 @@ function renderWidget(widget: DashboardWidget) {
              </div>`;
              break;
         case 'todaysTasks':
-             const taskFilter = config.taskFilter || 'today';
-             content = `<div class="p-4 bg-content rounded-lg h-full flex flex-col">...</div>`; // simplified
-             break;
+            const taskWidgetUserId = config.userId || state.currentUser?.id;
+            const taskWidgetFilter = config.taskFilter || 'today';
+            
+            const today = new Date(); today.setHours(0,0,0,0);
+            const todayStr = today.toISOString().slice(0, 10);
+            const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+            
+            const userTasks = state.tasks.filter(task => 
+                task.workspaceId === state.activeWorkspaceId &&
+                !task.isArchived &&
+                state.taskAssignees.some(a => a.taskId === task.id && a.userId === taskWidgetUserId) &&
+                task.status !== 'done'
+            );
+            
+            let tasksToDisplay: Task[] = [];
+            switch(taskWidgetFilter) {
+                case 'today':
+                    tasksToDisplay = userTasks.filter(t => t.dueDate === todayStr);
+                    break;
+                case 'tomorrow':
+                    tasksToDisplay = userTasks.filter(t => t.dueDate === tomorrowStr);
+                    break;
+                case 'overdue':
+                    tasksToDisplay = userTasks.filter(t => t.dueDate && t.dueDate < todayStr);
+                    break;
+            }
+
+            const tabs = ['overdue', 'today', 'tomorrow'];
+
+            content = `
+                <div class="p-4 bg-content rounded-lg h-full flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold">${t('dashboard.widget_todays_tasks_title')}</h4>
+                        <div class="p-1 bg-background rounded-lg flex items-center">
+                            ${tabs.map(tab => `
+                                <button class="px-2 py-0.5 text-xs font-medium rounded-md ${taskWidgetFilter === tab ? 'bg-content shadow-sm' : ''}" 
+                                        data-task-widget-tab="${tab}" 
+                                        data-widget-id="${widget.id}">
+                                    ${t(`dashboard.tasks_${tab}`)}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto -mx-2 px-2">
+                        ${tasksToDisplay.length > 0 ? tasksToDisplay.map(task => {
+                            const project = state.projects.find(p => p.id === task.projectId);
+                            return `
+                                <div class="p-2 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-background transition-colors dashboard-task-item" data-task-id="${task.id}" role="button" tabindex="0">
+                                    <span class="material-icons-sharp text-lg text-text-subtle">radio_button_unchecked</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium truncate">${task.name}</p>
+                                        <p class="text-xs text-text-subtle truncate">${project?.name || ''}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') : `<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.my_day_no_tasks')}</p>`}
+                    </div>
+                </div>
+            `;
+            break;
         case 'activityFeed':
             const activities = [...state.comments, ...state.timeLogs]
                 .filter(a => a.workspaceId === state.activeWorkspaceId)
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .slice(0, 5);
-            content = `<div class="p-4 bg-content rounded-lg h-full">...</div>`; // simplified
+            
+            const renderActivityItem = (item: Comment | TimeLog) => {
+                const user = state.users.find(u => u.id === item.userId);
+                if (!user) return '';
+
+                let actionText = '';
+                let task: Task | undefined;
+                if ('content' in item) { // Comment
+                    task = state.tasks.find(t => t.id === item.taskId);
+                    actionText = `commented on`;
+                } else { // TimeLog
+                    task = state.tasks.find(t => t.id === item.taskId);
+                    actionText = `logged ${formatDuration(item.trackedSeconds)} on`;
+                }
+
+                if (!task) return '';
+                
+                return `
+                    <div class="flex items-start gap-3 py-2">
+                        <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">${getUserInitials(user)}</div>
+                        <div class="text-sm">
+                            <p>
+                                <strong class="font-semibold">${user.name || ''}</strong>
+                                <span class="text-text-subtle">${actionText}</span>
+                                <a href="/tasks/${task.slug || task.id}" class="font-semibold hover:underline">${task.name}</a>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            };
+
+            content = `
+                <div class="p-4 bg-content rounded-lg h-full flex flex-col">
+                    <h4 class="font-semibold mb-2">${t('dashboard.widget_activity_feed_title')}</h4>
+                    <div class="flex-1 overflow-y-auto -mx-2 px-2">
+                        ${activities.length > 0 ? activities.map(renderActivityItem).join('') : `<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.no_activity_yet')}</p>`}
+                    </div>
+                </div>
+            `;
+            break;
+        case 'weeklyPerformance':
+            content = `
+                <div class="p-4 bg-content rounded-lg h-full flex flex-col">
+                    <h4 class="font-semibold mb-2">${t('dashboard.widget_weekly_performance_title')}</h4>
+                    <div class="flex-1 min-h-0">
+                        <canvas id="weeklyPerformanceChart"></canvas>
+                    </div>
+                </div>
+            `;
             break;
         default:
             content = `<div class="p-4 bg-content rounded-lg h-full"><p>${type}</p></div>`;
     }
 
     return `
-        <div class="relative" data-widget-id="${widget.id}" draggable="${isEditing}">
+        <div class="relative" data-widget-id="${widget.id}" draggable="${isEditing}" style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
             ${isEditing ? `
                 <button class="remove-widget-btn" data-delete-resource="dashboard_widgets" data-delete-id="${widget.id}" data-delete-confirm="Are you sure you want to remove this widget?"><span class="material-icons-sharp text-base">close</span></button>
                 <button class="configure-widget-btn" data-configure-widget-id="${widget.id}"><span class="material-icons-sharp text-base">settings</span></button>
@@ -330,6 +481,60 @@ function renderWidget(widget: DashboardWidget) {
 
 export function initDashboardCharts() {
     destroyCharts();
+    const state = getState();
+    const { currentUser, activeWorkspaceId } = state;
+    if (!currentUser || !activeWorkspaceId) return;
+
+    // Weekly Performance Chart
+    const weeklyPerfCanvas = document.getElementById('weeklyPerformanceChart') as HTMLCanvasElement | null;
+    if (weeklyPerfCanvas) {
+        const today = new Date();
+        const last7Days: string[] = [];
+        const timeTrackedByDay: number[] = Array(7).fill(0);
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            last7Days.push(d.toLocaleDateString(state.settings.language, { weekday: 'short' }));
+
+            const dayStr = d.toISOString().slice(0, 10);
+            const totalSecondsForDay = state.timeLogs
+                .filter(log => log.workspaceId === activeWorkspaceId && log.userId === currentUser.id && log.createdAt.startsWith(dayStr))
+                .reduce((sum, log) => sum + log.trackedSeconds, 0);
+            
+            timeTrackedByDay[6 - i] = parseFloat((totalSecondsForDay / 3600).toFixed(2));
+        }
+        
+        const ctx = weeklyPerfCanvas.getContext('2d');
+        if (ctx) {
+            charts.weeklyPerformance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: last7Days,
+                    datasets: [{
+                        label: t('reports.kpi_total_time_tracked'),
+                        data: timeTrackedByDay,
+                        backgroundColor: chartColors.primary,
+                        borderColor: chartColors.primaryHover,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...commonChartOptions,
+                    scales: {
+                         ...commonChartOptions.scales,
+                         y: {
+                             ...commonChartOptions.scales.y,
+                             title: {
+                                 display: true,
+                                 text: 'Hours'
+                             }
+                         }
+                    }
+                }
+            });
+        }
+    }
 }
 
 export function DashboardPage() {
@@ -353,12 +558,8 @@ export function DashboardPage() {
     return `
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-2xl font-bold">${t('dashboard.title')}</h2>
-                <div class="flex items-center gap-2">
-                    <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'my_day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="my_day">${t('dashboard.tab_my_day')}</button>
-                        <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'overview' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="overview">${t('dashboard.tab_overview')}</button>
-                    </div>
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold">${t('dashboard.title')}</h2>
                     ${activeTab === 'overview' ? `
                         <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
                             <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
@@ -366,6 +567,10 @@ export function DashboardPage() {
                         </button>
                         ${isEditing ? `<button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white" data-modal-target="addWidget"><span class="material-icons-sharp text-base">add</span> ${t('dashboard.add_widget')}</button>` : ''}
                     ` : ''}
+                </div>
+                <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
+                    <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'my_day' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="my_day">${t('dashboard.tab_my_day')}</button>
+                    <button class="px-3 py-1 text-sm font-medium rounded-md ${activeTab === 'overview' ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-tab-group="ui.dashboard.activeTab" data-tab-value="overview">${t('dashboard.tab_overview')}</button>
                 </div>
             </div>
             ${content}

@@ -1,6 +1,6 @@
 
 import { getState, setState } from '../state.ts';
-import { updateUI } from '../app-renderer.ts';
+import { updateUI, UIComponent } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
 import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState, ProjectSortByOption } from '../types.ts';
 import { t } from '../i18n.ts';
@@ -76,11 +76,11 @@ function renderNewClientContactFormRow() {
     const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
     return `
         <div class="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 items-center contact-form-row" data-contact-id="${id}">
-            <input type="text" class="${formControlClasses}" data-field="name" placeholder="Contact Person" value="" required>
-            <input type="email" class="${formControlClasses}" data-field="email" placeholder="Email" value="">
-            <input type="text" class="${formControlClasses}" data-field="phone" placeholder="Phone" value="">
-            <input type="text" class="${formControlClasses}" data-field="role" placeholder="Role" value="">
-            <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-contact-row-btn" title="Remove Item"><span class="material-icons-sharp">delete</span></button>
+            <input type="text" class="${formControlClasses}" data-field="name" placeholder="${t('modals.contact_person')}" value="" required>
+            <input type="email" class="${formControlClasses}" data-field="email" placeholder="${t('modals.email')}" value="">
+            <input type="text" class="${formControlClasses}" data-field="phone" placeholder="${t('modals.phone')}" value="">
+            <input type="text" class="${formControlClasses}" data-field="role" placeholder="${t('modals.contact_role')}" value="">
+            <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-contact-row-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
         </div>
     `;
 }
@@ -94,12 +94,29 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as HTMLElement;
 
+    // --- Notification Bell Handler ---
+    const notificationBell = target.closest('#notification-bell');
+    if (notificationBell) {
+        notificationHandlers.toggleNotificationsPopover();
+        return;
+    }
+
     // --- Generic Tab Switching Handler ---
     const tabButton = target.closest<HTMLElement>('[data-tab-group]');
     if (tabButton) {
         e.preventDefault();
         const groupPath = tabButton.dataset.tabGroup!.split('.');
         const tabValue = tabButton.dataset.tabValue;
+
+        // Determine the correct UI component to update based on context
+        let componentToUpdate: UIComponent = 'page'; // Default to 'page'
+        if (tabButton.closest('#modal-container')) {
+            componentToUpdate = 'modal';
+        } else if (tabButton.closest('#side-panel-container')) {
+            componentToUpdate = 'side-panel';
+        } else if (tabButton.closest('header')) {
+            componentToUpdate = 'header';
+        }
 
         setState(prevState => {
             const newState = { ...prevState };
@@ -112,7 +129,7 @@ export async function handleClick(e: MouseEvent) {
                 currentStateSlice[finalKey] = tabValue;
             }
             return newState;
-        }, ['page', 'side-panel', 'modal', 'header']);
+        }, [componentToUpdate]);
         
         return;
     }
@@ -146,6 +163,14 @@ export async function handleClick(e: MouseEvent) {
     }
     // --- END: Task Page UI Handlers ---
 
+    // --- Dashboard Task Widget Tab Handler ---
+    const taskWidgetTab = target.closest<HTMLElement>('[data-task-widget-tab]');
+    if (taskWidgetTab) {
+        const widgetId = taskWidgetTab.dataset.widgetId!;
+        const filter = taskWidgetTab.dataset.taskWidgetTab!;
+        dashboardHandlers.handleSwitchTaskWidgetTab(widgetId, filter);
+        return;
+    }
 
     // --- Projects Page UI Handlers ---
     const projectViewModeBtn = target.closest<HTMLElement>('[data-project-view-mode]');
@@ -702,7 +727,7 @@ export async function handleClick(e: MouseEvent) {
     }
     const saveModalBtn = target.closest('#modal-save-btn');
     if (saveModalBtn) { formHandlers.handleFormSubmit(); return; }
-    if (target.closest('.btn-close-modal') || target.id === 'modal-backdrop') { uiHandlers.closeModal(); return; }
+    if (target.closest('.btn-close-modal') || (target.id === 'modal-backdrop' && !target.closest('#modal-content'))) { uiHandlers.closeModal(); return; }
     if (target.closest('.btn-close-panel, #side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
     
     const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id], .dashboard-project-item');
