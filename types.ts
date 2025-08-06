@@ -121,6 +121,7 @@ export interface Client {
     vatId?: string; // NIP for Polish context
     notes?: string;
     status?: 'active' | 'archived';
+    slug?: string;
     // New fields
     healthStatus?: 'good' | 'at_risk' | 'neutral' | null;
     category?: string;
@@ -135,6 +136,7 @@ export interface Project {
     hourlyRate?: number;
     privacy: 'public' | 'private';
     budgetHours?: number;
+    slug?: string;
     // New fields
     budgetCost?: number;
     category?: string;
@@ -519,6 +521,7 @@ export interface Deal {
     ownerId: string;
     expectedCloseDate?: string; // YYYY-MM-DD
     createdAt: string; // ISO
+    slug?: string;
     // New CRM fields
     probability: number; // Percentage 0-100
     priority?: 'low' | 'medium' | 'high' | null;

@@ -203,6 +203,23 @@
   .reply-form { @apply mt-3; }
   .reply-form .rich-text-input { @apply min-h-[40px]; }
 
+  /* == Task Detail Progress Bar == */
+  .task-progress-bar-container {
+    @apply relative h-4 flex items-center cursor-pointer;
+  }
+  .task-progress-bar-track {
+    @apply w-full h-1 bg-background rounded-full;
+  }
+  .task-progress-bar-fill {
+    @apply h-1 bg-primary rounded-full;
+  }
+  .task-progress-bar-thumb {
+    @apply absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full border-2 border-content shadow transition-transform;
+  }
+  .task-progress-bar-container.dragging .task-progress-bar-thumb,
+  .task-progress-bar-container:hover .task-progress-bar-thumb {
+    @apply scale-125;
+  }
 
   .form-control {
     @apply w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
@@ -477,13 +494,23 @@
     @apply cursor-move;
   }
   .dragging {
-    @apply opacity-50 ring-2 ring-primary ring-offset-2;
+    /* The browser creates a semi-transparent ghost image. 
+       This class is on the original element, which we want to hide and collapse gracefully. */
+    @apply ring-0 opacity-0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-width: 0;
+    overflow: hidden;
+    transition: all 150ms ease-out, opacity 0s; /* Opacity should be instant to hide ghosting artifacts */
   }
   .drag-over {
     @apply outline-dashed outline-2 outline-offset-2 outline-primary;
   }
   
-  /* == Project Detail Panel (Redesigned) == */
+  /* == Project Detail Panel (NEW MODERN REDESIGN) == */
   .side-panel-header h2 {
       @apply text-xl font-bold;
   }
@@ -510,37 +537,30 @@
   }
   
   /* Overview Tab */
-  .project-overview-grid {
-      @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+  .project-overview-dashboard { @apply space-y-6; }
+  .project-health-section { @apply grid grid-cols-1 sm:grid-cols-[120px,1fr] gap-6 items-center; }
+  .circular-progress-container { @apply w-28 h-28 flex items-center justify-center relative; }
+  .circular-progress-bg { @apply absolute inset-0 rounded-full bg-background; }
+  .circular-progress-bar {
+      @apply absolute inset-0 rounded-full;
+      background: conic-gradient(rgba(var(--primary-color-rgb), 1) calc(var(--progress, 0) * 1%), rgba(var(--border-color-rgb), 1) 0);
+      mask-image: radial-gradient(transparent 65%, black 66%);
+      -webkit-mask-image: radial-gradient(transparent 65%, black 66%);
   }
-  .kpi-card {
-      @apply bg-background p-4 rounded-lg space-y-2;
-  }
-  .kpi-label {
-      @apply text-xs font-medium text-text-subtle;
-  }
-  .kpi-value {
-      @apply text-xl font-semibold;
-  }
-  .kpi-value.overdue, .kpi-value.negative {
-      @apply text-danger;
-  }
-  .kpi-value.positive {
-      @apply text-success;
-  }
-  .kpi-progress-bar {
-      @apply w-full bg-border-color rounded-full h-2;
-  }
-  .kpi-progress-bar-inner {
-      @apply h-2 rounded-full bg-primary;
-  }
-  .kpi-progress-bar-inner.cost-bar {
-      @apply bg-warning;
-  }
-  .project-wiki-view {
-      @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;
-  }
-  
+  .circular-progress-text { @apply text-2xl font-bold; }
+  .project-kpi-grid { @apply grid grid-cols-2 gap-4; }
+  .kpi-stat { @apply bg-background p-3 rounded-lg flex items-center gap-3; }
+  .kpi-stat .material-icons-sharp { @apply text-xl text-text-subtle; }
+  .kpi-stat-value { @apply font-semibold text-base; }
+  .kpi-stat-label { @apply text-xs text-text-subtle; }
+  .project-team-section .avatar-stack { @apply flex -space-x-2; }
+  .project-team-section .avatar { @apply w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold border-2 border-content; }
+  .project-objective-item { @apply space-y-1; }
+  .project-objective-item .progress-bar-inner { @apply h-1.5 rounded-full bg-primary; }
+  .project-activity-feed { @apply space-y-3; }
+  .project-activity-item { @apply flex items-center gap-3 text-sm; }
+  .project-activity-item .material-icons-sharp { @apply text-text-subtle text-base; }
+
   /* Tasks Tab */
   .project-tasks-header {
       @apply flex justify-end mb-4;
@@ -592,6 +612,9 @@
   .project-wiki-preview {
       @apply w-full h-96 p-3 overflow-y-auto;
   }
+  .project-wiki-view {
+      @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;
+  }
   
   /* Files Tab */
   .attachment-list {
@@ -611,27 +634,14 @@
   }
   
   /* Access Tab */
-  .team-member-list {
-      @apply space-y-1;
-  }
-  .team-member-item {
-      @apply flex items-center gap-3 p-2 rounded-md;
-  }
-  .member-info {
-      @apply flex-1;
-  }
-  .member-info strong {
-      @apply text-sm font-medium;
-  }
-  .member-actions {
-      @apply flex items-center gap-2;
-  }
-  .danger-icon {
-      @apply text-danger;
-  }
-  .invite-form-grid {
-      @apply grid grid-cols-[2fr,1fr] gap-4;
-  }
+  .access-member-list { @apply space-y-1; }
+  .access-member-item { @apply flex items-center gap-3 p-2 rounded-md hover:bg-background; }
+  .access-member-info { @apply flex-1; }
+  .access-member-info strong { @apply text-sm font-medium; }
+  .access-member-actions { @apply flex items-center gap-2; }
+  .access-member-actions .form-control { @apply text-xs py-1 px-2 w-28; }
+  .danger-icon { @apply text-danger; }
+  .access-invite-form { @apply grid grid-cols-[2fr,1fr,auto] gap-2 items-center; }
   
   /* OKRs Tab */
   .okr-card {

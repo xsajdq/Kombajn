@@ -1,6 +1,4 @@
 
-
-
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
@@ -109,6 +107,12 @@ export function SalesPage() {
     const canManage = can('manage_deals');
     const { sales: { isLoading } } = state.ui;
 
+    const contentHtml = isLoading ? `
+        <div class="flex-1 flex items-center justify-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+    ` : renderKanbanBoard();
+
     return `
     <div class="h-full flex flex-col">
         <div class="flex justify-between items-center mb-4">
@@ -117,11 +121,7 @@ export function SalesPage() {
                 <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
             </button>
         </div>
-        ${isLoading ? `
-            <div class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        ` : renderKanbanBoard()}
+        ${contentHtml}
     </div>
     `;
 }

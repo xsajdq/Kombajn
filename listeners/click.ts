@@ -701,7 +701,7 @@ export async function handleClick(e: MouseEvent) {
     }
     const saveModalBtn = target.closest('#modal-save-btn');
     if (saveModalBtn) { formHandlers.handleFormSubmit(); return; }
-    if (target.closest('.btn-close-modal') || target.matches('.fixed.inset-0.bg-black\\/50')) { uiHandlers.closeModal(); return; }
+    if (target.closest('.btn-close-modal') || target.id === 'modal-backdrop') { uiHandlers.closeModal(); return; }
     if (target.closest('.btn-close-panel, #side-panel-overlay')) { uiHandlers.closeSidePanels(); return; }
     
     const projectCard = target.closest<HTMLElement>('.projects-grid [data-project-id], .associated-projects-list [data-project-id], .portfolio-table-row[data-project-id], .dashboard-project-item');

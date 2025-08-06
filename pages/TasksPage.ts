@@ -413,27 +413,28 @@ export function TasksPage() {
     const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy, isLoading } = state.ui.tasks;
     const canManage = can('manage_tasks');
 
+    let contentHtml = '';
     if (isLoading) {
-        return `<div class="flex items-center justify-center h-full">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>`;
-    }
+        contentHtml = `
+            <div class="flex-1 flex items-center justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        `;
+    } else {
+        const filteredTasks = getFilteredTasks();
+        const { projectId } = state.ui.tasks.filters;
+        const projectSections = state.projectSections.filter(ps => !projectId || ps.projectId === projectId);
 
-    const filteredTasks = getFilteredTasks();
-    const { projectId } = state.ui.tasks.filters;
-    const projectSections = state.projectSections.filter(ps => !projectId || ps.projectId === projectId);
+        const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
-    
-    let content = '';
-    const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
-
-    switch (viewMode) {
-        case 'board': content = renderBoardView(filteredTasks); break;
-        case 'list': content = renderListView(filteredTasks, projectSections); break;
-        case 'calendar': content = renderCalendarView(filteredTasks); break;
-        case 'gantt': content = renderGanttView(filteredTasks); break;
-        case 'workload': content = renderWorkloadView(filteredTasks); break;
-        default: content = renderBoardView(filteredTasks);
+        switch (viewMode) {
+            case 'board': contentHtml = renderBoardView(filteredTasks); break;
+            case 'list': contentHtml = renderListView(filteredTasks, projectSections); break;
+            case 'calendar': contentHtml = renderCalendarView(filteredTasks); break;
+            case 'gantt': contentHtml = renderGanttView(filteredTasks); break;
+            case 'workload': contentHtml = renderWorkloadView(filteredTasks); break;
+            default: contentHtml = renderBoardView(filteredTasks);
+        }
     }
 
     const navItems = [
@@ -451,6 +452,8 @@ export function TasksPage() {
         { id: 'name', text: t('tasks.sort_name') },
         { id: 'createdAt', text: t('tasks.sort_created_at') },
     ];
+    
+    const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
     return `
         <div class="h-full flex flex-col">
@@ -496,7 +499,7 @@ export function TasksPage() {
                 ${TaskFilterPanel()}
             </div>
 
-            ${content}
+            ${contentHtml}
         </div>
     `;
 }
