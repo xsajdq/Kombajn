@@ -1,4 +1,3 @@
-
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -202,21 +201,21 @@ export async function handleClick(e: MouseEvent) {
 
         setState(prevState => {
             if (myTime) {
-                return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: [] } };
+                return { ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, selectedUserIds: [] } } };
             }
             if (allUsers) {
-                return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: ['all'] } };
+                return { ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, selectedUserIds: ['all'] } } };
             }
             const checkbox = timesheetUserOption.querySelector('input[type="checkbox"]') as HTMLInputElement;
             checkbox.checked = !checkbox.checked;
             const userId = checkbox.value;
-            const selectedIds = new Set(prevState.ui.teamCalendarSelectedUserIds.filter(id => id !== 'all'));
+            const selectedIds = new Set(prevState.ui.teamCalendar.selectedUserIds.filter(id => id !== 'all'));
             if (checkbox.checked) {
                 selectedIds.add(userId);
             } else {
                 selectedIds.delete(userId);
             }
-            return { ui: { ...prevState.ui, teamCalendarSelectedUserIds: Array.from(selectedIds) } };
+            return { ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, selectedUserIds: Array.from(selectedIds) } } };
         }, ['page']);
 
         if (myTime || allUsers) {
@@ -342,6 +341,54 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     // --- End Client Modal Contact Handlers ---
+
+    // --- Invoice Page Handlers ---
+    const downloadInvoiceBtn = target.closest<HTMLElement>('[data-download-invoice-id]');
+    if (downloadInvoiceBtn) {
+        generateInvoicePDF(downloadInvoiceBtn.dataset.downloadInvoiceId!);
+        return;
+    }
+
+    const toggleInvoiceStatusBtn = target.closest<HTMLElement>('[data-toggle-invoice-status-id]');
+    if (toggleInvoiceStatusBtn) {
+        invoiceHandlers.handleToggleInvoiceStatus(toggleInvoiceStatusBtn.dataset.toggleInvoiceStatusId!);
+        return;
+    }
+
+    const sendInvoiceBtn = target.closest<HTMLElement>('[data-send-invoice-id]');
+    if (sendInvoiceBtn) {
+        invoiceHandlers.handleSendInvoiceByEmail(sendInvoiceBtn.dataset.sendInvoiceId!);
+        return;
+    }
+
+    if (target.closest('#generate-invoice-items-btn')) { invoiceHandlers.handleGenerateInvoiceItems(); return; }
+
+    const addInvoiceItemBtn = target.closest('#add-invoice-item-btn');
+    if (addInvoiceItemBtn) {
+        setState(prevState => {
+            if (prevState.ui.modal.type === 'addInvoice') {
+                const newItem = { id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 };
+                const newItems = [...(prevState.ui.modal.data.items || []), newItem];
+                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: newItems } } } };
+            }
+            return prevState;
+        }, ['modal']);
+        return;
+    }
+
+    const removeInvoiceItemBtn = target.closest('.remove-invoice-item-btn');
+    if (removeInvoiceItemBtn) {
+        const itemId = removeInvoiceItemBtn.closest<HTMLElement>('.invoice-item-row')?.dataset.itemId;
+        setState(prevState => {
+            if (prevState.ui.modal.type === 'addInvoice' && itemId) {
+                const newItems = prevState.ui.modal.data.items.filter((item: any) => item.id.toString() !== itemId);
+                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: newItems } } } };
+            }
+            return prevState;
+        }, ['modal']);
+        return;
+    }
+    // --- End Invoice Page Handlers ---
 
     // --- Global Click Handlers ---
     const fabContainer = document.getElementById('fab-container');
@@ -879,7 +926,7 @@ export async function handleClick(e: MouseEvent) {
     }
     const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
     if (teamCalendarViewBtn) {
-        setState(prevState => ({ ui: { ...prevState.ui, teamCalendarView: teamCalendarViewBtn.dataset.teamCalendarView as any } }), ['page']);
+        setState(prevState => ({ ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, view: teamCalendarViewBtn.dataset.teamCalendarView as any } } }), ['page']);
         return;
     }
     const calendarNavBtn = target.closest<HTMLElement>('[data-calendar-nav]');
@@ -888,20 +935,29 @@ export async function handleClick(e: MouseEvent) {
         const targetCalendar = calendarNavBtn.dataset.targetCalendar;
         
         setState(prevState => {
-            const dateKey = targetCalendar === 'team' ? 'teamCalendarDate' : 'calendarDate';
-            const viewKey = targetCalendar === 'team' ? prevState.ui.teamCalendarView : prevState.ui.tasks.viewMode;
-            const currentDate = new Date(prevState.ui[dateKey] + 'T12:00:00Z');
-
-            if (direction === 'prev') {
-                if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
-                else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() - 7);
-                else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() - 1);
-            } else {
-                if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
-                else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() + 7);
-                else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() + 1);
+            if (targetCalendar === 'team') {
+                const viewKey = prevState.ui.teamCalendar.view;
+                const currentDate = new Date(prevState.ui.teamCalendar.date + 'T12:00:00Z');
+                
+                if (direction === 'prev') {
+                    if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
+                    else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() - 7);
+                    else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() - 1);
+                } else { // 'next'
+                    if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
+                    else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() + 7);
+                    else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() + 1);
+                }
+                return { ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, date: currentDate.toISOString().slice(0, 10) } } };
+            } else { // for tasks calendar
+                const currentDate = new Date(prevState.ui.calendarDate + '-15T12:00:00Z');
+                if (direction === 'prev') {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                } else { // 'next'
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                return { ui: { ...prevState.ui, calendarDate: currentDate.toISOString().slice(0, 7) } };
             }
-            return { ui: { ...prevState.ui, [dateKey]: currentDate.toISOString().slice(0, 10) } };
         }, ['page']);
         return;
     }

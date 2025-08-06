@@ -310,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly } = req.query;
+                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
             
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
@@ -343,6 +343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['dependencies'] = supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId);
                     queries['customFieldDefinitions'] = supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId);
                     queries['customFieldValues'] = supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId);
+                    queries['kanbanStages'] = supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId);
                 } else if (clientsOnly === 'true') {
                     queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);
                     queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
@@ -353,6 +354,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['deals'] = supabase.from('deals').select('*').eq('workspace_id', workspaceId);
                     queries['dealActivities'] = supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId);
                     queries['pipelineStages'] = supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId);
+                } else if (teamCalendarOnly === 'true') {
+                    queries['tasks'] = supabase.from('tasks').select('*').eq('workspace_id', workspaceId);
+                    queries['calendarEvents'] = supabase.from('calendar_events').select('*').eq('workspace_id', workspaceId);
+                    queries['timeLogs'] = supabase.from('time_logs').select('*').eq('workspace_id', workspaceId);
                 } else {
                     // Fallback to full data fetch if no specific flag is provided
                     const { data: projectsData, error: pError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);

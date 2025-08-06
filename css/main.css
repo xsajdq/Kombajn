@@ -57,7 +57,7 @@
 
   /* == Breadcrumbs == */
   .breadcrumb-container {
-    @apply flex items-center gap-2 text-sm text-text-subtle px-6 sm:px-8 lg:px-10 py-2 border-b border-border-color bg-content flex-wrap;
+    @apply flex items-center gap-2 text-sm text-text-subtle px-8 py-2 border-b border-border-color bg-content flex-wrap;
   }
   .breadcrumb-item {
       @apply flex items-center gap-2;
@@ -310,6 +310,40 @@
   .tasks-board-column-body {
     @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-2 -mx-2;
   }
+  .task-section-header-row th {
+    @apply px-4 py-2 text-left text-sm font-semibold bg-background;
+  }
+
+  /* Gantt Chart */
+  .gantt-container .gantt .bar-wrapper.active {
+    outline: 2px solid rgba(var(--primary-color-rgb), 1);
+  }
+  .gantt .bar-progress {
+    fill: rgba(var(--primary-color-rgb), 1);
+  }
+  
+  /* Workload View */
+  .workload-grid-container {
+    display: grid;
+    grid-template-columns: 200px repeat(7, 1fr);
+    min-width: 1000px;
+  }
+  .workload-header {
+    @apply p-2 text-center text-sm font-semibold border-b border-r border-border-color;
+  }
+  .workload-user-header {
+    @apply sticky left-0 bg-content z-10 border-b border-r border-border-color;
+  }
+  .workload-user-cell {
+    @apply sticky left-0 bg-content p-2 border-b border-r border-border-color z-10;
+  }
+  .workload-day-cell {
+    @apply p-1 border-b border-r border-border-color min-h-[80px];
+  }
+  .workload-task-item {
+    @apply text-xs bg-primary/10 text-primary p-1 rounded-md mb-1 truncate cursor-pointer;
+  }
+
 
   /* Redesigned Task Card */
   .task-card {
@@ -502,9 +536,6 @@
   }
   .kpi-progress-bar-inner.cost-bar {
       @apply bg-warning;
-  }
-  .card {
-      @apply bg-content p-4 rounded-lg shadow-sm;
   }
   .project-wiki-view {
       @apply prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed;

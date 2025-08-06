@@ -1,9 +1,27 @@
 
-import { getState } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
-import { fetchPublicHolidays } from '../handlers/calendar.ts';
+import { fetchPublicHolidays, fetchTeamCalendarDataForWorkspace } from '../handlers/calendar.ts';
 import { formatDate, getUserInitials, formatDuration } from '../utils.ts';
+
+export async function initTeamCalendarPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.teamCalendar.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                teamCalendar: { ...prevState.ui.teamCalendar, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        
+        await fetchTeamCalendarDataForWorkspace(activeWorkspaceId);
+    }
+}
 
 function getEventBarDetails(item: any) {
     const state = getState();
@@ -92,7 +110,7 @@ function renderMonthView(year: number, month: number) {
             currentDateIterator.setDate(currentDateIterator.getDate() + 1);
         }
         weeks.push(week);
-        if (week[6] >= monthEndDate && (week[6].getDay() + 6) % 7 === 6) break;
+        if (weeks.length === 6 && week[6] >= monthEndDate) break;
     }
 
     const allItemsRaw = [
@@ -467,14 +485,14 @@ function renderTimesheetView(currentDate: Date) {
     const weekEndDateStr = weekEndDate.toISOString();
     
     let userIdsToDisplay: string[] = [];
-    if (state.ui.teamCalendarSelectedUserIds.length === 0) {
+    if (state.ui.teamCalendar.selectedUserIds.length === 0) {
         userIdsToDisplay = [state.currentUser!.id];
-    } else if (state.ui.teamCalendarSelectedUserIds.includes('all')) {
+    } else if (state.ui.teamCalendar.selectedUserIds.includes('all')) {
         userIdsToDisplay = state.workspaceMembers
             .filter(m => m.workspaceId === state.activeWorkspaceId)
             .map(m => m.userId);
     } else {
-        userIdsToDisplay = state.ui.teamCalendarSelectedUserIds;
+        userIdsToDisplay = state.ui.teamCalendar.selectedUserIds;
     }
 
     const timeLogs = state.timeLogs.filter(log => 
@@ -566,10 +584,16 @@ function renderDayView(currentDate: Date) {
 
 export async function TeamCalendarPage() {
     const state = getState();
-    const { teamCalendarDate, teamCalendarView, teamCalendarSelectedUserIds } = state.ui;
+    const { date: teamCalendarDate, view: teamCalendarView, selectedUserIds: teamCalendarSelectedUserIds, isLoading } = state.ui.teamCalendar;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
     const year = currentDate.getUTCFullYear();
     const month = currentDate.getUTCMonth() + 1;
+
+    if (isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
 
     await Promise.all([
         fetchPublicHolidays(year - 1),

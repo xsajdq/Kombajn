@@ -19,7 +19,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
 
     return `
         <header class="bg-content text-text-main shrink-0">
-             <div class="flex items-center justify-between h-16 px-6 sm:px-8 lg:px-10 border-b border-border-color">
+             <div class="flex items-center justify-between h-16 px-8 border-b border-border-color">
                 <div class="flex items-center gap-4">
                     <button id="mobile-menu-toggle" class="p-2 rounded-full hover:bg-background transition-colors md:hidden" aria-label="Toggle menu">
                         <span class="material-icons-sharp">menu</span>

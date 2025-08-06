@@ -39,7 +39,7 @@ async function AppLayout() {
         ${Sidebar()}
         <div class="flex-1 flex flex-col overflow-hidden relative">
             ${AppHeader({ currentUser: state.currentUser, activeWorkspaceId: state.activeWorkspaceId! })}
-            <main class="flex-1 overflow-x-hidden overflow-y-auto p-6 sm:p-8 lg:p-10">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto p-8">
                 ${pageContent}
             </main>
             

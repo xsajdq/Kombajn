@@ -1,6 +1,4 @@
 
-
-
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
@@ -168,11 +166,8 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
 
     filteredTasks.forEach(task => {
         const sectionId = task.projectSectionId || 'no-section';
-        if (tasksBySection[sectionId]) {
-            tasksBySection[sectionId].push(task);
-        } else {
-            tasksBySection[sectionId] = [task];
-        }
+        tasksBySection[sectionId] = tasksBySection[sectionId] || [];
+        tasksBySection[sectionId].push(task);
     });
 
     const renderTaskRow = (task: Task) => {
@@ -182,87 +177,193 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
         const priorityText = task.priority ? t(`tasks.priority_${task.priority}`) : t('tasks.priority_none');
         
         return `
-            <tr class="modern-list-row task-list-grid" data-task-id="${task.id}">
-                <td>${task.name}</td>
-                <td class="text-text-subtle">${project?.name || ''}</td>
-                <td>
-                    <div class="avatar-stack">
+            <tr data-task-id="${task.id}" class="cursor-pointer">
+                <td data-label="${t('tasks.col_task')}" class="px-4 py-3 font-medium">${task.name}</td>
+                <td data-label="${t('tasks.col_project')}" class="px-4 py-3 text-text-subtle">${project?.name || ''}</td>
+                <td data-label="${t('tasks.col_assignee')}" class="px-4 py-3">
+                    <div class="avatar-stack justify-end md:justify-start">
                          ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
                     </div>
                 </td>
-                <td class="text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
-                <td>${priorityText}</td>
-                <td class="task-tracked-time">${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</td>
+                <td data-label="${t('tasks.col_due_date')}" class="px-4 py-3 text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
+                <td data-label="${t('tasks.col_priority')}" class="px-4 py-3">${priorityText}</td>
+                <td data-label="${t('tasks.col_time')}" class="px-4 py-3 task-tracked-time">${trackedSeconds > 0 ? formatDuration(trackedSeconds) : ''}</td>
             </tr>
         `;
     };
     
-    let sectionsHtml = '';
+    let tableRowsHtml = '';
     
     projectSections.forEach(section => {
         const tasks = tasksBySection[section.id];
         if (tasks && tasks.length > 0) {
-            sectionsHtml += `
-                <details class="task-section" open>
-                    <summary class="task-section-header">
+            tableRowsHtml += `
+                <tr class="task-section-header-row">
+                    <th colspan="6">
                         <div class="flex items-center gap-2">
-                            <h4 class="font-semibold">${section.name}</h4>
-                            <span class="text-sm text-text-subtle">${tasks.length}</span>
+                           <h4 class="font-semibold">${section.name}</h4>
+                           <span class="text-sm font-normal text-text-subtle">${tasks.length}</span>
                         </div>
-                        <button class="btn-icon" data-delete-resource="project_sections" data-delete-id="${section.id}" data-delete-confirm="Are you sure you want to delete this section? Tasks in this section will not be deleted."><span class="material-icons-sharp text-base">delete</span></button>
-                    </summary>
-                    <div class="task-list-modern">
-                        ${tasks.map(renderTaskRow).join('')}
-                    </div>
-                </details>
+                    </th>
+                </tr>
+                ${tasks.map(renderTaskRow).join('')}
             `;
         }
     });
 
-    if (tasksBySection['no-section'].length > 0) {
-         sectionsHtml += `
-            <div class="task-section">
-                <div class="task-section-header">
+    if (tasksBySection['no-section'] && tasksBySection['no-section'].length > 0) {
+         tableRowsHtml += `
+            <tr class="task-section-header-row">
+                <th colspan="6">
                     <div class="flex items-center gap-2">
                         <h4 class="font-semibold">${t('tasks.default_board')}</h4>
-                        <span class="text-sm text-text-subtle">${tasksBySection['no-section'].length}</span>
+                        <span class="text-sm font-normal text-text-subtle">${tasksBySection['no-section'].length}</span>
                     </div>
-                </div>
-                <div class="task-list-modern">
-                    ${tasksBySection['no-section'].map(renderTaskRow).join('')}
-                </div>
-            </div>
+                </th>
+            </tr>
+            ${tasksBySection['no-section'].map(renderTaskRow).join('')}
         `;
     }
 
 
     return `
-        <div class="bg-content rounded-lg shadow-sm">
-             <div class="task-list-modern-header">
-                <div>${t('tasks.col_task')}</div>
-                <div>${t('tasks.col_project')}</div>
-                <div>${t('tasks.col_assignee')}</div>
-                <div>${t('tasks.col_due_date')}</div>
-                <div>${t('tasks.col_priority')}</div>
-                <div>${t('tasks.col_time')}</div>
-            </div>
-            <div class="space-y-4">
-               ${sectionsHtml}
-            </div>
+        <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
+             <table class="w-full text-sm responsive-table">
+                <thead class="text-xs text-text-subtle uppercase bg-background">
+                    <tr>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_task')}</th>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_project')}</th>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_assignee')}</th>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_due_date')}</th>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_priority')}</th>
+                        <th class="px-4 py-2 text-left">${t('tasks.col_time')}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-color">
+                   ${tableRowsHtml}
+                </tbody>
+            </table>
         </div>
     `;
 }
 
 function renderCalendarView(filteredTasks: Task[]) {
-    return `<div>Calendar View Placeholder</div>`;
+    const state = getState();
+    const calendarDate = new Date(state.ui.calendarDate + '-15T12:00:00Z');
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    
+    const calendarStartDate = new Date(firstDayOfMonth);
+    calendarStartDate.setDate(calendarStartDate.getDate() - (firstDayOfMonth.getDay() + 6) % 7);
+
+    const weeks: Date[][] = [];
+    let currentDateIterator = new Date(calendarStartDate);
+    while(currentDateIterator <= lastDayOfMonth || (weeks.length < 6 && weeks[weeks.length-1].length < 7)) {
+        const week: Date[] = [];
+        for (let j = 0; j < 7; j++) {
+            week.push(new Date(currentDateIterator));
+            currentDateIterator.setDate(currentDateIterator.getDate() + 1);
+        }
+        weeks.push(week);
+        if(weeks.length === 6 && week[6] >= lastDayOfMonth) break;
+    }
+
+    const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    return `
+        <div class="bg-content rounded-lg shadow-sm flex flex-col h-full">
+            <div class="p-3 border-b border-border-color flex justify-between items-center">
+                <h4 class="font-semibold">${firstDayOfMonth.toLocaleString(state.settings.language, { month: 'long', year: 'numeric' })}</h4>
+                <div class="flex items-center">
+                    <button class="p-1.5 rounded-full hover:bg-background text-text-subtle" data-calendar-nav="prev" aria-label="${t('calendar.prev_month')}"><span class="material-icons-sharp">chevron_left</span></button>
+                    <button class="p-1.5 rounded-full hover:bg-background text-text-subtle" data-calendar-nav="next" aria-label="${t('calendar.next_month')}"><span class="material-icons-sharp">chevron_right</span></button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 flex-grow">
+                ${weekdays.map(day => `<div class="py-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+                ${weeks.flat().map(day => {
+                    const dayStr = day.toISOString().slice(0, 10);
+                    const tasksForDay = filteredTasks.filter(t => t.dueDate === dayStr);
+                    const isCurrentMonth = day.getMonth() === month;
+                    const isToday = day.getTime() === today.getTime();
+                    
+                    return `
+                        <div class="border-r border-b border-border-color p-2 ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                            <div class="text-sm text-right font-semibold ${isToday ? 'text-primary' : ''}">${day.getDate()}</div>
+                            <div class="space-y-1 mt-1">
+                                ${tasksForDay.map(task => `<div class="p-1 text-xs bg-primary/10 text-primary rounded truncate cursor-pointer" data-task-id="${task.id}">${task.name}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
 }
 
 function renderGanttView(filteredTasks: Task[]) {
-    return `<div>Gantt View Placeholder</div>`;
+    return `<div class="gantt-container bg-content rounded-lg shadow-sm" id="gantt-chart"></div>`;
 }
 
 function renderWorkloadView(filteredTasks: Task[]) {
-    return `<div>Workload View Placeholder</div>`;
+    const state = getState();
+    const users = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => state.users.find(u => u.id === m.userId))
+        .filter((u): u is User => !!u);
+    
+    const today = new Date();
+    const dates = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        return d;
+    });
+
+    return `
+        <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
+            <div class="workload-grid-container">
+                <div class="workload-header workload-user-header"></div>
+                ${dates.map(d => `<div class="workload-header">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })} ${d.getDate()}</div>`).join('')}
+
+                ${users.map(user => {
+                    const userRow = `<div class="workload-user-cell">${user.name}</div>`;
+                    const dayCells = dates.map(date => {
+                        const dateStr = date.toISOString().slice(0, 10);
+                        const tasksForDay = filteredTasks.filter(task => 
+                            task.dueDate === dateStr &&
+                            state.taskAssignees.some(a => a.taskId === task.id && a.userId === user.id)
+                        );
+                        const taskCount = tasksForDay.length;
+                        let cellClass = '';
+                        if (taskCount > 3) cellClass = 'bg-danger/10';
+                        else if (taskCount > 1) cellClass = 'bg-warning/10';
+                        
+                        return `
+                            <div class="workload-day-cell ${cellClass}">
+                                ${tasksForDay.map(t => `<div class="workload-task-item" data-task-id="${t.id}">${t.name}</div>`).join('')}
+                            </div>
+                        `;
+                    }).join('');
+                    return userRow + dayCells;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function destroyGanttChart() {
+    if (ganttChart) {
+        ganttChart.clear();
+        ganttChart = null;
+    }
+    const container = document.getElementById('gantt-chart');
+    if (container) container.innerHTML = '';
 }
 
 export async function initTasksPage() {
@@ -270,20 +371,40 @@ export async function initTasksPage() {
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 
+    destroyGanttChart();
+
     if (state.ui.tasks.loadedWorkspaceId !== activeWorkspaceId) {
-        // Set loading state and loaded ID immediately to prevent re-fetching loops.
         setState(prevState => ({
-            ui: {
-                ...prevState.ui,
-                tasks: { ...prevState.ui.tasks, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
-            }
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: true, loadedWorkspaceId: activeWorkspaceId } }
         }), ['page']);
-        
         await fetchTasksForWorkspace(activeWorkspaceId);
     }
     
-    if (getState().ui.tasks.viewMode === 'gantt') {
-        // initGanttChart(getFilteredTasks());
+    // Check state again after potential async operation
+    const currentState = getState();
+    if (currentState.ui.tasks.viewMode === 'gantt' && !currentState.ui.tasks.isLoading) {
+        const ganttContainer = document.getElementById('gantt-chart');
+        if (ganttContainer) {
+            const tasksForGantt = getFilteredTasks()
+                .filter(t => t.startDate && t.dueDate)
+                .map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    start: t.startDate!,
+                    end: t.dueDate!,
+                    progress: t.progress || 0,
+                }));
+            
+            if (tasksForGantt.length > 0) {
+                ganttChart = new Gantt("#gantt-chart", tasksForGantt, {
+                    on_click: (task: any) => openTaskDetail(task.id),
+                    bar_height: 20,
+                    bar_corner_radius: 4,
+                    view_mode: currentState.ui.tasks.ganttViewMode,
+                    language: currentState.settings.language,
+                });
+            }
+        }
     }
 }
 

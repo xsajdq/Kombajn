@@ -1,3 +1,5 @@
+
+
 import { getState, setState } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage, initClientsPage } from './pages/ClientsPage.ts';
@@ -10,7 +12,7 @@ import { DashboardPage } from './pages/DashboardPage.ts';
 import { HRPage } from './pages/TeamPage.ts';
 import { BillingPage } from './pages/BillingPage.ts';
 import { ChatPage } from './pages/ChatPage.ts';
-import { TeamCalendarPage } from './pages/TeamCalendarPage.ts';
+import { TeamCalendarPage, initTeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage, initSalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import type { AppState } from './types.ts';
@@ -78,7 +80,7 @@ export async function router() {
         case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
         case 'clients':         await initClientsPage(); return can('view_clients') ? ClientsPage() : DashboardPage();
         case 'tasks':           await initTasksPage(); return can('view_tasks') ? TasksPage() : DashboardPage();
-        case 'team-calendar':   return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
+        case 'team-calendar':   await initTeamCalendarPage(); return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales':           await initSalesPage(); return can('view_sales') ? SalesPage() : DashboardPage();
         case 'invoices':        await initInvoicesPage(); return can('view_invoices') ? InvoicesPage() : DashboardPage();
