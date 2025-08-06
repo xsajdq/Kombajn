@@ -56,11 +56,10 @@ export async function createDefaultWidgets() {
     try {
         const defaultWidgets: Omit<DashboardWidget, 'id'>[] = [
             { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'kpiMetric', config: { metric: 'activeProjects' }, sortOrder: 0, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'timeTrackingSummary', config: { }, sortOrder: 1, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'invoiceSummary', config: { }, sortOrder: 2, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: { taskFilter: 'today' }, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'weeklyPerformance', config: { }, sortOrder: 1, x: 0, y: 0, w: 2, h: 1 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'todaysTasks', config: { taskFilter: 'today', userId: state.currentUser.id }, sortOrder: 2, x: 0, y: 0, w: 1, h: 2 },
+            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'activityFeed', config: {}, sortOrder: 3, x: 0, y: 0, w: 1, h: 1 },
             { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'recentProjects', config: {}, sortOrder: 4, x: 0, y: 0, w: 1, h: 1 },
-            { userId: state.currentUser.id, workspaceId: state.activeWorkspaceId, type: 'activityFeed', config: {}, sortOrder: 5, x: 0, y: 0, w: 1, h: 1 },
         ];
 
         const savedWidgets = await apiPost('dashboard_widgets', defaultWidgets);
@@ -91,8 +90,8 @@ export async function addWidget(type: DashboardWidgetType, metricType?: Dashboar
         type,
         x: 0, 
         y: 0,
-        w: 1, 
-        h: 1,
+        w: type === 'weeklyPerformance' ? 2 : 1, 
+        h: type === 'todaysTasks' ? 2 : 1,
         sortOrder: maxSortOrder + 1,
         config: type === 'kpiMetric' ? { metric: metricType } : {}
     };
