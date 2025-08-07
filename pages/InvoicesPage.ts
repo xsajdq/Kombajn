@@ -1,7 +1,7 @@
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
-import type { Invoice } from '../types.ts';
+import type { Invoice, Workspace } from '../types.ts';
 import { can } from '../permissions.ts';
 import { fetchInvoicesForWorkspace } from '../handlers/invoices.ts';
 
@@ -50,6 +50,12 @@ function renderInvoicesList() {
 
     return `
         <div class="space-y-6">
+             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h3 class="text-xl font-bold">${t('invoices.list_title')}</h3>
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!isAllowedToCreate || !canCreateInvoice ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                    <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
+                </button>
+            </div>
              <div id="invoice-filter-panel" class="bg-content p-3 rounded-lg border border-border-color grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div>
                     <label for="invoice-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('invoices.col_client')}</label>
@@ -145,13 +151,57 @@ function renderInvoicesList() {
     `;
 }
 
+function renderSettingsTab(workspace: Workspace) {
+    const settings = workspace.invoiceSettings || { template: 'modern', accentColor: '#3B82F6', defaultNotes: '' };
+    const templates = ['modern', 'classic', 'elegant', 'minimalist'];
+
+    return `
+        <div class="max-w-4xl mx-auto space-y-6">
+            <h3 class="text-xl font-bold">${t('invoices.settings_title')}</h3>
+            <p class="text-sm text-text-subtle">${t('invoices.settings_subtitle')}</p>
+            
+            <form id="invoice-settings-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">${t('invoices.template_label')}</label>
+                    <div class="invoice-template-grid">
+                        ${templates.map(template => `
+                            <div class="template-card ${settings.template === template ? 'selected' : ''}" data-template-name="${template}">
+                                <div class="template-preview">
+                                    <span class="material-icons-sharp text-4xl">description</span>
+                                </div>
+                                <p class="template-card-name capitalize">${template}</p>
+                            </div>
+                        `).join('')}
+                        <input type="hidden" id="invoice-template-input" value="${settings.template}">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="invoice-accent-color" class="block text-sm font-medium mb-2">${t('invoices.accent_color_label')}</label>
+                        <input type="color" id="invoice-accent-color" class="w-24 h-10 p-1 bg-content border border-border-color rounded-md cursor-pointer" value="${settings.accentColor}">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="invoice-default-notes" class="block text-sm font-medium mb-2">${t('invoices.default_notes_label')}</label>
+                    <textarea id="invoice-default-notes" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" rows="4" placeholder="${t('invoices.default_notes_placeholder')}">${settings.defaultNotes}</textarea>
+                </div>
+
+                <div class="flex justify-end pt-4 border-t border-border-color">
+                    <button type="button" id="save-invoice-settings-btn" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('modals.save')}</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
 export async function initInvoicesPage() {
     const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
 
     if (state.ui.invoices.loadedWorkspaceId !== activeWorkspaceId) {
-        // Set loading state and loaded ID immediately to prevent re-fetching loops.
         setState(prevState => ({
             ui: {
                 ...prevState.ui,
@@ -173,22 +223,35 @@ export function InvoicesPage() {
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
+    
+    const { activeTab } = state.ui.invoices;
 
-    const usage = getUsage(activeWorkspace.id);
-    const planLimits = PLANS[activeWorkspace.subscription.planId];
-    const canCreateInvoice = usage.invoicesThisMonth < planLimits.invoices;
-    const isAllowedToCreate = can('manage_invoices');
+    const navItems = [
+        { id: 'list', text: t('invoices.tab_list') },
+        { id: 'settings', text: t('invoices.tab_settings') },
+    ];
+
+    let content = '';
+    switch (activeTab) {
+        case 'list':
+            content = renderInvoicesList();
+            break;
+        case 'settings':
+            content = renderSettingsTab(activeWorkspace);
+            break;
+    }
 
     return `
         <div class="space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!isAllowedToCreate || !canCreateInvoice ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
-                    <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
-                </button>
+            <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
+            <div class="border-b border-border-color">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    ${navItems.map(item => `
+                        <button type="button" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.invoices.activeTab" data-tab-value="${item.id}">${item.text}</button>
+                    `).join('')}
+                </nav>
             </div>
-            
-            ${renderInvoicesList()}
+            ${content}
         </div>
     `;
 }

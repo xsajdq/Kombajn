@@ -82,6 +82,11 @@ export interface Workspace {
     planHistory?: PlanChange[];
     dashboardGridColumns?: number;
     onboardingCompleted?: boolean;
+    invoiceSettings?: {
+        template: 'modern' | 'classic' | 'elegant' | 'minimalist';
+        accentColor: string;
+        defaultNotes: string;
+    };
 }
 
 export interface WorkspaceMember {
@@ -635,6 +640,17 @@ export interface Budget {
     amount: number;
 }
 
+export interface ChecklistTemplateItem {
+    id: string;
+    text: string;
+}
+export interface ChecklistTemplate {
+    id: string;
+    workspaceId: string;
+    name: string;
+    items: ChecklistTemplateItem[];
+}
+
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 export type ProjectSortByOption = 'name' | 'status' | 'progress' | 'dueDate';
@@ -692,6 +708,7 @@ export interface AppState {
     budgets: Budget[];
     pipelineStages: PipelineStage[];
     kanbanStages: KanbanStage[];
+    checklistTemplates: ChecklistTemplate[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -738,6 +755,9 @@ export interface AppState {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
             sortBy: SortByOption;
+            currentPage: number;
+            hasMore: boolean;
+            isLoadingMore: boolean;
         };
         invoiceFilters: {
             clientId: string;
@@ -780,7 +800,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline' | 'kanban';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline' | 'kanban' | 'checklistTemplates';
         };
         dashboard: {
             isEditing: boolean;
@@ -830,6 +850,7 @@ export interface AppState {
         invoices: {
             isLoading: boolean;
             loadedWorkspaceId: string | null;
+            activeTab: 'list' | 'settings';
         };
         projects: {
             isLoading: boolean;

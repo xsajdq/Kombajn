@@ -346,31 +346,22 @@
   }
   
   /* Workload View */
-  .workload-container { @apply overflow-x-auto; }
-  .workload-grid {
-    @apply grid min-w-[1400px];
-    grid-template-columns: 200px 1fr;
+  .workload-grid-container {
+    @apply grid;
+    grid-template-columns: 200px repeat(7, 1fr);
   }
-  .workload-header {
-    @apply p-2 text-center text-sm font-semibold border-b border-r border-border-color;
+  .workload-header { @apply p-2 text-center text-sm font-semibold border-b border-r border-border-color; }
+  .workload-user-header { @apply sticky left-0 bg-content z-10; }
+  .workload-user-cell { @apply sticky left-0 bg-content z-10 p-2 border-b border-r border-border-color flex items-center gap-2; }
+  .workload-day-cell { 
+    @apply p-1 border-b border-r border-border-color min-h-[100px] overflow-y-auto;
+    -ms-overflow-style: none; /* for Internet Explorer, Edge */
+    scrollbar-width: none; /* for Firefox */
   }
-  .workload-header-user { @apply border-b border-r border-border-color sticky left-0 bg-content z-20; }
-  .workload-header-timeline { @apply grid grid-cols-7; }
-  .workload-header-date { @apply text-center p-2 border-b border-r border-border-color; }
-  .workload-user-cell { @apply flex items-center gap-2 p-2 border-r border-b border-border-color sticky left-0 bg-content z-10; }
-  .workload-user-timeline { @apply relative border-b border-border-color; grid-column: 2 / -1; }
-  .workload-day-cell-container { @apply grid grid-cols-7 h-full; }
-  .workload-day-cell {
-    @apply border-r border-border-color p-1 flex flex-col gap-1 overflow-y-auto;
-    height: 120px;
+  .workload-day-cell::-webkit-scrollbar {
+      display: none; /* for Chrome, Safari, and Opera */
   }
-  .workload-day-cell:last-child { @apply border-r-0; }
-  .capacity-good { background-color: rgba(var(--primary-color-rgb), 0.05); }
-  .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.05); }
-  .workload-task-item {
-    @apply p-1.5 text-xs font-medium text-white truncate rounded cursor-pointer flex-shrink-0;
-  }
-
+  .workload-task-item { @apply bg-primary text-white text-xs p-1 rounded mb-1 truncate cursor-pointer; }
 
   /* Redesigned Task Card */
   .task-card {
@@ -869,6 +860,24 @@
   .leave-header-timeline .calendar-event-content {
     @apply rounded-md;
   }
+
+  /* == Invoice Settings == */
+  .invoice-template-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-4;
+  }
+  .template-card {
+    @apply p-3 border-2 border-border-color rounded-lg cursor-pointer hover:border-primary transition-colors;
+  }
+  .template-card.selected {
+    @apply border-primary ring-2 ring-primary;
+  }
+  .template-preview {
+    @apply h-40 bg-background rounded-md flex items-center justify-center p-2 text-text-subtle;
+  }
+  .template-card-name {
+    @apply mt-2 text-sm font-medium text-center;
+  }
+
 
   /* Mobile menu */
   #app-sidebar.is-mobile-menu-open {

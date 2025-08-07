@@ -72,6 +72,7 @@ export function getInitialState(): AppState {
         budgets: [],
         pipelineStages: [],
         kanbanStages: [],
+        checklistTemplates: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,
@@ -100,6 +101,9 @@ export function getInitialState(): AppState {
                 isLoading: false,
                 loadedWorkspaceId: null,
                 sortBy: 'manual',
+                currentPage: 1,
+                hasMore: true,
+                isLoadingMore: false,
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
@@ -136,6 +140,7 @@ export function getInitialState(): AppState {
             invoices: { 
                 isLoading: false, 
                 loadedWorkspaceId: null,
+                activeTab: 'list',
             },
             projects: { 
                 isLoading: false, 

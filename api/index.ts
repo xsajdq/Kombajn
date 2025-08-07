@@ -1,4 +1,5 @@
 
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -184,7 +185,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages', 'kanban_stages'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages', 'kanban_stages', 'checklist_templates'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -311,7 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly, goalsOnly, budgetOnly, inventoryOnly } = req.query;
+                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly, goalsOnly, budgetOnly, inventoryOnly, page, pageSize } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
             
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
@@ -350,18 +351,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['timeOffRequests'] = supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId);
                     queries['reviews'] = supabase.from('reviews').select('*').eq('workspace_id', workspaceId);
                 } else if (tasksOnly === 'true') {
-                    queries['tasks'] = supabase.from('tasks').select('*').eq('workspace_id', workspaceId);
-                    queries['taskAssignees'] = supabase.from('task_assignees').select('*').eq('workspace_id', workspaceId);
-                    queries['projectSections'] = supabase.from('project_sections').select('*').eq('workspace_id', workspaceId);
-                    queries['taskViews'] = supabase.from('task_views').select('*').eq('workspace_id', workspaceId);
-                    queries['userTaskSortOrders'] = supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id);
-                    queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
-                    queries['taskTags'] = supabase.from('task_tags').select('*').eq('workspace_id', workspaceId);
-                    queries['comments'] = supabase.from('comments').select('*').eq('workspace_id', workspaceId);
-                    queries['dependencies'] = supabase.from('task_dependencies').select('*').eq('workspace_id', workspaceId);
-                    queries['customFieldDefinitions'] = supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId);
-                    queries['customFieldValues'] = supabase.from('custom_field_values').select('*').eq('workspace_id', workspaceId);
-                    queries['kanbanStages'] = supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId);
+                    const pageNum = parseInt(page as string, 10) || 1;
+                    const size = parseInt(pageSize as string, 10) || 50;
+                    const from = (pageNum - 1) * size;
+                    const to = from + size - 1;
+
+                    const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*').eq('workspace_id', workspaceId).range(from, to);
+                    if (tasksError) throw tasksError;
+                    queries['tasks'] = Promise.resolve({ data: tasksData, error: null });
+
+                    const taskIds = (tasksData || []).map((t: any) => t.id);
+
+                    if (taskIds.length > 0) {
+                        queries['taskAssignees'] = supabase.from('task_assignees').select('*').in('task_id', taskIds);
+                        queries['taskTags'] = supabase.from('task_tags').select('*').in('task_id', taskIds);
+                        queries['comments'] = supabase.from('comments').select('*').in('task_id', taskIds);
+                        
+                        const { data: blockingDeps, error: blockingErr } = await supabase.from('task_dependencies').select('*').in('blocked_task_id', taskIds);
+                        if (blockingErr) throw blockingErr;
+                        const { data: blockedDeps, error: blockedErr } = await supabase.from('task_dependencies').select('*').in('blocking_task_id', taskIds);
+                        if (blockedErr) throw blockedErr;
+                        const allDeps = [...(blockingDeps || []), ...(blockedDeps || [])];
+                        const uniqueDeps = [...new Map(allDeps.map(item => [item.id, item])).values()];
+                        queries['dependencies'] = Promise.resolve({ data: uniqueDeps, error: null });
+                        
+                        queries['customFieldValues'] = supabase.from('custom_field_values').select('*').in('task_id', taskIds);
+                        queries['userTaskSortOrders'] = supabase.from('user_task_sort_orders').select('*').eq('workspace_id', workspaceId).eq('user_id', user.id).in('task_id', taskIds);
+                    } else {
+                        ['taskAssignees', 'taskTags', 'comments', 'dependencies', 'customFieldValues', 'userTaskSortOrders'].forEach(key => {
+                            queries[key] = Promise.resolve({ data: [], error: null });
+                        });
+                    }
+
+                    if (pageNum === 1) {
+                        queries['kanbanStages'] = supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId);
+                        queries['projectSections'] = supabase.from('project_sections').select('*').eq('workspace_id', workspaceId);
+                        queries['taskViews'] = supabase.from('task_views').select('*').eq('workspace_id', workspaceId);
+                        queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
+                        queries['customFieldDefinitions'] = supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId);
+                        queries['checklistTemplates'] = supabase.from('checklist_templates').select('*').eq('workspace_id', workspaceId);
+                    } else {
+                        ['kanbanStages', 'projectSections', 'taskViews', 'tags', 'customFieldDefinitions', 'checklistTemplates'].forEach(key => {
+                            queries[key] = Promise.resolve({ data: [], error: null });
+                        });
+                    }
                 } else if (clientsOnly === 'true') {
                     queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);
                     queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);

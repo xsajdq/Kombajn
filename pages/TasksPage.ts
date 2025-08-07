@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
@@ -410,7 +411,7 @@ export async function initTasksPage() {
 
 export function TasksPage() {
     const state = getState();
-    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy, isLoading } = state.ui.tasks;
+    const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy, isLoading, isLoadingMore } = state.ui.tasks;
     const canManage = can('manage_tasks');
 
     let contentHtml = '';
@@ -500,6 +501,12 @@ export function TasksPage() {
             </div>
 
             ${contentHtml}
+
+            ${isLoadingMore ? `
+                <div class="flex items-center justify-center p-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+            ` : ''}
         </div>
     `;
 }

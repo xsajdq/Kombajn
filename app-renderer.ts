@@ -209,7 +209,8 @@ export async function updateUI(componentsToUpdate: UIComponent[]) {
             const tempContainer = document.createElement(oldNode.tagName);
             
             if (isContainer) {
-                // In updateUI, when diffing a container component like the main page content, the temporary container was created without any attributes. This caused the diffing algorithm to remove the attributes (like padding classes) from the actual DOM element. The fix is to copy the attributes from the old element to the temporary container before performing the diff, ensuring that essential layout styles are preserved during lazy-loading and other page updates.
+                // This is the fix: copy attributes from the old element to the new temporary one
+                // before diffing, so attributes like `class` on `<main>` are preserved.
                 for (const attr of oldNode.attributes) {
                     tempContainer.setAttribute(attr.name, attr.value);
                 }

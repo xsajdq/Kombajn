@@ -9,6 +9,7 @@ import { handleChange } from './listeners/change.ts';
 import { handleDragStart, handleDragEnd, handleDragOver, handleDrop } from './handlers/dnd.ts';
 import { handleMouseUp } from './listeners/selection.ts';
 import { handleProgressMouseDown } from './listeners/progress.ts';
+import { handleScroll } from './listeners/scroll.ts';
 
 export function setupEventListeners() {
     // By attaching to document, we can catch events on dynamically created elements
@@ -39,4 +40,7 @@ export function setupEventListeners() {
     app.addEventListener('dragend', handleDragEnd);
     app.addEventListener('dragover', handleDragOver);
     app.addEventListener('drop', handleDrop);
+    
+    // Add scroll listener in capture mode to detect scroll on the <main> element
+    app.addEventListener('scroll', handleScroll, true);
 }
