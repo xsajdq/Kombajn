@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { updateUI, UIComponent } from '../app-renderer.ts';
 import { apiFetch } from '../services/api.ts';
@@ -18,7 +19,8 @@ export type ResourceName =
     | 'task_dependencies'
     | 'attachments'
     | 'clients'
-    | 'projects';
+    | 'projects'
+    | 'checklist_templates';
 
 // A type mapping resource names to their corresponding keys in the global state.
 type StateKey =
@@ -35,7 +37,8 @@ type StateKey =
     | 'dependencies'
     | 'attachments'
     | 'clients'
-    | 'projects';
+    | 'projects'
+    | 'checklistTemplates';
 
 const resourceToStateMap: Record<ResourceName, StateKey> = {
     'automations': 'automations',
@@ -51,7 +54,8 @@ const resourceToStateMap: Record<ResourceName, StateKey> = {
     'task_dependencies': 'dependencies',
     'attachments': 'attachments',
     'clients': 'clients',
-    'projects': 'projects'
+    'projects': 'projects',
+    'checklist_templates': 'checklistTemplates'
 };
 
 /**

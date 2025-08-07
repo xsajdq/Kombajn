@@ -13,35 +13,70 @@ import { getWorkspaceKanbanWorkflow } from './main.ts';
 declare const gapi: any;
 declare const google: any;
 
-export async function fetchTasksForWorkspace(workspaceId: string) {
-    console.log(`Fetching task data for workspace ${workspaceId}...`);
+const TASK_PAGE_SIZE = 50;
+
+export async function loadMoreTasks() {
+    const state = getState();
+    const { currentPage, isLoadingMore, hasMore } = state.ui.tasks;
+    if (isLoadingMore || !hasMore) {
+        return;
+    }
+
+    setState(prevState => ({
+        ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoadingMore: true } }
+    }), []); // No UI update needed yet, just state change
+
+    await fetchTasksForWorkspace(state.activeWorkspaceId!, currentPage + 1, true);
+}
+
+
+export async function fetchTasksForWorkspace(workspaceId: string, page = 1, append = false) {
+    console.log(`Fetching task data for workspace ${workspaceId}, page ${page}, append: ${append}...`);
     try {
-        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&tasksOnly=true`);
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${workspaceId}&tasksOnly=true&page=${page}&pageSize=${TASK_PAGE_SIZE}`);
         if (!data) throw new Error("Task data fetch returned null.");
 
-        setState(prevState => ({
-            tasks: data.tasks || [],
-            kanbanStages: data.kanbanStages || [],
-            taskAssignees: data.taskAssignees || [],
-            projectSections: data.projectSections || [],
-            taskViews: data.taskViews || [],
-            userTaskSortOrders: data.userTaskSortOrders || [],
-            taskTags: data.taskTags || [],
-            comments: data.comments || [],
-            dependencies: data.dependencies || [],
-            customFieldValues: data.customFieldValues || [],
-            tags: data.tags ? [...prevState.tags.filter(t => !data.tags.some((dt: Tag) => dt.id === t.id)), ...data.tags] : prevState.tags,
-            customFieldDefinitions: data.customFieldDefinitions ? [...prevState.customFieldDefinitions.filter(d => !data.customFieldDefinitions.some((dd: CustomFieldDefinition) => dd.id === d.id)), ...data.customFieldDefinitions] : prevState.customFieldDefinitions,
-            ui: {
-                ...prevState.ui,
-                tasks: { ...prevState.ui.tasks, isLoading: false },
-            }
-        }), ['page']);
+        const newTasks = data.tasks || [];
+
+        setState(prevState => {
+            const mergeById = (oldData: any[], newData: any[], idKey = 'id') => {
+                if (!newData) return oldData;
+                const dataMap = new Map(oldData.map(item => [item[idKey], item]));
+                newData.forEach((item: any) => dataMap.set(item[idKey], item));
+                return Array.from(dataMap.values());
+            };
+
+            return {
+                tasks: append ? [...prevState.tasks, ...newTasks] : newTasks,
+                kanbanStages: !append ? (data.kanbanStages || []) : prevState.kanbanStages,
+                taskAssignees: append ? [...prevState.taskAssignees, ...(data.taskAssignees || [])] : (data.taskAssignees || []),
+                projectSections: !append ? (data.projectSections || []) : prevState.projectSections,
+                taskViews: !append ? (data.taskViews || []) : prevState.taskViews,
+                userTaskSortOrders: append ? [...prevState.userTaskSortOrders, ...(data.userTaskSortOrders || [])] : (data.userTaskSortOrders || []),
+                taskTags: append ? [...prevState.taskTags, ...(data.taskTags || [])] : (data.taskTags || []),
+                comments: append ? [...prevState.comments, ...(data.comments || [])] : (data.comments || []),
+                dependencies: append ? [...prevState.dependencies, ...(data.dependencies || [])] : (data.dependencies || []),
+                customFieldValues: append ? [...prevState.customFieldValues, ...(data.customFieldValues || [])] : (data.customFieldValues || []),
+                tags: mergeById(prevState.tags, data.tags),
+                customFieldDefinitions: mergeById(prevState.customFieldDefinitions, data.customFieldDefinitions),
+                checklistTemplates: !append ? (data.checklistTemplates || []) : prevState.checklistTemplates,
+                ui: {
+                    ...prevState.ui,
+                    tasks: {
+                        ...prevState.ui.tasks,
+                        isLoading: false,
+                        isLoadingMore: false,
+                        currentPage: page,
+                        hasMore: newTasks.length === TASK_PAGE_SIZE,
+                    }
+                }
+            };
+        }, ['page']);
         console.log(`Successfully fetched task data for workspace ${workspaceId}.`);
     } catch (error) {
         console.error("Failed to fetch task data:", error);
         setState(prevState => ({
-            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: false, loadedWorkspaceId: null } }
+            ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoading: false, isLoadingMore: false, loadedWorkspaceId: append ? prevState.ui.tasks.loadedWorkspaceId : null } }
         }), ['page']);
     }
 }

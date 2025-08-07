@@ -60,11 +60,6 @@ export async function handleFormSubmit() {
                 }),
             });
 
-            const sentAt = new Date().toISOString();
-            setState(prevState => ({
-                invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: 'sent', sentAt } : i)
-            }), ['page']);
-
             closeModal();
 
         } catch (err) {
@@ -346,6 +341,17 @@ export async function handleFormSubmit() {
                 const assigneePayloads = assigneeIds.map(userId => ({ taskId: savedTask.id, userId, workspaceId: activeWorkspaceId }));
                 const savedAssignees = await apiPost('task_assignees', assigneePayloads);
                 setState(prevState => ({ taskAssignees: [...prevState.taskAssignees, ...savedAssignees] }), []);
+                
+                // Send notifications
+                for (const userId of assigneeIds) {
+                    if (userId !== state.currentUser!.id) {
+                        await createNotification('new_assignment', {
+                            taskId: savedTask.id,
+                            userIdToNotify: userId,
+                            actorId: state.currentUser!.id,
+                        });
+                    }
+                }
             }
             
             const tagCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="taskTags"]:checked');
