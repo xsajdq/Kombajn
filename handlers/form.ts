@@ -61,7 +61,6 @@ export async function handleFormSubmit() {
             });
 
             const sentAt = new Date().toISOString();
-            await apiPut('invoices', { id: invoiceId, emailStatus: 'sent', sentAt });
             setState(prevState => ({
                 invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: 'sent', sentAt } : i)
             }), ['page']);
@@ -451,6 +450,99 @@ export async function handleFormSubmit() {
             }
         }
         
+        if (type === 'addExpense') {
+            const form = document.getElementById('addExpenseForm') as HTMLFormElement;
+            const expenseData: Omit<Expense, 'id'> = {
+                workspaceId: activeWorkspaceId,
+                userId: state.currentUser.id,
+                description: (form.querySelector('#expenseDescription') as HTMLInputElement).value,
+                amount: parseFloat((form.querySelector('#expenseAmount') as HTMLInputElement).value),
+                date: (form.querySelector('#expenseDate') as HTMLInputElement).value,
+                projectId: (form.querySelector('#expenseProject') as HTMLSelectElement).value || undefined,
+                category: (form.querySelector('#expenseCategory') as HTMLInputElement).value || undefined,
+                isBillable: (form.querySelector('#expenseIsBillable') as HTMLInputElement).checked,
+            };
+            const [savedExpense] = await apiPost('expenses', expenseData);
+            setState(prevState => ({ expenses: [...prevState.expenses, savedExpense] }), []);
+        }
+
+        if (type === 'setBudgets') {
+            const form = document.getElementById('setBudgetsForm') as HTMLFormElement;
+            const period = form.dataset.period!;
+            const budgetRows = form.querySelectorAll<HTMLElement>('#budgets-container > div');
+            const budgetsToUpsert: Omit<Budget, 'id'>[] = [];
+            
+            budgetRows.forEach(row => {
+                const categoryInput = row.querySelector('input[name^="budget_category"]') as HTMLInputElement;
+                const amountInput = row.querySelector('input[name^="budget_amount"]') as HTMLInputElement;
+                const category = categoryInput.value.trim();
+                const amount = parseFloat(amountInput.value);
+                if (category && !isNaN(amount)) {
+                    budgetsToUpsert.push({
+                        workspaceId: activeWorkspaceId,
+                        category,
+                        period,
+                        amount,
+                    });
+                }
+            });
+            
+            if (budgetsToUpsert.length > 0) {
+                const savedBudgets = await apiPost('budgets', budgetsToUpsert);
+                setState(prevState => ({
+                    budgets: [...prevState.budgets.filter(b => b.period !== period), ...savedBudgets]
+                }), []);
+            }
+        }
+        
+        if (type === 'addInventoryItem') {
+            const form = document.getElementById('addInventoryItemForm') as HTMLFormElement;
+            const itemId = form.dataset.itemId;
+            const isEdit = !!itemId;
+            
+            const itemData = {
+                workspaceId: activeWorkspaceId,
+                name: (form.querySelector('#itemName') as HTMLInputElement).value,
+                category: (form.querySelector('#itemCategory') as HTMLInputElement).value || undefined,
+                sku: (form.querySelector('#itemSku') as HTMLInputElement).value || undefined,
+                location: (form.querySelector('#itemLocation') as HTMLInputElement).value || undefined,
+                currentStock: parseInt((form.querySelector('#itemCurrentStock') as HTMLInputElement).value) || 0,
+                targetStock: parseInt((form.querySelector('#itemTargetStock') as HTMLInputElement).value) || 0,
+                lowStockThreshold: parseInt((form.querySelector('#itemLowStockThreshold') as HTMLInputElement).value) || 0,
+                unitPrice: parseFloat((form.querySelector('#itemUnitPrice') as HTMLInputElement).value) || 0,
+            };
+            
+            if (isEdit) {
+                const [updatedItem] = await apiPut('inventory_items', { ...itemData, id: itemId });
+                setState(prevState => ({
+                    inventoryItems: prevState.inventoryItems.map(i => i.id === itemId ? updatedItem : i)
+                }), ['page']);
+            } else {
+                const [newItem] = await apiPost('inventory_items', itemData);
+                setState(prevState => ({ inventoryItems: [...prevState.inventoryItems, newItem] }), ['page']);
+            }
+        }
+
+        if (type === 'assignInventoryItem') {
+            const form = document.getElementById('assignInventoryItemForm') as HTMLFormElement;
+            const itemId = form.dataset.itemId!;
+            
+            const assignmentData: Omit<InventoryAssignment, 'id' | 'createdAt'> = {
+                workspaceId: activeWorkspaceId,
+                itemId: itemId,
+                employeeId: (form.querySelector('#assign-employee-select') as HTMLSelectElement).value,
+                assignmentDate: (form.querySelector('#assignmentDate') as HTMLInputElement).value,
+                returnDate: (form.querySelector('#returnDate') as HTMLInputElement).value || undefined,
+                serialNumber: (form.querySelector('#serialNumber') as HTMLInputElement).value || undefined,
+                notes: (form.querySelector('#notes') as HTMLTextAreaElement).value || undefined,
+            };
+            
+            const [newAssignment] = await apiPost('inventory_assignments', assignmentData);
+            setState(prevState => ({
+                inventoryAssignments: [...prevState.inventoryAssignments, newAssignment]
+            }), ['page']);
+        }
+
     } catch (error) {
         console.error("Form submission error:", error);
         alert(`${t('errors.generic_error')}: ${(error as Error).message}`);
