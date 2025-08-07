@@ -1,4 +1,3 @@
-
 import { getState, setState } from '../state.ts';
 import { updateUI, UIComponent } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -37,7 +36,8 @@ import { handleInsertSlashCommand } from '../handlers/editor.ts';
 import { handleOptimisticDelete, ResourceName } from '../handlers/generic.ts';
 
 function closeDynamicMenus() {
-    document.querySelectorAll('#dynamic-role-menu, .task-card-menu').forEach(menu => menu.remove());
+    document.querySelectorAll('#dynamic-role-menu, .task-card-menu, .dropdown-menu, .reaction-picker, .breadcrumb-switcher-menu, #reminder-popover, .custom-select-dropdown').forEach(menu => menu.classList.add('hidden'));
+    document.querySelectorAll('[data-menu-toggle], [data-breadcrumb-switcher]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
 }
 
 
@@ -72,8 +72,8 @@ function showTaskCardMenu(taskId: string, buttonElement: HTMLElement) {
 }
 
 function renderNewClientContactFormRow() {
-    const id = `new-${Date.now()}`;
     const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
+    const id = `new-${Date.now()}`;
     return `
         <div class="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 items-center contact-form-row" data-contact-id="${id}">
             <input type="text" class="${formControlClasses}" data-field="name" placeholder="${t('modals.contact_person')}" value="" required>
@@ -211,6 +211,52 @@ export async function handleClick(e: MouseEvent) {
         hiddenInput.value = String(totalSeconds);
         return;
     }
+    
+    // --- Custom Select Dropdown Logic ---
+    const customSelectToggle = target.closest<HTMLElement>('.custom-select-toggle');
+    if (customSelectToggle) {
+        const dropdown = customSelectToggle.nextElementSibling as HTMLElement;
+        if (dropdown) {
+            const isHidden = dropdown.classList.toggle('hidden');
+            // Close other custom dropdowns
+            document.querySelectorAll('.custom-select-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.add('hidden');
+            });
+        }
+        return;
+    }
+
+    const customSelectOption = target.closest<HTMLElement>('.custom-select-option');
+    if (customSelectOption) {
+        const container = customSelectOption.closest<HTMLElement>('.custom-select-container')!;
+        const value = customSelectOption.dataset.value!;
+
+        const display = container.querySelector('.custom-select-display')!;
+        display.innerHTML = customSelectOption.innerHTML;
+
+        const hiddenInput = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+        if(hiddenInput) hiddenInput.value = value;
+        
+        const key = container.dataset.fieldKey;
+        if (key && container.closest('#addGoalForm')) {
+            // This is a specific handler until we refactor modals to not need this
+        } else if (container.closest('#task-filter-panel')) {
+             filterHandlers.handleFilterChange({ dataset: { filterKey: 'assigneeId' }, value } as any);
+        } else if (container.closest('#report-filter-panel')) {
+            setState(prevState => ({
+                ui: { ...prevState.ui, reports: { ...prevState.ui.reports, filters: { ...prevState.ui.reports.filters, userId: value } } }
+            }), ['page']);
+        }
+        
+        const dropdown = customSelectOption.closest<HTMLElement>('.custom-select-dropdown')!;
+        dropdown.classList.add('hidden');
+        return;
+    }
+    
+    
+    if (!target.closest('.custom-select-container')) {
+        document.querySelectorAll('.custom-select-dropdown').forEach(d => d.classList.add('hidden'));
+    }
 
     // --- START: Timesheet User Selector ---
     const timesheetUserToggle = target.closest<HTMLElement>('[data-timesheet-user-toggle]');
@@ -334,17 +380,7 @@ export async function handleClick(e: MouseEvent) {
     if (addContactRowBtn) {
         const container = document.getElementById('client-contacts-container');
         if (container) {
-            const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
-            const newRowHtml = `
-                <div class="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 items-center contact-form-row" data-contact-id="new-${Date.now()}">
-                    <input type="text" class="${formControlClasses}" data-field="name" placeholder="${t('modals.contact_person')}" value="" required>
-                    <input type="email" class="${formControlClasses}" data-field="email" placeholder="${t('modals.email')}" value="">
-                    <input type="text" class="${formControlClasses}" data-field="phone" placeholder="${t('modals.phone')}" value="">
-                    <input type="text" class="${formControlClasses}" data-field="role" placeholder="${t('modals.contact_role')}" value="">
-                    <button type="button" class="p-2 text-danger hover:bg-danger/10 rounded-full remove-contact-row-btn" title="${t('modals.remove_item')}"><span class="material-icons-sharp">delete</span></button>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', newRowHtml);
+            container.insertAdjacentHTML('beforeend', renderNewClientContactFormRow());
         }
         return;
     }
@@ -367,6 +403,24 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     // --- End Client Modal Contact Handlers ---
+    
+    // --- Budget Modal Handler ---
+    if (target.id === 'add-budget-category-btn') {
+        const container = document.getElementById('budgets-container');
+        if (container) {
+            const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
+            const newRowHtml = `
+                <div class="grid grid-cols-[1fr,auto] gap-2 items-center">
+                    <input type="text" class="${formControlClasses}" name="budget_category_new_${Date.now()}" placeholder="${t('budget.modal_category')}" required>
+                    <input type="number" class="${formControlClasses} w-32 text-right" name="budget_amount_new_${Date.now()}" value="0.00" min="0" step="0.01" required>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', newRowHtml);
+            (container.lastElementChild?.querySelector('input') as HTMLInputElement)?.focus();
+        }
+        return;
+    }
+
 
     // --- Invoice Page Handlers ---
     const downloadInvoiceBtn = target.closest<HTMLElement>('[data-download-invoice-id]');
@@ -557,9 +611,6 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    if (!target.closest('.reaction-picker') && !target.closest('[data-react-to-comment-id]')) {
-        document.querySelectorAll('.reaction-picker').forEach(p => p.classList.add('hidden'));
-    }
     
     const emojiBtn = target.closest<HTMLElement>('.reaction-picker button[data-emoji]');
     if (emojiBtn) {
@@ -642,28 +693,14 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
     
-    if (!target.closest('#reminder-popover') && !target.closest('[data-set-reminder-for-task-id]')) {
-        document.getElementById('reminder-popover')?.remove();
-    }
-
     const menuToggle = target.closest<HTMLElement>('[data-menu-toggle]');
     const associatedMenu = menuToggle ? document.getElementById(menuToggle.dataset.menuToggle!) : null;
 
-    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if (menu !== associatedMenu && menu.id !== 'dynamic-role-menu') {
-            menu.classList.add('hidden');
-            const correspondingToggle = document.querySelector(`[data-menu-toggle="${menu.id}"]`);
-            if (correspondingToggle) correspondingToggle.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    if (!menuToggle && !target.closest('.dropdown-menu') && !target.closest('#dynamic-role-menu')) {
-         document.querySelectorAll('[data-menu-toggle]').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-         closeDynamicMenus();
-    }
-
-    if (menuToggle && associatedMenu) {
+    if (!target.closest('[data-menu-toggle], .dropdown-menu, #dynamic-role-menu, .breadcrumb-switcher-menu, #reminder-popover, .custom-select-container')) {
         closeDynamicMenus();
+    }
+    
+    if (menuToggle && associatedMenu) {
         const isHidden = associatedMenu.classList.toggle('hidden');
         menuToggle.setAttribute('aria-expanded', String(!isHidden));
         return;

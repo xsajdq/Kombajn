@@ -1,14 +1,37 @@
 
-import { getState } from '../state.ts';
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate } from '../utils.ts';
 import type { Budget, Expense, Invoice } from '../types.ts';
+import { fetchBudgetDataForWorkspace } from '../handlers/budget.ts';
+
+export async function initBudgetPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.budget.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                budget: { ...prevState.ui.budget, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        await fetchBudgetDataForWorkspace(activeWorkspaceId);
+    }
+}
 
 export function BudgetPage() {
     const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
+
+    if (state.ui.budget.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
 
     const canManage = can('manage_budgets');
     const now = new Date();

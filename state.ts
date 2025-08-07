@@ -124,7 +124,8 @@ export function getInitialState(): AppState {
             dashboard: { isEditing: false, isLoading: false, loadedWorkspaceId: null, activeTab: 'my_day' },
             hr: { activeTab: 'employees', filters: { text: '' } },
             goals: { filters: { text: '', status: 'all', ownerId: 'all' }, isLoading: false, loadedWorkspaceId: null },
-            inventory: { filters: { text: '' } },
+            inventory: { filters: { text: '' }, isLoading: false, loadedWorkspaceId: null },
+            budget: { isLoading: false, loadedWorkspaceId: null },
             onboarding: { isActive: false, step: 0 },
             sales: { isLoading: false, loadedWorkspaceId: null },
             clients: { 

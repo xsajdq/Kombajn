@@ -233,6 +233,12 @@
   .multiselect-display .avatar {
      @apply w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold;
   }
+  .multiselect-selected-item {
+    @apply flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 rounded;
+  }
+  .multiselect-selected-item .avatar {
+      @apply w-5 h-5 text-xs;
+  }
   .multiselect-dropdown {
     @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-20;
   }
@@ -340,25 +346,29 @@
   }
   
   /* Workload View */
-  .workload-grid-container {
-    display: grid;
-    grid-template-columns: 200px repeat(7, 1fr);
-    min-width: 1000px;
+  .workload-container { @apply overflow-x-auto; }
+  .workload-grid {
+    @apply grid min-w-[1400px];
+    grid-template-columns: 200px 1fr;
   }
   .workload-header {
     @apply p-2 text-center text-sm font-semibold border-b border-r border-border-color;
   }
-  .workload-user-header {
-    @apply sticky left-0 bg-content z-10 border-b border-r border-border-color;
-  }
-  .workload-user-cell {
-    @apply sticky left-0 bg-content p-2 border-b border-r border-border-color z-10;
-  }
+  .workload-header-user { @apply border-b border-r border-border-color sticky left-0 bg-content z-20; }
+  .workload-header-timeline { @apply grid grid-cols-7; }
+  .workload-header-date { @apply text-center p-2 border-b border-r border-border-color; }
+  .workload-user-cell { @apply flex items-center gap-2 p-2 border-r border-b border-border-color sticky left-0 bg-content z-10; }
+  .workload-user-timeline { @apply relative border-b border-border-color; grid-column: 2 / -1; }
+  .workload-day-cell-container { @apply grid grid-cols-7 h-full; }
   .workload-day-cell {
-    @apply p-1 border-b border-r border-border-color min-h-[80px];
+    @apply border-r border-border-color p-1 flex flex-col gap-1 overflow-y-auto;
+    height: 120px;
   }
+  .workload-day-cell:last-child { @apply border-r-0; }
+  .capacity-good { background-color: rgba(var(--primary-color-rgb), 0.05); }
+  .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.05); }
   .workload-task-item {
-    @apply text-xs bg-primary/10 text-primary p-1 rounded-md mb-1 truncate cursor-pointer;
+    @apply p-1.5 text-xs font-medium text-white truncate rounded cursor-pointer flex-shrink-0;
   }
 
 
@@ -765,6 +775,20 @@
   .deal-probability-bar-inner {
       @apply h-1.5 rounded-full bg-success;
   }
+  .sales-board-container {
+    @apply grid h-full gap-4 p-1;
+    grid-auto-flow: column;
+    grid-auto-columns: 288px; /* w-72 */
+  }
+  .sales-board-column {
+    @apply flex flex-col bg-background rounded-lg;
+  }
+  .sales-board-column-header {
+    @apply p-3 font-semibold text-text-main flex justify-between items-center border-b border-border-color;
+  }
+  .sales-board-column-body {
+    @apply flex-1 min-h-0 overflow-y-auto p-2 space-y-3;
+  }
 
   /* == Command Palette (Redesigned) == */
   .command-palette-overlay {
@@ -809,6 +833,12 @@
   .command-shortcut {
       @apply ml-auto text-xs text-text-subtle bg-background px-1.5 py-0.5 rounded-md border border-border-color;
   }
+  
+  /* == Custom Select Dropdown == */
+  .custom-select-container { @apply relative; }
+  .custom-select-dropdown { @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-20; }
+  .custom-select-list { @apply max-h-48 overflow-y-auto p-1; }
+  .custom-select-option { @apply flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer text-sm; }
 
   /* == Team Calendar (All Views) == */
   .calendar-event-bar {
@@ -838,44 +868,6 @@
   }
   .leave-header-timeline .calendar-event-content {
     @apply rounded-md;
-  }
-
-  .workload-container { @apply overflow-x-auto; }
-  .workload-grid {
-    @apply grid min-w-[1400px];
-    grid-template-columns: 200px 1fr;
-  }
-  .workload-header-user { @apply border-b border-r border-border-color sticky left-0 bg-content z-20; }
-  .workload-header-timeline { @apply grid grid-cols-7; }
-  .workload-header-date { @apply text-center p-2 border-b border-r border-border-color; }
-  .workload-user-cell { @apply flex items-center gap-2 p-2 border-r border-b border-border-color sticky left-0 bg-content z-10; }
-  .workload-user-timeline { @apply relative border-b border-border-color; grid-column: 2 / -1; }
-  .workload-day-cell-container { @apply grid grid-cols-7 h-full; }
-  .workload-day-cell { @apply border-r border-border-color p-1 min-h-[60px]; }
-  .workload-day-cell:last-child { @apply border-r-0; }
-  .capacity-good { background-color: rgba(var(--primary-color-rgb), 0.05); }
-  .capacity-over { background-color: rgba(var(--danger-color-rgb), 0.05); }
-  .workload-task-bars { @apply absolute inset-0; }
-  .workload-task-bar { @apply absolute h-6 px-2 text-xs font-medium text-white truncate flex items-center rounded cursor-pointer; }
-
-  .timesheet-container { @apply overflow-auto; height: calc(100vh - 300px); }
-  .timesheet-grid { @apply grid min-w-[1200px] relative; grid-template-columns: 60px repeat(7, 1fr); }
-  .timesheet-header { @apply sticky top-0 bg-content z-20 border-b border-r border-border-color; grid-column: 1; grid-row: 1; }
-  .timesheet-day-header { @apply text-center p-2 border-b border-r border-border-color sticky top-0 bg-content z-20; }
-  .time-axis-container { @apply col-start-1 row-start-2 border-r border-border-color text-right text-xs text-text-subtle sticky left-0 bg-content z-10; }
-  .time-axis { @apply h-12 pr-2 border-t border-border-color; }
-  .day-column { @apply row-start-2 relative border-r border-border-color; }
-  .day-column:last-child { @apply border-r-0; }
-  .hour-row { @apply h-12 border-t border-border-color; }
-  .timesheet-entry { @apply absolute rounded-md p-1.5 text-white text-xs overflow-hidden cursor-pointer flex gap-1 z-10; border: 1px solid rgba(0,0,0,0.2); }
-  .timesheet-entry-initials { @apply w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-xs font-bold shrink-0; }
-  .timesheet-entry-content { @apply overflow-hidden; }
-  .timesheet-entry-content strong { @apply block truncate font-semibold; }
-  .timesheet-entry-content p { @apply truncate text-white/80; }
-
-  /* == Reminder Popover == */
-  .reminder-popover {
-    @apply absolute z-50 w-64 bg-content p-3 rounded-lg shadow-xl border border-border-color space-y-3;
   }
 
   /* Mobile menu */

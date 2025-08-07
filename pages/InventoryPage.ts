@@ -1,9 +1,27 @@
 
-import { getState } from '../state.ts';
+
+import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency } from '../utils.ts';
 import type { InventoryItem } from '../types.ts';
+import { fetchInventoryDataForWorkspace } from '../handlers/inventory.ts';
+
+export async function initInventoryPage() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    if (state.ui.inventory.loadedWorkspaceId !== activeWorkspaceId) {
+        setState(prevState => ({
+            ui: {
+                ...prevState.ui,
+                inventory: { ...prevState.ui.inventory, isLoading: true, loadedWorkspaceId: activeWorkspaceId }
+            }
+        }), ['page']);
+        await fetchInventoryDataForWorkspace(activeWorkspaceId);
+    }
+}
 
 // Helper to calculate KPI values
 function getInventoryKpis(items: InventoryItem[]) {
@@ -33,6 +51,12 @@ export function InventoryPage() {
     const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return '';
+    
+    if (state.ui.inventory.isLoading) {
+        return `<div class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>`;
+    }
 
     const filterText = state.ui.inventory.filters.text.toLowerCase();
     let inventoryItems = state.inventoryItems.filter(item => item.workspaceId === activeWorkspaceId);
@@ -81,11 +105,11 @@ export function InventoryPage() {
                     <span class="px-2 py-1 text-xs font-semibold rounded-full capitalize ${statusClass}">${t(`inventory.status_${status}`)}</span>
                 </td>
                 <td data-label="${t('inventory.col_actions')}" class="px-4 py-3">
-                    <div class="flex items-center gap-2 text-sm">
+                    <div class="flex justify-end items-center gap-2 text-sm">
                         <button class="text-primary hover:underline" data-modal-target="assignInventoryItem" data-item-id="${item.id}">Assign</button>
                         ${canManage ? `
                             <button class="text-primary hover:underline" data-modal-target="addInventoryItem" data-item-id="${item.id}">Edit</button>
-                            <button class="text-danger hover:underline" data-delete-inventory-item-id="${item.id}">Delete</button>
+                            <button class="text-danger hover:underline" data-delete-resource="inventory_items" data-delete-id="${item.id}" data-delete-confirm="Are you sure you want to delete this item?">Delete</button>
                         ` : ''}
                     </div>
                 </td>

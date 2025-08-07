@@ -2,6 +2,7 @@
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { User, Project, Tag, FilterView } from '../types.ts';
+import { getUserInitials } from '../utils.ts';
 
 export function TaskFilterPanel() {
     const state = getState();
@@ -21,6 +22,7 @@ export function TaskFilterPanel() {
 
     const dateRanges = ['all', 'today', 'tomorrow', 'yesterday', 'this_week', 'overdue'];
     const activeView = savedViews.find(v => v.id === activeFilterViewId);
+    const selectedAssignee = filters.assigneeId ? workspaceMembers.find(u => u.id === filters.assigneeId) : null;
 
     return `
         <div class="space-y-4">
@@ -35,11 +37,32 @@ export function TaskFilterPanel() {
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div class="flex flex-col gap-1.5">
-                    <label for="task-filter-assignee" class="text-xs font-medium text-text-subtle">${t('modals.assignees')}</label>
-                    <select id="task-filter-assignee" class="form-control" data-filter-key="assigneeId">
-                        <option value="">${t('tasks.all_assignees')}</option>
-                        ${workspaceMembers.map(u => `<option value="${u.id}" ${filters.assigneeId === u.id ? 'selected' : ''}>${u.name || u.initials}</option>`).join('')}
-                    </select>
+                    <label class="text-xs font-medium text-text-subtle">${t('modals.assignees')}</label>
+                    <div class="relative custom-select-container" data-filter-key="assigneeId" data-current-value="${filters.assigneeId}">
+                         <input type="hidden" id="task-assignee-filter-value" value="${filters.assigneeId}">
+                        <button type="button" class="form-control text-left flex justify-between items-center custom-select-toggle">
+                            <span class="custom-select-display flex items-center gap-2">
+                                ${selectedAssignee
+                                    ? `<div class="avatar-small">${getUserInitials(selectedAssignee)}</div><span>${selectedAssignee.name || selectedAssignee.initials}</span>`
+                                    : `<span>${t('tasks.all_assignees')}</span>`
+                                }
+                            </span>
+                            <span class="material-icons-sharp text-base">expand_more</span>
+                        </button>
+                        <div class="custom-select-dropdown hidden">
+                            <div class="custom-select-list">
+                                <div class="custom-select-option ${!filters.assigneeId ? 'bg-primary/10' : ''}" data-value="">
+                                    <span>${t('tasks.all_assignees')}</span>
+                                </div>
+                                ${workspaceMembers.map(u => `
+                                    <div class="custom-select-option ${filters.assigneeId === u.id ? 'bg-primary/10' : ''}" data-value="${u.id}">
+                                        <div class="avatar-small">${getUserInitials(u)}</div>
+                                        <span>${u.name || u.initials}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label for="task-filter-priority" class="text-xs font-medium text-text-subtle">${t('modals.priority')}</label>

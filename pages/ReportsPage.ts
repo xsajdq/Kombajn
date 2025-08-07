@@ -1,7 +1,7 @@
 
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
-import { formatDuration, formatDate, formatCurrency } from '../utils.ts';
+import { formatDuration, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import type { Task, TimeLog, Invoice, Client, User, Project, Expense, Objective } from '../types.ts';
 
 declare const Chart: any;
@@ -281,8 +281,11 @@ export function ReportsPage() {
     if (activeTab === 'goals' && objectives.length > 0) content = renderGoalsReports({ objectives });
 
     const workspaceProjects = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId);
-    const workspaceUsers = state.workspaceMembers.filter(m => m.workspaceId === state.activeWorkspaceId).map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
+    const workspaceUsers = state.workspaceMembers.filter(m => m.workspaceId === state.activeWorkspaceId).map(m => state.users.find(u => u.id === m.userId)).filter((u): u is User => !!u);
     const workspaceClients = state.clients.filter(c => c.workspaceId === state.activeWorkspaceId);
+    
+    const selectedUser = filters.userId !== 'all' ? workspaceUsers.find(u => u.id === filters.userId) : null;
+
 
     const navItems = [
         { id: 'productivity', text: t('reports.tab_productivity') },
@@ -294,7 +297,7 @@ export function ReportsPage() {
     return `
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('reports.title')}</h2>
-            <div class="bg-content p-4 rounded-lg shadow-sm border border-border-color">
+            <div id="report-filter-panel" class="bg-content p-4 rounded-lg shadow-sm border border-border-color">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                     <div>
                         <label for="report-filter-date-start" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_date_range')}</label>
@@ -311,11 +314,32 @@ export function ReportsPage() {
                         </select>
                     </div>
                     <div>
-                        <label for="report-filter-user" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_user')}</label>
-                        <select id="report-filter-user" class="form-control" data-filter-key="userId">
-                            <option value="all">${t('reports.all_users')}</option>
-                            ${workspaceUsers.map(u => `<option value="${u!.id}" ${filters.userId === u!.id ? 'selected' : ''}>${u!.name}</option>`).join('')}
-                        </select>
+                        <label class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_user')}</label>
+                        <div class="relative custom-select-container" data-filter-key="userId" data-current-value="${filters.userId}">
+                             <input type="hidden" id="report-user-filter-value" value="${filters.userId}">
+                            <button type="button" class="form-control text-left flex justify-between items-center custom-select-toggle">
+                                <span class="custom-select-display flex items-center gap-2">
+                                    ${selectedUser 
+                                        ? `<div class="avatar-small">${getUserInitials(selectedUser)}</div><span>${selectedUser.name}</span>` 
+                                        : `<span>${t('reports.all_users')}</span>`
+                                    }
+                                </span>
+                                <span class="material-icons-sharp text-base">expand_more</span>
+                            </button>
+                            <div class="custom-select-dropdown hidden">
+                                <div class="custom-select-list">
+                                    <div class="custom-select-option ${filters.userId === 'all' ? 'bg-primary/10' : ''}" data-value="all">
+                                        <span>${t('reports.all_users')}</span>
+                                    </div>
+                                    ${workspaceUsers.map(u => `
+                                        <div class="custom-select-option ${filters.userId === u.id ? 'bg-primary/10' : ''}" data-value="${u.id}">
+                                            <div class="avatar-small">${getUserInitials(u)}</div>
+                                            <span>${u.name}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                      <div>
                         <label for="report-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_client')}</label>

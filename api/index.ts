@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -310,7 +311,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { data: { user }, error: authError } = await supabase.auth.getUser(token);
                 if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token.' });
             
-                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly, goalsOnly } = req.query;
+                const { workspaceId, coreOnly, tasksOnly, clientsOnly, invoicesOnly, salesOnly, teamCalendarOnly, goalsOnly, budgetOnly, inventoryOnly } = req.query;
                 if (!workspaceId || typeof workspaceId !== 'string') return res.status(400).json({ error: 'workspaceId is required.' });
             
                 const { data: membership, error: memberError } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('user_id', user.id).single();
@@ -318,7 +319,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
                 let queries: { [key: string]: any } = {};
 
-                if (goalsOnly === 'true') {
+                if (inventoryOnly === 'true') {
+                    queries['inventoryItems'] = supabase.from('inventory_items').select('*').eq('workspace_id', workspaceId);
+                    queries['inventoryAssignments'] = supabase.from('inventory_assignments').select('*').eq('workspace_id', workspaceId);
+                } else if (budgetOnly === 'true') {
+                    queries['budgets'] = supabase.from('budgets').select('*').eq('workspace_id', workspaceId);
+                    queries['expenses'] = supabase.from('expenses').select('*').eq('workspace_id', workspaceId);
+                } else if (goalsOnly === 'true') {
                     queries['objectives'] = supabase.from('objectives').select('*').eq('workspace_id', workspaceId);
                     
                     const { data: objectivesData, error: oError } = await supabase.from('objectives').select('id').eq('workspace_id', workspaceId);
@@ -835,7 +842,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     throw new Error(gmailResult.error?.message || "Failed to send email via Gmail API.");
                 }
 
-                await supabase.from('invoices').update({ email_status: 'sent' }).eq('id', invoiceId);
+                const { error: updateError } = await supabase.from('invoices').update({ email_status: 'sent', sent_at: new Date().toISOString() }).eq('id', invoiceId);
+                if (updateError) {
+                    console.error(`Failed to update invoice status after sending email for invoice ${invoiceId}:`, updateError);
+                    throw new Error('Email was sent, but we failed to update the invoice status in the database.');
+                }
 
                 return res.status(200).json({ message: 'Email sent successfully.' });
             }

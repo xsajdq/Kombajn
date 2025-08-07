@@ -1,8 +1,34 @@
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
 import { fetchPublicHolidays, fetchTeamCalendarDataForWorkspace } from '../handlers/calendar.ts';
 import { formatDate, getUserInitials, formatDuration } from '../utils.ts';
+
+const userColors = [
+    '#4F46E5', // Indigo-600
+    '#059669', // Emerald-600
+    '#D97706', // Amber-600
+    '#DB2777', // Pink-600
+    '#6D28D9', // Violet-700
+    '#2563EB', // Blue-600
+    '#DC2626', // Red-600
+    '#0891B2', // Cyan-600
+];
+
+function getUserColor(userId: string): string {
+    const state = getState();
+    // Use all workspace members to have a more stable index
+    const workspaceUsers = state.workspaceMembers
+        .filter(m => m.workspaceId === state.activeWorkspaceId)
+        .map(m => m.userId);
+    const userIndex = workspaceUsers.indexOf(userId);
+
+    if (userIndex === -1) {
+        return '#6B7280'; // Gray-500
+    }
+    return userColors[userIndex % userColors.length];
+}
 
 export async function initTeamCalendarPage() {
     const state = getState();
@@ -352,9 +378,6 @@ function renderWorkloadView(currentDate: Date) {
         d.setDate(d.getDate() + i);
         weekDays.push(d);
     }
-    const weekStartDate = weekDays[0];
-    const weekEndDate = new Date(weekDays[6]);
-    weekEndDate.setHours(23, 59, 59, 999);
 
     const users = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
@@ -384,54 +407,36 @@ function renderWorkloadView(currentDate: Date) {
         const dayCellsHtml = weekDays.map(date => {
             const dateStr = date.toISOString().slice(0, 10);
             let dailyHours = 0;
-            userTasks.forEach(task => {
+            
+            const tasksForDay = userTasks.filter(task => {
                 const start = new Date(task.startDate!);
                 const end = new Date(task.dueDate!);
                 const currentDate = new Date(dateStr);
                 if (currentDate >= start && currentDate <= end) {
                     const durationDays = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
                     dailyHours += (task.estimatedHours || 0) / durationDays;
+                    return true;
                 }
+                return false;
             });
             
-            let capacityClass = 'capacity-under';
+            let capacityClass = '';
             if (dailyHours > 8) capacityClass = 'capacity-over';
             else if (dailyHours > 6) capacityClass = 'capacity-good';
+
+            const taskItemsHtml = tasksForDay.map(task => {
+                const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
+                const colorClass = priorityColors[task.priority || 'low'];
+
+                return `
+                    <div class="workload-task-item ${colorClass}" 
+                         data-task-id="${task.id}"
+                         title="${task.name}">
+                         ${task.name}
+                    </div>`;
+            }).join('');
             
-            return `<div class="workload-day-cell ${capacityClass}"></div>`;
-        }).join('');
-
-        const tracks: { end: Date }[][] = [];
-        const taskBarsHtml = userTasks.map(task => {
-            const taskStart = new Date(task.startDate!);
-            const taskEnd = new Date(task.dueDate!);
-
-            if (taskEnd < weekStartDate || taskStart > weekEndDate) return ''; // Don't render if outside view
-
-            let laneIndex = tracks.findIndex(track => !track.some(placed => placed.end >= taskStart));
-
-            if (laneIndex === -1) {
-                laneIndex = tracks.length;
-                tracks.push([]);
-            }
-            tracks[laneIndex].push({ end: taskEnd });
-
-            const startDayIndex = Math.max(0, Math.floor((taskStart.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24)));
-            const endDayIndex = Math.min(6, Math.floor((taskEnd.getTime() - weekStartDate.getTime()) / (1000 * 3600 * 24)));
-            const durationDays = endDayIndex - startDayIndex + 1;
-            
-            const gridColumnStart = startDayIndex + 1;
-
-            const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
-            const colorClass = priorityColors[task.priority || 'low'];
-
-            return `
-                <div class="workload-task-bar ${colorClass}" 
-                     style="grid-column: ${gridColumnStart} / span ${durationDays}; top: ${2 + laneIndex * 28}px;"
-                     data-task-id="${task.id}"
-                     title="${task.name}">
-                     ${task.name}
-                </div>`;
+            return `<div class="workload-day-cell ${capacityClass}">${taskItemsHtml}</div>`;
         }).join('');
         
         return `
@@ -441,7 +446,6 @@ function renderWorkloadView(currentDate: Date) {
             </div>
             <div class="workload-user-timeline">
                  <div class="workload-day-cell-container">${dayCellsHtml}</div>
-                 <div class="workload-task-bars">${taskBarsHtml}</div>
             </div>
         `;
     }).join('');
@@ -456,14 +460,6 @@ function renderWorkloadView(currentDate: Date) {
     `;
 }
 
-function getUserColor(userId: string): string {
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-    return "#" + "00000".substring(0, 6 - color.length) + color;
-}
 
 function renderTimesheetView(currentDate: Date) {
     const state = getState();

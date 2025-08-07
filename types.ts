@@ -803,6 +803,12 @@ export interface AppState {
         };
         inventory: {
             filters: { text: string; };
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
+        };
+        budget: {
+            isLoading: boolean;
+            loadedWorkspaceId: string | null;
         };
         onboarding: {
             isActive: boolean;

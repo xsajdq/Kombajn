@@ -20,8 +20,8 @@ import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 import { updateUI } from './app-renderer.ts';
 import { GoalsPage, initGoalsPage } from './pages/GoalsPage.ts';
-import { InventoryPage } from './pages/InventoryPage.ts';
-import { BudgetPage } from './pages/BudgetPage.ts';
+import { InventoryPage, initInventoryPage } from './pages/InventoryPage.ts';
+import { BudgetPage, initBudgetPage } from './pages/BudgetPage.ts';
 
 export async function router() {
     let state = getState();
@@ -99,8 +99,8 @@ export async function router() {
         case 'hr':              return can('view_hr') ? await HRPage() : DashboardPage();
         case 'billing':         return can('manage_billing') ? BillingPage() : DashboardPage();
         case 'goals':           await initGoalsPage(); return can('view_goals') ? GoalsPage() : DashboardPage();
-        case 'inventory':       return can('view_inventory') ? InventoryPage() : DashboardPage();
-        case 'budget-and-expenses': return can('view_budgets') ? BudgetPage() : DashboardPage();
+        case 'inventory':       await initInventoryPage(); return can('view_inventory') ? InventoryPage() : DashboardPage();
+        case 'budget-and-expenses': await initBudgetPage(); return can('view_budgets') ? BudgetPage() : DashboardPage();
         case 'auth':            return AuthPage(); // Fallback case
         case 'dashboard':
         default:

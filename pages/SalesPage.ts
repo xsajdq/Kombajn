@@ -60,20 +60,18 @@ function renderKanbanBoard() {
 
     return `
         <div class="flex-1 overflow-x-auto">
-            <div class="inline-flex h-full space-x-4 p-1">
+            <div class="sales-board-container">
                 ${stages.map(stage => {
                     const columnDeals = dealsByStage[stage.id];
                     const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
                     return `
-                         <div class="flex-shrink-0 w-72 h-full flex flex-col bg-background rounded-lg" data-stage-id="${stage.id}">
-                            <div class="p-3 font-semibold text-text-main flex justify-between items-center border-b border-border-color">
+                         <div class="sales-board-column" data-stage-id="${stage.id}">
+                            <div class="sales-board-column-header">
                                 <span>${stage.name} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
+                                <span class="text-sm font-medium text-text-subtle">${formatCurrency(totalValue, 'PLN')}</span>
                             </div>
-                            <div class="px-3 py-2 text-sm font-medium text-text-subtle border-b border-border-color">
-                                ${formatCurrency(totalValue, 'PLN')}
-                            </div>
-                            <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-3">
+                            <div class="sales-board-column-body">
                                 ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="h-full"></div>`}
                             </div>
                         </div>

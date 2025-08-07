@@ -1,3 +1,4 @@
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole } from '../types.ts';
@@ -66,11 +67,16 @@ export function handleChange(e: Event) {
                 checkedBoxes.forEach(cb => {
                     const user = state.users.find(u => u.id === cb.value);
                     if(user) {
-                        display.innerHTML += `<div class="avatar" title="${user.name || user.initials}">${user.initials || '?'}</div>`;
+                        display.innerHTML += `
+                            <div class="multiselect-selected-item">
+                                <div class="avatar">${user.initials || '?'}</div>
+                                <span>${user.name || user.initials}</span>
+                            </div>
+                        `;
                     }
                 });
             } else {
-                display.innerHTML = `<span class="subtle-text">Unassigned</span>`;
+                display.innerHTML = `<span class="subtle-text">${t('modals.unassigned')}</span>`;
             }
         }
         return;
