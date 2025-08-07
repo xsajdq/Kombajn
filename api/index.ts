@@ -356,7 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const from = (pageNum - 1) * size;
                     const to = from + size - 1;
 
-                    const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*').eq('workspace_id', workspaceId).range(from, to);
+                    const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).range(from, to);
                     if (tasksError) throw tasksError;
                     queries['tasks'] = Promise.resolve({ data: tasksData, error: null });
 
