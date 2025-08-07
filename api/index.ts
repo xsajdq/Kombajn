@@ -1,5 +1,4 @@
 
-
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -467,10 +466,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const key = queryEntries[i][0];
                     const { data, error } = results[i];
                     if (error) {
-                        console.error(`Error fetching ${key}:`, error);
-                        throw new Error(`Failed to fetch data for ${key}: ${error.message}`);
+                         if (key === 'checklistTemplates' && error.message.includes('relation "public.checklist_templates" does not exist')) {
+                            console.warn('checklist_templates table not found, gracefully ignoring.');
+                            responseData[key] = [];
+                        } else {
+                            console.error(`Error fetching ${key}:`, error);
+                            throw new Error(`Failed to fetch data for ${key}: ${error.message}`);
+                        }
+                    } else {
+                        responseData[key] = data;
                     }
-                    responseData[key] = data;
                 }
 
                 if ((invoicesOnly === 'true' || !Object.keys(req.query).some(q => q.includes('Only'))) && responseData.invoices) {
