@@ -1,9 +1,48 @@
-
 import { getState, setState } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Project, Task, ProjectMember, AiSuggestedTask } from '../types.ts';
+
+export async function fetchTasksForProject(projectId: string) {
+    const state = getState();
+    const { activeWorkspaceId, ui } = state;
+    if (!activeWorkspaceId) return;
+
+    // If all tasks for the workspace are already loaded, we don't need to fetch.
+    if (ui.tasks.loadedWorkspaceId === activeWorkspaceId) {
+        console.log('All tasks already loaded, skipping project-specific fetch.');
+        return;
+    }
+
+    console.log(`Fetching tasks for project ${projectId}...`);
+    try {
+        const data = await apiFetch(`/api?action=dashboard-data&workspaceId=${activeWorkspaceId}&tasksOnly=true&projectId=${projectId}`);
+        if (!data || !data.tasks) return;
+
+        // Merge new data into the existing state without removing other data
+        setState(prevState => {
+            const mergeById = (oldData: any[], newData: any[], idKey = 'id') => {
+                if (!newData) return oldData;
+                const dataMap = new Map(oldData.map(item => [item[idKey], item]));
+                newData.forEach((item: any) => dataMap.set(item[idKey], item));
+                return Array.from(dataMap.values());
+            };
+            
+            return {
+                tasks: mergeById(prevState.tasks, data.tasks),
+                taskAssignees: mergeById(prevState.taskAssignees, data.taskAssignees),
+                taskTags: mergeById(prevState.taskTags, data.taskTags),
+            };
+        }, []); // No re-render needed here, the tab switch will handle it.
+        console.log(`Successfully fetched tasks for project ${projectId}.`);
+
+    } catch (error) {
+        console.error(`Failed to fetch tasks for project ${projectId}:`, error);
+        // Maybe show an error to the user? For now, just log it.
+    }
+}
+
 
 export async function handlePlanProjectWithAi(name: string, clientId: string, goal: string) {
     const saveButton = document.getElementById('modal-save-btn');

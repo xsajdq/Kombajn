@@ -106,7 +106,15 @@ export async function handleClick(e: MouseEvent) {
     if (tabButton) {
         e.preventDefault();
         const groupPath = tabButton.dataset.tabGroup!.split('.');
-        const tabValue = tabButton.dataset.tabValue;
+        const tabValue = tabButton.dataset.tabValue!;
+
+        // Special handler for project tasks tab to pre-fetch data
+        if (groupPath.join('.') === 'ui.openedProjectTab' && tabValue === 'tasks') {
+            const projectId = getState().ui.openedProjectId;
+            if (projectId) {
+                await projectHandlers.fetchTasksForProject(projectId);
+            }
+        }
 
         // Determine the correct UI component to update based on context
         let componentToUpdate: UIComponent = 'page'; // Default to 'page'
@@ -246,6 +254,10 @@ export async function handleClick(e: MouseEvent) {
             setState(prevState => ({
                 ui: { ...prevState.ui, reports: { ...prevState.ui.reports, filters: { ...prevState.ui.reports.filters, userId: value } } }
             }), ['page']);
+        } else if (container.closest('#configure-widget-form')) {
+            setState(prevState => ({
+                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, widget: { ...prevState.ui.modal.data.widget, config: { ...prevState.ui.modal.data.widget.config, userId: value } } } } }
+            }), ['modal']);
         }
         
         const dropdown = customSelectOption.closest<HTMLElement>('.custom-select-dropdown')!;

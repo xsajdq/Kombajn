@@ -50,6 +50,8 @@ export async function fetchWorkspaceData(workspaceId: string) {
             clientTags: data.clientTags || [],
             timeOffRequests: data.timeOffRequests || [],
             reviews: data.reviews || [],
+            tasks: data.tasks || [], // Add tasks for "My Day"
+            taskAssignees: data.taskAssignees || [], // Add assignees for those tasks
             // Set loaded state for dashboard
             ui: {
                 ...prevState.ui,
