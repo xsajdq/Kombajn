@@ -24,7 +24,7 @@ export async function loadMoreTasks() {
 
     setState(prevState => ({
         ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, isLoadingMore: true } }
-    }), []); // No UI update needed yet, just state change
+    }), ['page']);
 
     await fetchTasksForWorkspace(state.activeWorkspaceId!, currentPage + 1, true);
 }
@@ -735,5 +735,38 @@ export async function handleToggleProjectTaskStatus(taskId: string) {
         const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, status: originalStatus } : t);
         setState({ tasks: revertedTasks }, ['side-panel']);
         alert("Could not update task status.");
+    }
+}
+
+
+export async function handleApplyChecklistTemplate(taskId: string, templateId: string) {
+    const state = getState();
+    const task = state.tasks.find(t => t.id === taskId);
+    const template = state.checklistTemplates.find(t => t.id === templateId);
+
+    if (!task || !template) return;
+
+    const newItems = template.items.map(item => ({
+        id: generateId(),
+        text: item.text,
+        completed: false
+    }));
+    
+    const newChecklist = [...(task.checklist || []), ...newItems];
+    
+    // Optimistic update
+    setState(prevState => ({
+        tasks: prevState.tasks.map(t => t.id === taskId ? { ...t, checklist: newChecklist } : t)
+    }), ['modal']);
+
+    try {
+        await apiPut('tasks', { id: taskId, checklist: newChecklist });
+    } catch (error) {
+        console.error("Failed to apply checklist template:", error);
+        alert("Could not apply the template.");
+        // Revert
+        setState(prevState => ({
+            tasks: prevState.tasks.map(t => t.id === taskId ? { ...t, checklist: task.checklist } : t)
+        }), ['modal']);
     }
 }
