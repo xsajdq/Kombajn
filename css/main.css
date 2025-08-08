@@ -33,7 +33,11 @@
     --sidebar-text-rgb: 209, 213, 219;
   }
 
-  html, body, #app {
+  html, body {
+    height: 100%;
+  }
+
+  #app {
     height: 100%;
     overflow: hidden;
   }
@@ -989,15 +993,4 @@
        @apply justify-end w-full;
     }
   }
-}
-
-/* Temporary debug borders */
-#app-sidebar {
-  border: 2px solid red !important;
-}
-header {
-  border: 2px solid green !important;
-}
-main {
-  border: 2px solid blue !important;
 }
