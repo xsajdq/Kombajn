@@ -5,6 +5,6 @@
     "types": ["cypress", "node"]
   },
   "include": [
-    "**/*.ts"
+    "./**/*.ts"
   ]
 }
