@@ -33,6 +33,11 @@
     --sidebar-text-rgb: 209, 213, 219;
   }
 
+  html, body, #app {
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     font-family: 'Inter', sans-serif;
     @apply bg-background text-text-main antialiased;

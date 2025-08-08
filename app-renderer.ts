@@ -34,7 +34,7 @@ async function AppLayout(): Promise<TemplateResult> {
     const pageContent = await router();
     
     return html`
-    <div class="relative h-screen overflow-hidden md:flex">
+    <div class="relative h-full overflow-hidden md:flex">
         <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
         ${Sidebar()}
         <div class="flex-1 flex flex-col overflow-hidden relative">
