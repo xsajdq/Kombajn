@@ -50,7 +50,7 @@ export function Sidebar(): TemplateResult {
     const footerNavItems = allFooterNavItems.filter(item => !item.permission || can(item.permission));
 
     return html`
-    <aside id="app-sidebar" class="flex flex-col h-screen w-64 bg-content border-r border-border-color text-sidebar-text fixed top-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50">
+    <aside id="app-sidebar" class="flex flex-col h-full w-64 bg-content border-r border-border-color text-sidebar-text fixed top-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50">
       <div class="flex items-center justify-center h-16 shrink-0 px-4 border-b border-border-color">
         ${Logo()}
       </div>
