@@ -342,7 +342,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['clients'] = supabase.from('clients').select('*, client_contacts(*)').eq('workspace_id', workspaceId);
                     const { data: projectsData, error: pError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
                     if (pError) throw pError;
-                    const projectIds = projectsData.map(p => p.id);
+                    const projectIds = projectsData.map((p: any) => p.id);
                     queries['projectMembers'] = projectIds.length > 0 ? supabase.from('project_members').select('*').in('project_id', projectIds) : Promise.resolve({ data: [], error: null });
                     queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
                     queries['projectTags'] = supabase.from('project_tags').select('*').eq('workspace_id', workspaceId);
@@ -422,11 +422,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     // Fallback to full data fetch if no specific flag is provided
                     const { data: projectsData, error: pError } = await supabase.from('projects').select('id').eq('workspace_id', workspaceId);
                     if (pError) throw pError;
-                    const projectIds = projectsData.map(p => p.id);
+                    const projectIds = projectsData.map((p: any) => p.id);
 
                     const { data: objectivesData, error: oError } = await supabase.from('objectives').select('id').eq('workspace_id', workspaceId);
                     if (oError) throw oError;
-                    const objectiveIds = objectivesData.map(o => o.id);
+                    const objectiveIds = objectivesData.map((o: any) => o.id);
                     
                     queries = {
                         dashboardWidgets: supabase.from('dashboard_widgets').select('*').eq('user_id', user.id).eq('workspace_id', workspaceId),
