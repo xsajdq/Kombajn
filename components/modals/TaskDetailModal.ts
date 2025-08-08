@@ -1,11 +1,11 @@
 import { getState } from '../../state.ts';
 import { t } from '../../i18n.ts';
-import { formatDuration, formatDate, getUserInitials, formatCurrency } from '../../utils.ts';
+import { formatDuration, formatDate, getUserInitials, getTaskCurrentTrackedSeconds } from '../../utils.ts';
 import type { Task, User, CustomFieldDefinition, Comment, TimeLog, TaskDetailModalData, TaskAssignee, Tag, SubtaskDetailModalData, DependencyType } from '../../types.ts';
 import { getUserProjectRole } from '../../handlers/main.ts';
 import { html, TemplateResult } from 'lit-html';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
-import { formControlClasses, formGroupClasses, labelClasses, renderMultiUserSelect, renderSelect, renderTextInput } from './formControls.ts';
+import { formControlClasses, formGroupClasses, labelClasses, renderMultiUserSelect, renderSelect, renderTextInput, renderTextarea } from './formControls.ts';
 import { can } from '../../permissions.ts';
 
 // Re-importing necessary functions that were previously in the same file.
@@ -309,11 +309,18 @@ export function TaskDetailModal() {
 
     const state = getState();
     const project = state.projects.find(p => p.id === task.projectId);
-    const client = project ? state.clients.find(c => c.id === project.clientId) : null;
     const projectRole = getUserProjectRole(state.currentUser?.id || '', task.projectId);
     const canEdit = projectRole === 'admin' || projectRole === 'editor' || can('manage_tasks');
     const { activeTab } = state.ui.taskDetail;
-    const isEditing = state.ui.taskDetail.isEditing && canEdit;
+
+    const projectMembers = state.projectMembers
+        .filter(pm => pm.projectId === task.projectId)
+        .map(pm => state.users.find(u => u.id === pm.userId))
+        .filter((u): u is User => !!u);
+        
+    const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => a.userId);
+    const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
+    const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === state.activeWorkspaceId);
     
     const tabs = [
         { id: 'activity', text: t('modals.activity'), content: renderActivityTab(task) },
@@ -335,23 +342,69 @@ export function TaskDetailModal() {
                 <div class="prose prose-sm dark:prose-invert max-w-none">
                     <textarea class="form-control" data-field="description" placeholder="Add a description..." rows="4" ?disabled=${!canEdit}>${task.description || ''}</textarea>
                 </div>
-                 <nav class="side-panel-tabs">
+                 <nav class="side-panel-tabs mt-4">
                     ${tabs.map(tab => html`<button class="side-panel-tab ${activeTab === tab.id ? 'active' : ''}" data-tab-group="ui.taskDetail.activeTab" data-tab-value="${tab.id}">${tab.text}</button>`)}
                 </nav>
-                <div>${tabs.find(t => t.id === activeTab)?.content}</div>
+                <div class="py-4">${tabs.find(t => t.id === activeTab)?.content}</div>
             </div>
             <aside class="task-detail-sidebar">
-                <!-- Sidebar content goes here, e.g., status, assignees, dates -->
-                 <div class="bg-background p-4 rounded-lg space-y-4">
+                <div class="bg-background p-4 rounded-lg space-y-4">
                     ${renderSelect({ id: '', label: t('modals.status'), value: task.status, options: [
-                        {value: 'backlog', text: t('modals.status_backlog')},
-                        {value: 'todo', text: t('modals.status_todo')},
-                        {value: 'inprogress', text: t('modals.status_inprogress')},
-                        {value: 'inreview', text: t('modals.status_inreview')},
+                        {value: 'backlog', text: t('modals.status_backlog')}, {value: 'todo', text: t('modals.status_todo')},
+                        {value: 'inprogress', text: t('modals.status_inprogress')}, {value: 'inreview', text: t('modals.status_inreview')},
                         {value: 'done', text: t('modals.status_done')},
-                    ], containerClassName: 'sidebar-item', disabled: !canEdit })}
-                    <!-- More sidebar items -->
+                    ], disabled: !canEdit, containerClassName: 'sidebar-item', dataAttributes: { field: 'status' } })}
+
+                    ${renderMultiUserSelect({ id: 'task-assignees-sidebar', label: t('modals.assignees'), users: projectMembers, selectedUserIds: assignees, unassignedText: t('modals.unassigned'), containerClassName: 'sidebar-item' })}
+
+                    <div class="sidebar-item">
+                        <label class="${labelClasses}">${t('modals.dates')}</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.startDate, dataAttributes: { field: 'startDate' }, containerClassName: '' })}
+                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.dueDate, dataAttributes: { field: 'dueDate' }, containerClassName: '' })}
+                        </div>
+                    </div>
+                     ${renderSelect({ id: '', label: t('modals.priority'), value: task.priority || '', options: [
+                        {value: '', text: t('modals.priority_none')}, {value: 'low', text: t('modals.priority_low')},
+                        {value: 'medium', text: t('modals.priority_medium')}, {value: 'high', text: t('modals.priority_high')},
+                     ], disabled: !canEdit, containerClassName: 'sidebar-item', dataAttributes: { field: 'priority' } })}
                 </div>
+
+                <div class="bg-background p-4 rounded-lg space-y-4">
+                    <div class="sidebar-item">
+                        <label class="${labelClasses}">Time</label>
+                        <div class="flex justify-between text-sm"><span>${formatDuration(totalTrackedSeconds)}</span><span class="text-text-subtle">${task.estimatedHours ? `/ ${task.estimatedHours}h` : ''}</span></div>
+                        ${task.estimatedHours ? html`<div class="task-progress-bar-container" id="task-progress-bar" data-task-id="${task.id}" title="${task.progress || 0}%">
+                            <div class="task-progress-bar-track"><div id="task-progress-fill" class="task-progress-bar-fill" style="width: ${task.progress || 0}%"></div></div>
+                            <div id="task-progress-thumb" class="task-progress-bar-thumb" style="left: ${task.progress || 0}%"></div>
+                        </div>` : ''}
+                    </div>
+                </div>
+
+                <div class="bg-background p-4 rounded-lg space-y-2">
+                     <div class="sidebar-heading">${t('modals.reminders')}</div>
+                     <button class="w-full text-left text-sm p-2 rounded-md hover:bg-content border border-dashed border-border-color" data-set-reminder-for-task-id="${task.id}">
+                        ${task.reminderAt ? `Set for ${formatDate(task.reminderAt, {dateStyle: 'medium', timeStyle: 'short'})}` : t('modals.set_reminder')}
+                     </button>
+                </div>
+
+                ${customFields.length > 0 ? html`
+                <div class="bg-background p-4 rounded-lg space-y-4">
+                    <div class="sidebar-heading">${t('modals.custom_fields')}</div>
+                    ${customFields.map(field => {
+                        const fieldValue = state.customFieldValues.find(v => v.fieldId === field.id && v.taskId === task.id)?.value;
+                        return html`
+                            <div class="sidebar-item" data-custom-field-id="${field.id}">
+                                <label class="${labelClasses}">${field.name}</label>
+                                ${field.type === 'checkbox'
+                                    ? html`<input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary" .checked=${!!fieldValue}>`
+                                    : html`<input type="${field.type}" class="${formControlClasses}" .value="${fieldValue || ''}">`
+                                }
+                            </div>
+                        `;
+                    })}
+                </div>
+                ` : ''}
             </aside>
         </div>
     `;

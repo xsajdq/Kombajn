@@ -3,6 +3,7 @@ import { html, TemplateResult } from 'lit-html';
 import { classMap } from 'lit-html/directives/class-map.js';
 import type { User } from '../../types.ts';
 import { getUserInitials } from '../../utils.ts';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 
 export const formGroupClasses = "flex flex-col gap-1.5";
 export const labelClasses = "text-sm font-medium text-text-subtle";
@@ -20,9 +21,12 @@ type InputOptions = {
     min?: number;
     step?: number;
     disabled?: boolean;
+    dataAttributes?: { [key: string]: any };
 };
 
-export function renderTextInput({ id, label, type = 'text', value = '', required = false, placeholder = '', containerClassName = formGroupClasses, min, step, disabled = false }: InputOptions): TemplateResult {
+export function renderTextInput({ id, label, type = 'text', value = '', required = false, placeholder = '', containerClassName = formGroupClasses, min, step, disabled = false, dataAttributes = {} }: InputOptions): TemplateResult {
+    const dataAttrs = Object.entries(dataAttributes).map(([key, val]) => `data-${key}="${val}"`).join(' ');
+
     return html`
         <div class="${containerClassName}">
             <label for="${id}" class="${labelClasses}">${label} ${required ? html`<span class="text-danger">*</span>` : ''}</label>
@@ -36,6 +40,7 @@ export function renderTextInput({ id, label, type = 'text', value = '', required
                 min="${min}"
                 step="${step}"
                 ?disabled=${disabled}
+                ${unsafeHTML(dataAttrs)}
             >
         </div>
     `;
@@ -74,9 +79,12 @@ type SelectOptions = {
     options: { value: string | number; text: string }[];
     containerClassName?: string;
     disabled?: boolean;
+    dataAttributes?: { [key: string]: any };
 };
 
-export function renderSelect({ id, label, value = '', required = false, options, containerClassName = formGroupClasses, disabled = false }: SelectOptions): TemplateResult {
+export function renderSelect({ id, label, value = '', required = false, options, containerClassName = formGroupClasses, disabled = false, dataAttributes = {} }: SelectOptions): TemplateResult {
+    const dataAttrs = Object.entries(dataAttributes).map(([key, val]) => `data-${key}="${val}"`).join(' ');
+
     return html`
         <div class="${containerClassName}">
             <label for="${id}" class="${labelClasses}">${label} ${required ? html`<span class="text-danger">*</span>` : ''}</label>
@@ -85,6 +93,7 @@ export function renderSelect({ id, label, value = '', required = false, options,
                 class="${formControlClasses}" 
                 ?required=${required}
                 ?disabled=${disabled}
+                ${unsafeHTML(dataAttrs)}
             >
                 ${options.map(opt => html`<option value="${opt.value}" ?selected=${opt.value === value}>${opt.text}</option>`)}
             </select>
