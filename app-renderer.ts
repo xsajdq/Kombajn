@@ -116,6 +116,12 @@ export async function renderApp() {
 }
 
 export async function updateUI(componentsToUpdate: UIComponent[]) {
+    // If the componentsToUpdate array is empty, it's a "silent" state update.
+    // We must not trigger a re-render to avoid infinite loops, especially from the router.
+    if (componentsToUpdate.length === 0) {
+        return;
+    }
+
     // With lit-html, we can simply re-render the entire app layout.
     // lit-html is efficient and will only update the parts of the DOM that have changed.
     // This dramatically simplifies the update logic and removes the need for manual diffing.
