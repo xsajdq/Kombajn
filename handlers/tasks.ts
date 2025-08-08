@@ -1,8 +1,9 @@
 
 
+
 import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction } from '../types.ts';
+import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, DependencyType } from '../types.ts';
 import { createNotification } from './notifications.ts';
 import { showModal } from './ui.ts';
 import { runAutomations } from './automations.ts';
@@ -60,6 +61,8 @@ export async function fetchTasksForWorkspace(workspaceId: string, page = 1, appe
                 tags: mergeById(prevState.tags, data.tags),
                 customFieldDefinitions: mergeById(prevState.customFieldDefinitions, data.customFieldDefinitions),
                 checklistTemplates: !append ? (data.checklistTemplates || []) : prevState.checklistTemplates,
+                projectBaselines: mergeById(prevState.projectBaselines, data.projectBaselines),
+                baselineTasks: mergeById(prevState.baselineTasks, data.baselineTasks),
                 ui: {
                     ...prevState.ui,
                     tasks: {
@@ -443,6 +446,7 @@ export async function handleAddSubtask(parentId: string, name: string) {
         status: 'todo',
         parentId: parentId,
         isArchived: false,
+        isMilestone: false,
     };
     try {
         const [savedSubtask] = await apiPost('tasks', newSubtaskPayload);
@@ -491,7 +495,7 @@ export async function handleToggleSubtaskStatus(subtaskId: string) {
     }
 }
 
-export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string) {
+export async function handleAddDependency(blockingTaskId: string, blockedTaskId: string, type: DependencyType, lagDuration: number) {
     const state = getState();
     const blockingTask = state.tasks.find(t => t.id === blockingTaskId);
     const blockedTask = state.tasks.find(t => t.id === blockedTaskId);
@@ -501,6 +505,8 @@ export async function handleAddDependency(blockingTaskId: string, blockedTaskId:
         workspaceId: state.activeWorkspaceId,
         blockingTaskId,
         blockedTaskId,
+        type,
+        lagDuration
     };
     try {
         const [savedDependency] = await apiPost('task_dependencies', newDependencyPayload);

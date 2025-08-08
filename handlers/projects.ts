@@ -2,7 +2,7 @@ import { getState, setState } from '../state.ts';
 import { apiPost, apiFetch } from '../services/api.ts';
 import { closeModal, openProjectPanel, closeSidePanels } from './ui.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Project, Task, ProjectMember, AiSuggestedTask } from '../types.ts';
+import type { Project, Task, ProjectMember, AiSuggestedTask, ProjectBaseline, BaselineTask } from '../types.ts';
 
 export async function fetchTasksForProject(projectId: string) {
     const state = getState();
@@ -212,5 +212,42 @@ export async function handleSyncProjectTags(projectId: string, newTagIds: Set<st
         console.error("Failed to sync project tags:", error);
         alert("Could not update project tags. The data may be out of sync, please refresh.");
         setState({ projectTags: originalProjectTags }, ['page', 'side-panel']);
+    }
+}
+
+export async function handleSetProjectBaseline(projectId: string) {
+    const state = getState();
+    if (!state.currentUser) return;
+
+    const baselineName = prompt("Enter a name for this baseline (e.g., 'Initial Plan'):");
+    if (!baselineName) return;
+
+    try {
+        const baselinePayload: Omit<ProjectBaseline, 'id' | 'createdAt'> = {
+            projectId,
+            name: baselineName,
+            createdBy: state.currentUser.id,
+        };
+        const [savedBaseline] = await apiPost('project_baselines', baselinePayload);
+
+        const projectTasks = state.tasks.filter(t => t.projectId === projectId);
+        const baselineTasksPayload: Omit<BaselineTask, 'id'>[] = projectTasks.map(task => ({
+            baselineId: savedBaseline.id,
+            taskId: task.id,
+            originalStartDate: task.startDate,
+            originalDueDate: task.dueDate,
+        }));
+        
+        const savedBaselineTasks = await apiPost('baseline_tasks', baselineTasksPayload);
+
+        setState(prevState => ({
+            projectBaselines: [...prevState.projectBaselines, savedBaseline],
+            baselineTasks: [...prevState.baselineTasks, ...savedBaselineTasks],
+        }), ['page']);
+
+        alert(`Baseline "${baselineName}" created successfully!`);
+    } catch (error) {
+        console.error("Failed to set project baseline:", error);
+        alert("Could not create baseline.");
     }
 }

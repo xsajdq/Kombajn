@@ -1,6 +1,6 @@
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { InvoiceLineItem, TimeLog, Expense, Task } from '../types.ts';
+import type { InvoiceLineItem, TimeLog, Expense, Task, Workspace } from '../types.ts';
 import { t } from '../i18n.ts';
 import { apiPut, apiFetch } from '../services/api.ts';
 import { showModal } from './ui.ts';
@@ -199,5 +199,67 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
         setState(prevState => ({
             invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, emailStatus: originalEmailStatus, sentAt: originalSentAt } : i)
         }), ['page']);
+    }
+}
+
+export async function handleSaveInvoiceSettings() {
+    const state = getState();
+    const { activeWorkspaceId } = state;
+    if (!activeWorkspaceId) return;
+
+    const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
+    if (!workspace) return;
+
+    const template = (document.getElementById('invoice-template-input') as HTMLInputElement).value as 'modern' | 'classic' | 'elegant' | 'minimalist';
+    const accentColor = (document.getElementById('invoice-accent-color') as HTMLInputElement).value;
+    const defaultNotes = (document.getElementById('invoice-default-notes') as HTMLTextAreaElement).value;
+
+    const newSettings = {
+        template,
+        accentColor,
+        defaultNotes,
+    };
+
+    const originalSettings = workspace.invoiceSettings;
+
+    // Optimistic update
+    setState(prevState => ({
+        workspaces: prevState.workspaces.map(w => 
+            w.id === activeWorkspaceId ? { ...w, invoiceSettings: newSettings } : w
+        )
+    }), []);
+
+    const saveButton = document.getElementById('save-invoice-settings-btn');
+    if (saveButton) {
+        saveButton.textContent = t('misc.saving');
+        saveButton.setAttribute('disabled', 'true');
+    }
+
+    try {
+        await apiPut('workspaces', { id: activeWorkspaceId, invoiceSettings: newSettings });
+        if (saveButton) {
+            saveButton.textContent = t('misc.saved');
+            setTimeout(() => {
+                if (saveButton) {
+                    saveButton.textContent = t('modals.save');
+                    saveButton.removeAttribute('disabled');
+                }
+            }, 2000);
+        }
+    } catch (error) {
+        console.error("Failed to save invoice settings:", error);
+        alert("Failed to save invoice settings.");
+        
+        // Revert on failure
+        setState(prevState => ({
+            workspaces: prevState.workspaces.map(w => 
+                w.id === activeWorkspaceId ? { ...w, invoiceSettings: originalSettings } : w
+            )
+        }), ['page']);
+
+        if (saveButton) {
+            saveButton.textContent = t('modals.save');
+            saveButton.removeAttribute('disabled');
+        }
     }
 }

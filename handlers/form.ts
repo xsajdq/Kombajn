@@ -28,51 +28,6 @@ export async function handleFormSubmit() {
         return;
     }
     
-    if (type === 'sendInvoiceEmail') {
-        const form = document.getElementById('send-invoice-email-form') as HTMLFormElement;
-        const invoiceId = form.dataset.invoiceId!;
-        const to = (form.querySelector('#email-to') as HTMLInputElement).value;
-        const subject = (form.querySelector('#email-subject') as HTMLInputElement).value;
-        const body = (form.querySelector('#email-body') as HTMLTextAreaElement).value;
-
-        const button = document.getElementById('modal-save-btn') as HTMLButtonElement;
-        if (button) {
-            button.disabled = true;
-            button.textContent = t('misc.sending');
-        }
-
-        try {
-            const dataUri = await generateInvoicePDF(invoiceId, { outputType: 'datauristring' }) as string | null;
-            if (!dataUri) {
-                throw new Error("Failed to generate PDF for the invoice.");
-            }
-            const pdfBase64 = dataUri.substring(dataUri.indexOf(',') + 1);
-
-            await apiFetch('/api?action=send-invoice-gmail', {
-                method: 'POST',
-                body: JSON.stringify({
-                    workspaceId: state.activeWorkspaceId,
-                    invoiceId,
-                    to,
-                    subject,
-                    body,
-                    pdfBase64,
-                }),
-            });
-
-            closeModal();
-
-        } catch (err) {
-            console.error("Failed to send invoice email:", err);
-            alert((err as Error).message);
-            if (button) {
-                button.disabled = false;
-                button.textContent = t('modals.send_email_button');
-            }
-        }
-        return; 
-    }
-
     const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
     if (!workspace) return;
     const usage = getUsage(activeWorkspaceId);
@@ -84,7 +39,47 @@ export async function handleFormSubmit() {
     }
 
     try {
-        if (type === 'addClient') {
+        if (type === 'sendInvoiceEmail') {
+            const form = document.getElementById('send-invoice-email-form') as HTMLFormElement;
+            const invoiceId = form.dataset.invoiceId!;
+            const to = (form.querySelector('#email-to') as HTMLInputElement).value;
+            const subject = (form.querySelector('#email-subject') as HTMLInputElement).value;
+            const body = (form.querySelector('#email-body') as HTMLTextAreaElement).value;
+
+            const button = document.getElementById('modal-save-btn') as HTMLButtonElement;
+            if (button) {
+                button.disabled = true;
+                button.textContent = t('misc.sending');
+            }
+
+            try {
+                const dataUri = await generateInvoicePDF(invoiceId, { outputType: 'datauristring' }) as string | null;
+                if (!dataUri) {
+                    throw new Error("Failed to generate PDF for the invoice.");
+                }
+                const pdfBase64 = dataUri.substring(dataUri.indexOf(',') + 1);
+
+                await apiFetch('/api?action=send-invoice-gmail', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        workspaceId: state.activeWorkspaceId,
+                        invoiceId,
+                        to,
+                        subject,
+                        body,
+                        pdfBase64,
+                    }),
+                });
+            } catch (err) {
+                console.error("Failed to send invoice email:", err);
+                alert((err as Error).message);
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = t('modals.send_email_button');
+                }
+                return; // Prevent modal from closing
+            }
+        } else if (type === 'addClient') {
             const form = document.getElementById('clientForm') as HTMLFormElement;
             const clientId = (form.querySelector('#clientId') as HTMLInputElement).value;
             const name = (form.querySelector('#clientName') as HTMLInputElement).value;
@@ -153,9 +148,7 @@ export async function handleFormSubmit() {
             } else {
                 setState(prevState => ({ clients: [...prevState.clients, { ...finalClient, contacts: allContactsForClient || [] }] }), ['page', 'side-panel']);
             }
-        }
-
-        if (type === 'addProject') {
+        } else if (type === 'addProject') {
             const form = document.getElementById('projectForm') as HTMLFormElement;
             const projectId = (form.querySelector('#projectId') as HTMLInputElement).value;
             const isEdit = !!projectId;
@@ -214,18 +207,17 @@ export async function handleFormSubmit() {
             } else if (isEdit && projectData.privacy === 'public') {
                 await projectHandlers.handleSyncProjectMembers(finalProject.id, new Set([state.currentUser!.id]));
             }
-        }
-
-        if (type === 'aiProjectPlanner') {
+        } else if (type === 'aiProjectPlanner') {
             const name = (document.getElementById('aiProjectName') as HTMLInputElement).value;
             const clientId = (document.getElementById('aiProjectClient') as HTMLSelectElement).value;
             const goal = (document.getElementById('aiProjectGoal') as HTMLTextAreaElement).value;
-            if (!name || !clientId || !goal) return alert(t('errors.fill_all_fields'));
+            if (!name || !clientId || !goal) {
+                alert(t('errors.fill_all_fields'));
+                return;
+            }
             await projectHandlers.handlePlanProjectWithAi(name, clientId, goal);
             return; 
-        }
-
-        if (type === 'addGoal') {
+        } else if (type === 'addGoal') {
             const form = document.getElementById('addGoalForm') as HTMLFormElement;
             const goalId = form.dataset.goalId;
             const isEdit = !!goalId;
@@ -277,9 +269,7 @@ export async function handleFormSubmit() {
             await Promise.all(milestonePromises);
             const keyResultsForGoal = await apiFetch(`/api?action=data&resource=key_results&objectiveId=${savedGoal.id}`);
             setState(prevState => ({ keyResults: [...prevState.keyResults.filter(kr => kr.objectiveId !== savedGoal.id), ...keyResultsForGoal] }), []);
-        }
-
-        if (type === 'addReview') {
+        } else if (type === 'addReview') {
             const form = document.getElementById('addReviewForm') as HTMLFormElement;
             const employeeId = form.dataset.employeeId!;
             const rating = parseInt((form.querySelector('#reviewRating') as HTMLSelectElement).value, 10);
@@ -297,9 +287,7 @@ export async function handleFormSubmit() {
                 const [newReview] = await apiPost('reviews', payload);
                 setState(prevState => ({ reviews: [...prevState.reviews, newReview] }), ['page']);
             }
-        }
-        
-        if (type === 'addTask') {
+        } else if (type === 'addTask') {
             const form = document.getElementById('taskForm') as HTMLFormElement;
             const name = (form.querySelector('#taskName') as HTMLInputElement).value;
             const projectId = (form.querySelector('#taskProject') as HTMLSelectElement).value;
@@ -363,9 +351,7 @@ export async function handleFormSubmit() {
             }
 
             setState(prevState => ({ tasks: [...prevState.tasks, savedTask] }), []);
-        }
-
-        if (type === 'addInvoice') {
+        } else if (type === 'addInvoice') {
             if (usage.invoicesThisMonth >= planLimits.invoices) {
                 alert(t('billing.limit_reached_invoices', {planName: workspace.subscription.planId}));
                 return;
@@ -409,9 +395,7 @@ export async function handleFormSubmit() {
             if (sourceExpenseIds?.length) {
                 await apiPut('expenses', sourceExpenseIds.map((id: string) => ({ id, invoice_id: savedInvoice.id })));
             }
-        }
-
-        if (type === 'addDeal') {
+        } else if (type === 'addDeal') {
             const form = document.querySelector('form') as HTMLFormElement; // Assume generic form as it's not implemented yet
             const dealId = (form.querySelector('#dealId') as HTMLInputElement)?.value;
             const isEdit = !!dealId;
@@ -439,9 +423,7 @@ export async function handleFormSubmit() {
                 finalDeal = { ...savedDeal, ...dealWithSlug };
                 setState(prevState => ({ deals: [...prevState.deals, finalDeal] }), []);
             }
-        }
-
-        if (type === 'addManualTimeLog') {
+        } else if (type === 'addManualTimeLog') {
             const form = document.getElementById('manualTimeLogForm') as HTMLFormElement;
             const taskId = (form.querySelector('#timeLogTask') as HTMLSelectElement).value;
             const trackedSeconds = parseInt((form.querySelector('#time-picker-seconds') as HTMLInputElement).value, 10);
@@ -454,9 +436,7 @@ export async function handleFormSubmit() {
             if (taskId) {
                 await timerHandlers.handleSaveManualTimeLog(taskId, trackedSeconds, createdAt, comment);
             }
-        }
-        
-        if (type === 'addExpense') {
+        } else if (type === 'addExpense') {
             const form = document.getElementById('addExpenseForm') as HTMLFormElement;
             const expenseData: Omit<Expense, 'id'> = {
                 workspaceId: activeWorkspaceId,
@@ -470,9 +450,7 @@ export async function handleFormSubmit() {
             };
             const [savedExpense] = await apiPost('expenses', expenseData);
             setState(prevState => ({ expenses: [...prevState.expenses, savedExpense] }), []);
-        }
-
-        if (type === 'setBudgets') {
+        } else if (type === 'setBudgets') {
             const form = document.getElementById('setBudgetsForm') as HTMLFormElement;
             const period = form.dataset.period!;
             const budgetRows = form.querySelectorAll<HTMLElement>('#budgets-container > div');
@@ -499,9 +477,7 @@ export async function handleFormSubmit() {
                     budgets: [...prevState.budgets.filter(b => b.period !== period), ...savedBudgets]
                 }), []);
             }
-        }
-        
-        if (type === 'addInventoryItem') {
+        } else if (type === 'addInventoryItem') {
             const form = document.getElementById('addInventoryItemForm') as HTMLFormElement;
             const itemId = form.dataset.itemId;
             const isEdit = !!itemId;
@@ -527,9 +503,7 @@ export async function handleFormSubmit() {
                 const [newItem] = await apiPost('inventory_items', itemData);
                 setState(prevState => ({ inventoryItems: [...prevState.inventoryItems, newItem] }), ['page']);
             }
-        }
-
-        if (type === 'assignInventoryItem') {
+        } else if (type === 'assignInventoryItem') {
             const form = document.getElementById('assignInventoryItemForm') as HTMLFormElement;
             const itemId = form.dataset.itemId!;
             
@@ -549,16 +523,14 @@ export async function handleFormSubmit() {
             }), ['page']);
         }
 
+        closeModal();
+        updateUI(['page', 'side-panel']);
     } catch (error) {
         console.error("Form submission error:", error);
         alert(`${t('errors.generic_error')}: ${(error as Error).message}`);
     } finally {
         if (button) {
             button.removeAttribute('disabled');
-        }
-        if (type !== 'aiProjectPlanner') {
-            closeModal();
-            updateUI(['page', 'side-panel']);
         }
     }
 }
