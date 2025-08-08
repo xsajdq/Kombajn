@@ -1,6 +1,7 @@
 
 
 
+
 import { getInitialState, setState, resetState, subscribe } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
 import { renderApp, updateUI } from './app-renderer.ts';
@@ -70,10 +71,10 @@ export async function bootstrapApp(session: Session) {
 async function main() {
     const app = document.getElementById('app')!;
     const showLoader = () => {
-        app.innerHTML = `<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div></div>`;
+        app.innerHTML = `<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div></div>`;
     };
     const showError = (message: string) => {
-        app.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center p-4">
+        app.innerHTML = `<div class="flex flex-col items-center justify-center h-screen text-center p-4">
             <h3 class="text-xl font-semibold mb-2">${t('errors.load_failed_title')}</h3>
             <p class="text-text-subtle mb-4 max-w-md">${message}</p>
             <button onclick="window.location.reload()" class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('errors.refresh')}</button>
