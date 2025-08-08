@@ -184,15 +184,18 @@ export interface Task {
         onInactivity?: boolean;
         onUnansweredQuestion?: boolean;
     } | null;
+    isMilestone: boolean;
 }
+
+export type DependencyType = 'finish_to_start' | 'start_to_start' | 'finish_to_finish' | 'start_to_finish';
 
 export interface TaskDependency {
     id: string;
     workspaceId: string;
     blockingTaskId: string; // The task that must be completed first
     blockedTaskId: string;  // The task that is waiting
-    // New field
-    reason?: string;
+    type: DependencyType;
+    lagDuration: number; // in days
 }
 
 export interface TaskAssignee {
@@ -651,6 +654,22 @@ export interface ChecklistTemplate {
     items: ChecklistTemplateItem[];
 }
 
+export interface ProjectBaseline {
+    id: string;
+    projectId: string;
+    name: string;
+    createdAt: string; // ISO
+    createdBy: string; // userId
+}
+
+export interface BaselineTask {
+    id: string;
+    baselineId: string;
+    taskId: string;
+    originalStartDate?: string; // YYYY-MM-DD
+    originalDueDate?: string; // YYYY-MM-DD
+}
+
 
 export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'createdAt';
 export type ProjectSortByOption = 'name' | 'status' | 'progress' | 'dueDate';
@@ -709,6 +728,8 @@ export interface AppState {
     pipelineStages: PipelineStage[];
     kanbanStages: KanbanStage[];
     checklistTemplates: ChecklistTemplate[];
+    projectBaselines: ProjectBaseline[];
+    baselineTasks: BaselineTask[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -747,7 +768,7 @@ export interface AppState {
             context: { type: 'project' | 'task', id: string } | null;
         };
         tasks: {
-            viewMode: 'board' | 'list' | 'calendar' | 'gantt' | 'workload';
+            viewMode: 'board' | 'list' | 'calendar' | 'gantt';
             ganttViewMode: 'Day' | 'Week' | 'Month';
             isFilterOpen: boolean;
             filters: TaskFilters;
@@ -758,6 +779,7 @@ export interface AppState {
             currentPage: number;
             hasMore: boolean;
             isLoadingMore: boolean;
+            viewingBaselineId: string | null;
         };
         invoiceFilters: {
             clientId: string;

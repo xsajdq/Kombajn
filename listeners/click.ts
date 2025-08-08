@@ -313,6 +313,24 @@ export async function handleClick(e: MouseEvent) {
     }
     // --- END: Timesheet User Selector ---
 
+    // --- START: Invoice Settings Handlers ---
+    const templateCard = target.closest<HTMLElement>('.template-card');
+    if (templateCard) {
+        const templateName = templateCard.dataset.templateName;
+        const input = document.getElementById('invoice-template-input') as HTMLInputElement | null;
+        if (templateName && input) {
+            input.value = templateName;
+            document.querySelectorAll('.template-card').forEach(card => card.classList.remove('selected'));
+            templateCard.classList.add('selected');
+        }
+        return;
+    }
+    
+    if (target.closest('#save-invoice-settings-btn')) {
+        invoiceHandlers.handleSaveInvoiceSettings();
+        return;
+    }
+    // --- END: Invoice Settings Handlers ---
 
     // --- Dynamic Breadcrumb Switcher Handler ---
     const breadcrumbSwitcher = target.closest<HTMLElement>('[data-breadcrumb-switcher]');

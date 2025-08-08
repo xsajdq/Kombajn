@@ -10,7 +10,7 @@ import { CommandPalette } from './components/CommandPalette.ts';
 import { FloatingActionButton } from './components/FloatingActionButton.ts';
 import { MentionPopover } from './components/MentionPopover.ts';
 import { initReportsPage } from './pages/ReportsPage.ts';
-import { initTasksPage } from './pages/TasksPage.ts';
+import { initTasksPageView } from './pages/TasksPage.ts';
 import { initDashboardCharts } from './pages/DashboardPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
@@ -101,7 +101,7 @@ function postRenderActions() {
     }
     
     if (state.currentPage === 'reports') initReportsPage();
-    if (state.currentPage === 'tasks') initTasksPage();
+    if (state.currentPage === 'tasks') initTasksPageView();
     if (state.currentPage === 'dashboard') initDashboardCharts();
 }
 

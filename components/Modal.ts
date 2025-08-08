@@ -112,11 +112,12 @@ function renderClientContactFormRow(contact?: any) {
 function renderTimePicker(initialSeconds: number = 0) {
     const hours = Math.floor(initialSeconds / 3600);
     const minutes = Math.floor((initialSeconds % 3600) / 60);
+    const snappedMinutes = Math.round(minutes / 5) * 5;
 
     const hoursOptions = Array.from({ length: 24 }, (_, i) => `<div class="time-picker-option ${i === hours ? 'selected' : ''}" data-value="${i}">${String(i).padStart(2, '0')}</div>`).join('');
     const minutesOptions = Array.from({ length: 12 }, (_, i) => {
         const minute = i * 5;
-        return `<div class="time-picker-option ${minute === minutes ? 'selected' : ''}" data-value="${minute}">${String(minute).padStart(2, '0')}</div>`;
+        return `<div class="time-picker-option ${minute === snappedMinutes ? 'selected' : ''}" data-value="${minute}">${String(minute).padStart(2, '0')}</div>`;
     }).join('');
 
     return `

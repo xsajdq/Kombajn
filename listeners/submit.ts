@@ -1,5 +1,6 @@
 
 
+
 import { getState } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
 import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
@@ -127,7 +128,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const blockedTaskId = target.dataset.blockedTaskId!;
         const blockingTaskId = select.value;
         if (blockedTaskId && blockingTaskId) {
-            taskHandlers.handleAddDependency(blockingTaskId, blockedTaskId);
+            taskHandlers.handleAddDependency(blockingTaskId, blockedTaskId, 'finish_to_start', 0);
         }
     } else if (target.id === 'add-custom-field-form') {
         const nameInput = target.querySelector<HTMLInputElement>('#custom-field-name')!;

@@ -86,16 +86,20 @@ export async function subscribeToUserChannel() {
             }
         )
         .subscribe(async (status, err) => {
-            if (status === 'SUBSCRIBED') {
-                console.log(`Successfully subscribed to user channel for ${userId}`);
-            }
-            if (status === 'CHANNEL_ERROR' && err) {
-                console.error(`Failed to subscribe to user channel:`, err);
-                // Attempt to re-subscribe on channel error (e.g., token expired)
-                console.log('Attempting to re-subscribe to user channel...');
-                await supabase!.removeChannel(userChannel!);
-                userChannel = null;
-                setTimeout(subscribeToUserChannel, 3000); // Retry after 3 seconds
+            console.log(`User channel status: ${status}`, err || '');
+            switch (status) {
+                case 'SUBSCRIBED':
+                    console.log(`Successfully subscribed to user channel for ${userId}`);
+                    break;
+                case 'CHANNEL_ERROR':
+                case 'TIMED_OUT':
+                case 'CLOSED':
+                    console.error(`User channel issue. Status: ${status}`, err);
+                    console.log('Attempting to re-subscribe to user channel...');
+                    if(supabase && userChannel) await supabase.removeChannel(userChannel);
+                    userChannel = null;
+                    setTimeout(subscribeToUserChannel, 3000); // Retry after 3 seconds
+                    break;
             }
         });
 }
@@ -158,9 +162,21 @@ export async function switchWorkspaceChannel(workspaceId: string) {
                 }, ['page']);
             }
         )
-        .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') console.log(`Successfully subscribed to workspace channel for ${workspaceId}`);
-            if (status === 'CHANNEL_ERROR' && err) console.error(`Failed to subscribe to workspace channel:`, err);
+        .subscribe(async (status, err) => {
+             console.log(`Workspace channel status: ${status}`, err || '');
+            switch (status) {
+                case 'SUBSCRIBED':
+                    console.log(`Successfully subscribed to workspace channel for ${workspaceId}`);
+                    break;
+                case 'CHANNEL_ERROR':
+                case 'TIMED_OUT':
+                case 'CLOSED':
+                    console.error(`Workspace channel issue. Status: ${status}`, err);
+                    if(supabase && workspaceChannel) await supabase.removeChannel(workspaceChannel);
+                    workspaceChannel = null;
+                    setTimeout(() => switchWorkspaceChannel(workspaceId), 3000);
+                    break;
+            }
         });
 }
 

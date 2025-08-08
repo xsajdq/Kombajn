@@ -145,8 +145,8 @@ function renderBoardView(filteredTasks: Task[]) {
     const boardHtml = kanbanStages.map(renderColumn).join('');
         
     return `
-        <div class="flex-1 overflow-y-auto overflow-x-hidden">
-            <div class="tasks-board-container" style="grid-template-columns: repeat(${kanbanStages.length}, minmax(0, 1fr));">
+        <div class="flex-1 overflow-y-auto overflow-x-auto">
+            <div class="tasks-board-container">
                 ${boardHtml}
             </div>
         </div>
@@ -312,52 +312,6 @@ function renderGanttView(filteredTasks: Task[]) {
     return `<div class="gantt-container bg-content rounded-lg shadow-sm" id="gantt-chart"></div>`;
 }
 
-function renderWorkloadView(filteredTasks: Task[]) {
-    const state = getState();
-    const users = state.workspaceMembers
-        .filter(m => m.workspaceId === state.activeWorkspaceId)
-        .map(m => state.users.find(u => u.id === m.userId))
-        .filter((u): u is User => !!u);
-    
-    const today = new Date();
-    const dates = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        return d;
-    });
-
-    return `
-        <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
-            <div class="workload-grid-container">
-                <div class="workload-header workload-user-header"></div>
-                ${dates.map(d => `<div class="workload-header">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })} ${d.getDate()}</div>`).join('')}
-
-                ${users.map(user => {
-                    const userRow = `<div class="workload-user-cell">${user.name}</div>`;
-                    const dayCells = dates.map(date => {
-                        const dateStr = date.toISOString().slice(0, 10);
-                        const tasksForDay = filteredTasks.filter(task => 
-                            task.dueDate === dateStr &&
-                            state.taskAssignees.some(a => a.taskId === task.id && a.userId === user.id)
-                        );
-                        const taskCount = tasksForDay.length;
-                        let cellClass = '';
-                        if (taskCount > 3) cellClass = 'bg-danger/10';
-                        else if (taskCount > 1) cellClass = 'bg-warning/10';
-                        
-                        return `
-                            <div class="workload-day-cell ${cellClass}">
-                                ${tasksForDay.map(t => `<div class="workload-task-item" data-task-id="${t.id}">${t.name}</div>`).join('')}
-                            </div>
-                        `;
-                    }).join('');
-                    return userRow + dayCells;
-                }).join('')}
-            </div>
-        </div>
-    `;
-}
-
 function destroyGanttChart() {
     if (ganttChart) {
         ganttChart.clear();
@@ -367,7 +321,7 @@ function destroyGanttChart() {
     if (container) container.innerHTML = '';
 }
 
-export async function initTasksPage() {
+export async function initTasksPageData() {
     const state = getState();
     const { activeWorkspaceId } = state;
     if (!activeWorkspaceId) return;
@@ -380,12 +334,13 @@ export async function initTasksPage() {
         }), ['page']);
         await fetchTasksForWorkspace(activeWorkspaceId);
     }
-    
-    // Check state again after potential async operation
+}
+
+export function initTasksPageView() {
     const currentState = getState();
     if (currentState.ui.tasks.viewMode === 'gantt' && !currentState.ui.tasks.isLoading) {
         const ganttContainer = document.getElementById('gantt-chart');
-        if (ganttContainer) {
+        if (ganttContainer && !ganttChart) {
             const tasksForGantt = getFilteredTasks()
                 .filter(t => t.startDate && t.dueDate)
                 .map(t => ({
@@ -433,7 +388,6 @@ export function TasksPage() {
             case 'list': contentHtml = renderListView(filteredTasks, projectSections); break;
             case 'calendar': contentHtml = renderCalendarView(filteredTasks); break;
             case 'gantt': contentHtml = renderGanttView(filteredTasks); break;
-            case 'workload': contentHtml = renderWorkloadView(filteredTasks); break;
             default: contentHtml = renderBoardView(filteredTasks);
         }
     }
@@ -443,7 +397,6 @@ export function TasksPage() {
         { id: 'list', icon: 'view_list', text: t('tasks.list_view') },
         { id: 'calendar', icon: 'calendar_month', text: t('tasks.calendar_view') },
         { id: 'gantt', icon: 'bar_chart', text: t('tasks.gantt_view') },
-        { id: 'workload', icon: 'groups', text: t('tasks.workload_view') },
     ];
     
     const sortOptions: { id: SortByOption, text: string }[] = [

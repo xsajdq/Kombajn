@@ -3,7 +3,7 @@
 import { getState, setState } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage, initClientsPage } from './pages/ClientsPage.ts';
-import { TasksPage, initTasksPage } from './pages/TasksPage.ts';
+import { TasksPage, initTasksPageData } from './pages/TasksPage.ts';
 import { ReportsPage } from './pages/ReportsPage.ts';
 import { InvoicesPage, initInvoicesPage } from './pages/InvoicesPage.ts';
 import { AIAssistantPage } from './pages/AIAssistantPage.ts';
@@ -88,7 +88,7 @@ export async function router() {
     switch (newPage) {
         case 'projects':        return can('view_projects') ? ProjectsPage() : DashboardPage();
         case 'clients':         await initClientsPage(); return can('view_clients') ? ClientsPage() : DashboardPage();
-        case 'tasks':           await initTasksPage(); return can('view_tasks') ? TasksPage() : DashboardPage();
+        case 'tasks':           await initTasksPageData(); return can('view_tasks') ? TasksPage() : DashboardPage();
         case 'team-calendar':   await initTeamCalendarPage(); return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales':           await initSalesPage(); return can('view_sales') ? SalesPage() : DashboardPage();

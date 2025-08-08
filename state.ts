@@ -73,6 +73,8 @@ export function getInitialState(): AppState {
         pipelineStages: [],
         kanbanStages: [],
         checklistTemplates: [],
+        projectBaselines: [],
+        baselineTasks: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,
@@ -104,6 +106,7 @@ export function getInitialState(): AppState {
                 currentPage: 1,
                 hasMore: true,
                 isLoadingMore: false,
+                viewingBaselineId: null,
             },
             invoiceFilters: { clientId: 'all', status: 'all', dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10) },
             calendarDate: now.toISOString().slice(0, 7),
