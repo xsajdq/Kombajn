@@ -1,12 +1,14 @@
 
 
 
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Task } from '../types.ts';
 import { apiPost } from '../services/api.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
 import { t } from '../i18n.ts';
+import { showToast } from './ui.ts';
 
 export async function handleAddAiTask(taskIndex: number, projectId: string) {
     const state = getState();
@@ -36,6 +38,6 @@ export async function handleAddAiTask(taskIndex: number, projectId: string) {
         }), ['page']);
     } catch (error) {
         console.error("Failed to add AI-generated task:", error);
-        alert(t('errors.ai_task_save_failed'));
+        showToast(t('errors.ai_task_save_failed'), 'error');
     }
 }

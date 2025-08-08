@@ -3,9 +3,10 @@
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
+import { html, TemplateResult } from 'lit-html';
 
-function renderDetailItem(icon: string, label: string, value: string | undefined | null) {
-    return `
+function renderDetailItem(icon: string, label: string, value: string | undefined | null): TemplateResult {
+    return html`
         <div class="client-detail-item">
             <span class="material-icons-sharp">${icon}</span>
             <div>
@@ -16,7 +17,7 @@ function renderDetailItem(icon: string, label: string, value: string | undefined
     `;
 }
 
-export function ClientDetailPanel({ clientId }: { clientId: string }) {
+export function ClientDetailPanel({ clientId }: { clientId: string }): TemplateResult | '' {
     const state = getState();
     const client = state.clients.find(c => c.id === clientId && c.workspaceId === state.activeWorkspaceId);
     if (!client) return '';
@@ -46,7 +47,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
     const workspaceTags = state.tags.filter(t => t.workspaceId === state.activeWorkspaceId);
 
 
-    return `
+    return html`
         <div class="side-panel" role="region" aria-label="Client Details Panel">
             <div class="side-panel-header">
                 <h2>${client.name}</h2>
@@ -54,7 +55,7 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                     <button class="btn-icon" data-copy-link="clients/${client.slug || client.id}" title="${t('misc.copy_link')}">
                         <span class="material-icons-sharp">link</span>
                     </button>
-                    ${canManage ? `
+                    ${canManage ? html`
                         <div class="relative">
                             <button class="btn-icon" data-menu-toggle="client-actions-${client.id}" aria-haspopup="true" aria-expanded="false" title="Client Actions">
                                 <span class="material-icons-sharp">more_vert</span>
@@ -95,23 +96,23 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                     <h4>${t('modals.tags')}</h4>
                     <div id="client-tags-selector" class="multiselect-container" data-entity-type="client" data-entity-id="${client.id}">
                         <div class="multiselect-display">
-                            ${clientTags.length > 0 ? clientTags.map(tag => `
+                            ${clientTags.length > 0 ? clientTags.map(tag => html`
                                 <div class="selected-tag-item" style="background-color: ${tag!.color}20; border-color: ${tag!.color}80;">
                                     <span>${tag!.name}</span>
                                     <button class="remove-tag-btn" data-tag-id="${tag!.id}">&times;</button>
                                 </div>
-                            `).join('') : `<span class="subtle-text">No tags</span>`}
+                            `) : html`<span class="subtle-text">No tags</span>`}
                         </div>
                         <div class="multiselect-dropdown hidden">
                             <div class="multiselect-list">
                                 ${workspaceTags.map(tag => {
                                     const isSelected = clientTags.some(ct => ct!.id === tag.id);
-                                    return `
+                                    return html`
                                     <label class="multiselect-list-item ${isSelected ? 'bg-primary/10' : ''}">
-                                        <input type="checkbox" value="${tag.id}" ${isSelected ? 'checked' : ''}>
+                                        <input type="checkbox" value="${tag.id}" ?checked=${isSelected}>
                                         <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
                                     </label>
-                                `}).join('')}
+                                `})}
                             </div>
                             <div class="multiselect-add-new">
                                 <input type="text" class="form-control" placeholder="Create new tag...">
@@ -122,9 +123,9 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
 
                 <div class="side-panel-section">
                     <h4>${t('panels.client_contacts')}</h4>
-                     ${client.contacts && client.contacts.length > 0 ? `
+                     ${client.contacts && client.contacts.length > 0 ? html`
                         <div class="contact-card-list">
-                            ${client.contacts.map(contact => `
+                            ${client.contacts.map(contact => html`
                                 <div class="contact-card-new">
                                     <div class="contact-card-header">
                                         <strong>${contact.name}</strong>
@@ -135,18 +136,18 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                                         <span><span class="material-icons-sharp icon-sm">call</span> ${contact.phone || t('misc.not_applicable')}</span>
                                     </div>
                                 </div>
-                            `).join('')}
+                            `)}
                         </div>
-                    ` : `
+                    ` : html`
                          <p class="subtle-text">No contacts added.</p>
                     `}
                 </div>
 
                 <div class="side-panel-section">
                     <h4>${t('panels.associated_projects')}</h4>
-                     ${associatedProjects.length > 0 ? `
+                     ${associatedProjects.length > 0 ? html`
                         <div class="item-list associated-projects-list">
-                            ${associatedProjects.map(project => `
+                            ${associatedProjects.map(project => html`
                                 <div class="item-card clickable" data-project-id="${project.id}" role="button" tabindex="0">
                                     <span class="material-icons-sharp">folder</span>
                                     <div style="flex-grow: 1;">
@@ -154,9 +155,9 @@ export function ClientDetailPanel({ clientId }: { clientId: string }) {
                                     </div>
                                     <span class="material-icons-sharp">chevron_right</span>
                                 </div>
-                            `).join('')}
+                            `)}
                         </div>
-                    ` : `
+                    ` : html`
                          <p class="subtle-text">${t('panels.projects_soon')}</p>
                     `}
                 </div>

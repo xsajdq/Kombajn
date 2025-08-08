@@ -1,17 +1,21 @@
 import { t } from '../../i18n.ts';
+import { getState } from '../../state.ts';
+import { formControlClasses, formGroupClasses, labelClasses } from './formControls.ts';
+import { html, TemplateResult } from 'lit-html';
+import type { AddCommentToTimeLogModalData } from '../../types.ts';
 
 function renderTimePicker(initialSeconds: number = 0) {
     const hours = Math.floor(initialSeconds / 3600);
-    const minutes = Math.floor((initialSeconds % 3600) / 60);
-    const snappedMinutes = Math.round(minutes / 5) * 5;
+    // Snap to the nearest 5 minutes for the initial selection
+    const minutes = Math.round((initialSeconds % 3600) / 60 / 5) * 5;
 
-    const hoursOptions = Array.from({ length: 24 }, (_, i) => `<div class="time-picker-option ${i === hours ? 'selected' : ''}" data-value="${i}">${String(i).padStart(2, '0')}</div>`).join('');
+    const hoursOptions = Array.from({ length: 24 }, (_, i) => html`<div class="time-picker-option ${i === hours ? 'selected' : ''}" data-value="${i}">${String(i).padStart(2, '0')}</div>`);
     const minutesOptions = Array.from({ length: 12 }, (_, i) => {
         const minute = i * 5;
-        return `<div class="time-picker-option ${minute === snappedMinutes ? 'selected' : ''}" data-value="${minute}">${String(minute).padStart(2, '0')}</div>`;
-    }).join('');
+        return html`<div class="time-picker-option ${minute === minutes ? 'selected' : ''}" data-value="${minute}">${String(minute).padStart(2, '0')}</div>`;
+    });
 
-    return `
+    return html`
         <div class="time-picker">
             <input type="hidden" id="time-picker-seconds" value="${initialSeconds}">
             <div class="time-picker-column" id="time-picker-hours">${hoursOptions}</div>
@@ -20,11 +24,12 @@ function renderTimePicker(initialSeconds: number = 0) {
     `;
 }
 
-export function AddCommentToTimeLogModal({ trackedSeconds }: { trackedSeconds: number }): string {
-    const formControlClasses = "w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition";
-    const formGroupClasses = "flex flex-col gap-1.5";
-    const labelClasses = "text-sm font-medium text-text-subtle";
-    return `
+export function AddCommentToTimeLogModal() {
+    const modalData = (getState().ui.modal.data || {}) as AddCommentToTimeLogModalData;
+    const trackedSeconds = modalData.trackedSeconds || 0;
+
+    const title = t('modals.add_timelog_comment_title');
+    const body = html`
         <form id="add-comment-to-timelog-form" class="space-y-4">
             <div class="${formGroupClasses}">
                 <label class="${labelClasses}">${t('modals.time_to_log')}</label>
@@ -36,4 +41,10 @@ export function AddCommentToTimeLogModal({ trackedSeconds }: { trackedSeconds: n
             </div>
         </form>
     `;
+    const footer = html`
+        <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 btn-close-modal">${t('modals.cancel')}</button>
+        <button class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-hover" id="modal-save-btn">${t('modals.save_log')}</button>
+    `;
+    
+    return { title, body, footer };
 }

@@ -1,11 +1,11 @@
-
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import type { Task, ProjectRole, Attachment, Objective, KeyResult, Expense } from '../types.ts';
 import { getUserProjectRole } from '../handlers/main.ts';
 import { can } from '../permissions.ts';
+import { html, TemplateResult } from 'lit-html';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 
 declare const marked: any;
 declare const DOMPurify: any;
@@ -19,7 +19,7 @@ function formatBytes(bytes: number, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-function renderOverviewTab(project: any) {
+function renderOverviewTab(project: any): TemplateResult {
     const state = getState();
     const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
     const completedTasks = projectTasks.filter(t => t.status === 'done').length;
@@ -50,7 +50,7 @@ function renderOverviewTab(project: any) {
     const expenses = state.expenses.filter(e => e.projectId === project.id);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-    return `
+    return html`
         <div class="side-panel-content">
             <div class="project-overview-dashboard">
                 
@@ -96,12 +96,12 @@ function renderOverviewTab(project: any) {
                     <div class="bg-content p-4 rounded-lg shadow-sm project-team-section">
                         <h4 class="text-sm font-semibold mb-3">${t('panels.team')} (${memberUsers.length})</h4>
                         <div class="avatar-stack">
-                             ${memberUsers.slice(0, 6).map(u => u ? `
+                             ${memberUsers.slice(0, 6).map(u => u ? html`
                                 <div class="avatar" title="${u.name || getUserInitials(u)}">
-                                    ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : getUserInitials(u)}
+                                    ${u.avatarUrl ? html`<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : getUserInitials(u)}
                                 </div>
-                            ` : '').join('')}
-                            ${memberUsers.length > 6 ? `
+                            ` : '')}
+                            ${memberUsers.length > 6 ? html`
                                 <div class="avatar more-avatar">+${memberUsers.length - 6}</div>
                             ` : ''}
                         </div>
@@ -109,12 +109,12 @@ function renderOverviewTab(project: any) {
                      <div class="bg-content p-4 rounded-lg shadow-sm">
                         <h4 class="text-sm font-semibold mb-3">${t('modals.tags')}</h4>
                         <div class="flex flex-wrap gap-1.5">
-                            ${projectTags.length > 0 ? projectTags.map(tag => `<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`).join('') : `<p class="text-xs text-text-subtle">No tags</p>`}
+                            ${projectTags.length > 0 ? projectTags.map(tag => html`<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`) : html`<p class="text-xs text-text-subtle">No tags</p>`}
                         </div>
                     </div>
                 </div>
 
-                ${objectives.length > 0 ? `
+                ${objectives.length > 0 ? html`
                 <div class="bg-content p-4 rounded-lg shadow-sm">
                     <h4 class="text-sm font-semibold mb-3">${t('modals.okrs')}</h4>
                     <div class="space-y-3">
@@ -126,7 +126,7 @@ function renderOverviewTab(project: any) {
                                 return Math.max(0, Math.min(((kr.currentValue - kr.startValue) / range) * 100, 100));
                             });
                             const overallProgress = progressValues.length > 0 ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length : 0;
-                            return `
+                            return html`
                                 <div class="project-objective-item">
                                     <div class="flex justify-between text-xs mb-1">
                                         <span class="font-medium">${obj.title}</span>
@@ -135,7 +135,7 @@ function renderOverviewTab(project: any) {
                                     <div class="progress-bar"><div class="progress-bar-inner" style="width: ${overallProgress}%;"></div></div>
                                 </div>
                             `;
-                        }).join('')}
+                        })}
                     </div>
                 </div>
                 ` : ''}
@@ -144,7 +144,7 @@ function renderOverviewTab(project: any) {
     `;
 };
 
-function renderTasksTab(project: any, canEditProject: boolean) {
+function renderTasksTab(project: any, canEditProject: boolean): TemplateResult {
     const state = getState();
     const projectTasks = state.tasks.filter(t => t.projectId === project.id && t.workspaceId === state.activeWorkspaceId);
 
@@ -157,17 +157,17 @@ function renderTasksTab(project: any, canEditProject: boolean) {
         const statusIcon = isDone ? 'check_circle' : 'radio_button_unchecked';
         const iconClass = isDone ? 'done' : 'open';
 
-        return `
+        return html`
             <div class="project-task-row clickable" data-task-id="${task.id}" role="button" tabindex="0">
                 <button class="btn-icon task-status-toggle" data-task-id="${task.id}" aria-label="Toggle task status">
                     <span class="material-icons-sharp icon-sm ${iconClass}">${statusIcon}</span>
                 </button>
                 <p class="task-name ${isDone ? 'is-done' : ''}">${task.name}</p>
                 <div class="task-meta">
-                    ${task.dueDate ? `<span class="task-due-date">${formatDate(task.dueDate, { month: 'short', day: 'numeric' })}</span>` : '<span></span>'}
+                    ${task.dueDate ? html`<span class="task-due-date">${formatDate(task.dueDate, { month: 'short', day: 'numeric' })}</span>` : html`<span></span>`}
                     <div class="avatar-stack">
-                        ${assignees.slice(0, 2).map(u => u ? `<div class="avatar" title="${u.name || ''}">${getUserInitials(u)}</div>` : '').join('')}
-                        ${assignees.length > 2 ? `<div class="avatar more-avatar">+${assignees.length - 2}</div>` : ''}
+                        ${assignees.slice(0, 2).map(u => u ? html`<div class="avatar" title="${u.name || ''}">${getUserInitials(u)}</div>` : '')}
+                        ${assignees.length > 2 ? html`<div class="avatar more-avatar">+${assignees.length - 2}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -176,10 +176,10 @@ function renderTasksTab(project: any, canEditProject: boolean) {
 
     const renderTaskSection = (title: string, tasks: Task[]) => {
         if (tasks.length === 0) return '';
-        return `
+        return html`
             <div class="project-task-group">
                 <h5 class="task-group-title">${title} (${tasks.length})</h5>
-                <div class="task-group-list">${tasks.map(renderTaskRow).join('')}</div>
+                <div class="task-group-list">${tasks.map(renderTaskRow)}</div>
             </div>
         `;
     };
@@ -188,20 +188,20 @@ function renderTasksTab(project: any, canEditProject: boolean) {
     const todoAndBacklog = [...tasksByStatus.todo, ...tasksByStatus.backlog];
     const doneTasks = tasksByStatus.done;
 
-    return `
+    return html`
         <div class="side-panel-content">
             <div class="project-tasks-header">
-                <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
+                <button class="btn btn-secondary btn-sm" data-modal-target="addTask" data-project-id="${project.id}" ?disabled=${!canEditProject}>
                     <span class="material-icons-sharp" style="font-size: 1.2rem;">add</span> ${t('panels.add_task')}
                 </button>
             </div>
             <div class="project-tasks-list-modern">
                 ${renderTaskSection(t('tasks.inprogress'), inProgressAndReview)}
                 ${renderTaskSection(t('tasks.todo'), todoAndBacklog)}
-                ${doneTasks.length > 0 ? `
+                ${doneTasks.length > 0 ? html`
                     <details class="project-task-group-collapsible">
                         <summary class="task-group-title">${t('tasks.done')} (${doneTasks.length})</summary>
-                        <div class="task-group-list">${doneTasks.map(renderTaskRow).join('')}</div>
+                        <div class="task-group-list">${doneTasks.map(renderTaskRow)}</div>
                     </details>
                 ` : ''}
             </div>
@@ -209,50 +209,50 @@ function renderTasksTab(project: any, canEditProject: boolean) {
     `;
 };
 
-function renderWikiTab(project: any, canEditProject: boolean) {
+function renderWikiTab(project: any, canEditProject: boolean): TemplateResult {
     const { isWikiEditing } = getState().ui;
     const hasWikiContent = !!project.wikiContent;
-    const editControls = `<button id="cancel-wiki-edit-btn" class="btn btn-secondary btn-sm">${t('modals.cancel')}</button><button id="save-wiki-btn" class="btn btn-primary btn-sm">${t('modals.save')}</button>`;
-    const viewControls = `<button id="edit-wiki-btn" class="btn btn-secondary btn-sm" ${!canEditProject ? 'disabled' : ''}><span class="material-icons-sharp" style="font-size:1.2rem">edit</span> ${t('misc.edit')}</button>`;
-    const toolbar = `<div class="project-wiki-toolbar"><button id="wiki-history-btn" class="btn btn-secondary btn-sm" data-project-id="${project.id}"><span class="material-icons-sharp" style="font-size:1.2rem">history</span> ${t('panels.history')}</button><div style="margin-left: auto; display: flex; gap: 0.5rem;">${isWikiEditing ? editControls : viewControls}</div></div>`;
-    const editorView = `<div class="wiki-editor-layout"><textarea id="project-wiki-editor" class="form-control project-wiki-editor" aria-label="Project Wiki Editor">${project.wikiContent || ''}</textarea><div id="project-wiki-preview" class="project-wiki-view project-wiki-preview" aria-live="polite">${project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">Live preview will appear here...</p>`}</div></div>`;
-    const readView = `<div id="project-wiki-view" class="project-wiki-view ${!hasWikiContent ? 'not-prose' : ''}" aria-live="polite">${hasWikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`}</div>`;
-    return `<div class="project-wiki-container">${toolbar}${isWikiEditing ? editorView : readView}<p id="wiki-save-status" class="subtle-text" style="text-align: right; margin-top: 0.5rem; height: 1em;" aria-live="polite"></p></div>`;
+    const editControls = html`<button id="cancel-wiki-edit-btn" class="btn btn-secondary btn-sm">${t('modals.cancel')}</button><button id="save-wiki-btn" class="btn btn-primary btn-sm">${t('modals.save')}</button>`;
+    const viewControls = html`<button id="edit-wiki-btn" class="btn btn-secondary btn-sm" ?disabled=${!canEditProject}><span class="material-icons-sharp" style="font-size:1.2rem">edit</span> ${t('misc.edit')}</button>`;
+    const toolbar = html`<div class="project-wiki-toolbar"><button id="wiki-history-btn" class="btn btn-secondary btn-sm" data-project-id="${project.id}"><span class="material-icons-sharp" style="font-size:1.2rem">history</span> ${t('panels.history')}</button><div style="margin-left: auto; display: flex; gap: 0.5rem;">${isWikiEditing ? editControls : viewControls}</div></div>`;
+    const editorView = html`<div class="wiki-editor-layout"><textarea id="project-wiki-editor" class="form-control project-wiki-editor" aria-label="Project Wiki Editor">${project.wikiContent || ''}</textarea><div id="project-wiki-preview" class="project-wiki-view project-wiki-preview" aria-live="polite">${unsafeHTML(project.wikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">Live preview will appear here...</p>`)}</div></div>`;
+    const readView = html`<div id="project-wiki-view" class="project-wiki-view ${!hasWikiContent ? 'not-prose' : ''}" aria-live="polite">${unsafeHTML(hasWikiContent ? DOMPurify.sanitize(marked.parse(project.wikiContent)) : `<p class="subtle-text">${t('panels.wiki_placeholder')}</p>`)}</div>`;
+    return html`<div class="project-wiki-container">${toolbar}${isWikiEditing ? editorView : readView}<p id="wiki-save-status" class="subtle-text" style="text-align: right; margin-top: 0.5rem; height: 1em;" aria-live="polite"></p></div>`;
 };
 
-function renderFilesTab(project: any, canEditProject: boolean) {
+function renderFilesTab(project: any, canEditProject: boolean): TemplateResult {
     const files = getState().attachments.filter(a => a.projectId === project.id);
-    return `
+    return html`
         <div class="side-panel-content">
             <div class="bg-content p-4 rounded-lg shadow-sm">
                 <div class="project-files-header">
                     <h4>${t('panels.tab_files')} (${files.length})</h4>
                     <label for="project-file-upload" class="btn btn-secondary btn-sm ${!canEditProject ? 'disabled' : ''}"><span class="material-icons-sharp" style="font-size: 1.2rem;">upload_file</span> ${t('panels.upload_file')}</label>
-                    <input type="file" id="project-file-upload" class="hidden" data-project-id="${project.id}" ${!canEditProject ? 'disabled' : ''}>
+                    <input type="file" id="project-file-upload" class="hidden" data-project-id="${project.id}" ?disabled=${!canEditProject}>
                 </div>
                  <ul class="attachment-list">
-                    ${files.length > 0 ? files.map(att => `
+                    ${files.length > 0 ? files.map(att => html`
                         <li class="attachment-item">
                             <span class="material-icons-sharp">description</span>
                             <div class="attachment-info"><strong>${att.fileName}</strong><p class="subtle-text">${formatBytes(att.fileSize || 0)} - ${formatDate(att.createdAt)}</p></div>
                             <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" aria-label="${t('modals.remove_item')} ${att.fileName}"><span class="material-icons-sharp" style="color: var(--danger-color)">delete</span></button>
                         </li>
-                    `).join('') : `<p class="subtle-text">${t('panels.no_files')}</p>`}
+                    `) : html`<p class="subtle-text">${t('panels.no_files')}</p>`}
                 </ul>
             </div>
         </div>
     `;
 };
 
-function renderAccessTab(project: any, canManageProject: boolean) {
+function renderAccessTab(project: any, canManageProject: boolean): TemplateResult {
     if (!canManageProject) {
-       return `<div class="side-panel-content"><p>${t('hr.access_denied_desc')}</p></div>`;
+       return html`<div class="side-panel-content"><p>${t('hr.access_denied_desc')}</p></div>`;
     }
     const state = getState();
     const projectMembers = state.projectMembers.filter(pm => pm.projectId === project.id).map(pm => ({ ...pm, user: state.users.find(u => u.id === pm.userId) })).filter(pm => pm.user);
     const workspaceUsersNotInProject = state.workspaceMembers.filter(wm => wm.workspaceId === state.activeWorkspaceId && !projectMembers.some(pm => pm.userId === wm.userId)).map(wm => state.users.find(u => u.id === wm.userId)).filter(Boolean);
     const projectRoles: ProjectRole[] = ['admin', 'editor', 'commenter', 'viewer'];
-    return `
+    return html`
        <div class="side-panel-content space-y-6">
            <div class="bg-content p-4 rounded-lg shadow-sm">
                <h4 class="text-sm font-semibold mb-3">${t('panels.project_access')} (${projectMembers.length})</h4>
@@ -260,44 +260,44 @@ function renderAccessTab(project: any, canManageProject: boolean) {
                    ${projectMembers.map(pm => {
                        const userName = pm.user!.name || getUserInitials(pm.user);
                        const isSelf = pm.user!.id === state.currentUser?.id;
-                       return `
+                       return html`
                        <div class="access-member-item">
                             <div class="avatar">${getUserInitials(pm.user)}</div>
                            <div class="access-member-info">
-                               <strong>${userName} ${isSelf ? `<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
+                               <strong>${userName} ${isSelf ? html`<span class="subtle-text">(${t('hr.you')})</span>` : ''}</strong>
                                <p class="text-xs text-text-subtle">${pm.user!.email}</p>
                            </div>
                            <div class="access-member-actions">
-                               <select class="form-control" data-project-member-id="${pm.id}" ${isSelf ? 'disabled' : ''} aria-label="Change role for ${userName}">
-                                   ${projectRoles.map(r => `<option value="${r}" ${pm.role === r ? 'selected' : ''}>${t(`panels.role_${r}`)}</option>`).join('')}
+                               <select class="form-control" data-project-member-id="${pm.id}" ?disabled=${isSelf} aria-label="Change role for ${userName}">
+                                   ${projectRoles.map(r => html`<option value="${r}" ?selected=${pm.role === r}>${t(`panels.role_${r}`)}</option>`)}
                                </select>
-                               <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${userName}" ${isSelf ? 'disabled' : ''}>
+                               <button class="btn-icon" data-remove-project-member-id="${pm.id}" aria-label="${t('hr.remove')} ${userName}" ?disabled=${isSelf}>
                                    <span class="material-icons-sharp danger-icon">person_remove</span>
                                </button>
                            </div>
-                       </div>`}).join('')}
+                       </div>`;})}
                </div>
            </div>
            <div class="bg-content p-4 rounded-lg shadow-sm">
                <h4 class="text-sm font-semibold mb-3">${t('panels.invite_to_project')}</h4>
                <form id="add-project-member-form" data-project-id="${project.id}" class="access-invite-form">
-                   <select id="project-member-select" class="form-control" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>
+                   <select id="project-member-select" class="form-control" ?disabled=${workspaceUsersNotInProject.length === 0}>
                         ${workspaceUsersNotInProject.length > 0
-                           ? `<option value="">${t('modals.select_a_client')}</option>` + workspaceUsersNotInProject.map(user => `<option value="${user!.id}">${user!.name || getUserInitials(user)}</option>`).join('')
-                           : `<option disabled selected>All members are in the project</option>`
+                           ? html`<option value="">${t('modals.select_a_client')}</option>${workspaceUsersNotInProject.map(user => html`<option value="${user!.id}">${user!.name || getUserInitials(user)}</option>`)}`
+                           : html`<option disabled selected>All members are in the project</option>`
                         }
                    </select>
                    <select id="project-role-select" class="form-control">
-                       ${projectRoles.map(r => `<option value="${r}" ${r === 'editor' ? 'selected' : ''}>${t(`panels.role_${r}`)}</option>`).join('')}
+                       ${projectRoles.map(r => html`<option value="${r}" ?selected=${r === 'editor'}>${t(`panels.role_${r}`)}</option>`)}
                    </select>
-                    <button type="submit" class="btn btn-primary" ${workspaceUsersNotInProject.length === 0 ? 'disabled' : ''}>${t('hr.invite')}</button>
+                    <button type="submit" class="btn btn-primary" ?disabled=${workspaceUsersNotInProject.length === 0}>${t('hr.invite')}</button>
                </form>
            </div>
        </div>
        `;
 };
 
-export function ProjectDetailPanel({ projectId }: { projectId: string }) {
+export function ProjectDetailPanel({ projectId }: { projectId: string }): TemplateResult | '' {
     const state = getState();
     const project = state.projects.find(p => p.id === projectId && p.workspaceId === state.activeWorkspaceId);
     if (!project) return '';
@@ -316,7 +316,7 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
         { id: 'access', text: t('panels.tab_access'), content: renderAccessTab(project, canManageProject) },
     ];
     
-    return `
+    return html`
         <div class="side-panel" role="region" aria-label="Project Details Panel">
             <div class="side-panel-header">
                 <div>
@@ -356,11 +356,11 @@ export function ProjectDetailPanel({ projectId }: { projectId: string }) {
                 </div>
             </div>
             <nav class="side-panel-tabs" role="tablist" aria-label="Project sections">
-                ${tabs.map(tab => `
+                ${tabs.map(tab => html`
                     <button class="side-panel-tab ${openedProjectTab === tab.id ? 'active' : ''}" data-tab-group="ui.openedProjectTab" data-tab-value="${tab.id}" role="tab" aria-selected="${openedProjectTab === tab.id}">
                         ${tab.text}
                     </button>
-                `).join('')}
+                `)}
             </nav>
             ${tabs.find(t => t.id === openedProjectTab)?.content || ''}
         </div>

@@ -1,10 +1,12 @@
 
+
 import { getState } from '../state.ts';
 import type { User } from '../types.ts';
 import { t } from '../i18n.ts';
 import { getUserInitials } from '../utils.ts';
+import { html, TemplateResult } from 'lit-html';
 
-export function MentionPopover() {
+export function MentionPopover(): TemplateResult | '' {
     const state = getState();
     const { query, activeIndex, rect } = state.ui.mention;
     if (query === null || !rect) return '';
@@ -25,7 +27,7 @@ export function MentionPopover() {
     const left = rect.left;
 
     const popoverContent = workspaceMembers.length > 0
-        ? workspaceMembers.map((user, index) => `
+        ? workspaceMembers.map((user, index) => html`
             <div class="mention-item ${index === activeIndex ? 'active' : ''}" data-mention-id="${user.id}" data-mention-name="${user.name || getUserInitials(user)}">
                 <div class="avatar">${getUserInitials(user)}</div>
                 <div class="mention-user-info">
@@ -33,10 +35,10 @@ export function MentionPopover() {
                     <div class="mention-user-email">${user.email || ''}</div>
                 </div>
             </div>
-        `).join('')
-        : `<div class="mention-item-empty">${t('command_palette.no_results')}</div>`;
+        `)
+        : html`<div class="mention-item-empty">${t('command_palette.no_results')}</div>`;
 
-    return `
+    return html`
         <div class="mention-popover" style="position: fixed; top: ${top}px; left: ${left}px;">
             ${popoverContent}
         </div>

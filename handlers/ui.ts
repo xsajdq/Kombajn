@@ -2,9 +2,41 @@
 
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { AppState } from '../types.ts';
+import type { AppState, ModalData, ModalType } from '../types.ts';
+import { t } from '../i18n.ts';
 
 let lastFocusedElement: HTMLElement | null = null;
+
+export function showToast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'info';
+    if (type === 'success') icon = 'check_circle';
+    if (type === 'error') icon = 'error';
+
+    toast.innerHTML = `
+        <span class="material-icons-sharp">${icon}</span>
+        <span class="flex-1">${message}</span>
+        <button class="toast-close-btn">
+            <span class="material-icons-sharp">close</span>
+        </button>
+    `;
+
+    const close = () => {
+        toast.classList.add('exiting');
+        toast.addEventListener('animationend', () => toast.remove());
+    };
+
+    toast.querySelector('.toast-close-btn')?.addEventListener('click', close);
+    setTimeout(close, duration);
+
+    container.appendChild(toast);
+}
+
 
 export function updateUrlAndShowDetail(type: 'task' | 'project' | 'client' | 'deal', id: string) {
     const state = getState();
@@ -143,12 +175,12 @@ export function closeSidePanels(shouldRender = true) {
     }
 }
 
-export function showModal(type: AppState['ui']['modal']['type'], data?: any) {
+export function showModal(type: ModalType, data?: ModalData) {
     if (document.activeElement instanceof HTMLElement) {
         lastFocusedElement = document.activeElement;
     }
     const modalData = data || {};
-    if (type === 'addInvoice') {
+    if (type === 'addInvoice' && 'items' in modalData) {
         if (!modalData.items) {
             modalData.items = [{ id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 }];
         }

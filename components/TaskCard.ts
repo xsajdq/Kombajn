@@ -2,6 +2,7 @@ import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials } from '../utils.ts';
 import type { Task } from '../types.ts';
+import { html, TemplateResult } from 'lit-html';
 
 function getPriorityClass(priority: Task['priority']): string {
     if (!priority) return '';
@@ -13,7 +14,7 @@ function getPriorityClass(priority: Task['priority']): string {
     return priorityMap[priority] || '';
 }
 
-export function renderTaskCard(task: Task) {
+export function renderTaskCard(task: Task): TemplateResult {
     const state = getState();
     const taskAssignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
     const subtasks = state.tasks.filter(t => t.parentId === task.id);
@@ -33,7 +34,7 @@ export function renderTaskCard(task: Task) {
     const isDraggable = state.ui.tasks.viewMode === 'board' && state.ui.tasks.sortBy === 'manual';
 
 
-    return `
+    return html`
         <div class="task-card ${task.isArchived ? 'opacity-60' : ''}" draggable="${isDraggable}" data-task-id="${task.id}" role="button" tabindex="0" aria-label="${t('tasks.col_task')}: ${task.name}">
             <div class="task-card-header">
                 <p class="task-card-name">${task.name}</p>
@@ -43,52 +44,52 @@ export function renderTaskCard(task: Task) {
             </div>
 
             <div class="flex flex-col items-start gap-2">
-                ${projectSection ? `<div class="task-card-section-label">${projectSection.name}</div>` : ''}
-                ${task.priority ? `<div class="task-card-priority ${priorityClass}">${t('tasks.priority_' + task.priority)}</div>` : ''}
+                ${projectSection ? html`<div class="task-card-section-label">${projectSection.name}</div>` : ''}
+                ${task.priority ? html`<div class="task-card-priority ${priorityClass}">${t('tasks.priority_' + task.priority)}</div>` : ''}
 
-                ${taskTags.length > 0 ? `
+                ${taskTags.length > 0 ? html`
                     <div class="task-card-tags">
-                        ${taskTags.map(tag => `
+                        ${taskTags.map(tag => html`
                             <span class="tag-pill" style="background-color: ${tag!.color}20; color: ${tag!.color}; border: 1px solid ${tag!.color}50;">
                                 ${tag!.name}
                             </span>
-                        `).join('')}
+                        `)}
                     </div>
                 ` : ''}
             </div>
             
-            ${kanbanViewMode === 'detailed' && subtasks.length > 0 ? `
+            ${kanbanViewMode === 'detailed' && subtasks.length > 0 ? html`
                 <div class="task-card-subtasks">
-                    ${subtasks.map(st => `
+                    ${subtasks.map(st => html`
                         <div class="subtask-item">
-                            <input type="checkbox" disabled ${st.status === 'done' ? 'checked' : ''}>
+                            <input type="checkbox" disabled ?checked=${st.status === 'done'}>
                             <span class="subtask-item-name ${st.status === 'done' ? 'done' : ''}">${st.name}</span>
                         </div>
-                    `).join('')}
+                    `)}
                 </div>
             ` : ''}
 
             <div class="task-card-footer">
                 <div class="task-card-stats">
-                    ${task.dueDate ? `
+                    ${task.dueDate ? html`
                         <div class="stat-item ${isOverdue ? 'text-danger' : ''}" title="${t('tasks.col_due_date')}">
                             <span class="material-icons-sharp">event</span>
                             <span>${formatDate(task.dueDate, { day: 'numeric', month: 'short' })}</span>
                         </div>
                     ` : ''}
-                    ${totalTrackedSeconds > 0 ? `
+                    ${totalTrackedSeconds > 0 ? html`
                         <div class="stat-item" title="${t('tasks.col_time')}">
                             <span class="material-icons-sharp">schedule</span>
                             <span class="task-tracked-time">${formatDuration(totalTrackedSeconds)}</span>
                         </div>
                     ` : ''}
-                    ${commentsCount > 0 ? `
+                    ${commentsCount > 0 ? html`
                         <div class="stat-item" title="${commentsCount} comments">
                             <span class="material-icons-sharp">chat_bubble_outline</span>
                             <span>${commentsCount}</span>
                         </div>
                     ` : ''}
-                    ${kanbanViewMode === 'simple' && subtasks.length > 0 ? `
+                    ${kanbanViewMode === 'simple' && subtasks.length > 0 ? html`
                         <div class="stat-item" title="${t('tasks.subtask_progress', { completed: completedSubtasks.toString(), total: subtasks.length.toString() })}">
                             <span class="material-icons-sharp">check_box</span>
                             <span>${completedSubtasks}/${subtasks.length}</span>
@@ -96,11 +97,11 @@ export function renderTaskCard(task: Task) {
                     ` : ''}
                 </div>
                 <div class="avatar-stack">
-                    ${taskAssignees.slice(0, 2).map(assignee => `
+                    ${taskAssignees.slice(0, 2).map(assignee => html`
                         <div class="avatar-small" title="${assignee!.name || getUserInitials(assignee)}">${getUserInitials(assignee)}</div>
-                    `).join('')}
-                    ${taskAssignees.length > 2 ? `<div class="avatar-small more-avatar">+${taskAssignees.length - 2}</div>` : ''}
-                    ${taskAssignees.length === 0 ? `<div class="unknown-avatar" title="${t('tasks.unassigned')}"><span class="material-icons-sharp" style="font-size: 1rem;">person_outline</span></div>` : ''}
+                    `)}
+                    ${taskAssignees.length > 2 ? html`<div class="avatar-small more-avatar">+${taskAssignees.length - 2}</div>` : ''}
+                    ${taskAssignees.length === 0 ? html`<div class="unknown-avatar" title="${t('tasks.unassigned')}"><span class="material-icons-sharp" style="font-size: 1rem;">person_outline</span></div>` : ''}
                 </div>
             </div>
         </div>

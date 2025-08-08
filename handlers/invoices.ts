@@ -3,7 +3,7 @@ import { updateUI } from '../app-renderer.ts';
 import type { InvoiceLineItem, TimeLog, Expense, Task, Workspace } from '../types.ts';
 import { t } from '../i18n.ts';
 import { apiPut, apiFetch } from '../services/api.ts';
-import { showModal } from './ui.ts';
+import { showModal, showToast } from './ui.ts';
 
 export async function fetchInvoicesForWorkspace(workspaceId: string) {
     console.log(`Fetching invoice data for workspace ${workspaceId}...`);
@@ -33,7 +33,7 @@ export function handleGenerateInvoiceItems() {
     const clientId = clientSelect?.value;
 
     if (!clientId || !state.activeWorkspaceId) {
-        alert("Please select a client first.");
+        showToast("Please select a client first.", 'error');
         return;
     }
 
@@ -136,7 +136,7 @@ export async function handleToggleInvoiceStatus(invoiceId: string) {
             setState(prevState => ({ 
                 invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, status: originalStatus } : i)
             }), ['page']);
-            alert("Could not update invoice status. Please try again.");
+            showToast("Could not update invoice status. Please try again.", 'error');
         }
     }
 }
@@ -161,7 +161,7 @@ export async function handleSendInvoiceByEmail(invoiceId: string) {
     const clientEmail = primaryContact?.email || client?.email;
 
     if (!client || !clientEmail) {
-        alert(t('invoices.client_email_missing'));
+        showToast(t('invoices.client_email_missing'), 'error');
         return;
     }
     if (!workspace) return;
@@ -248,7 +248,7 @@ export async function handleSaveInvoiceSettings() {
         }
     } catch (error) {
         console.error("Failed to save invoice settings:", error);
-        alert("Failed to save invoice settings.");
+        showToast("Failed to save invoice settings.", 'error');
         
         // Revert on failure
         setState(prevState => ({

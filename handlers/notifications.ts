@@ -5,6 +5,7 @@ import { t } from '../i18n.ts';
 import { openTaskDetail } from './tasks.ts';
 import { apiPost, apiPut } from '../services/api.ts';
 import { sendSlackNotification } from '../services.ts';
+import { showToast } from './ui.ts';
 
 export async function createNotification(
     type: NotificationType,
@@ -154,7 +155,7 @@ export async function markAllNotificationsAsRead() {
         );
     } catch (error) {
         console.error("Failed to mark all notifications as read:", error);
-        alert(t('errors.notification_read_failed'));
+        showToast(t('errors.notification_read_failed'), 'error');
         setState({ notifications: originalNotifications }, ['header']);
     }
 }

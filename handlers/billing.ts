@@ -5,6 +5,7 @@ import { updateUI } from '../app-renderer.ts';
 import type { PlanId, PlanChange } from '../types.ts';
 import { apiPut } from '../services/api.ts';
 import { t } from '../i18n.ts';
+import { showToast } from './ui.ts';
 
 export async function handlePlanChange(newPlanId: PlanId) {
     const state = getState();
@@ -42,7 +43,7 @@ export async function handlePlanChange(newPlanId: PlanId) {
             }), ['page']);
         } catch (error) {
             console.error("Failed to change plan:", error);
-            alert(t('errors.plan_change_failed'));
+            showToast(t('errors.plan_change_failed'), 'error');
         }
     }
 }
@@ -76,7 +77,7 @@ export async function handleCancelSubscription() {
             });
         } catch (error) {
             console.error("Failed to cancel subscription:", error);
-            alert(t('errors.subscription_cancel_failed'));
+            showToast(t('errors.subscription_cancel_failed'), 'error');
             // Revert on failure
             setState(prevState => ({
                 workspaces: prevState.workspaces.map(w => w.id === workspace.id ? {

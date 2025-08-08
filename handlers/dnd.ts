@@ -6,7 +6,7 @@ import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } fr
 import { createNotification } from './notifications.ts';
 import { runAutomations } from './automations.ts';
 import { apiPut, apiPost } from '../services/api.ts';
-import { showModal } from './ui.ts';
+import { showModal, showToast } from './ui.ts';
 import { handleReorderStages } from './pipeline.ts';
 import { handleReorderKanbanStages } from './kanban.ts';
 import { t } from '../i18n.ts';
@@ -183,7 +183,7 @@ export async function handleDrop(e: DragEvent) {
             }
         } catch (error) {
             console.error("Failed to update task:", error);
-            alert(t('errors.task_update_failed'));
+            showToast(t('errors.task_update_failed'), 'error');
             setState({ tasks: state.tasks, userTaskSortOrders: state.userTaskSortOrders }, ['page']);
         }
     }
@@ -209,7 +209,7 @@ export async function handleDrop(e: DragEvent) {
                 }
             } catch (error) {
                 console.error("Failed to update deal stage:", error);
-                alert(t('errors.deal_update_failed'));
+                showToast(t('errors.deal_update_failed'), 'error');
                 const revertedDeals = state.deals.map(d => d.id === deal.id ? { ...d, stage: oldStage } : d);
                 setState({ deals: revertedDeals }, ['page']);
             }
@@ -254,7 +254,7 @@ export async function handleDrop(e: DragEvent) {
             await Promise.all(updatePromises);
         } catch (error) {
             console.error("Could not save widget order:", error);
-            alert(t('errors.widget_layout_save_failed'));
+            showToast(t('errors.widget_layout_save_failed'), 'error');
             setState({ dashboardWidgets: originalWidgets }, ['page']); // Revert
         }
     }

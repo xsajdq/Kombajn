@@ -1,8 +1,7 @@
-
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { Project, Client, Deal } from '../types.ts';
+import type { Project, Client, Deal, TaskDetailModalData } from '../types.ts';
+import { html, TemplateResult } from 'lit-html';
 
 type BreadcrumbItem = {
     text: string;
@@ -12,7 +11,7 @@ type BreadcrumbItem = {
     id?: string;
 };
 
-function renderSwitcher(item: BreadcrumbItem) {
+function renderSwitcher(item: BreadcrumbItem): TemplateResult {
     const state = getState();
     let entities: (Project | Client | Deal)[] = [];
     let entityType = item.switcherType!;
@@ -29,7 +28,7 @@ function renderSwitcher(item: BreadcrumbItem) {
             break;
     }
 
-    return `
+    return html`
         <div class="relative">
             <button class="breadcrumb-switcher" data-breadcrumb-switcher aria-haspopup="true" aria-expanded="false">
                 <span>${item.text}</span>
@@ -43,20 +42,20 @@ function renderSwitcher(item: BreadcrumbItem) {
                     });
                 ">
                 <div class="switcher-menu-list">
-                    ${entities.map(entity => `
+                    ${entities.map(entity => html`
                         <button class="switcher-menu-item ${entity.id === item.id ? 'active' : ''}" 
                                 data-switch-entity-id="${entity.id}" 
                                 data-entity-type="${entityType}">
                             ${entity.name}
                         </button>
-                    `).join('')}
+                    `)}
                 </div>
             </div>
         </div>
     `;
 }
 
-export function Breadcrumbs() {
+export function Breadcrumbs(): TemplateResult | '' {
     const state = getState();
     const { currentPage, ui } = state;
     const breadcrumbs: BreadcrumbItem[] = [{ text: t('sidebar.dashboard'), link: '/dashboard' }];
@@ -79,8 +78,9 @@ export function Breadcrumbs() {
     };
 
     // Task detail modal is a special case that defines the whole path from scratch
-    if (ui.modal.isOpen && ui.modal.type === 'taskDetail' && ui.modal.data?.taskId) {
-        const task = state.tasks.find(t => t.id === ui.modal.data.taskId);
+    if (ui.modal.isOpen && ui.modal.type === 'taskDetail' && (ui.modal.data as TaskDetailModalData)?.taskId) {
+        const taskId = (ui.modal.data as TaskDetailModalData).taskId;
+        const task = state.tasks.find(t => t.id === taskId);
         if (task) {
             const project = state.projects.find(p => p.id === task.projectId);
             if (project) {
@@ -127,29 +127,29 @@ export function Breadcrumbs() {
         return '';
     }
 
-    return `
+    return html`
         <div class="breadcrumb-container">
             ${breadcrumbs.map((item, index) => {
                 const isLast = index === breadcrumbs.length - 1;
-                let content = '';
+                let content: TemplateResult | string = '';
 
                 if (isLast) {
                     if (item.isSwitcher) {
                         content = renderSwitcher(item);
                     } else {
-                        content = `<span class="truncate">${item.text}</span>`;
+                        content = html`<span class="truncate">${item.text}</span>`;
                     }
                 } else {
-                    content = `<a href="${item.link}">${item.text}</a>`;
+                    content = html`<a href="${item.link}">${item.text}</a>`;
                 }
 
-                return `
+                return html`
                     <div class="breadcrumb-item ${isLast ? 'current' : ''}">
                         ${content}
-                        ${!isLast ? `<span class="material-icons-sharp text-base breadcrumb-separator">chevron_right</span>` : ''}
+                        ${!isLast ? html`<span class="material-icons-sharp text-base breadcrumb-separator">chevron_right</span>` : ''}
                     </div>
                 `;
-            }).join('')}
+            })}
         </div>
     `;
 }

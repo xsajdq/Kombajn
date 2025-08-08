@@ -3,32 +3,32 @@ import { updateUI } from '../app-renderer.ts';
 import { apiPut } from '../services/api.ts';
 import { t } from '../i18n.ts';
 
-type OnboardingStep = {
+export type OnboardingStep = {
     targetSelector?: string;
-    title: string;
-    content: string;
+    titleKey: string;
+    contentKey: string;
     preAction?: () => void;
 };
 
 export const onboardingSteps: OnboardingStep[] = [
     {
-        title: t('onboarding.step0_title'),
-        content: t('onboarding.step0_content'),
+        titleKey: 'onboarding.step0_title',
+        contentKey: 'onboarding.step0_content',
     },
     {
         targetSelector: '#workspace-switcher',
-        title: t('onboarding.step1_title'),
-        content: t('onboarding.step1_content'),
+        titleKey: 'onboarding.step1_title',
+        contentKey: 'onboarding.step1_content',
     },
     {
         targetSelector: '#app-sidebar nav',
-        title: t('onboarding.step2_title'),
-        content: t('onboarding.step2_content'),
+        titleKey: 'onboarding.step2_title',
+        contentKey: 'onboarding.step2_content',
     },
     {
         targetSelector: '.projects-page-new-project-btn',
-        title: t('onboarding.step3_title'),
-        content: t('onboarding.step3_content'),
+        titleKey: 'onboarding.step3_title',
+        contentKey: 'onboarding.step3_content',
         preAction: () => {
             history.pushState({}, '', '/projects');
             setState({ currentPage: 'projects' }, ['page', 'sidebar']);
@@ -36,8 +36,8 @@ export const onboardingSteps: OnboardingStep[] = [
     },
     {
         targetSelector: '[data-view-mode="board"]',
-        title: t('onboarding.step4_title'),
-        content: t('onboarding.step4_content'),
+        titleKey: 'onboarding.step4_title',
+        contentKey: 'onboarding.step4_content',
         preAction: () => {
             history.pushState({}, '', '/tasks');
             setState({ currentPage: 'tasks' }, ['page', 'sidebar']);
@@ -45,8 +45,8 @@ export const onboardingSteps: OnboardingStep[] = [
     },
     {
         targetSelector: '#global-timer-container',
-        title: t('onboarding.step5_title'),
-        content: t('onboarding.step5_content'),
+        titleKey: 'onboarding.step5_title',
+        contentKey: 'onboarding.step5_content',
         preAction: () => {
             history.pushState({}, '', '/dashboard');
             setState({ currentPage: 'dashboard' }, ['page', 'sidebar']);
@@ -54,25 +54,25 @@ export const onboardingSteps: OnboardingStep[] = [
     },
     {
         targetSelector: '#notification-bell',
-        title: t('onboarding.step6_title'),
-        content: t('onboarding.step6_content'),
+        titleKey: 'onboarding.step6_title',
+        contentKey: 'onboarding.step6_content',
     },
     {
-        title: t('onboarding.step7_title'),
-        content: t('onboarding.step7_content'),
+        titleKey: 'onboarding.step7_title',
+        contentKey: 'onboarding.step7_content',
     },
     {
         targetSelector: 'a[href="/settings"]',
-        title: t('onboarding.step8_title'),
-        content: t('onboarding.step8_content'),
+        titleKey: 'onboarding.step8_title',
+        contentKey: 'onboarding.step8_content',
         preAction: () => {
             history.pushState({}, '', '/settings');
             setState({ currentPage: 'settings' }, ['page', 'sidebar']);
         }
     },
     {
-        title: t('onboarding.step9_title'),
-        content: t('onboarding.step9_content'),
+        titleKey: 'onboarding.step9_title',
+        contentKey: 'onboarding.step9_content',
         preAction: () => {
             history.pushState({}, '', '/dashboard');
             setState({ currentPage: 'dashboard' }, ['page', 'sidebar']);

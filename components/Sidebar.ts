@@ -3,6 +3,7 @@ import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Permission } from '../types.ts';
 import { Logo } from './Logo.ts';
+import { html, TemplateResult } from 'lit-html';
 
 type NavItem = {
     id: string;
@@ -11,7 +12,7 @@ type NavItem = {
     permission?: Permission;
 };
 
-export function Sidebar() {
+export function Sidebar(): TemplateResult {
     const state = getState();
     const allNavItems: NavItem[] = [
         { id: 'dashboard', icon: 'dashboard', text: t('sidebar.dashboard'), permission: 'view_dashboard' },
@@ -48,7 +49,7 @@ export function Sidebar() {
 
     const footerNavItems = allFooterNavItems.filter(item => !item.permission || can(item.permission));
 
-    return `
+    return html`
     <aside id="app-sidebar" class="flex flex-col h-screen w-64 bg-content border-r border-border-color text-sidebar-text fixed top-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50">
       <div class="flex items-center justify-center h-16 shrink-0 px-4 border-b border-border-color">
         ${Logo()}
@@ -58,19 +59,19 @@ export function Sidebar() {
           ${navItems.map(item => {
             if (item.id === 'tasks') {
                 const isParentActive = state.currentPage === 'tasks' || state.ui.activeTaskViewId !== null;
-                return `
+                return html`
                 <li class="relative group/tasks">
                   <a href="/tasks" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isParentActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}">
                     <span class="material-icons-sharp">${item.icon}</span>
                     <span class="ml-3">${item.text}</span>
                   </a>
-                  ${customTaskViews.length > 0 ? `
+                  ${customTaskViews.length > 0 ? html`
                   <div class="absolute left-full top-0 ml-2 p-2 w-48 bg-content rounded-md shadow-lg border border-border-color z-20 
                                opacity-0 invisible -translate-x-2 group-hover/tasks:opacity-100 group-hover/tasks:visible group-hover/tasks:translate-x-0 transition-all duration-200 ease-in-out">
                     <ul class="space-y-1">
                         ${customTaskViews.map(view => {
                             const isViewActive = state.ui.activeTaskViewId === view.id.split('/')[1];
-                            return `
+                            return html`
                                 <li>
                                   <a href="/${view.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isViewActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}">
                                     <span class="material-icons-sharp text-base">${view.icon}</span>
@@ -78,7 +79,7 @@ export function Sidebar() {
                                   </a>
                                 </li>
                             `;
-                        }).join('')}
+                        })}
                     </ul>
                   </div>
                   ` : ''}
@@ -87,14 +88,14 @@ export function Sidebar() {
             }
             
             const isActive = state.currentPage === item.id;
-            return `
+            return html`
             <li>
               <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
                 <span class="material-icons-sharp">${item.icon}</span>
                 <span class="ml-3">${item.text}</span>
               </a>
             </li>
-          `}).join('')}
+          `;})}
         </ul>
       </nav>
       <div class="mt-auto p-2 border-t border-border-color">
@@ -102,14 +103,14 @@ export function Sidebar() {
             <ul class="space-y-1">
              ${footerNavItems.map(item => {
                 const isActive = state.currentPage === item.id;
-                return `
+                return html`
                 <li>
                   <a href="/${item.id}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" ${isActive ? 'aria-current="page"' : ''}>
                     <span class="material-icons-sharp">${item.icon}</span>
                     <span class="ml-3">${item.text}</span>
                   </a>
                 </li>
-             `}).join('')}
+             `;})}
             </ul>
           </nav>
       </div>

@@ -1,6 +1,7 @@
 
 
 
+
 import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, DependencyType } from '../types.ts';
@@ -107,19 +108,19 @@ export async function handleAddTaskComment(taskId: string, content: string, pare
         const [savedComment] = await apiPost('comments', newCommentPayload);
         
         const updatedTask = { ...task, lastActivityAt: new Date().toISOString() };
-        setState({ 
-            comments: [...state.comments, savedComment],
-            tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
-        }, []);
         
-        await apiPut('tasks', { id: taskId, lastActivityAt: updatedTask.lastActivityAt });
-
         if (!parentId) { // Only clear the main draft, not for replies
             localStorage.removeItem(`comment-draft-${taskId}`);
         }
         
+        setState(prevState => ({ 
+            comments: [...prevState.comments, savedComment],
+            tasks: prevState.tasks.map(t => t.id === taskId ? updatedTask : t)
+        }), ['modal']);
+        
+        await apiPut('tasks', { id: taskId, lastActivityAt: updatedTask.lastActivityAt });
+
         successCallback();
-        updateUI(['modal']);
 
         const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
         const mentionedUserIds = new Set<string>();

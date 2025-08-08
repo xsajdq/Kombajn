@@ -3,8 +3,9 @@ import { t } from '../i18n.ts';
 import type { User } from '../types.ts';
 import { formatDuration, getUserInitials } from '../utils.ts';
 import { Breadcrumbs } from './Breadcrumbs.ts';
+import { html, TemplateResult } from 'lit-html';
 
-export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
+export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }): TemplateResult {
     const state = getState();
     const userNotifications = state.notifications.filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId);
     const unreadCount = userNotifications.filter(n => !n.isRead).length;
@@ -17,7 +18,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
     const { isRunning, startTime } = state.ui.globalTimer;
     const elapsedSeconds = isRunning && startTime ? (Date.now() - startTime) / 1000 : 0;
 
-    return `
+    return html`
         <header class="bg-content text-text-main shrink-0">
              <div class="flex items-center justify-between h-16 px-8 border-b border-border-color">
                 <div class="flex items-center gap-4">
@@ -27,7 +28,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                     <div class="hidden md:flex items-center gap-2">
                         <span class="material-icons-sharp text-text-subtle">workspaces</span>
                         <select id="workspace-switcher" class="bg-transparent border border-border-color rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-primary outline-none">
-                            ${userWorkspaces.map(w => `<option value="${w!.id}" ${w!.id === activeWorkspaceId ? 'selected' : ''} class="bg-content text-text-main">${w!.name}</option>`).join('')}
+                            ${userWorkspaces.map(w => html`<option value="${w!.id}" ?selected=${w!.id === activeWorkspaceId} class="bg-content text-text-main">${w!.name}</option>`)}
                         </select>
                     </div>
                 </div>
@@ -48,7 +49,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                     <div class="relative">
                         <button id="notification-bell" class="p-2 rounded-full hover:bg-background transition-colors" aria-label="${t('notifications.title')}">
                             <span class="material-icons-sharp">notifications</span>
-                            ${unreadCount > 0 ? `<span class="absolute top-0 right-0 h-4 w-4 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center">${unreadCount}</span>` : ''}
+                            ${unreadCount > 0 ? html`<span class="absolute top-0 right-0 h-4 w-4 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center">${unreadCount}</span>` : ''}
                         </button>
                         ${state.ui.isNotificationsOpen ? NotificationsPopover({ currentUser, activeWorkspaceId }) : ''}
                     </div>
@@ -56,7 +57,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
                         <span class="material-icons-sharp">logout</span>
                     </button>
                     <div class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold uppercase" title="${currentUser.name || getUserInitials(currentUser)}">
-                        ${currentUser.avatarUrl ? `<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}" class="h-full w-full rounded-full object-cover">` : getUserInitials(currentUser)}
+                        ${currentUser.avatarUrl ? html`<img src="${currentUser.avatarUrl}" alt="${currentUser.name || 'User avatar'}" class="h-full w-full rounded-full object-cover">` : getUserInitials(currentUser)}
                     </div>
                 </div>
             </div>
@@ -65,7 +66,7 @@ export function AppHeader({ currentUser, activeWorkspaceId }: { currentUser: Use
     `;
 }
 
-export function NotificationsPopover({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }) {
+export function NotificationsPopover({ currentUser, activeWorkspaceId }: { currentUser: User, activeWorkspaceId: string }): TemplateResult {
     const state = getState();
     const allNotifications = state.notifications
         .filter(n => n.userId === currentUser.id && n.workspaceId === activeWorkspaceId)
@@ -97,7 +98,7 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
         return Math.floor(seconds) + "s ago";
     };
 
-    return `
+    return html`
         <div class="absolute top-full right-0 mt-2 w-80 bg-content border border-border-color rounded-lg shadow-lg z-20">
             <div class="flex justify-between items-center p-3 border-b border-border-color">
                 <h4 class="font-semibold">${t('notifications.title')}</h4>
@@ -108,9 +109,9 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
                 <button class="flex-1 py-2 text-center text-sm ${activeTab === 'read' ? 'border-b-2 border-primary text-text-main font-semibold' : 'text-text-subtle'}" data-tab-group="ui.notifications.activeTab" data-tab-value="read">${t('notifications.tab_read')}</button>
             </div>
             <div class="p-2 max-h-96 overflow-y-auto">
-                ${filteredNotifications.length > 0 ? `
+                ${filteredNotifications.length > 0 ? html`
                     <ul class="divide-y divide-border-color">
-                        ${filteredNotifications.map(n => `
+                        ${filteredNotifications.map(n => html`
                             <li class="flex items-start gap-3 p-2 rounded-md cursor-pointer hover:bg-background notification-item ${n.isRead ? '' : 'font-semibold'}" data-notification-id="${n.id}">
                                 <div class="mt-1">
                                     <span class="material-icons-sharp text-primary">info</span>
@@ -120,9 +121,9 @@ export function NotificationsPopover({ currentUser, activeWorkspaceId }: { curre
                                     <div class="text-xs text-text-subtle mt-1">${timeAgo(n.createdAt)}</div>
                                 </div>
                             </li>
-                        `).join('')}
+                        `)}
                     </ul>
-                ` : `
+                ` : html`
                     <p class="text-center text-sm text-text-subtle py-8">${activeTab === 'new' ? t('notifications.no_new_notifications') : t('notifications.no_notifications')}</p>
                 `}
             </div>

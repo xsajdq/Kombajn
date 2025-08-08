@@ -4,6 +4,7 @@ import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
 import { Session } from '@supabase/supabase-js';
+import { showToast } from './ui.ts';
 
 export async function fetchInitialData(session: Session) {
     console.log("Fetching core data...");
@@ -140,10 +141,10 @@ export async function handleSaveProjectAsTemplate(projectId: string) {
     try {
         const [savedTemplate] = await apiPost('project_templates', newTemplatePayload);
         setState(prevState => ({ projectTemplates: [...prevState.projectTemplates, savedTemplate] }), []);
-        alert(`Project "${project.name}" saved as a template!`);
+        showToast(`Project "${project.name}" saved as a template!`, 'success');
     } catch (error) {
         console.error("Failed to save project as template:", error);
-        alert("Could not save template. Please try again.");
+        showToast("Could not save template. Please try again.", 'error');
     } finally {
         closeProjectMenu();
     }
@@ -169,7 +170,7 @@ export async function handleFileUpload(projectId: string, file: File, taskId?: s
         setState(prevState => ({ attachments: [...prevState.attachments, savedAttachment] }), [getState().ui.modal.isOpen ? 'modal' : 'side-panel']);
     } catch(error) {
         console.error("File upload failed:", error);
-        alert("File upload failed. Please try again.");
+        showToast("File upload failed. Please try again.", 'error');
     }
 }
 
@@ -207,6 +208,6 @@ export async function handleSendMessage(channelId: string, content: string) {
         }
     } catch (error) {
         console.error("Failed to send message:", error);
-        alert("Could not send message.");
+        showToast("Could not send message.", 'error');
     }
 }

@@ -1,6 +1,6 @@
 
 import { getState } from '../state.ts';
-import { onboardingSteps } from '../handlers/onboarding.ts';
+import { OnboardingStep, onboardingSteps } from '../handlers/onboarding.ts';
 import { t } from '../i18n.ts';
 
 export function OnboardingGuide() {
@@ -45,8 +45,8 @@ export function OnboardingGuide() {
         <div class="fixed inset-0 bg-black/70 z-50">
             ${targetElementExists ? `<div class="absolute bg-background rounded-lg mix-blend-destination-out" style="${highlightStyles}"></div>` : ''}
             <div class="absolute bg-content p-6 rounded-lg shadow-lg max-w-sm w-full" style="${tooltipStyles}">
-                <h4 class="text-lg font-bold mb-2">${currentStep.title}</h4>
-                <p class="text-sm text-text-subtle">${currentStep.content}</p>
+                <h4 class="text-lg font-bold mb-2">${t(currentStep.titleKey)}</h4>
+                <p class="text-sm text-text-subtle">${t(currentStep.contentKey)}</p>
                 <div class="mt-6 flex justify-between items-center">
                     <button class="text-sm text-text-subtle hover:underline onboarding-skip-btn">${t('onboarding.skip')}</button>
                     <button class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover onboarding-next-btn">

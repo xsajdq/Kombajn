@@ -1,4 +1,3 @@
-
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Command } from '../types.ts';
@@ -7,6 +6,7 @@ import { can } from '../permissions.ts';
 import { showModal, toggleCommandPalette, updateUrlAndShowDetail } from './ui.ts';
 import { toggleNotificationsPopover } from './notifications.ts';
 import { renderCommandPaletteList } from '../components/CommandPalette.ts';
+import { render } from 'lit-html';
 
 function navigate(path: string) {
     history.pushState({}, '', path);
@@ -36,7 +36,7 @@ export function handleCommandSearch(query: string) {
 
     // If query is empty, restore default commands immediately
     if (!query) {
-        listContainer.innerHTML = renderCommandPaletteList();
+        render(renderCommandPaletteList(), listContainer as HTMLElement);
         return;
     }
     
@@ -79,7 +79,7 @@ export function handleCommandSearch(query: string) {
         };
         
         if (listContainer && getState().ui.isCommandPaletteOpen) {
-            listContainer.innerHTML = renderCommandPaletteList(groupedResults);
+            render(renderCommandPaletteList(groupedResults), listContainer as HTMLElement);
         }
     }, 100);
 }

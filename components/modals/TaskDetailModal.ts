@@ -1,10 +1,14 @@
 import { getState } from '../../state.ts';
 import { t } from '../../i18n.ts';
-import { formatDuration, formatDate, getUserInitials } from '../../utils.ts';
-import { can } from '../../permissions.ts';
-import type { Task, User, Attachment, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, Comment, TimeLog } from '../../types.ts';
+import { formatDuration, formatDate, getUserInitials, formatCurrency } from '../../utils.ts';
+import type { Task, User, CustomFieldDefinition, Comment, TimeLog, TaskDetailModalData, TaskAssignee, Tag, SubtaskDetailModalData, DependencyType } from '../../types.ts';
 import { getUserProjectRole } from '../../handlers/main.ts';
+import { html, TemplateResult } from 'lit-html';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+import { formControlClasses, formGroupClasses, labelClasses, renderMultiUserSelect, renderSelect, renderTextInput } from './formControls.ts';
+import { can } from '../../permissions.ts';
 
+// Re-importing necessary functions that were previously in the same file.
 function formatBytes(bytes: number, decimals = 2) {
     if (!bytes || bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -14,12 +18,13 @@ function formatBytes(bytes: number, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-function renderCommentBody(content: string) {
+function renderCommentBody(content: string): TemplateResult {
     const mentionRegex = /@\[([^\]]+)\]\(user:([a-fA-F0-9-]+)\)/g;
-    return content.replace(mentionRegex, `<strong class="mention-chip">@$1</strong>`);
+    const sanitizedContent = content.replace(mentionRegex, `<strong class="mention-chip" data-user-id="$2">@$1</strong>`);
+    return html`<p>${unsafeHTML(sanitizedContent)}</p>`;
 };
 
-function renderComment(comment: Comment) {
+function renderComment(comment: Comment): TemplateResult {
     const state = getState();
     const user = state.users.find(u => u.id === comment.userId);
     const userName = user?.name || getUserInitials(user) || 'User';
@@ -36,13 +41,13 @@ function renderComment(comment: Comment) {
     const reactionsHtml = Object.entries(reactionsByEmoji).map(([emoji, userIds]) => {
         const isReactedByUser = userIds.includes(state.currentUser!.id);
         const userNames = userIds.map(id => state.users.find(u => u.id === id)?.name || 'Someone').join(', ');
-        return `
+        return html`
             <button class="reaction-chip ${isReactedByUser ? 'reacted-by-user' : ''}" data-comment-id="${comment.id}" data-emoji="${emoji}" title="${userNames} reacted with ${emoji}">
                 <span>${emoji}</span>
                 <span>${userIds.length}</span>
             </button>
         `;
-    }).join('');
+    });
 
     const isOwnComment = comment.userId === state.currentUser?.id;
     const task = state.tasks.find(t => t.id === comment.taskId);
@@ -54,7 +59,7 @@ function renderComment(comment: Comment) {
 
     const isEdited = comment.updatedAt && (new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000); // Check if updated more than a second after creation
 
-    return `
+    return html`
         <div class="activity-item comment-container" data-comment-id="${comment.id}">
             <div class="avatar">${getUserInitials(user)}</div>
             <div class="activity-content">
@@ -62,7 +67,7 @@ function renderComment(comment: Comment) {
                     <strong>${userName}</strong>
                     <span class="activity-time">
                         ${formatDate(comment.createdAt, {hour: 'numeric', minute: 'numeric'})}
-                        ${isEdited ? `<em class="text-xs ml-1">(edited)</em>` : ''}
+                        ${isEdited ? html`<em class="text-xs ml-1">(edited)</em>` : ''}
                     </span>
                 </div>
                 <div class="activity-body prose prose-sm dark:prose-invert max-w-none" id="comment-body-${comment.id}">
@@ -70,26 +75,26 @@ function renderComment(comment: Comment) {
                 </div>
                 <div class="comment-actions" id="comment-actions-${comment.id}">
                     <button class="btn-text" data-reply-to-comment-id="${comment.id}">${t('modals.reply_button')}</button>
-                    ${canEdit ? `<button class="btn-text" data-edit-comment-id="${comment.id}">${t('misc.edit')}</button>` : ''}
+                    ${canEdit ? html`<button class="btn-text" data-edit-comment-id="${comment.id}">${t('misc.edit')}</button>` : ''}
                     <div class="relative">
                          <button class="btn-text" data-react-to-comment-id="${comment.id}">😊</button>
                          <div id="reaction-picker-${comment.id}" class="reaction-picker hidden">
-                            ${EMOJI_REACTIONS.map(emoji => `<button data-emoji="${emoji}">${emoji}</button>`).join('')}
+                            ${EMOJI_REACTIONS.map(emoji => html`<button data-emoji="${emoji}">${emoji}</button>`)}
                          </div>
                     </div>
                 </div>
-                ${reactionsHtml ? `<div class="reaction-chips">${reactionsHtml}</div>` : ''}
+                ${reactionsHtml.length > 0 ? html`<div class="reaction-chips">${reactionsHtml}</div>` : ''}
                 <div id="reply-form-container-${comment.id}" class="reply-form-container"></div>
             </div>
         </div>
     `;
 }
 
-function renderTimeLog(item: TimeLog) {
+function renderTimeLog(item: TimeLog): TemplateResult {
     const state = getState();
     const user = state.users.find(u => u.id === item.userId);
     const userName = user?.name || getUserInitials(user) || 'User';
-    return `
+    return html`
         <div class="activity-item">
             <div class="avatar">${getUserInitials(user)}</div>
             <div class="activity-content">
@@ -98,7 +103,7 @@ function renderTimeLog(item: TimeLog) {
                     <span>${t('modals.logged')} <strong>${formatDuration(item.trackedSeconds)}</strong></span>
                     <span class="activity-time">${formatDate(item.createdAt, {hour: 'numeric', minute: 'numeric'})}</span>
                 </div>
-                ${item.comment ? `
+                ${item.comment ? html`
                 <div class="activity-body">
                     <p class="timelog-comment">${item.comment}</p>
                 </div>
@@ -108,7 +113,7 @@ function renderTimeLog(item: TimeLog) {
     `;
 }
 
-function renderActivityTab(task: Task) {
+function renderActivityTab(task: Task): TemplateResult {
     const state = getState();
     const comments = state.comments.filter(c => c.taskId === task.id);
     const timeLogs = state.timeLogs.filter(tl => tl.taskId === task.id);
@@ -125,18 +130,18 @@ function renderActivityTab(task: Task) {
         }
     });
 
-    const renderRepliesFor = (parentId: string): string => {
+    const renderRepliesFor = (parentId: string): TemplateResult | '' => {
         const replies = repliesByParentId.get(parentId);
         if (!replies || replies.length === 0) return '';
-        return `
+        return html`
             <div class="reply-container">
-                ${replies.map(renderFullComment).join('')}
+                ${replies.map(renderFullComment)}
             </div>
         `;
     };
 
-    const renderFullComment = (comment: Comment): string => {
-        return `
+    const renderFullComment = (comment: Comment): TemplateResult => {
+        return html`
             <div>
                 ${renderComment(comment)}
                 ${renderRepliesFor(comment.id)}
@@ -147,7 +152,7 @@ function renderActivityTab(task: Task) {
     const topLevelActivity = allActivity.filter(item => !('parentId' in item && item.parentId));
     const savedDraft = localStorage.getItem(`comment-draft-${task.id}`) || '';
 
-    return `
+    return html`
         <div class="flex justify-end mb-4">
             <button class="btn btn-secondary btn-sm" data-modal-target="addManualTimeLog" data-task-id="${task.id}">
                 <span class="material-icons-sharp" style="font-size: 1.2rem;">add_alarm</span>
@@ -161,7 +166,7 @@ function renderActivityTab(task: Task) {
                 } else { // TimeLog
                     return renderTimeLog(item as TimeLog);
                 }
-            }).join('') : `<p class="subtle-text">${t('modals.no_activity')}</p>`}
+            }) : html`<p class="subtle-text">${t('modals.no_activity')}</p>`}
         </div>
         <form id="add-comment-form" data-task-id="${task.id}" class="add-comment-form">
             <div class="rich-text-input-container">
@@ -172,377 +177,185 @@ function renderActivityTab(task: Task) {
                     role="textbox"
                     aria-multiline="true"
                     data-placeholder="${t('modals.add_comment')}"
-                >${savedDraft}</div>
+                >${unsafeHTML(savedDraft)}</div>
             </div>
-            <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
+             <div class="flex justify-end items-center gap-2 mt-2">
+                 <button type="submit" id="submit-comment-btn" class="btn btn-primary">${t('modals.comment_button')}</button>
+             </div>
         </form>
     `;
 }
 
-function renderChecklistTab(task: Task) {
+function renderChecklistTab(task: Task): TemplateResult {
     const checklist = task.checklist || [];
-    const completedItems = checklist.filter(item => item.completed).length;
-    const progress = checklist.length > 0 ? (completedItems / checklist.length) * 100 : 0;
-
-    return `
-        <div class="space-y-4">
+    const completed = checklist.filter(i => i.completed).length;
+    const progress = checklist.length > 0 ? (completed / checklist.length) * 100 : 0;
+    
+    return html`
+         <div class="space-y-2">
             <div class="flex justify-between items-center">
-                <h4 class="font-semibold">${t('modals.checklist')} (${completedItems}/${checklist.length})</h4>
-            </div>
-            ${checklist.length > 0 ? `
-            <div class="w-full bg-background rounded-full h-1.5">
-                <div class="bg-primary h-1.5 rounded-full" style="width: ${progress}%;"></div>
-            </div>
-            ` : ''}
-            <div class="checklist-items space-y-2">
-                ${checklist.map(item => `
-                    <div class="checklist-item group">
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary checklist-item-checkbox" data-item-id="${item.id}" ${item.completed ? 'checked' : ''}>
-                            <span class="flex-1 text-sm ${item.completed ? 'line-through text-text-subtle' : ''}">${item.text}</span>
-                        </label>
-                        <button class="btn-icon delete-checklist-item-btn opacity-0 group-hover:opacity-100" data-item-id="${item.id}">
-                            <span class="material-icons-sharp text-base">delete</span>
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-            <form id="add-checklist-item-form" class="flex gap-2" data-task-id="${task.id}">
-                <input type="text" class="form-control" placeholder="${t('modals.add_checklist_item')}" required>
-                <button type="submit" class="btn btn-secondary">${t('modals.add_item')}</button>
-            </form>
-        </div>
-    `;
-}
-
-function renderSubtasksTab(task: Task) {
-    const state = getState();
-    const subtasks = state.tasks.filter(t => t.parentId === task.id);
-    return `
-        <div class="space-y-4">
-            <h4 class="font-semibold">${t('modals.subtasks')} (${subtasks.length})</h4>
-            <div class="subtask-list space-y-2">
-                ${subtasks.map(subtask => {
-                    const assignees = state.taskAssignees.filter(a => a.taskId === subtask.id).map(a => state.users.find(u => u.id === a.userId)).filter(Boolean);
-                    return `
-                        <div class="subtask-item group flex items-center gap-2 p-2 rounded-md hover:bg-background">
-                            <input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary subtask-checkbox" data-subtask-id="${subtask.id}" ${subtask.status === 'done' ? 'checked' : ''}>
-                            <span class="flex-1 text-sm ${subtask.status === 'done' ? 'line-through text-text-subtle' : ''}">${subtask.name}</span>
-                            <div class="avatar-stack">
-                                ${assignees.slice(0, 2).map(u => u ? `<div class="avatar-small" title="${u.name || ''}">${getUserInitials(u)}</div>` : '').join('')}
-                                ${assignees.length > 2 ? `<div class="avatar-small more-avatar">+${assignees.length - 2}</div>` : ''}
-                            </div>
-                            <button class="btn-icon delete-subtask-btn opacity-0 group-hover:opacity-100" data-subtask-id="${subtask.id}">
-                                <span class="material-icons-sharp text-base">delete</span>
-                            </button>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            <form id="add-subtask-form" class="flex gap-2" data-parent-task-id="${task.id}">
-                <input type="text" class="form-control" placeholder="${t('modals.add_subtask')}" required>
-                <button type="submit" class="btn btn-secondary">${t('modals.add_item')}</button>
-            </form>
-        </div>
-    `;
-}
-
-function renderAttachmentsTab(task: Task) {
-    const state = getState();
-    const attachments = state.attachments.filter(a => a.taskId === task.id);
-    const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.isActive && i.workspaceId === state.activeWorkspaceId);
-
-    return `
-        <div class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h4 class="font-semibold">${t('modals.attachments')} (${attachments.length})</h4>
                 <div class="flex items-center gap-2">
-                    ${googleDriveIntegration ? `<button class="btn btn-secondary btn-sm" id="attach-google-drive-btn" data-task-id="${task.id}">${t('modals.attach_from_drive')}</button>` : ''}
-                    <label class="btn btn-secondary btn-sm cursor-pointer">
-                        ${t('modals.add_attachment')}
-                        <input type="file" id="attachment-file-input" class="hidden" data-task-id="${task.id}">
-                    </label>
+                    <div class="w-full bg-background rounded-full h-1.5 w-40">
+                        <div class="bg-primary h-1.5 rounded-full" style="width: ${progress}%"></div>
+                    </div>
+                    <span class="text-xs text-text-subtle">${Math.round(progress)}%</span>
+                </div>
+                 <div class="relative">
+                    <button id="apply-checklist-template-btn" class="btn btn-secondary btn-sm">Apply Template</button>
                 </div>
             </div>
-            <ul class="attachment-list">
-                ${attachments.length > 0 ? attachments.map(att => `
-                    <li class="attachment-item">
-                        ${att.provider === 'google_drive' && att.iconUrl ? `<img src="${att.iconUrl}" class="w-6 h-6">` : `<span class="material-icons-sharp">description</span>`}
-                        <div class="attachment-info">
-                            <a href="${att.externalUrl || '#'}" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline">${att.fileName}</a>
-                            <p class="subtle-text">${formatBytes(att.fileSize || 0)} - ${formatDate(att.createdAt)}</p>
+            ${checklist.map(item => html`
+                <div class="checklist-item p-2 rounded-md hover:bg-background">
+                    <label class="flex items-center gap-3 flex-1 cursor-pointer">
+                        <input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary checklist-item-checkbox" data-item-id="${item.id}" .checked=${item.completed}>
+                        <span class="${item.completed ? 'line-through text-text-subtle' : ''}">${item.text}</span>
+                    </label>
+                    <button class="btn-icon delete-checklist-item-btn" data-item-id="${item.id}"><span class="material-icons-sharp text-base">close</span></button>
+                </div>
+            `)}
+            <form id="add-checklist-item-form" data-task-id="${task.id}" class="flex gap-2">
+                <input type="text" class="form-control" placeholder="${t('modals.add_checklist_item')}" required>
+            </form>
+        </div>
+    `;
+}
+
+function renderSubtasksTab(task: Task): TemplateResult {
+    const state = getState();
+    const subtasks = state.tasks.filter(t => t.parentId === task.id);
+    return html`
+        <div class="space-y-2">
+             ${subtasks.map(subtask => html`
+                <div class="flex items-center gap-3 p-2 rounded-md hover:bg-background subtask-row" data-subtask-id="${subtask.id}">
+                    <input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary subtask-checkbox" data-subtask-id="${subtask.id}" .checked=${subtask.status === 'done'}>
+                    <span class="flex-1 cursor-pointer subtask-name ${subtask.status === 'done' ? 'line-through text-text-subtle' : ''}">${subtask.name}</span>
+                    <button class="btn-icon" data-delete-subtask-id="${subtask.id}"><span class="material-icons-sharp text-base">close</span></button>
+                </div>
+            `)}
+            <form id="add-subtask-form" data-parent-task-id="${task.id}" class="flex gap-2">
+                <input type="text" class="form-control" placeholder="${t('modals.add_subtask')}" required>
+            </form>
+        </div>
+    `;
+}
+
+function renderDependenciesTab(task: Task): TemplateResult {
+    const state = getState();
+    const blockedBy = state.dependencies.filter(d => d.blockedTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockingTaskId));
+    const blocking = state.dependencies.filter(d => d.blockingTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockedTaskId));
+    const allTasks = state.tasks.filter(t => t.id !== task.id && t.workspaceId === state.activeWorkspaceId);
+
+    return html`
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h5 class="font-semibold mb-2">${t('modals.blocked_by')}</h5>
+                <div class="space-y-2">
+                    ${blockedBy.map(t => t ? html`
+                        <div class="dependency-item">
+                            <span>${t.name}</span>
+                            <button class="btn-icon" data-remove-dependency-id="${state.dependencies.find(d => d.blockedTaskId === task.id && d.blockingTaskId === t.id)?.id}"><span class="material-icons-sharp text-base">close</span></button>
                         </div>
-                        <button class="btn-icon delete-attachment-btn" data-delete-resource="attachments" data-delete-id="${att.id}" data-delete-confirm="Are you sure you want to delete this attachment?">
-                            <span class="material-icons-sharp text-base">delete</span>
-                        </button>
+                    ` : '')}
+                </div>
+                <form id="add-dependency-form" data-blocked-task-id="${task.id}" class="mt-2 flex gap-2">
+                    <select class="form-control">
+                        <option value="">${t('modals.select_task')}</option>
+                        ${allTasks.map(t => html`<option value="${t.id}">${t.name}</option>`)}
+                    </select>
+                </form>
+            </div>
+            <div>
+                <h5 class="font-semibold mb-2">${t('modals.blocking')}</h5>
+                <div class="space-y-2">
+                    ${blocking.map(t => t ? html`
+                         <div class="dependency-item">
+                            <span>${t.name}</span>
+                            <button class="btn-icon" data-remove-dependency-id="${state.dependencies.find(d => d.blockingTaskId === task.id && d.blockedTaskId === t.id)?.id}"><span class="material-icons-sharp text-base">close</span></button>
+                        </div>
+                    ` : '')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderAttachmentsTab(task: Task): TemplateResult {
+    const state = getState();
+    const attachments = state.attachments.filter(a => a.taskId === task.id);
+    return html`
+        <div class="space-y-4">
+            <div class="flex justify-end gap-2">
+                <button id="attach-from-drive-btn" data-task-id="${task.id}" class="btn btn-secondary btn-sm"><span class="material-icons-sharp text-base">add_to_drive</span> ${t('modals.attach_from_drive')}</button>
+                <label for="attachment-file-input" class="btn btn-secondary btn-sm cursor-pointer"><span class="material-icons-sharp text-base">upload_file</span> ${t('modals.add_attachment')}</label>
+                <input type="file" id="attachment-file-input" class="hidden" data-task-id="${task.id}">
+            </div>
+            <ul class="space-y-2">
+                 ${attachments.map(att => html`
+                    <li class="attachment-item">
+                        <span class="material-icons-sharp">description</span>
+                        <div class="attachment-info"><strong>${att.fileName}</strong><p class="subtle-text">${formatBytes(att.fileSize || 0)} - ${formatDate(att.createdAt)}</p></div>
+                        <button class="btn-icon delete-attachment-btn" data-attachment-id="${att.id}" aria-label="${t('modals.remove_item')} ${att.fileName}"><span class="material-icons-sharp" style="color: var(--danger-color)">delete</span></button>
                     </li>
-                `).join('') : `<p class="subtle-text">${t('panels.no_files')}</p>`}
+                `)}
             </ul>
         </div>
     `;
 }
 
-function renderDependenciesTab(task: Task) {
+export function TaskDetailModal() {
+    const modalData = (getState().ui.modal.data || {}) as TaskDetailModalData;
+    const task = getState().tasks.find(t => t.id === modalData.taskId);
+    if (!task) return null;
+
     const state = getState();
-    const dependencies = state.dependencies.filter(d => d.blockedTaskId === task.id || d.blockingTaskId === task.id);
-    const blockingTasks = dependencies.filter(d => d.blockedTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockingTaskId)).filter(Boolean);
-    const blockedTasks = dependencies.filter(d => d.blockingTaskId === task.id).map(d => state.tasks.find(t => t.id === d.blockedTaskId)).filter(Boolean);
-    
-    const availableTasksForDependency = state.tasks.filter(t => t.id !== task.id && t.projectId === task.projectId);
-
-    return `
-         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-                <h4 class="font-semibold">${t('modals.blocked_by')}</h4>
-                <div class="space-y-2">
-                    ${blockingTasks.length > 0 ? blockingTasks.map(t => {
-                        const dep = state.dependencies.find(d => d.blockingTaskId === t.id && d.blockedTaskId === task.id)!;
-                        return `
-                        <div class="dependency-item">
-                            <span>${t.name}</span>
-                            <button class="btn-icon" data-delete-resource="task_dependencies" data-delete-id="${dep.id}" data-delete-confirm="Are you sure you want to remove this dependency?"><span class="material-icons-sharp text-base">link_off</span></button>
-                        </div>
-                    `}).join('') : `<p class="subtle-text">No blocking tasks.</p>`}
-                </div>
-                <form id="add-dependency-form" class="flex gap-2" data-blocked-task-id="${task.id}">
-                    <select class="form-control">
-                        <option value="">${t('modals.select_task')}</option>
-                        ${availableTasksForDependency.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-                    </select>
-                    <button type="submit" class="btn btn-secondary">${t('modals.add_item')}</button>
-                </form>
-            </div>
-            <div class="space-y-4">
-                <h4 class="font-semibold">${t('modals.blocking')}</h4>
-                <div class="space-y-2">
-                     ${blockedTasks.length > 0 ? blockedTasks.map(t => {
-                         const dep = state.dependencies.find(d => d.blockedTaskId === t.id && d.blockingTaskId === task.id)!;
-                         return `
-                         <div class="dependency-item">
-                             <span>${t.name}</span>
-                            <button class="btn-icon" data-delete-resource="task_dependencies" data-delete-id="${dep.id}" data-delete-confirm="Are you sure you want to remove this dependency?"><span class="material-icons-sharp text-base">link_off</span></button>
-                         </div>
-                     `}).join('') : `<p class="subtle-text">Not blocking any tasks.</p>`}
-                </div>
-            </div>
-         </div>
-    `;
-}
-
-function renderSidebar(task: Task) {
-    const state = getState();
-    const assignees = state.taskAssignees
-        .filter(a => a.taskId === task.id)
-        .map(a => state.users.find(u => u.id === a.userId))
-        .filter((u): u is User => !!u);
-        
-    const assigneeIds = new Set(assignees.map(u => u.id));
-
-    const workspaceMembers = state.workspaceMembers
-        .filter(m => m.workspaceId === task.workspaceId)
-        .map(m => state.users.find(u => u.id === m.userId))
-        .filter((u): u is User => !!u);
-    
-    const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === task.workspaceId);
-    const taskTags = state.taskTags.filter(tt => tt.taskId === task.id).map(tt => state.tags.find(t => t.id === tt.tagId)).filter(Boolean);
-    const workspaceTags = state.tags.filter(t => t.workspaceId === task.workspaceId);
-    const progress = task.progress ?? 0;
-
-
-    const renderCustomField = (field: CustomFieldDefinition) => {
-        const value = state.customFieldValues.find(v => v.fieldId === field.id && v.taskId === task.id)?.value;
-        let inputHtml = '';
-        switch (field.type) {
-            case 'text':
-                inputHtml = `<input type="text" class="form-control" value="${value || ''}">`;
-                break;
-            case 'number':
-                inputHtml = `<input type="number" class="form-control" value="${value || ''}">`;
-                break;
-            case 'date':
-                inputHtml = `<input type="date" class="form-control" value="${value || ''}">`;
-                break;
-            case 'checkbox':
-                inputHtml = `<input type="checkbox" class="h-4 w-4 rounded text-primary focus:ring-primary" ${value ? 'checked' : ''}>`;
-                break;
-        }
-        return `
-            <div class="sidebar-item" data-custom-field-id="${field.id}">
-                <label>${field.name}</label>
-                ${inputHtml}
-            </div>
-        `;
-    };
-
-    return `
-        <div class="task-detail-sidebar">
-            <div class="sidebar-item">
-                <label>${t('modals.status')}</label>
-                <select class="form-control" data-field="status">
-                    <option value="backlog" ${task.status === 'backlog' ? 'selected' : ''}>${t('modals.status_backlog')}</option>
-                    <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>${t('modals.status_todo')}</option>
-                    <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>${t('modals.status_inprogress')}</option>
-                    <option value="inreview" ${task.status === 'inreview' ? 'selected' : ''}>${t('modals.status_inreview')}</option>
-                    <option value="done" ${task.status === 'done' ? 'selected' : ''}>${t('modals.status_done')}</option>
-                </select>
-            </div>
-            <div class="sidebar-item">
-                <div class="flex justify-between items-center">
-                    <label>${t('modals.progress')}</label>
-                    <span class="text-xs font-semibold" id="task-progress-label">${Math.round(progress)}%</span>
-                </div>
-                <div class="task-progress-bar-container" id="task-progress-bar" data-task-id="${task.id}">
-                    <div class="task-progress-bar-track">
-                        <div class="task-progress-bar-fill" id="task-progress-fill" style="width: ${progress}%;"></div>
-                    </div>
-                    <div class="task-progress-bar-thumb" id="task-progress-thumb" style="left: ${progress}%;"></div>
-                </div>
-            </div>
-             <div class="sidebar-item">
-                <label>${t('modals.assignees')}</label>
-                <div class="relative">
-                    <button class="form-control text-left flex items-center justify-between" data-menu-toggle="assignee-dropdown" aria-haspopup="true" aria-expanded="false">
-                        <div class="flex items-center gap-1 -space-x-2 overflow-hidden">
-                            ${assignees.length > 0 ? assignees.map(user => `
-                                <div class="avatar-small" title="${user.name || getUserInitials(user)}">${getUserInitials(user)}</div>
-                            `).join('') : `<span class="text-text-subtle text-sm px-1">${t('modals.unassigned')}</span>`}
-                        </div>
-                         ${assignees.length > 0 ? `<span class="text-sm text-text-subtle">${assignees.length} assigned</span>` : ''}
-                    </button>
-                    <div id="assignee-dropdown" class="assignee-dropdown dropdown-menu hidden">
-                        ${workspaceMembers.map(user => {
-                            const isAssigned = assigneeIds.has(user.id);
-                            return `
-                                <div class="assignee-dropdown-item" data-user-id="${user.id}">
-                                    <div class="avatar">${getUserInitials(user)}</div>
-                                    <span>${user.name || user.initials || 'Unnamed'}</span>
-                                    ${isAssigned ? `<span class="material-icons-sharp text-primary ml-auto">check</span>` : ''}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            </div>
-            <div class="sidebar-item">
-                <label>${t('modals.priority')}</label>
-                <select class="form-control" data-field="priority">
-                    <option value="" ${!task.priority ? 'selected' : ''}>${t('modals.priority_none')}</option>
-                    <option value="low" ${task.priority === 'low' ? 'selected' : ''}>${t('modals.priority_low')}</option>
-                    <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>${t('modals.priority_medium')}</option>
-                    <option value="high" ${task.priority === 'high' ? 'selected' : ''}>${t('modals.priority_high')}</option>
-                </select>
-            </div>
-            <div class="sidebar-item">
-                <label>${t('modals.start_date')}</label>
-                <input type="date" class="form-control" data-field="startDate" value="${task.startDate || ''}">
-            </div>
-            <div class="sidebar-item">
-                <label>${t('modals.due_date')}</label>
-                <input type="date" class="form-control" data-field="dueDate" value="${task.dueDate || ''}">
-            </div>
-
-            <div class="sidebar-item">
-                <label>${t('modals.tags')}</label>
-                <div id="task-tags-selector" class="multiselect-container" data-entity-type="task" data-entity-id="${task.id}">
-                    <div class="multiselect-display">
-                        ${taskTags.length > 0 ? taskTags.map(tag => `
-                            <div class="selected-tag-item" style="background-color: ${tag!.color}20; border-color: ${tag!.color}80;">
-                                <span>${tag!.name}</span>
-                                <button class="remove-tag-btn" data-tag-id="${tag!.id}">&times;</button>
-                            </div>
-                        `).join('') : `<span class="subtle-text">No tags</span>`}
-                    </div>
-                    <div class="multiselect-dropdown hidden">
-                        <div class="multiselect-list">
-                            ${workspaceTags.map(tag => {
-                                const isSelected = taskTags.some(tt => tt!.id === tag.id);
-                                return `
-                                <label class="multiselect-list-item ${isSelected ? 'bg-primary/10' : ''}">
-                                    <input type="checkbox" value="${tag.id}" ${isSelected ? 'checked' : ''}>
-                                    <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
-                                </label>
-                            `}).join('')}
-                        </div>
-                        <div class="multiselect-add-new">
-                            <input type="text" class="form-control" placeholder="Create new tag...">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-item">
-                <div class="flex justify-between items-center">
-                    <label>${t('modals.reminders')}</label>
-                    <button class="btn-icon" data-set-reminder-for-task-id="${task.id}" title="${t('modals.set_reminder')}">
-                        <span class="material-icons-sharp text-base">${task.reminderAt ? 'notifications_active' : 'notifications_none'}</span>
-                    </button>
-                </div>
-                ${task.reminderAt ? `<p class="text-xs text-primary">${formatDate(task.reminderAt, {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>` : ''}
-                <div class="mt-2 pt-2 border-t border-border-color space-y-2">
-                    <h5 class="text-xs font-bold text-text-subtle">${t('modals.automated_follow_ups')}</h5>
-                    <label class="flex justify-between items-center cursor-pointer">
-                        <span class="text-sm">${t('modals.nudge_on_inactivity')}</span>
-                        <input type="checkbox" class="toggle-switch" data-toggle-follow-up="onInactivity" data-task-id="${task.id}" ${task.followUpConfig?.onInactivity ? 'checked' : ''}>
-                    </label>
-                    <label class="flex justify-between items-center cursor-pointer">
-                        <span class="text-sm">${t('modals.nudge_on_unanswered_question')}</span>
-                        <input type="checkbox" class="toggle-switch" data-toggle-follow-up="onUnansweredQuestion" data-task-id="${task.id}" ${task.followUpConfig?.onUnansweredQuestion ? 'checked' : ''}>
-                    </label>
-                </div>
-            </div>
-
-            ${customFields.length > 0 ? `
-                <div class="sidebar-divider"></div>
-                <h5 class="sidebar-heading">${t('modals.custom_fields')}</h5>
-                ${customFields.map(renderCustomField).join('')}
-            ` : ''}
-        </div>
-    `;
-}
-
-export function TaskDetailModal({ taskId }: { taskId: string }): string {
-    const state = getState();
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return `
-        <div class="p-8 text-center text-text-subtle">
-            Task not found. It may have been deleted.
-        </div>
-    `;
-
+    const project = state.projects.find(p => p.id === task.projectId);
+    const client = project ? state.clients.find(c => c.id === project.clientId) : null;
+    const projectRole = getUserProjectRole(state.currentUser?.id || '', task.projectId);
+    const canEdit = projectRole === 'admin' || projectRole === 'editor' || can('manage_tasks');
     const { activeTab } = state.ui.taskDetail;
-
-    let tabContent = '';
-    switch(activeTab) {
-        case 'activity': tabContent = renderActivityTab(task); break;
-        case 'checklist': tabContent = renderChecklistTab(task); break;
-        case 'subtasks': tabContent = renderSubtasksTab(task); break;
-        case 'dependencies': tabContent = renderDependenciesTab(task); break;
-        case 'attachments': tabContent = renderAttachmentsTab(task); break;
-    }
-
-    const tabs = ['activity', 'checklist', 'subtasks', 'dependencies', 'attachments'];
-
-    return `
+    const isEditing = state.ui.taskDetail.isEditing && canEdit;
+    
+    const tabs = [
+        { id: 'activity', text: t('modals.activity'), content: renderActivityTab(task) },
+        { id: 'checklist', text: t('modals.checklist'), content: renderChecklistTab(task) },
+        { id: 'subtasks', text: t('modals.subtasks'), content: renderSubtasksTab(task) },
+        { id: 'dependencies', text: t('modals.dependencies'), content: renderDependenciesTab(task) },
+        { id: 'attachments', text: t('modals.attachments'), content: renderAttachmentsTab(task) },
+    ];
+    
+    const title = html`
+        <div class="flex items-center gap-2">
+            <input type="text" class="text-lg font-semibold bg-transparent border-none p-0 focus:ring-0" value="${task.name}" data-field="name" ?disabled=${!canEdit}>
+            <span class="text-sm text-text-subtle">• ${project?.name || ''}</span>
+        </div>
+    `;
+    const body = html`
         <div class="task-detail-layout">
             <div class="task-detail-main">
-                <div class="task-detail-description">
-                    <h4 class="font-semibold mb-2">${t('modals.description')}</h4>
-                    <div class="prose dark:prose-invert max-w-none text-sm">
-                        <textarea class="form-control" data-field="description" rows="4">${task.description || ''}</textarea>
-                    </div>
+                <div class="prose prose-sm dark:prose-invert max-w-none">
+                    <textarea class="form-control" data-field="description" placeholder="Add a description..." rows="4" ?disabled=${!canEdit}>${task.description || ''}</textarea>
                 </div>
-                <nav class="side-panel-tabs mt-6" role="tablist">
-                    ${tabs.map(tab => `
-                        <button class="side-panel-tab task-detail-tab ${activeTab === tab ? 'active' : ''}" data-tab-group="ui.taskDetail.activeTab" data-tab-value="${tab}" role="tab" aria-selected="${activeTab === tab}">
-                            ${t(`modals.${tab}`)}
-                        </button>
-                    `).join('')}
+                 <nav class="side-panel-tabs">
+                    ${tabs.map(tab => html`<button class="side-panel-tab ${activeTab === tab.id ? 'active' : ''}" data-tab-group="ui.taskDetail.activeTab" data-tab-value="${tab.id}">${tab.text}</button>`)}
                 </nav>
-                <div class="mt-4">
-                    ${tabContent}
-                </div>
+                <div>${tabs.find(t => t.id === activeTab)?.content}</div>
             </div>
-            ${renderSidebar(task)}
+            <aside class="task-detail-sidebar">
+                <!-- Sidebar content goes here, e.g., status, assignees, dates -->
+                 <div class="bg-background p-4 rounded-lg space-y-4">
+                    ${renderSelect({ id: '', label: t('modals.status'), value: task.status, options: [
+                        {value: 'backlog', text: t('modals.status_backlog')},
+                        {value: 'todo', text: t('modals.status_todo')},
+                        {value: 'inprogress', text: t('modals.status_inprogress')},
+                        {value: 'inreview', text: t('modals.status_inreview')},
+                        {value: 'done', text: t('modals.status_done')},
+                    ], containerClassName: 'sidebar-item', disabled: !canEdit })}
+                    <!-- More sidebar items -->
+                </div>
+            </aside>
         </div>
     `;
+    const footer = html`<button class="btn-close-modal">${t('panels.close')}</button>`;
+    
+    return { title, body, footer, maxWidth: 'max-w-6xl' };
 }
