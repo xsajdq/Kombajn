@@ -20,43 +20,49 @@ export async function bootstrapApp(session: Session) {
     if (isBootstrapping) return;
     isBootstrapping = true;
     
-    // 1. Fetch core data needed for the shell (user, workspaces)
-    await fetchInitialData(session);
+    try {
+        // 1. Fetch core data needed for the shell (user, workspaces)
+        await fetchInitialData(session);
 
-    // 2. Determine active workspace
-    const currentState = getState();
-    const userWorkspaces = currentState.workspaceMembers.filter(m => m.userId === currentState.currentUser?.id);
-    let activeWorkspaceId: string | null = null;
-    let currentPage = currentState.currentPage;
+        // 2. Determine active workspace
+        const currentState = getState();
+        const userWorkspaces = currentState.workspaceMembers.filter(m => m.userId === currentState.currentUser?.id);
+        let activeWorkspaceId: string | null = null;
+        let currentPage = currentState.currentPage;
 
-    if (userWorkspaces.length > 0) {
-        const lastActiveId = localStorage.getItem('activeWorkspaceId');
-        const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
-        activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
-        localStorage.setItem('activeWorkspaceId', activeWorkspaceId!);
-        
-        if (currentPage === 'auth' || currentPage === 'setup') {
-            currentPage = 'dashboard';
+        if (userWorkspaces.length > 0) {
+            const lastActiveId = localStorage.getItem('activeWorkspaceId');
+            const lastActiveWorkspaceExists = userWorkspaces.some(uw => uw.workspaceId === lastActiveId);
+            activeWorkspaceId = (lastActiveId && lastActiveWorkspaceExists) ? lastActiveId : userWorkspaces[0].workspaceId;
+            localStorage.setItem('activeWorkspaceId', activeWorkspaceId!);
+            
+            if (currentPage === 'auth' || currentPage === 'setup') {
+                currentPage = 'dashboard';
+            }
+        } else {
+            currentPage = 'setup';
+            activeWorkspaceId = null;
+            localStorage.removeItem('activeWorkspaceId');
         }
-    } else {
-        currentPage = 'setup';
-        activeWorkspaceId = null;
-        localStorage.removeItem('activeWorkspaceId');
+        
+        setState({ activeWorkspaceId, currentPage }, []);
+        history.replaceState({}, '', `/${currentPage}`);
+        
+        // 3. Fetch all detailed workspace data. If this fails, the error will be caught by main().
+        if (activeWorkspaceId && currentPage !== 'setup') {
+            await fetchWorkspaceData(activeWorkspaceId);
+        }
+        
+        // 4. Subscribe to channels after fetching data
+        if (getState().currentUser) await subscribeToUserChannel();
+        if (activeWorkspaceId) await switchWorkspaceChannel(activeWorkspaceId);
+    } catch (error) {
+        console.error("Error during application bootstrap:", error);
+        // This makes the error more specific than the generic "init failed" one in main()
+        throw new Error(`Failed to load initial application data. Please check your connection and refresh. Details: ${(error as Error).message}`);
+    } finally {
+        isBootstrapping = false;
     }
-    
-    setState({ activeWorkspaceId, currentPage }, []);
-    history.replaceState({}, '', `/${currentPage}`);
-    
-    // 3. Fetch all detailed workspace data. If this fails, the error will be caught by main().
-    if (activeWorkspaceId && currentPage !== 'setup') {
-        await fetchWorkspaceData(activeWorkspaceId);
-    }
-    
-    // 4. Subscribe to channels after fetching data
-    if (getState().currentUser) await subscribeToUserChannel();
-    if (activeWorkspaceId) await switchWorkspaceChannel(activeWorkspaceId);
-    
-    isBootstrapping = false;
 }
 
 
@@ -103,6 +109,15 @@ async function main() {
             // 1. Fetch all data first.
             await bootstrapApp(session);
             hasBootstrapped = true;
+
+            // Safeguard: if user is logged in but has no active workspace, force setup.
+            const postBootstrapState = getState();
+            if (postBootstrapState.currentUser && !postBootstrapState.activeWorkspaceId && postBootstrapState.currentPage !== 'setup') {
+                console.warn("Bootstrap finished but no active workspace. Forcing setup page.");
+                setState({ currentPage: 'setup' }, []); // silent update
+                history.replaceState({}, '', '/setup');
+            }
+
             // 2. Then render the complete app with populated state.
             await renderApp();
             
@@ -131,6 +146,15 @@ async function main() {
                 try {
                     await bootstrapApp(session);
                     hasBootstrapped = true;
+                    
+                    // Safeguard: if user is logged in but has no active workspace, force setup.
+                    const postBootstrapState = getState();
+                    if (postBootstrapState.currentUser && !postBootstrapState.activeWorkspaceId && postBootstrapState.currentPage !== 'setup') {
+                        console.warn("Bootstrap (onAuthStateChange) finished but no active workspace. Forcing setup page.");
+                        setState({ currentPage: 'setup' }, []);
+                        history.replaceState({}, '', '/setup');
+                    }
+                    
                     await renderApp();
                     const { workspaces, activeWorkspaceId } = getState();
                     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
