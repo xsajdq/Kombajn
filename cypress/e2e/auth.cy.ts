@@ -1,3 +1,5 @@
+/// <reference types="cypress" />
+
 describe('Authentication Flow', () => {
   it('should allow a user to sign up and then log out', () => {
     const user = {
