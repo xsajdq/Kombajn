@@ -3,6 +3,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 
+console.log('[API Module] api/index.ts module is loading...');
+
 // ============================================================================
 // LIB HELPERS (from _lib/supabaseAdmin.ts)
 // ============================================================================
@@ -107,7 +109,7 @@ function renderClosingPage(success: boolean, error?: string, provider?: string) 
 // MAIN HANDLER & ROUTER
 // ============================================================================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log(`[API START] Received request for action: ${req.query.action}`);
+    console.log(`[API Handler] Invoked for action: ${req.query.action || 'none'}. Method: ${req.method}.`);
     const { action } = req.query;
 
     try {
@@ -502,25 +504,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // ============================================================================
             case 'app-config': {
                 console.log('[API app-config] Handler started.');
-                if (req.method !== 'GET') {
-                    console.log('[API app-config] Method not allowed.');
-                    return res.status(405).json({ error: "Method Not Allowed" });
+                try {
+                    if (req.method !== 'GET') {
+                        console.log('[API app-config] Method not allowed.');
+                        return res.status(405).json({ error: "Method Not Allowed" });
+                    }
+                    
+                    console.log('[API app-config] Accessing environment variables...');
+                    const supabaseUrl = process.env.SUPABASE_URL;
+                    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+            
+                    console.log(`[API app-config] SUPABASE_URL is ${supabaseUrl ? 'set' : 'NOT SET'}.`);
+                    console.log(`[API app-config] SUPABASE_ANON_KEY is ${supabaseAnonKey ? 'set' : 'NOT SET'}.`);
+            
+                    if (!supabaseUrl || !supabaseAnonKey) {
+                        console.error('[API app-config] CRITICAL: Supabase environment variables are missing.');
+                        return res.status(500).json({ error: 'Server configuration error: Supabase credentials missing.' });
+                    }
+            
+                    console.log('[API app-config] Supabase credentials found. Sending response.');
+                    return res.status(200).json({ supabaseUrl, supabaseAnonKey });
+                } catch (e: any) {
+                    console.error('[API app-config] CRITICAL: An unexpected error occurred inside the app-config handler.', e);
+                    return res.status(500).json({ error: 'Internal server error in app-config handler: ' + e.message });
                 }
-                
-                console.log('[API app-config] Reading env vars...');
-                const supabaseUrl = process.env.SUPABASE_URL;
-                const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-                console.log(`[API app-config] SUPABASE_URL is ${supabaseUrl ? 'set' : 'NOT SET'}.`);
-                console.log(`[API app-config] SUPABASE_ANON_KEY is ${supabaseAnonKey ? 'set' : 'NOT SET'}.`);
-
-                if (!supabaseUrl || !supabaseAnonKey) {
-                    console.error('[API app-config] Missing Supabase credentials.');
-                    return res.status(500).json({ error: 'Server configuration error: Supabase credentials missing.' });
-                }
-
-                console.log('[API app-config] Supabase credentials found. Sending response.');
-                return res.status(200).json({ supabaseUrl, supabaseAnonKey });
             }
             case 'token': { // Integration token handler
                  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -979,7 +986,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(404).json({ error: `Action '${action}' not found.` });
         }
     } catch (error: any) {
-        console.error(`[API Error] Action: ${action}`, error);
+        console.error(`[API Error] Uncaught error in handler for action: ${action}`, error);
         return res.status(500).json({ error: error.message || 'An unexpected error occurred on the server.' });
     }
 }
