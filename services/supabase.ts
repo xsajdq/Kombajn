@@ -11,24 +11,24 @@ export async function initSupabase() {
     if (supabase) return;
 
     try {
-        const response = await fetch('/api?action=app-config');
+        const response = await fetch('/api/app-config');
         
         if (!response.ok) {
-            let errorBody;
+            let errorMessage = `Failed to fetch application configuration (Status: ${response.status}).`;
             try {
-                errorBody = await response.json();
-            } catch (e) {
-                // The body wasn't JSON or there was another error
-                errorBody = { error: `Server returned status ${response.status}: ${response.statusText}` };
+                // Vercel often sends plain text for hard crashes, which is more useful than a JSON parse error.
+                const errorText = await response.text();
+                // Attempt to parse as JSON for structured errors, otherwise use the raw text.
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorText;
+                } catch (jsonError) {
+                    errorMessage = errorText; 
+                }
+            } catch (textError) {
+                // If we can't even get the text, fall back to the status text.
+                errorMessage = `${errorMessage} ${response.statusText}`;
             }
-            
-            // Look for the specific error I added in the API
-            if (errorBody && errorBody.error && errorBody.error.includes('Supabase credentials missing')) {
-                 throw new Error("Could not connect to the database. The server is missing required configuration. Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in the Vercel project environment variables.");
-            }
-            
-            // Generic error for other failures.
-            const errorMessage = errorBody?.error || `Failed to fetch application configuration (Status: ${response.status}). Please check your network connection and server status.`;
             throw new Error(errorMessage);
         }
         

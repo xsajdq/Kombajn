@@ -499,36 +499,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).json(keysToCamel(responseData));
             }
             
-             // ============================================================================
-            // CONFIG HANDLER
-            // ============================================================================
-            case 'app-config': {
-                console.log('[API app-config] Handler started.');
-                try {
-                    if (req.method !== 'GET') {
-                        console.log('[API app-config] Method not allowed.');
-                        return res.status(405).json({ error: "Method Not Allowed" });
-                    }
-                    
-                    console.log('[API app-config] Accessing environment variables...');
-                    const supabaseUrl = process.env.SUPABASE_URL;
-                    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-            
-                    console.log(`[API app-config] SUPABASE_URL is ${supabaseUrl ? 'set' : 'NOT SET'}.`);
-                    console.log(`[API app-config] SUPABASE_ANON_KEY is ${supabaseAnonKey ? 'set' : 'NOT SET'}.`);
-            
-                    if (!supabaseUrl || !supabaseAnonKey) {
-                        console.error('[API app-config] CRITICAL: Supabase environment variables are missing.');
-                        return res.status(500).json({ error: 'Server configuration error: Supabase credentials missing.' });
-                    }
-            
-                    console.log('[API app-config] Supabase credentials found. Sending response.');
-                    return res.status(200).json({ supabaseUrl, supabaseAnonKey });
-                } catch (e: any) {
-                    console.error('[API app-config] CRITICAL: An unexpected error occurred inside the app-config handler.', e);
-                    return res.status(500).json({ error: 'Internal server error in app-config handler: ' + e.message });
-                }
-            }
             case 'token': { // Integration token handler
                  if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
                 const supabase = getSupabaseAdmin();
