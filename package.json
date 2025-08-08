@@ -13,7 +13,8 @@
     "@google/genai": "^0.14.0",
     "@supabase/supabase-js": "^2.50.3",
     "@vercel/node": "^5.3.4",
-    "esbuild": "^0.20.2"
+    "esbuild": "^0.20.2",
+    "lit-html": "^3.1.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",

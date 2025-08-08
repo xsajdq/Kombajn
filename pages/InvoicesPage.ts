@@ -4,6 +4,8 @@ import { formatDate, getUsage, PLANS, formatCurrency } from '../utils.ts';
 import type { Invoice, Workspace } from '../types.ts';
 import { can } from '../permissions.ts';
 import { fetchInvoicesForWorkspace } from '../handlers/invoices.ts';
+import { html, TemplateResult } from 'lit-html';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 
 function getFilteredInvoices() {
     const state = getState();
@@ -33,10 +35,10 @@ function getFilteredInvoices() {
         });
 }
 
-function renderInvoicesList() {
+function renderInvoicesList(): TemplateResult {
     const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!activeWorkspace) return '';
+    if (!activeWorkspace) return html``;
 
     const usage = getUsage(activeWorkspace.id);
     const planLimits = PLANS[activeWorkspace.subscription.planId];
@@ -48,11 +50,11 @@ function renderInvoicesList() {
 
     const { clientId, status, dateStart, dateEnd } = state.ui.invoiceFilters;
 
-    return `
+    return html`
         <div class="space-y-6">
              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h3 class="text-xl font-bold">${t('invoices.list_title')}</h3>
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ${!isAllowedToCreate || !canCreateInvoice ? 'disabled' : ''} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addInvoice" ?disabled=${!isAllowedToCreate || !canCreateInvoice} title="${!canCreateInvoice ? t('billing.limit_reached_invoices').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                     <span class="material-icons-sharp text-base">add</span> ${t('invoices.new_invoice')}
                 </button>
             </div>
@@ -61,24 +63,24 @@ function renderInvoicesList() {
                     <label for="invoice-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('invoices.col_client')}</label>
                     <select id="invoice-filter-client" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" data-filter-key="clientId">
                         <option value="all">${t('invoices.all_clients')}</option>
-                        ${clients.map(c => `<option value="${c.id}" ${clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                        ${clients.map(c => html`<option value="${c.id}" ?selected=${clientId === c.id}>${c.name}</option>`)}
                     </select>
                 </div>
                  <div>
                     <label for="invoice-filter-status" class="text-xs font-medium text-text-subtle block mb-1">${t('invoices.col_status')}</label>
                     <select id="invoice-filter-status" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" data-filter-key="status">
                         <option value="all">${t('invoices.all_statuses')}</option>
-                        <option value="pending" ${status === 'pending' ? 'selected' : ''}>${t('invoices.status_pending')}</option>
-                        <option value="paid" ${status === 'paid' ? 'selected' : ''}>${t('invoices.status_paid')}</option>
-                        <option value="overdue" ${status === 'overdue' ? 'selected' : ''}>${t('invoices.status_overdue')}</option>
+                        <option value="pending" ?selected=${status === 'pending'}>${t('invoices.status_pending')}</option>
+                        <option value="paid" ?selected=${status === 'paid'}>${t('invoices.status_paid')}</option>
+                        <option value="overdue" ?selected=${status === 'overdue'}>${t('invoices.status_overdue')}</option>
                     </select>
                 </div>
                  <div class="lg:col-span-2">
                     <label class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_date_range')}</label>
                     <div class="flex items-center gap-2">
-                        <input type="date" id="invoice-filter-date-start" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${dateStart}" data-filter-key="dateStart">
+                        <input type="date" id="invoice-filter-date-start" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value=${dateStart} data-filter-key="dateStart">
                         <span>-</span>
-                        <input type="date" id="invoice-filter-date-end" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${dateEnd}" data-filter-key="dateEnd">
+                        <input type="date" id="invoice-filter-date-end" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value=${dateEnd} data-filter-key="dateEnd">
                     </div>
                 </div>
             </div>
@@ -104,23 +106,25 @@ function renderInvoicesList() {
                                 const total = invoice.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
                                 const statusClass = invoice.effectiveStatus === 'paid' ? 'bg-success/10 text-success' : invoice.effectiveStatus === 'overdue' ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning';
                                 
-                                let emailStatusHtml = `<span class="text-text-subtle">-</span>`;
+                                let emailStatusHtml: TemplateResult;
                                 if (invoice.emailStatus === 'sent') {
                                     if (invoice.openedAt) {
-                                        emailStatusHtml = `<div class="flex items-center gap-1 text-success" title="${t('invoices.opened')} ${formatDate(invoice.openedAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}">
+                                        emailStatusHtml = html`<div class="flex items-center gap-1 text-success" title="${t('invoices.opened')} ${formatDate(invoice.openedAt, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}">
                                             <span class="material-icons-sharp text-base">visibility</span>
                                             <span class="text-xs font-medium">${t('invoices.opened')}</span>
                                         </div>`;
                                     } else {
-                                        emailStatusHtml = `<div class="flex items-center gap-1 text-text-subtle" title="${t('invoices.not_opened')}">
+                                        emailStatusHtml = html`<div class="flex items-center gap-1 text-text-subtle" title="${t('invoices.not_opened')}">
                                             <span class="material-icons-sharp text-base">visibility_off</span>
                                             <span class="text-xs font-medium">${t('invoices.not_opened')}</span>
                                         </div>`;
                                     }
+                                } else {
+                                    emailStatusHtml = html`<span class="text-text-subtle">-</span>`;
                                 }
 
 
-                                return `
+                                return html`
                                     <tr>
                                         <td data-label="${t('invoices.col_number')}" class="px-4 py-3 font-medium">${invoice.invoiceNumber}</td>
                                         <td data-label="${t('invoices.col_client')}" class="px-4 py-3">${client?.name || t('misc.no_client')}</td>
@@ -141,21 +145,21 @@ function renderInvoicesList() {
                                         </td>
                                     </tr>
                                 `;
-                            }).join('')}
+                            })}
                         </tbody>
                     </table>
-                     ${filteredInvoices.length === 0 ? `<div class="text-center py-8 text-text-subtle">${t('invoices.no_invoices_yet')}</div>` : ''}
+                     ${filteredInvoices.length === 0 ? html`<div class="text-center py-8 text-text-subtle">${t('invoices.no_invoices_yet')}</div>` : ''}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderSettingsTab(workspace: Workspace) {
+function renderSettingsTab(workspace: Workspace): TemplateResult {
     const settings = workspace.invoiceSettings || { template: 'modern', accentColor: '#3B82F6', defaultNotes: '' };
     const templates = ['modern', 'classic', 'elegant', 'minimalist'];
 
-    return `
+    return html`
         <div class="max-w-4xl mx-auto space-y-6">
             <h3 class="text-xl font-bold">${t('invoices.settings_title')}</h3>
             <p class="text-sm text-text-subtle">${t('invoices.settings_subtitle')}</p>
@@ -164,22 +168,22 @@ function renderSettingsTab(workspace: Workspace) {
                 <div>
                     <label class="block text-sm font-medium mb-2">${t('invoices.template_label')}</label>
                     <div class="invoice-template-grid">
-                        ${templates.map(template => `
+                        ${templates.map(template => html`
                             <div class="template-card ${settings.template === template ? 'selected' : ''}" data-template-name="${template}">
                                 <div class="template-preview">
                                     <span class="material-icons-sharp text-4xl">description</span>
                                 </div>
                                 <p class="template-card-name capitalize">${template}</p>
                             </div>
-                        `).join('')}
-                        <input type="hidden" id="invoice-template-input" value="${settings.template}">
+                        `)}
+                        <input type="hidden" id="invoice-template-input" .value="${settings.template}">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="invoice-accent-color" class="block text-sm font-medium mb-2">${t('invoices.accent_color_label')}</label>
-                        <input type="color" id="invoice-accent-color" class="w-24 h-10 p-1 bg-content border border-border-color rounded-md cursor-pointer" value="${settings.accentColor}">
+                        <input type="color" id="invoice-accent-color" class="w-24 h-10 p-1 bg-content border border-border-color rounded-md cursor-pointer" .value="${settings.accentColor}">
                     </div>
                 </div>
                 
@@ -213,13 +217,13 @@ export async function initInvoicesPage() {
     }
 }
 
-export function InvoicesPage() {
+export async function InvoicesPage(): Promise<TemplateResult> {
     const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!activeWorkspace) return '';
+    if (!activeWorkspace) return html``;
 
     if (state.ui.invoices.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -231,7 +235,7 @@ export function InvoicesPage() {
         { id: 'settings', text: t('invoices.tab_settings') },
     ];
 
-    let content = '';
+    let content: TemplateResult = html``;
     switch (activeTab) {
         case 'list':
             content = renderInvoicesList();
@@ -241,14 +245,14 @@ export function InvoicesPage() {
             break;
     }
 
-    return `
+    return html`
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('invoices.title')}</h2>
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    ${navItems.map(item => `
+                    ${navItems.map(item => html`
                         <button type="button" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.invoices.activeTab" data-tab-value="${item.id}">${item.text}</button>
-                    `).join('')}
+                    `)}
                 </nav>
             </div>
             ${content}

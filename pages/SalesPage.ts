@@ -1,17 +1,19 @@
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import type { Deal } from '../types.ts';
 import { formatCurrency, getUserInitials } from '../utils.ts';
 import { fetchSalesDataForWorkspace } from '../handlers/sales.ts';
+import { html, TemplateResult } from 'lit-html';
 
-function renderDealCard(deal: Deal) {
+function renderDealCard(deal: Deal): TemplateResult {
     const state = getState();
     const client = state.clients.find(c => c.id === deal.clientId);
     const owner = state.users.find(u => u.id === deal.ownerId);
 
-    return `
+    return html`
         <div class="bg-content p-3 rounded-md shadow-sm border border-border-color cursor-pointer deal-card" data-deal-id="${deal.id}" role="button" tabindex="0" draggable="true">
             <p class="font-semibold text-sm mb-2">${deal.name}</p>
             <p class="text-lg font-bold text-primary mb-2">${formatCurrency(deal.value, 'PLN')}</p>
@@ -20,9 +22,9 @@ function renderDealCard(deal: Deal) {
                 <span>${client?.name || t('misc.no_client')}</span>
             </div>
             <div class="flex justify-between items-center">
-                ${owner ? `
+                ${owner ? html`
                     <div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold" title="${t('sales.deal_owner')}: ${owner.name || getUserInitials(owner)}">${getUserInitials(owner)}</div>
-                ` : `
+                ` : html`
                     <div class="w-6 h-6 rounded-full bg-background flex items-center justify-center text-text-subtle" title="${t('tasks.unassigned')}">
                          <span class="material-icons-sharp text-base">person_outline</span>
                     </div>
@@ -32,7 +34,7 @@ function renderDealCard(deal: Deal) {
     `;
 }
 
-function renderKanbanBoard() {
+function renderKanbanBoard(): TemplateResult {
     const state = getState();
     const deals = state.deals.filter(d => d.workspaceId === state.activeWorkspaceId);
     const stages = state.pipelineStages
@@ -40,12 +42,12 @@ function renderKanbanBoard() {
         .sort((a, b) => a.sortOrder - b.sortOrder);
     
     if (stages.length === 0) {
-        return `
+        return html`
             <div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
                 <span class="material-icons-sharp text-5xl text-text-subtle">construction</span>
                 <h3 class="text-lg font-medium mt-4">${t('sales.pipeline_not_setup_title')}</h3>
                 <p class="text-sm text-text-subtle mt-1">${t('sales.pipeline_not_setup_desc')}</p>
-                ${can('manage_workspace_settings') ? `<a href="/settings" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('sales.go_to_settings')}</a>` : ''}
+                ${can('manage_workspace_settings') ? html`<a href="/settings" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">${t('sales.go_to_settings')}</a>` : ''}
             </div>
         `;
     }
@@ -58,25 +60,25 @@ function renderKanbanBoard() {
         }
     });
 
-    return `
+    return html`
         <div class="flex-1 overflow-x-auto">
             <div class="sales-board-container">
                 ${stages.map(stage => {
                     const columnDeals = dealsByStage[stage.id];
                     const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
-                    return `
+                    return html`
                          <div class="sales-board-column" data-stage-id="${stage.id}">
                             <div class="sales-board-column-header">
                                 <span>${stage.name} <span class="text-sm font-normal text-text-subtle">${columnDeals.length}</span></span>
                                 <span class="text-sm font-medium text-text-subtle">${formatCurrency(totalValue, 'PLN')}</span>
                             </div>
                             <div class="sales-board-column-body">
-                                ${columnDeals.length > 0 ? columnDeals.map(renderDealCard).join('') : `<div class="h-full"></div>`}
+                                ${columnDeals.length > 0 ? columnDeals.map(renderDealCard) : html`<div class="h-full"></div>`}
                             </div>
                         </div>
                     `;
-                }).join('')}
+                })}
             </div>
         </div>
     `;
@@ -100,22 +102,22 @@ export async function initSalesPage() {
     }
 }
 
-export function SalesPage() {
+export function SalesPage(): TemplateResult {
     const state = getState();
     const canManage = can('manage_deals');
     const { sales: { isLoading } } = state.ui;
 
-    const contentHtml = isLoading ? `
+    const contentHtml = isLoading ? html`
         <div class="flex-1 flex items-center justify-center">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
     ` : renderKanbanBoard();
 
-    return `
+    return html`
     <div class="h-full flex flex-col">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-2xl font-bold">${t('sales.title')}</h2>
-            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addDeal" ${!canManage ? 'disabled' : ''}>
+            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" data-modal-target="addDeal" ?disabled=${!canManage}>
                 <span class="material-icons-sharp text-base">add</span> ${t('sales.new_deal')}
             </button>
         </div>

@@ -1,7 +1,7 @@
 import { getState, setState } from '../state.ts';
 import { handleMentionInput } from './mentions.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { InvoiceLineItem } from '../types.ts';
+import type { InvoiceLineItem, TaskDetailModalData, AddInvoiceModalData } from '../types.ts';
 import { handleCommandSearch } from '../handlers/commands.ts';
 import { handleSlashCommandInput, handleLiveMarkdown } from '../handlers/editor.ts';
 
@@ -49,7 +49,7 @@ export async function handleInput(e: Event) {
     }
 
     if (target.id === 'task-comment-input' && getState().ui.modal.type === 'taskDetail') {
-        const taskId = getState().ui.modal.data?.taskId;
+        const taskId = (getState().ui.modal.data as TaskDetailModalData)?.taskId;
         if (taskId) {
             localStorage.setItem(`comment-draft-${taskId}`, target.innerHTML);
         }
@@ -83,7 +83,8 @@ export async function handleInput(e: Event) {
     
         setState(prevState => {
             if (prevState.ui.modal.type === 'addInvoice') {
-                const updatedItems = prevState.ui.modal.data.items.map((item: any) => 
+                const modalData = prevState.ui.modal.data as AddInvoiceModalData;
+                const updatedItems = (modalData.items || []).map((item: any) => 
                     item.id.toString() === itemId ? { ...item, [field]: value } : item
                 );
                 return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: updatedItems } } } };

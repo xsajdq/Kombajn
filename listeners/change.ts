@@ -1,7 +1,6 @@
-
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
-import type { Role, Task, AppState, ProjectRole } from '../types.ts';
+import type { Role, Task, AppState, ProjectRole, TaskDetailModalData } from '../types.ts';
 import * as teamHandlers from '../handlers/team.ts';
 import * as taskHandlers from '../handlers/tasks.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
@@ -42,7 +41,7 @@ export function handleChange(e: Event) {
     if (target.matches('.task-detail-sidebar *[data-field], .subtask-detail-container *[data-field]')) {
         const modalType = state.ui.modal.type;
         if (modalType === 'taskDetail' || modalType === 'subtaskDetail') {
-            let taskId = state.ui.modal.data?.taskId;
+            let taskId = (state.ui.modal.data as TaskDetailModalData)?.taskId;
             if ((target as HTMLElement).dataset.taskId) {
                 taskId = (target as HTMLElement).dataset.taskId;
             }
@@ -105,7 +104,7 @@ export function handleChange(e: Event) {
     
     if (target.closest('[data-custom-field-id]') && state.ui.modal.type === 'taskDetail') {
         const wrapper = target.closest<HTMLElement>('[data-custom-field-id]')!;
-        const taskId = state.ui.modal.data.taskId;
+        const taskId = (state.ui.modal.data as TaskDetailModalData).taskId;
         const fieldId = wrapper.dataset.customFieldId!;
         const value = (target as HTMLInputElement).type === 'checkbox' ? (target as HTMLInputElement).checked : (target as HTMLInputElement).value;
         taskHandlers.handleCustomFieldValueUpdate(taskId, fieldId, value);
@@ -190,7 +189,7 @@ export function handleChange(e: Event) {
                 key = (target.id).replace('invoice', '').charAt(0).toLowerCase() + (target.id).replace('invoice', '').slice(1);
             }
             setState(prevState => ({
-                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, [key]: (target as HTMLInputElement).value } } }
+                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), [key]: (target as HTMLInputElement).value } } }
             }), ['modal']);
         }
         return;
@@ -267,7 +266,7 @@ export function handleChange(e: Event) {
     if (target.id === 'automation-project-selector') {
         const projectId = (target as HTMLSelectElement).value;
         setState(prevState => ({
-            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), selectedProjectId: projectId } } }
         }), ['modal']);
         return;
     }
@@ -275,7 +274,7 @@ export function handleChange(e: Event) {
     if (target.id === 'timeLogProject') {
         const projectId = (target as HTMLSelectElement).value;
         setState(prevState => ({
-            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), selectedProjectId: projectId } } }
         }), ['modal']);
         return;
     }
@@ -283,7 +282,7 @@ export function handleChange(e: Event) {
     if (target.id === 'assign-time-project-select') {
         const projectId = (target as HTMLSelectElement).value;
         setState(prevState => ({
-            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, selectedProjectId: projectId } } }
+            ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), selectedProjectId: projectId } } }
         }), ['modal']);
         return;
     }
@@ -310,7 +309,7 @@ export function handleChange(e: Event) {
 
     const checklistItemCheckbox = target.closest<HTMLInputElement>('.checklist-item-checkbox');
     if (checklistItemCheckbox) {
-        const taskId = state.ui.modal.data?.taskId;
+        const taskId = (state.ui.modal.data as TaskDetailModalData)?.taskId;
         const itemId = checklistItemCheckbox.dataset.itemId;
         if (taskId && itemId) {
             taskHandlers.handleToggleChecklistItem(taskId, itemId);

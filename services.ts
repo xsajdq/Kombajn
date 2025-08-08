@@ -6,6 +6,7 @@ import { formatDate } from './utils.ts';
 import { updateUI } from "./app-renderer.ts";
 import type { AiSuggestedTask } from './types.ts';
 import { apiFetch } from "./services/api.ts";
+import { showToast } from "./handlers/ui.ts";
 
 declare const jspdf: any;
 
@@ -18,7 +19,7 @@ export function generateInvoicePDF(invoiceId: string, options: { outputType?: 'd
     const workspace = state.workspaces.find(w => w.id === activeWorkspaceId);
 
     if (!invoice || !client || !workspace) {
-        alert("Could not find invoice, client or workspace data.");
+        showToast("Could not find invoice, client or workspace data.", 'error');
         return null;
     }
 

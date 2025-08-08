@@ -1,10 +1,10 @@
-
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate } from '../utils.ts';
 import type { Budget, Expense, Invoice } from '../types.ts';
 import { fetchBudgetDataForWorkspace } from '../handlers/budget.ts';
+import { html, TemplateResult } from 'lit-html';
 
 export async function initBudgetPage() {
     const state = getState();
@@ -22,13 +22,13 @@ export async function initBudgetPage() {
     }
 }
 
-export function BudgetPage() {
+export function BudgetPage(): TemplateResult {
     const state = getState();
     const { activeWorkspaceId } = state;
-    if (!activeWorkspaceId) return '';
+    if (!activeWorkspaceId) return html``;
 
     if (state.ui.budget.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -79,7 +79,7 @@ export function BudgetPage() {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 10);
 
-    return `
+    return html`
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -87,7 +87,7 @@ export function BudgetPage() {
                     <p class="text-text-subtle">${t('budget.subtitle')}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                     ${canManage ? `<button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="setBudgets" data-period="${period}"><span class="material-icons-sharp text-base">edit</span> ${t('budget.set_budgets')}</button>` : ''}
+                     ${canManage ? html`<button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="setBudgets" data-period="${period}"><span class="material-icons-sharp text-base">edit</span> ${t('budget.set_budgets')}</button>` : ''}
                     <button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addExpense"><span class="material-icons-sharp text-base">add</span> ${t('budget.add_expense')}</button>
                 </div>
             </div>
@@ -101,12 +101,12 @@ export function BudgetPage() {
 
             <div class="bg-content p-4 rounded-lg">
                 <h4 class="font-semibold mb-3">${t('budget.budgets_by_category')}</h4>
-                ${budgets.length > 0 ? `
+                ${budgets.length > 0 ? html`
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${budgets.map(budget => {
                             const spent = expenses.filter(e => e.category === budget.category).reduce((sum, e) => sum + e.amount, 0);
                             const progress = budget.amount > 0 ? Math.min(100, (spent / budget.amount) * 100) : 0;
-                            return `
+                            return html`
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="font-medium">${budget.category}</span>
@@ -115,9 +115,9 @@ export function BudgetPage() {
                                     <div class="w-full bg-background rounded-full h-2"><div class="h-2 rounded-full ${progress > 90 ? 'bg-danger' : progress > 70 ? 'bg-warning' : 'bg-primary'}" style="width: ${progress}%"></div></div>
                                 </div>
                             `;
-                        }).join('')}
+                        })}
                     </div>
-                ` : `<div class="text-center py-8 text-text-subtle"><p>${t('budget.no_budgets_set')}</p><p class="text-xs">${t('budget.no_budgets_set_desc')}</p></div>`}
+                ` : html`<div class="text-center py-8 text-text-subtle"><p>${t('budget.no_budgets_set')}</p><p class="text-xs">${t('budget.no_budgets_set_desc')}</p></div>`}
             </div>
             
             <div class="bg-content p-4 rounded-lg">
@@ -133,14 +133,14 @@ export function BudgetPage() {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border-color">
-                             ${allTransactions.length > 0 ? allTransactions.map(tx => `
+                             ${allTransactions.length > 0 ? allTransactions.map(tx => html`
                                 <tr>
                                     <td data-label="${t('budget.col_date')}" class="px-4 py-3">${formatDate(tx.date)}</td>
                                     <td data-label="${t('budget.col_description')}" class="px-4 py-3">${tx.description}</td>
                                     <td data-label="${t('budget.col_category')}" class="px-4 py-3"><span class="px-2 py-1 text-xs font-medium rounded-full bg-background">${tx.category}</span></td>
                                     <td data-label="${t('budget.col_amount')}" class="px-4 py-3 text-right font-semibold ${tx.type === 'income' ? 'text-success' : 'text-danger'}">${formatCurrency(tx.amount, 'PLN')}</td>
                                 </tr>
-                             `).join('') : `<tr><td colspan="4" class="text-center py-8 text-text-subtle">${t('budget.no_transactions')}</td></tr>`}
+                             `) : html`<tr><td colspan="4" class="text-center py-8 text-text-subtle">${t('budget.no_transactions')}</td></tr>`}
                         </tbody>
                     </table>
                 </div>

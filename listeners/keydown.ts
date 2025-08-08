@@ -21,6 +21,39 @@ export function handleKeydown(e: KeyboardEvent) {
         return;
     }
 
+    // Modal Focus Trap
+    if (e.key === 'Tab' && state.ui.modal.isOpen) {
+        const modal = document.getElementById('modal-content');
+        if (!modal) return;
+
+        const focusableElements = Array.from(
+            modal.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        ).filter(el => el.offsetParent !== null); // Ensure element is visible
+
+        if (focusableElements.length === 0) {
+            e.preventDefault();
+            return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) { // Shift + Tab
+            if (document.activeElement === firstElement) {
+                lastElement.focus();
+                e.preventDefault();
+            }
+        } else { // Tab
+            if (document.activeElement === lastElement) {
+                firstElement.focus();
+                e.preventDefault();
+            }
+        }
+        // Let the browser handle tabbing between other elements within the modal
+        return;
+    }
+
+
     // Close modals/panels with Escape
     if (e.key === 'Escape') {
         if (state.ui.onboarding.isActive) {

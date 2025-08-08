@@ -1,9 +1,11 @@
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { Task, TimeOffRequest, CalendarEvent, PublicHoliday, User, TimeLog } from '../types.ts';
 import { fetchPublicHolidays, fetchTeamCalendarDataForWorkspace } from '../handlers/calendar.ts';
 import { formatDate, getUserInitials, formatDuration } from '../utils.ts';
+import { html, TemplateResult } from 'lit-html';
 
 const userColors = [
     '#4F46E5', // Indigo-600
@@ -111,7 +113,7 @@ function getItemsForDay(dayDateString: string) {
     return items;
 }
 
-function renderMonthView(year: number, month: number) {
+function renderMonthView(year: number, month: number): TemplateResult {
     const state = getState();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -178,7 +180,7 @@ function renderMonthView(year: number, month: number) {
         return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
     });
     
-    let eventBarsHtml = '';
+    const eventBars: TemplateResult[] = [];
     weeks.forEach((week, weekIndex) => {
         const weekStart = week[0];
         const weekEnd = new Date(week[6]);
@@ -214,7 +216,7 @@ function renderMonthView(year: number, month: number) {
             
             const isStartOfEvent = event.startDate >= weekStart;
 
-            eventBarsHtml += `
+            eventBars.push(html`
                 <div class="calendar-event-bar" 
                      style="top: ${weekIndex * 120 + topOffset}px; left: ${startDayIndex * 100 / 7}%; width: ${duration * 100 / 7}%; height: ${barHeight}px;"
                      ${handler} title="${title}">
@@ -222,36 +224,36 @@ function renderMonthView(year: number, month: number) {
                         ${isStartOfEvent ? text : ''}
                     </div>
                 </div>
-            `;
+            `);
         });
     });
 
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-    return `
+    return html`
         <div class="overflow-x-auto">
             <div class="min-w-[1200px] relative">
                 <div class="grid grid-cols-7 sticky top-0 bg-content z-20">
-                    ${weekdays.map(day => `<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+                    ${weekdays.map(day => html`<div class="p-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`)}
                 </div>
                 <div class="grid grid-cols-7" style="grid-template-rows: repeat(${weeks.length}, 120px)">
                     ${weeks.flat().map(day => {
                         const isCurrentMonth = day.getMonth() === month - 1;
                         const isToday = day.getTime() === today.getTime();
-                        return `<div class="border-r border-b border-border-color p-2 ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
+                        return html`<div class="border-r border-b border-border-color p-2 ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
                                    <div class="text-sm text-right ${isToday ? 'text-primary font-bold' : ''}">${day.getDate()}</div>
                                </div>`;
-                    }).join('')}
+                    })}
                 </div>
                 <div class="absolute top-[37px] left-0 w-full h-full pointer-events-none z-10">
-                    ${eventBarsHtml}
+                    ${eventBars}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderWeekView(currentDate: Date) {
+function renderWeekView(currentDate: Date): TemplateResult {
     const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
@@ -300,15 +302,13 @@ function renderWeekView(currentDate: Date) {
         leaveByUser.get(key)!.push(event);
     });
 
-    let leaveHeaderHtml = '';
+    let leaveHeader: TemplateResult | '' = '';
     if (leaveByUser.size > 0) {
-        let userRowsHtml = '';
-        leaveByUser.forEach((events, userId) => {
+        const userRows = Array.from(leaveByUser.entries()).map(([userId, events]) => {
             const user = state.users.find(u => u.id === userId);
             const userName = user?.name || getUserInitials(user) || t('team_calendar.public_holiday');
             
-            let eventBars = '';
-            events.forEach(event => {
+            const eventBars = events.map(event => {
                 const start = event.startDate > weekStartDate ? event.startDate : weekStartDate;
                 const end = event.endDate < weekEndDate ? event.endDate : weekEndDate;
                 
@@ -318,7 +318,7 @@ function renderWeekView(currentDate: Date) {
                 
                 const { colorClasses, textColorClass, text, title } = getEventBarDetails(event.item);
 
-                eventBars += `
+                return html`
                     <div class="calendar-event-bar" style="grid-column: ${startDayIndex + 1} / span ${duration};" title="${title}">
                         <div class="calendar-event-content ${colorClasses} ${textColorClass} is-start is-end">
                             ${text}
@@ -327,7 +327,7 @@ function renderWeekView(currentDate: Date) {
                 `;
             });
 
-            userRowsHtml += `
+            return html`
                 <div class="leave-header-row">
                     <div class="leave-header-user">${userName}</div>
                     <div class="leave-header-timeline">${eventBars}</div>
@@ -335,16 +335,15 @@ function renderWeekView(currentDate: Date) {
             `;
         });
 
-        leaveHeaderHtml = `<div class="team-calendar-leave-header">${userRowsHtml}</div>`;
+        leaveHeader = html`<div class="team-calendar-leave-header">${userRows}</div>`;
     }
 
-    let daysHtml = '';
-    for (const dayDate of weekDays) {
+    const days = weekDays.map(dayDate => {
         const dayDateString = dayDate.toISOString().slice(0, 10);
         const itemsForDay = getItemsForDay(dayDateString)
             .filter(item => 'projectId' in item || 'isAllDay' in item);
 
-        daysHtml += `
+        return html`
             <div class="border-r border-border-color p-2">
                 <div class="text-center mb-2">
                     <strong class="text-sm">${t(`calendar.weekdays.${dayDate.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
@@ -353,20 +352,20 @@ function renderWeekView(currentDate: Date) {
                 <div class="space-y-1">
                     ${itemsForDay.map(item => {
                         const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
-                        return `<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses} ${textColorClass}" title="${title}" ${handler}>${text}</div>`
-                    }).join('')}
+                        return html`<div class="p-1.5 text-xs font-medium rounded-md truncate ${colorClasses} ${textColorClass}" title="${title}" ${handler}>${text}</div>`
+                    })}
                 </div>
             </div>
         `;
-    }
+    });
     
-    return `
-        ${leaveHeaderHtml}
-        <div class="grid grid-cols-1 sm:grid-cols-7 h-full">${daysHtml}</div>
+    return html`
+        ${leaveHeader}
+        <div class="grid grid-cols-1 sm:grid-cols-7 h-full">${days}</div>
     `;
 }
 
-function renderWorkloadView(currentDate: Date) {
+function renderWorkloadView(currentDate: Date): TemplateResult {
     const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
@@ -387,24 +386,24 @@ function renderWorkloadView(currentDate: Date) {
 
     const tasksWithData = state.tasks.filter(t => t.workspaceId === state.activeWorkspaceId && t.startDate && t.dueDate && t.estimatedHours);
 
-    const headerHtml = `
+    const header = html`
         <div class="workload-header-user"></div>
         <div class="workload-header-timeline">
-            ${weekDays.map(d => `
+            ${weekDays.map(d => html`
                 <div class="workload-header-date">
                     <div class="text-xs">${d.toLocaleDateString(state.settings.language, { weekday: 'short' })}</div>
                     <div class="font-bold">${d.getDate()}</div>
                 </div>
-            `).join('')}
+            `)}
         </div>
     `;
     
-    const rowsHtml = users.map(user => {
+    const rows = users.map(user => {
         const userTasks = tasksWithData
             .filter(t => state.taskAssignees.some(a => a.taskId === t.id && a.userId === user.id))
             .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
 
-        const dayCellsHtml = weekDays.map(date => {
+        const dayCells = weekDays.map(date => {
             const dateStr = date.toISOString().slice(0, 10);
             let dailyHours = 0;
             
@@ -424,44 +423,44 @@ function renderWorkloadView(currentDate: Date) {
             if (dailyHours > 8) capacityClass = 'capacity-over';
             else if (dailyHours > 6) capacityClass = 'capacity-good';
 
-            const taskItemsHtml = tasksForDay.map(task => {
+            const taskItems = tasksForDay.map(task => {
                 const priorityColors: Record<string, string> = { high: 'bg-danger', medium: 'bg-warning', low: 'bg-primary' };
                 const colorClass = priorityColors[task.priority || 'low'];
 
-                return `
+                return html`
                     <div class="workload-task-item ${colorClass}" 
                          data-task-id="${task.id}"
                          title="${task.name}">
                          ${task.name}
                     </div>`;
-            }).join('');
+            });
             
-            return `<div class="workload-day-cell ${capacityClass}">${taskItemsHtml}</div>`;
-        }).join('');
+            return html`<div class="workload-day-cell ${capacityClass}">${taskItems}</div>`;
+        });
         
-        return `
+        return html`
             <div class="workload-user-cell">
                 <div class="avatar-small">${getUserInitials(user)}</div>
                 <span class="text-sm font-medium">${user.name || getUserInitials(user)}</span>
             </div>
             <div class="workload-user-timeline">
-                 <div class="workload-day-cell-container">${dayCellsHtml}</div>
+                 <div class="workload-day-cell-container">${dayCells}</div>
             </div>
         `;
-    }).join('');
+    });
 
-    return `
+    return html`
         <div class="workload-container">
             <div class="workload-grid">
-                ${headerHtml}
-                ${rowsHtml}
+                ${header}
+                ${rows}
             </div>
         </div>
     `;
 }
 
 
-function renderTimesheetView(currentDate: Date) {
+function renderTimesheetView(currentDate: Date): TemplateResult {
     const state = getState();
     const weekDays: Date[] = [];
     const dayOfWeek = (currentDate.getDay() + 6) % 7;
@@ -495,14 +494,14 @@ function renderTimesheetView(currentDate: Date) {
         log.createdAt <= weekEndDateStr
     );
     
-    const timeAxisHtml = Array.from({ length: 24 }, (_, i) => `<div class="time-axis">${String(i).padStart(2, '0')}:00</div>`).join('');
+    const timeAxis = Array.from({ length: 24 }, (_, i) => html`<div class="time-axis">${String(i).padStart(2, '0')}:00</div>`);
     
-    const dayColumnsHtml = weekDays.map(day => {
+    const dayColumns = weekDays.map(day => {
         const dayStr = day.toISOString().slice(0,10);
         const entriesForDay = timeLogs.filter(log => log.createdAt.startsWith(dayStr));
-        const hourRows = Array.from({ length: 24 }, () => `<div class="hour-row"></div>`).join('');
+        const hourRows = Array.from({ length: 24 }, () => html`<div class="hour-row"></div>`);
 
-        const entriesHtml = entriesForDay.map(log => {
+        const entries = entriesForDay.map(log => {
             const logDate = new Date(log.createdAt);
             const startMinutes = logDate.getHours() * 60 + logDate.getMinutes();
             const durationMinutes = log.trackedSeconds / 60;
@@ -514,69 +513,69 @@ function renderTimesheetView(currentDate: Date) {
 
             const userColor = getUserColor(log.userId);
 
-            return `
+            return html`
                 <div class="timesheet-entry" 
                      style="top: ${top}%; height: ${height}%; background-color: ${userColor};"
                      title="${task?.name || 'Task'} (${formatDuration(log.trackedSeconds)})"
                      data-task-id="${task?.id}">
-                    ${userIdsToDisplay.length > 1 ? `<span class="timesheet-entry-initials">${getUserInitials(user)}</span>` : ''}
+                    ${userIdsToDisplay.length > 1 ? html`<span class="timesheet-entry-initials">${getUserInitials(user)}</span>` : ''}
                     <div class="timesheet-entry-content">
                         <strong>${task?.name || 'Task'}</strong>
                         <p>${project?.name || 'Project'}</p>
                     </div>
                 </div>
             `;
-        }).join('');
+        });
         
-        return `
+        return html`
             <div class="day-column">
                 ${hourRows}
-                ${entriesHtml}
+                ${entries}
             </div>
         `;
-    }).join('');
+    });
 
-    return `
+    return html`
         <div class="timesheet-container">
             <div class="timesheet-grid">
                 <div class="timesheet-header"></div>
-                ${weekDays.map(day => `
+                ${weekDays.map(day => html`
                     <div class="timesheet-day-header">
                          <strong class="text-sm">${t(`calendar.weekdays.${day.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()}`)}</strong>
                          <p class="text-2xl font-bold">${day.getDate()}</p>
                     </div>
-                `).join('')}
+                `)}
                 
-                <div class="time-axis-container">${timeAxisHtml}</div>
-                ${dayColumnsHtml}
+                <div class="time-axis-container">${timeAxis}</div>
+                ${dayColumns}
             </div>
         </div>
     `;
 }
 
-function renderDayView(currentDate: Date) {
+function renderDayView(currentDate: Date): TemplateResult {
     const dayDateString = currentDate.toISOString().slice(0, 10);
     const items = getItemsForDay(dayDateString);
 
     if (items.length === 0) {
-        return `<div class="p-8 text-center text-text-subtle">${t('misc.no_events_for_day')}</div>`;
+        return html`<div class="p-8 text-center text-text-subtle">${t('misc.no_events_for_day')}</div>`;
     }
 
-    return `
+    return html`
         <div class="p-4 space-y-2">
             ${items.map(item => {
                 const { colorClasses, textColorClass, text, handler, title } = getEventBarDetails(item);
-                return `
+                return html`
                     <div class="p-2 text-sm font-medium rounded-md ${colorClasses} ${textColorClass}" title="${title}" ${handler}>
                         ${text}
                     </div>
                 `;
-            }).join('')}
+            })}
         </div>
     `;
 }
 
-export async function TeamCalendarPage() {
+export async function TeamCalendarPage(): Promise<TemplateResult> {
     const state = getState();
     const { date: teamCalendarDate, view: teamCalendarView, selectedUserIds: teamCalendarSelectedUserIds, isLoading } = state.ui.teamCalendar;
     const currentDate = new Date(teamCalendarDate + 'T12:00:00Z');
@@ -584,7 +583,7 @@ export async function TeamCalendarPage() {
     const month = currentDate.getUTCMonth() + 1;
 
     if (isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -596,8 +595,8 @@ export async function TeamCalendarPage() {
     ]);
     
     let viewTitle = '';
-    let viewContent = '';
-    let topContent = '';
+    let viewContent: TemplateResult = html``;
+    let topContent: TemplateResult | '' = '';
 
     if (teamCalendarView === 'timesheet') {
         const workspaceUsers = state.workspaceMembers
@@ -612,7 +611,7 @@ export async function TeamCalendarPage() {
             buttonText = `${teamCalendarSelectedUserIds.length} users selected`;
         }
 
-        topContent = `
+        topContent = html`
             <div id="timesheet-user-selector-container" class="relative w-64">
                 <button data-timesheet-user-toggle class="form-control flex justify-between items-center">
                     <span>${buttonText}</span>
@@ -623,13 +622,13 @@ export async function TeamCalendarPage() {
                         <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-me="true">${t('team_calendar.my_time_logs')}</div>
                         <div class="timesheet-user-option p-2 rounded-md hover:bg-background cursor-pointer" data-timesheet-user-all="true">${t('team_calendar.all_users')}</div>
                         <div class="border-t border-border-color my-1"></div>
-                        ${workspaceUsers.map(u => `
+                        ${workspaceUsers.map(u => html`
                             <label class="timesheet-user-option flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer">
-                                <input type="checkbox" value="${u.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ${teamCalendarSelectedUserIds.includes(u.id) ? 'checked' : ''}>
+                                <input type="checkbox" value="${u.id}" class="h-4 w-4 rounded text-primary focus:ring-primary" ?checked=${teamCalendarSelectedUserIds.includes(u.id)}>
                                 <div class="avatar-small">${getUserInitials(u)}</div>
                                 <span class="text-sm">${u.name}</span>
                             </label>
-                        `).join('')}
+                        `)}
                     </div>
                 </div>
             </div>
@@ -668,7 +667,7 @@ export async function TeamCalendarPage() {
         { id: 'timesheet', text: t('team_calendar.timesheet_view') },
     ];
 
-    return `
+    return html`
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 class="text-2xl font-bold">${t('team_calendar.title')}</h2>
@@ -691,9 +690,9 @@ export async function TeamCalendarPage() {
                     </div>
                     ${topContent}
                     <div class="flex items-center p-1 bg-background rounded-lg">
-                        ${navItems.map(item => `
+                        ${navItems.map(item => html`
                              <button class="px-3 py-1 text-sm font-medium rounded-md ${teamCalendarView === item.id ? 'bg-content shadow-sm' : 'text-text-subtle'}" data-team-calendar-view="${item.id}">${item.text}</button>
-                        `).join('')}
+                        `)}
                     </div>
                 </div>
                 ${viewContent}

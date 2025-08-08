@@ -1,8 +1,10 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, formatDate, formatCurrency, getUserInitials } from '../utils.ts';
 import type { Task, TimeLog, Invoice, Client, User, Project, Expense, Objective } from '../types.ts';
+import { html, TemplateResult } from 'lit-html';
 
 declare const Chart: any;
 
@@ -108,7 +110,7 @@ const commonChartOptions = {
     }
 };
 
-const renderKpiCard = (title: string, value: string, icon: string, colorClass: string) => `
+const renderKpiCard = (title: string, value: string, icon: string, colorClass: string): TemplateResult => html`
     <div class="bg-content p-4 rounded-lg flex items-center gap-4">
         <div class="p-3 rounded-full ${colorClass}">
             <span class="material-icons-sharp">${icon}</span>
@@ -121,13 +123,13 @@ const renderKpiCard = (title: string, value: string, icon: string, colorClass: s
 `;
 
 
-function renderProductivityReports({ tasks }: { tasks: Task[] }) {
+function renderProductivityReports({ tasks }: { tasks: Task[] }): TemplateResult {
     const state = getState();
     const completedTasks = tasks.filter(t => t.status === 'done');
     const totalTime = completedTasks.reduce((sum, task) => sum + state.timeLogs.filter(tl => tl.taskId === task.id).reduce((s, l) => s + l.trackedSeconds, 0), 0);
     const avgCompletionSeconds = completedTasks.length > 0 ? totalTime / completedTasks.length : 0;
     
-    return `
+    return html`
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             ${renderKpiCard(t('reports.kpi_tasks_completed'), completedTasks.length.toString(), 'check_circle', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
             ${renderKpiCard(t('reports.kpi_avg_completion_time'), formatDuration(avgCompletionSeconds), 'timer', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
@@ -138,7 +140,7 @@ function renderProductivityReports({ tasks }: { tasks: Task[] }) {
     `;
 }
 
-function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }) {
+function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }): TemplateResult {
     const state = getState();
     const billableTime = timeLogs.filter(tl => {
         const task = state.tasks.find(t => t.id === tl.taskId);
@@ -146,7 +148,7 @@ function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }) {
         return project?.hourlyRate && project.hourlyRate > 0;
     }).reduce((sum, log) => sum + log.trackedSeconds, 0);
 
-    return `
+    return html`
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
              ${renderKpiCard(t('reports.kpi_total_time_tracked'), formatDuration(timeLogs.reduce((s,l) => s + l.trackedSeconds, 0)), 'schedule', 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300')}
              ${renderKpiCard(t('reports.kpi_billable_hours'), formatDuration(billableTime), 'attach_money', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
@@ -157,12 +159,12 @@ function renderTimeTrackingReports({ timeLogs }: { timeLogs: TimeLog[] }) {
     `;
 }
 
-function renderFinancialReports({ invoices, expenses }: { invoices: Invoice[], expenses: Expense[] }) {
+function renderFinancialReports({ invoices, expenses }: { invoices: Invoice[], expenses: Expense[] }): TemplateResult {
      const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
     const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
     const outstandingRevenue = invoices.filter(i => i.status === 'pending').reduce((sum, inv) => sum + inv.items.reduce((itemSum, item) => itemSum + item.quantity * item.unitPrice, 0), 0);
     
-    return `
+    return html`
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             ${renderKpiCard(t('reports.kpi_total_revenue'), formatCurrency(totalRevenue, 'PLN'), 'paid', 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300')}
             ${renderKpiCard(t('reports.kpi_total_expenses'), formatCurrency(totalExpenses, 'PLN'), 'receipt_long', 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300')}
@@ -175,7 +177,7 @@ function renderFinancialReports({ invoices, expenses }: { invoices: Invoice[], e
     `;
 }
 
-function renderGoalsReports({ objectives }: { objectives: Objective[] }) {
+function renderGoalsReports({ objectives }: { objectives: Objective[] }): TemplateResult {
     const state = getState();
     const totalProgress = objectives.reduce((sum, goal) => {
         const target = goal.targetValue ?? 1;
@@ -189,7 +191,7 @@ function renderGoalsReports({ objectives }: { objectives: Objective[] }) {
     const avgProgress = objectives.length > 0 ? Math.round(totalProgress / objectives.length) : 0;
     const completedMilestones = state.keyResults.filter(kr => objectives.some(o => o.id === kr.objectiveId) && kr.completed).length;
 
-    return `
+    return html`
          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             ${renderKpiCard(t('goals.total_goals'), objectives.length.toString(), 'flag', 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300')}
             ${renderKpiCard(t('goals.avg_progress'), `${avgProgress}%`, 'trending_up', 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300')}
@@ -269,12 +271,12 @@ export function initReportsPage() {
     }
 }
 
-export function ReportsPage() {
+export function ReportsPage(): TemplateResult {
     const state = getState();
     const { activeTab, filters } = state.ui.reports;
     const { tasks, timeLogs, invoices, expenses, objectives } = getFilteredData();
 
-    let content = `<div class="p-8 text-center text-text-subtle">${t('reports.no_data')}</div>`;
+    let content: TemplateResult = html`<div class="p-8 text-center text-text-subtle">${t('reports.no_data')}</div>`;
     if (activeTab === 'productivity' && tasks.length > 0) content = renderProductivityReports({ tasks });
     if (activeTab === 'time' && timeLogs.length > 0) content = renderTimeTrackingReports({ timeLogs });
     if (activeTab === 'financial' && (invoices.length > 0 || expenses.length > 0)) content = renderFinancialReports({ invoices, expenses });
@@ -294,7 +296,7 @@ export function ReportsPage() {
         { id: 'goals', text: t('reports.tab_goals') },
     ];
     
-    return `
+    return html`
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('reports.title')}</h2>
             <div id="report-filter-panel" class="bg-content p-4 rounded-lg shadow-sm border border-border-color">
@@ -302,26 +304,26 @@ export function ReportsPage() {
                     <div>
                         <label for="report-filter-date-start" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_date_range')}</label>
                         <div class="flex items-center gap-2">
-                            <input type="date" id="report-filter-date-start" class="form-control" value="${filters.dateStart}" data-filter-key="dateStart">
-                            <input type="date" id="report-filter-date-end" class="form-control" value="${filters.dateEnd}" data-filter-key="dateEnd">
+                            <input type="date" id="report-filter-date-start" class="form-control" .value="${filters.dateStart}" data-filter-key="dateStart">
+                            <input type="date" id="report-filter-date-end" class="form-control" .value="${filters.dateEnd}" data-filter-key="dateEnd">
                         </div>
                     </div>
                      <div>
                         <label for="report-filter-project" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_project')}</label>
                         <select id="report-filter-project" class="form-control" data-filter-key="projectId">
                             <option value="all">${t('reports.all_projects')}</option>
-                            ${workspaceProjects.map(p => `<option value="${p.id}" ${filters.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                            ${workspaceProjects.map(p => html`<option value="${p.id}" ?selected=${filters.projectId === p.id}>${p.name}</option>`)}
                         </select>
                     </div>
                     <div>
                         <label class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_user')}</label>
                         <div class="relative custom-select-container" data-filter-key="userId" data-current-value="${filters.userId}">
-                             <input type="hidden" id="report-user-filter-value" value="${filters.userId}">
+                             <input type="hidden" id="report-user-filter-value" .value="${filters.userId}">
                             <button type="button" class="form-control text-left flex justify-between items-center custom-select-toggle">
                                 <span class="custom-select-display flex items-center gap-2">
                                     ${selectedUser 
-                                        ? `<div class="avatar-small">${getUserInitials(selectedUser)}</div><span>${selectedUser.name}</span>` 
-                                        : `<span>${t('reports.all_users')}</span>`
+                                        ? html`<div class="avatar-small">${getUserInitials(selectedUser)}</div><span>${selectedUser.name}</span>` 
+                                        : html`<span>${t('reports.all_users')}</span>`
                                     }
                                 </span>
                                 <span class="material-icons-sharp text-base">expand_more</span>
@@ -331,12 +333,12 @@ export function ReportsPage() {
                                     <div class="custom-select-option ${filters.userId === 'all' ? 'bg-primary/10' : ''}" data-value="all">
                                         <span>${t('reports.all_users')}</span>
                                     </div>
-                                    ${workspaceUsers.map(u => `
+                                    ${workspaceUsers.map(u => html`
                                         <div class="custom-select-option ${filters.userId === u.id ? 'bg-primary/10' : ''}" data-value="${u.id}">
                                             <div class="avatar-small">${getUserInitials(u)}</div>
                                             <span>${u.name}</span>
                                         </div>
-                                    `).join('')}
+                                    `)}
                                 </div>
                             </div>
                         </div>
@@ -345,16 +347,16 @@ export function ReportsPage() {
                         <label for="report-filter-client" class="text-xs font-medium text-text-subtle block mb-1">${t('reports.filter_client')}</label>
                         <select id="report-filter-client" class="form-control" data-filter-key="clientId">
                             <option value="all">${t('reports.all_clients')}</option>
-                            ${workspaceClients.map(c => `<option value="${c.id}" ${filters.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                            ${workspaceClients.map(c => html`<option value="${c.id}" ?selected=${filters.clientId === c.id}>${c.name}</option>`)}
                         </select>
                     </div>
                 </div>
             </div>
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    ${navItems.map(item => `
+                    ${navItems.map(item => html`
                         <button type="button" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.reports.activeTab" data-tab-value="${item.id}">${item.text}</button>
-                    `).join('')}
+                    `)}
                 </nav>
             </div>
             <div class="reports-grid">${content}</div>

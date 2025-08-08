@@ -1,4 +1,3 @@
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { DashboardWidget, Task, TimeLog, Comment, CalendarEvent, TimeOffRequest, PublicHoliday, User } from '../types.ts';
@@ -6,6 +5,7 @@ import { formatDuration, formatDate, formatCurrency, getUserInitials } from '../
 import { apiFetch } from '../services/api.ts';
 import { renderApp } from '../app-renderer.ts';
 import * as dashboardHandlers from '../handlers/dashboard.ts';
+import { html, TemplateResult } from 'lit-html';
 
 declare const Chart: any;
 let charts: { [key: string]: any } = {};
@@ -61,8 +61,8 @@ const commonChartOptions = {
 };
 
 
-function renderWelcomeCard(currentUser: User) {
-    return `
+function renderWelcomeCard(currentUser: User): TemplateResult {
+    return html`
         <div class="bg-content p-4 rounded-lg shadow-sm">
              <h3 class="text-xl font-bold">${t('dashboard.welcome_message').replace('{name}', currentUser.name?.split(' ')[0] || '')}</h3>
              <p class="text-sm text-text-subtle">${t('dashboard.welcome_sub')}</p>
@@ -70,8 +70,8 @@ function renderWelcomeCard(currentUser: User) {
     `;
 }
 
-function renderQuickActions() {
-    return `
+function renderQuickActions(): TemplateResult {
+    return html`
         <div class="bg-content p-4 rounded-lg shadow-sm">
             <h4 class="font-semibold text-sm mb-2">${t('dashboard.my_day_quick_actions')}</h4>
             <div class="grid grid-cols-2 gap-2">
@@ -88,7 +88,7 @@ function renderQuickActions() {
     `;
 }
 
-function renderTodaysSchedule() {
+function renderTodaysSchedule(): TemplateResult {
     const state = getState();
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
@@ -127,7 +127,7 @@ function renderTodaysSchedule() {
             text = item.name;
         }
 
-        return `
+        return html`
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-md bg-background flex items-center justify-center text-text-subtle">
                     <span class="material-icons-sharp text-sm">${icon}</span>
@@ -136,17 +136,17 @@ function renderTodaysSchedule() {
             </div>
         `;
     };
-    return `
+    return html`
          <div class="bg-content p-4 rounded-lg shadow-sm">
             <h4 class="font-semibold text-sm mb-2">${t('dashboard.my_day_todays_schedule')}</h4>
             <div class="space-y-2">
-                ${scheduleItems.length > 0 ? scheduleItems.map(renderScheduleItem).join('') : `<p class="text-xs text-text-subtle">${t('dashboard.my_day_no_schedule')}</p>`}
+                ${scheduleItems.length > 0 ? scheduleItems.map(renderScheduleItem) : html`<p class="text-xs text-text-subtle">${t('dashboard.my_day_no_schedule')}</p>`}
             </div>
         </div>
     `;
 }
 
-function renderMyTasks(currentUser: User) {
+function renderMyTasks(currentUser: User): TemplateResult {
     const state = getState();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -172,7 +172,7 @@ function renderMyTasks(currentUser: User) {
     const renderTaskRow = (task: Task) => {
         const project = state.projects.find(p => p.id === task.projectId);
         const isOverdue = task.dueDate && task.dueDate < todayStr;
-        return `
+        return html`
             <div class="p-2.5 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-background transition-colors dashboard-task-item" data-task-id="${task.id}" role="button" tabindex="0">
                 <span class="material-icons-sharp text-lg text-text-subtle">radio_button_unchecked</span>
                 <div class="flex-1 min-w-0">
@@ -185,24 +185,24 @@ function renderMyTasks(currentUser: User) {
 
     const renderTaskSection = (title: string, tasks: Task[]) => {
         if (tasks.length === 0) return '';
-        return `
+        return html`
             <div class="space-y-1">
                 <h5 class="px-2.5 text-xs font-bold text-text-subtle uppercase tracking-wider mb-1">${title} (${tasks.length})</h5>
-                ${tasks.map(renderTaskRow).join('')}
+                ${tasks.map(renderTaskRow)}
             </div>
         `;
     };
     
     let content;
     if (allTasksCount === 0) {
-        content = `
+        content = html`
             <div class="text-center py-8 text-text-subtle">
                 <span class="material-icons-sharp text-4xl">task_alt</span>
                 <p class="mt-2 text-sm font-medium">${t('dashboard.my_day_no_tasks')}</p>
             </div>
         `;
     } else {
-        content = `
+        content = html`
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
                 ${renderTaskSection(t('dashboard.my_day_overdue'), overdueTasks)}
                 ${renderTaskSection(t('dashboard.my_day_today'), todayTasks)}
@@ -211,7 +211,7 @@ function renderMyTasks(currentUser: User) {
         `;
     }
 
-    return `
+    return html`
         <div class="bg-content p-4 rounded-lg shadow-sm">
             <h4 class="font-semibold text-sm mb-4">${t('dashboard.my_day_my_tasks')}</h4>
             ${content}
@@ -219,7 +219,7 @@ function renderMyTasks(currentUser: User) {
     `;
 }
 
-function renderProjectsAndSummary(currentUser: User) {
+function renderProjectsAndSummary(currentUser: User): TemplateResult {
     const state = getState();
     // Active Projects
     const myProjects = state.projects.filter(p => 
@@ -232,7 +232,7 @@ function renderProjectsAndSummary(currentUser: User) {
     const timeLogsToday = state.timeLogs.filter(log => log.workspaceId === state.activeWorkspaceId && log.userId === currentUser!.id && log.createdAt.startsWith(todayStr));
     const totalSecondsToday = timeLogsToday.reduce((sum, log) => sum + log.trackedSeconds, 0);
 
-    return `
+    return html`
         <div class="space-y-4">
             <div class="bg-content p-4 rounded-lg shadow-sm">
                 <h4 class="font-semibold text-sm mb-3">${t('dashboard.my_day_active_projects')}</h4>
@@ -241,7 +241,7 @@ function renderProjectsAndSummary(currentUser: User) {
                         const tasks = state.tasks.filter(t => t.projectId === p.id);
                         const completed = tasks.filter(t => t.status === 'done').length;
                         const progress = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
-                        return `
+                        return html`
                             <div class="cursor-pointer dashboard-project-item" data-project-id="${p.id}" role="button" tabindex="0">
                                 <div class="flex justify-between items-center text-xs mb-1">
                                     <span class="font-medium">${p.name}</span>
@@ -252,7 +252,7 @@ function renderProjectsAndSummary(currentUser: User) {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+                    })}
                 </div>
             </div>
 
@@ -265,11 +265,11 @@ function renderProjectsAndSummary(currentUser: User) {
 }
 
 
-function renderMyDayDashboard() {
+function renderMyDayDashboard(): TemplateResult {
     const { currentUser } = getState();
-    if (!currentUser) return '';
+    if (!currentUser) return html``;
 
-    return `
+    return html`
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div class="lg:col-span-2 space-y-6">
                 ${renderWelcomeCard(currentUser)}
@@ -285,10 +285,10 @@ function renderMyDayDashboard() {
 }
 
 
-function renderOverviewDashboard() {
+function renderOverviewDashboard(): TemplateResult {
     const state = getState();
     const { currentUser, activeWorkspaceId, dashboardWidgets } = state;
-    if (!currentUser || !activeWorkspaceId) return '';
+    if (!currentUser || !activeWorkspaceId) return html``;
 
     const userWidgets = dashboardWidgets.filter(w => w.userId === currentUser.id && w.workspaceId === activeWorkspaceId)
         .sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0));
@@ -296,7 +296,7 @@ function renderOverviewDashboard() {
     const gridColumns = state.workspaces.find(w => w.id === activeWorkspaceId)?.dashboardGridColumns || 3;
 
     if (userWidgets.length === 0) {
-        return `
+        return html`
             <div class="text-center p-8">
                 <p>${t('dashboard.no_activity_yet')}</p>
                 <button id="create-default-widgets-btn" class="mt-4 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-hover">Add Default Widgets</button>
@@ -304,18 +304,18 @@ function renderOverviewDashboard() {
         `;
     }
 
-    return `
+    return html`
         <div class="dashboard-widget-grid" style="grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));">
-            ${userWidgets.map(widget => renderWidget(widget)).join('')}
+            ${userWidgets.map(widget => renderWidget(widget))}
         </div>
     `;
 }
 
-function renderWidget(widget: DashboardWidget) {
+function renderWidget(widget: DashboardWidget): TemplateResult {
     const state = getState();
     const isEditing = state.ui.dashboard.isEditing;
     const { type, config } = widget;
-    let content = '';
+    let content: TemplateResult;
 
     switch (type) {
         case 'kpiMetric':
@@ -327,7 +327,7 @@ function renderWidget(widget: DashboardWidget) {
                 overdueProjects: { value: overdueProjects, label: t('dashboard.kpi_overdue_projects'), icon: 'warning' },
             };
             const metric = metricMap[config.metric as keyof typeof metricMap];
-            content = `<div class="p-4 bg-content rounded-lg h-full flex flex-col justify-center">
+            content = html`<div class="p-4 bg-content rounded-lg h-full flex flex-col justify-center">
                 <div class="flex items-center gap-4">
                     <div class="p-3 rounded-full bg-primary/10 text-primary"><span class="material-icons-sharp">${metric.icon}</span></div>
                     <div>
@@ -339,10 +339,10 @@ function renderWidget(widget: DashboardWidget) {
             break;
         case 'recentProjects':
              const recentProjects = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId).slice(0, 5);
-             content = `<div class="p-4 bg-content rounded-lg h-full">
+             content = html`<div class="p-4 bg-content rounded-lg h-full">
                 <h4 class="font-semibold mb-3">${t('dashboard.widget_recent_projects_title')}</h4>
                 <div class="space-y-2">
-                    ${recentProjects.map(p => `<div class="text-sm p-2 rounded-md hover:bg-background cursor-pointer dashboard-project-item" data-project-id="${p.id}">${p.name}</div>`).join('')}
+                    ${recentProjects.map(p => html`<div class="text-sm p-2 rounded-md hover:bg-background cursor-pointer dashboard-project-item" data-project-id="${p.id}">${p.name}</div>`)}
                 </div>
              </div>`;
              break;
@@ -377,24 +377,24 @@ function renderWidget(widget: DashboardWidget) {
 
             const tabs = ['overdue', 'today', 'tomorrow'];
 
-            content = `
+            content = html`
                 <div class="p-4 bg-content rounded-lg h-full flex flex-col">
                     <div class="flex justify-between items-center mb-2">
                         <h4 class="font-semibold">${t('dashboard.widget_todays_tasks_title')}</h4>
                         <div class="p-1 bg-background rounded-lg flex items-center">
-                            ${tabs.map(tab => `
+                            ${tabs.map(tab => html`
                                 <button class="px-2 py-0.5 text-xs font-medium rounded-md ${taskWidgetFilter === tab ? 'bg-content shadow-sm' : ''}" 
                                         data-task-widget-tab="${tab}" 
                                         data-widget-id="${widget.id}">
                                     ${t(`dashboard.tasks_${tab}`)}
                                 </button>
-                            `).join('')}
+                            `)}
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto -mx-2 px-2">
                         ${tasksToDisplay.length > 0 ? tasksToDisplay.map(task => {
                             const project = state.projects.find(p => p.id === task.projectId);
-                            return `
+                            return html`
                                 <div class="p-2 rounded-lg flex items-center gap-3 cursor-pointer hover:bg-background transition-colors dashboard-task-item" data-task-id="${task.id}" role="button" tabindex="0">
                                     <span class="material-icons-sharp text-lg text-text-subtle">radio_button_unchecked</span>
                                     <div class="flex-1 min-w-0">
@@ -403,7 +403,7 @@ function renderWidget(widget: DashboardWidget) {
                                     </div>
                                 </div>
                             `;
-                        }).join('') : `<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.my_day_no_tasks')}</p>`}
+                        }) : html`<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.my_day_no_tasks')}</p>`}
                     </div>
                 </div>
             `;
@@ -430,7 +430,7 @@ function renderWidget(widget: DashboardWidget) {
 
                 if (!task) return '';
                 
-                return `
+                return html`
                     <div class="flex items-start gap-3 py-2">
                         <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">${getUserInitials(user)}</div>
                         <div class="text-sm">
@@ -444,17 +444,17 @@ function renderWidget(widget: DashboardWidget) {
                 `;
             };
 
-            content = `
+            content = html`
                 <div class="p-4 bg-content rounded-lg h-full flex flex-col">
                     <h4 class="font-semibold mb-2">${t('dashboard.widget_activity_feed_title')}</h4>
                     <div class="flex-1 overflow-y-auto -mx-2 px-2">
-                        ${activities.length > 0 ? activities.map(renderActivityItem).join('') : `<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.no_activity_yet')}</p>`}
+                        ${activities.length > 0 ? activities.map(renderActivityItem) : html`<p class="text-sm text-text-subtle text-center py-4">${t('dashboard.no_activity_yet')}</p>`}
                     </div>
                 </div>
             `;
             break;
         case 'weeklyPerformance':
-            content = `
+            content = html`
                 <div class="p-4 bg-content rounded-lg h-full flex flex-col">
                     <h4 class="font-semibold mb-2">${t('dashboard.widget_weekly_performance_title')}</h4>
                     <div class="flex-1 min-h-0">
@@ -464,12 +464,12 @@ function renderWidget(widget: DashboardWidget) {
             `;
             break;
         default:
-            content = `<div class="p-4 bg-content rounded-lg h-full"><p>${type}</p></div>`;
+            content = html`<div class="p-4 bg-content rounded-lg h-full"><p>${type}</p></div>`;
     }
 
-    return `
+    return html`
         <div class="relative" data-widget-id="${widget.id}" draggable="${isEditing}" style="grid-column: span ${widget.w}; grid-row: span ${widget.h};">
-            ${isEditing ? `
+            ${isEditing ? html`
                 <button class="remove-widget-btn" data-delete-resource="dashboard_widgets" data-delete-id="${widget.id}" data-delete-confirm="Are you sure you want to remove this widget?"><span class="material-icons-sharp text-base">close</span></button>
                 <button class="configure-widget-btn" data-configure-widget-id="${widget.id}"><span class="material-icons-sharp text-base">settings</span></button>
             ` : ''}
@@ -537,35 +537,35 @@ export function initDashboardCharts() {
     }
 }
 
-export function DashboardPage() {
+export function DashboardPage(): TemplateResult {
     const state = getState();
     const { currentUser, activeWorkspaceId, ui: { dashboard: { isLoading, isEditing, activeTab } } } = state;
-    if (!currentUser || !activeWorkspaceId) return '';
+    if (!currentUser || !activeWorkspaceId) return html``;
     
     if (isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
 
-    let content = '';
+    let content: TemplateResult;
     if (activeTab === 'my_day') {
         content = renderMyDayDashboard();
     } else {
         content = renderOverviewDashboard();
     }
 
-    return `
+    return html`
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div class="flex items-center gap-4">
                     <h2 class="text-2xl font-bold">${t('dashboard.title')}</h2>
-                    ${activeTab === 'overview' ? `
+                    ${activeTab === 'overview' ? html`
                         <button id="toggle-dashboard-edit-mode" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md ${isEditing ? 'bg-primary text-white' : 'bg-content border border-border-color hover:bg-background'}">
                             <span class="material-icons-sharp text-base">${isEditing ? 'done' : 'edit'}</span>
                             ${isEditing ? t('dashboard.done_editing') : t('dashboard.edit_dashboard')}
                         </button>
-                        ${isEditing ? `<button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white" data-modal-target="addWidget"><span class="material-icons-sharp text-base">add</span> ${t('dashboard.add_widget')}</button>` : ''}
+                        ${isEditing ? html`<button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white" data-modal-target="addWidget"><span class="material-icons-sharp text-base">add</span> ${t('dashboard.add_widget')}</button>` : ''}
                     ` : ''}
                 </div>
                 <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">

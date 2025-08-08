@@ -1,11 +1,13 @@
 
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency } from '../utils.ts';
 import type { InventoryItem } from '../types.ts';
 import { fetchInventoryDataForWorkspace } from '../handlers/inventory.ts';
+import { html, TemplateResult } from 'lit-html';
 
 export async function initInventoryPage() {
     const state = getState();
@@ -47,13 +49,13 @@ function getCategorySummaries(items: InventoryItem[]) {
     return Object.entries(summary).map(([name, data]) => ({ name, ...data }));
 }
 
-export function InventoryPage() {
+export function InventoryPage(): TemplateResult {
     const state = getState();
     const { activeWorkspaceId } = state;
-    if (!activeWorkspaceId) return '';
+    if (!activeWorkspaceId) return html``;
     
     if (state.ui.inventory.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -74,7 +76,7 @@ export function InventoryPage() {
     const kpis = getInventoryKpis(inventoryItems);
     const categories = getCategorySummaries(inventoryItems);
 
-    const renderItemRow = (item: InventoryItem) => {
+    const renderItemRow = (item: InventoryItem): TemplateResult => {
         const stockLevelPercent = item.targetStock > 0 ? Math.min(100, (item.currentStock / item.targetStock) * 100) : 0;
         let status = 'in_stock';
         let statusClass = 'bg-success/10 text-success';
@@ -86,7 +88,7 @@ export function InventoryPage() {
             statusClass = 'bg-warning/10 text-warning';
         }
         
-        return `
+        return html`
             <tr>
                 <td data-label="${t('inventory.col_item')}" class="px-4 py-3">
                     <div class="font-medium">${item.name}</div>
@@ -107,7 +109,7 @@ export function InventoryPage() {
                 <td data-label="${t('inventory.col_actions')}" class="px-4 py-3">
                     <div class="flex justify-end items-center gap-2 text-sm">
                         <button class="text-primary hover:underline" data-modal-target="assignInventoryItem" data-item-id="${item.id}">Assign</button>
-                        ${canManage ? `
+                        ${canManage ? html`
                             <button class="text-primary hover:underline" data-modal-target="addInventoryItem" data-item-id="${item.id}">Edit</button>
                             <button class="text-danger hover:underline" data-delete-resource="inventory_items" data-delete-id="${item.id}" data-delete-confirm="Are you sure you want to delete this item?">Delete</button>
                         ` : ''}
@@ -117,14 +119,14 @@ export function InventoryPage() {
         `;
     };
 
-    return `
+    return html`
         <div class="space-y-6">
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-2xl font-bold">${t('inventory.title')}</h2>
                     <p class="text-text-subtle">${t('inventory.subtitle')}</p>
                 </div>
-                ${canManage ? `<button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addInventoryItem"><span class="material-icons-sharp text-base">add</span> ${t('inventory.add_item')}</button>` : ''}
+                ${canManage ? html`<button class="px-3 py-2 text-sm font-medium flex items-center gap-1 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addInventoryItem"><span class="material-icons-sharp text-base">add</span> ${t('inventory.add_item')}</button>` : ''}
             </div>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -137,7 +139,7 @@ export function InventoryPage() {
             <div class="bg-content p-4 rounded-lg">
                 <h4 class="font-semibold mb-3">${t('inventory.inventory_by_category')}</h4>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    ${categories.map(cat => `
+                    ${categories.map(cat => html`
                         <div class="border border-border-color p-4 rounded-md flex justify-between items-start">
                            <div>
                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-background">${cat.name}</span>
@@ -149,13 +151,13 @@ export function InventoryPage() {
                                 <p class="font-bold">${formatCurrency(cat.value, 'PLN')}</p>
                            </div>
                         </div>
-                    `).join('')}
+                    `)}
                 </div>
             </div>
 
             <div class="bg-content rounded-lg shadow-sm">
                  <div class="p-4">
-                    <input type="text" id="inventory-search-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" placeholder="${t('inventory.search_inventory')}" value="${state.ui.inventory.filters.text}">
+                    <input type="text" id="inventory-search-input" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm" placeholder="${t('inventory.search_inventory')}" .value="${state.ui.inventory.filters.text}">
                  </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm responsive-table">
@@ -171,7 +173,7 @@ export function InventoryPage() {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border-color" id="inventory-table-body">
-                            ${inventoryItems.length > 0 ? inventoryItems.map(renderItemRow).join('') : `<tr><td colspan="7" class="text-center py-8 text-text-subtle">${t('inventory.no_items')}</td></tr>`}
+                            ${inventoryItems.length > 0 ? inventoryItems.map(renderItemRow) : html`<tr><td colspan="7" class="text-center py-8 text-text-subtle">${t('inventory.no_items')}</td></tr>`}
                         </tbody>
                     </table>
                 </div>

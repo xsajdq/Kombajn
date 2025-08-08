@@ -5,6 +5,7 @@ import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { getUsage, PLANS, formatDate, formatCurrency, getTaskCurrentTrackedSeconds, getUserInitials, filterItems } from '../utils.ts';
 import { can } from '../permissions.ts';
+import { html, TemplateResult } from 'lit-html';
 
 type ProjectWithComputedData = ReturnType<typeof getFilteredAndSortedProjects>[0];
 
@@ -72,12 +73,12 @@ function getFilteredAndSortedProjects() {
 }
 
 
-function renderGridView(projects: ProjectWithComputedData[]) {
+function renderGridView(projects: ProjectWithComputedData[]): TemplateResult {
     const state = getState();
     const canManage = can('manage_projects');
 
     if (projects.length === 0) {
-        return `<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
+        return html`<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
             <span class="material-icons-sharp text-5xl text-text-subtle">folder_off</span>
             <h3 class="text-lg font-medium mt-4">${t('projects.no_projects_yet')}</h3>
             <p class="text-sm text-text-subtle mt-1">${t('projects.no_projects_desc')}</p>
@@ -87,7 +88,7 @@ function renderGridView(projects: ProjectWithComputedData[]) {
         </div>`;
     }
 
-    return `
+    return html`
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 projects-grid">
             ${projects.map(project => {
                 const client = state.clients.find(c => c.id === project.clientId);
@@ -96,14 +97,14 @@ function renderGridView(projects: ProjectWithComputedData[]) {
                 const description = (project.wikiContent?.split('\n')[0] || '').substring(0, 100);
                 const projectTags = state.projectTags.filter(pt => pt.projectId === project.id).map(pt => state.tags.find(t => t.id === pt.tagId)).filter(Boolean);
                 
-                return `
+                return html`
                     <div class="bg-content p-4 rounded-lg shadow-sm flex flex-col space-y-3 cursor-pointer hover:shadow-md transition-shadow" data-project-id="${project.id}" role="button" tabindex="0" aria-label="View project ${project.name}">
                         <div class="flex justify-between items-start">
                             <h3 class="font-semibold text-base flex items-center gap-2">
                                 ${project.name}
-                                ${project.computed.overdueTasksCount > 0 ? `<span class="material-icons-sharp text-danger text-base" title="${project.computed.overdueTasksCount} overdue tasks">warning_amber</span>` : ''}
+                                ${project.computed.overdueTasksCount > 0 ? html`<span class="material-icons-sharp text-danger text-base" title="${project.computed.overdueTasksCount} overdue tasks">warning_amber</span>` : ''}
                             </h3>
-                             ${canManage ? `
+                             ${canManage ? html`
                                 <div class="relative">
                                     <button class="p-1 text-text-subtle rounded-full hover:bg-background" data-menu-toggle="project-menu-${project.id}" aria-haspopup="true" aria-expanded="false" aria-label="Project actions menu">
                                         <span class="material-icons-sharp text-lg">more_horiz</span>
@@ -124,11 +125,11 @@ function renderGridView(projects: ProjectWithComputedData[]) {
                             ` : ''}
                         </div>
 
-                        ${description ? `<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 100 ? '...' : ''}</p>` : ''}
+                        ${description ? html`<p class="text-sm text-text-subtle">${description}${project.wikiContent && project.wikiContent.length > 100 ? '...' : ''}</p>` : ''}
                         
-                         ${projectTags.length > 0 ? `
+                         ${projectTags.length > 0 ? html`
                             <div class="flex flex-wrap gap-1.5 pt-2">
-                                ${projectTags.map(tag => `<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`).join('')}
+                                ${projectTags.map(tag => html`<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`)}
                             </div>
                         ` : ''}
 
@@ -141,7 +142,7 @@ function renderGridView(projects: ProjectWithComputedData[]) {
                         </div>
                         
                         <div class="flex flex-col gap-2 text-sm text-text-subtle border-t border-border-color pt-3">
-                            ${client ? `
+                            ${client ? html`
                             <div class="flex items-center gap-2">
                                 <span class="material-icons-sharp text-base">business</span>
                                 <span>${client.name}</span>
@@ -150,26 +151,26 @@ function renderGridView(projects: ProjectWithComputedData[]) {
 
                         <div class="flex justify-between items-center mt-auto pt-3 border-t border-border-color">
                              <div class="flex -space-x-2">
-                                 ${memberUsers.slice(0, 4).map(u => u ? `
+                                 ${memberUsers.slice(0, 4).map(u => u ? html`
                                     <div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold border-2 border-content" title="${u.name || getUserInitials(u)}">
-                                        ${u.avatarUrl ? `<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : getUserInitials(u)}
+                                        ${u.avatarUrl ? html`<img src="${u.avatarUrl}" alt="${u.name || ''}" class="w-full h-full rounded-full object-cover">` : getUserInitials(u)}
                                     </div>
-                                ` : '').join('')}
-                                ${memberUsers.length > 4 ? `
+                                ` : '')}
+                                ${memberUsers.length > 4 ? html`
                                     <div class="w-7 h-7 rounded-full bg-background text-text-subtle flex items-center justify-center text-xs font-semibold border-2 border-content">+${memberUsers.length - 4}</div>
                                 ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
-            }).join('')}
+            })}
         </div>
     `;
 }
 
-function renderPortfolioView(projects: ProjectWithComputedData[]) {
+function renderPortfolioView(projects: ProjectWithComputedData[]): TemplateResult {
     const state = getState();
-    return `
+    return html`
     <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
         <table class="portfolio-table">
             <thead>
@@ -199,7 +200,7 @@ function renderPortfolioView(projects: ProjectWithComputedData[]) {
                     const members = state.projectMembers.filter(pm => pm.projectId === project.id);
                     const memberUsers = members.map(m => state.users.find(u => u.id === m.userId)).filter(Boolean);
 
-                    return `
+                    return html`
                         <tr class="portfolio-table-row" data-project-id="${project.id}">
                             <td>
                                 <div class="font-semibold">${project.name}</div>
@@ -219,7 +220,7 @@ function renderPortfolioView(projects: ProjectWithComputedData[]) {
                             </td>
                             <td>${project.computed.latestDueDate ? formatDate(project.computed.latestDueDate.toISOString()) : t('misc.not_applicable')}</td>
                             <td>
-                                ${project.budgetCost ? `
+                                ${project.budgetCost ? html`
                                     <div class="text-xs">
                                         <span>${formatCurrency(actualCost)}</span> / 
                                         <span class="text-text-subtle">${formatCurrency(project.budgetCost)}</span>
@@ -228,28 +229,28 @@ function renderPortfolioView(projects: ProjectWithComputedData[]) {
                             </td>
                             <td>
                                 <div class="avatar-stack">
-                                    ${memberUsers.slice(0, 3).map(u => u ? `<div class="avatar-small" title="${u.name || getUserInitials(u)}">${getUserInitials(u)}</div>` : '').join('')}
-                                    ${memberUsers.length > 3 ? `<div class="avatar-small more-avatar">+${memberUsers.length - 3}</div>` : ''}
+                                    ${memberUsers.slice(0, 3).map(u => u ? html`<div class="avatar-small" title="${u.name || getUserInitials(u)}">${getUserInitials(u)}</div>` : '')}
+                                    ${memberUsers.length > 3 ? html`<div class="avatar-small more-avatar">+${memberUsers.length - 3}</div>` : ''}
                                 </div>
                             </td>
                         </tr>
                     `;
 
-                }).join('')}
+                })}
             </tbody>
         </table>
     </div>
     `;
 }
 
-export function ProjectsPage() {
+export function ProjectsPage(): TemplateResult {
     const state = getState();
     const { activeWorkspaceId } = state;
     const activeWorkspace = state.workspaces.find(w => w.id === activeWorkspaceId);
-    if (!activeWorkspace) return '';
+    if (!activeWorkspace) return html``;
 
     if (state.ui.projects.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -264,7 +265,7 @@ export function ProjectsPage() {
 
     const sortedAndFilteredProjects = getFilteredAndSortedProjects();
 
-    return `
+    return html`
         <div class="space-y-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 class="text-2xl font-bold">${t('sidebar.projects')}</h2>
@@ -288,7 +289,7 @@ export function ProjectsPage() {
                                 </div>
                             </div>
                         </div>
-                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ${!isAllowedToCreate || !canCreateProject ? 'disabled' : ''} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                        <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover projects-page-new-project-btn" data-modal-target="addProject" ?disabled=${!isAllowedToCreate || !canCreateProject} title="${!canCreateProject ? t('billing.limit_reached_projects').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                             <span class="material-icons-sharp text-base">add</span> ${t('modals.add_project_title')}
                         </button>
                     </div>
@@ -299,14 +300,14 @@ export function ProjectsPage() {
                 <div class="flex flex-col sm:flex-row gap-4">
                     <div class="relative flex-grow">
                         <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                        <input type="text" id="project-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" value="${filters.text}" placeholder="Search projects...">
+                        <input type="text" id="project-search-input" class="w-full pl-10 pr-4 py-2 bg-background border border-border-color rounded-md" .value="${filters.text}" placeholder="Search projects...">
                     </div>
                     <div class="relative">
                         <select id="project-status-filter" class="form-control" data-filter-key="status">
                             <option value="all">${t('projects.all_statuses')}</option>
-                            <option value="on_track" ${filters.status === 'on_track' ? 'selected' : ''}>${t('projects.status_on_track')}</option>
-                            <option value="at_risk" ${filters.status === 'at_risk' ? 'selected' : ''}>${t('projects.status_at_risk')}</option>
-                            <option value="completed" ${filters.status === 'completed' ? 'selected' : ''}>${t('projects.status_completed')}</option>
+                            <option value="on_track" ?selected=${filters.status === 'on_track'}>${t('projects.status_on_track')}</option>
+                            <option value="at_risk" ?selected=${filters.status === 'at_risk'}>${t('projects.status_at_risk')}</option>
+                            <option value="completed" ?selected=${filters.status === 'completed'}>${t('projects.status_completed')}</option>
                         </select>
                     </div>
                      <div class="relative" id="project-filter-tags-container">
@@ -316,12 +317,12 @@ export function ProjectsPage() {
                         </button>
                         <div id="project-filter-tags-dropdown" class="multiselect-dropdown hidden">
                             <div class="multiselect-list">
-                            ${workspaceTags.map(tag => `
+                            ${workspaceTags.map(tag => html`
                                 <label class="multiselect-list-item">
-                                    <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ${filters.tagIds.includes(tag.id) ? 'checked' : ''}>
+                                    <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ?checked=${filters.tagIds.includes(tag.id)}>
                                     <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
                                 </label>
-                            `).join('')}
+                            `)}
                             </div>
                         </div>
                     </div>

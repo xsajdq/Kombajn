@@ -675,6 +675,76 @@ export type SortByOption = 'manual' | 'dueDate' | 'priority' | 'name' | 'created
 export type ProjectSortByOption = 'name' | 'status' | 'progress' | 'dueDate';
 export type TeamCalendarView = 'month' | 'week' | 'day' | 'workload' | 'timesheet';
 
+// --- START: MODAL DATA TYPES ---
+export type ModalType = 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | 'setBudgets' | 'dealWon' | 'sendInvoiceEmail' | 'keyboardShortcuts';
+
+export interface AddClientModalData { clientId?: string }
+export interface AddProjectModalData { projectId?: string; clientId?: string; projectName?: string }
+export interface AddTaskModalData { projectId?: string; dealId?: string }
+export interface AddInvoiceModalData { invoiceId?: string; items?: InvoiceLineItem[]; issueDate?: string; dueDate?: string; sourceLogIds?: string[]; sourceExpenseIds?: string[]; }
+export interface TaskDetailModalData { taskId: string }
+export interface AddCommentToTimeLogModalData { taskId: string; trackedSeconds: number }
+export interface UpgradePlanModalData { message: string }
+export interface AutomationsModalData { projectId: string }
+export interface ConfigureWidgetModalData { widget: DashboardWidget }
+export interface WikiHistoryModalData { projectId: string }
+export interface AddManualTimeLogModalData { taskId?: string; selectedProjectId?: string }
+export interface AddObjectiveModalData { objectiveId?: string }
+export interface RejectTimeOffRequestModalData { requestId: string }
+export interface ConfirmPlanChangeModalData { planId: PlanId }
+export interface AddDealModalData { dealId?: string }
+export interface EmployeeDetailModalData { userId: string }
+export interface AdjustVacationAllowanceModalData { userId: string; currentAllowance: number }
+export interface SubtaskDetailModalData { taskId: string }
+export interface AssignGlobalTimeModalData { trackedSeconds: number; selectedProjectId?: string }
+export interface AddProjectSectionModalData { projectId: string }
+export interface AddReviewModalData { employeeId: string }
+export interface AddGoalModalData { goalId?: string }
+export interface AddInventoryItemModalData { itemId?: string }
+export interface AssignInventoryItemModalData { itemId: string }
+export interface SetBudgetsModalData { period: string }
+export interface DealWonModalData { dealId: string; clientId: string; dealName: string }
+export interface SendInvoiceEmailModalData { invoiceId: string }
+export interface AddExpenseModalData {}
+export interface AddCalendarEventModalData {}
+export interface AddTimeOffRequestModalData {}
+
+
+export type ModalData =
+  | AddClientModalData
+  | AddProjectModalData
+  | AddTaskModalData
+  | AddInvoiceModalData
+  | TaskDetailModalData
+  | AddCommentToTimeLogModalData
+  | UpgradePlanModalData
+  | AutomationsModalData
+  | ConfigureWidgetModalData
+  | WikiHistoryModalData
+  | AddManualTimeLogModalData
+  | AddObjectiveModalData
+  | RejectTimeOffRequestModalData
+  | ConfirmPlanChangeModalData
+  | AddDealModalData
+  | EmployeeDetailModalData
+  | AdjustVacationAllowanceModalData
+  | SubtaskDetailModalData
+  | AssignGlobalTimeModalData
+  | AddProjectSectionModalData
+  | AddReviewModalData
+  | AddGoalModalData
+  | AddInventoryItemModalData
+  | AssignInventoryItemModalData
+  | SetBudgetsModalData
+  | DealWonModalData
+  | SendInvoiceEmailModalData
+  | AddExpenseModalData
+  | AddCalendarEventModalData
+  | AddTimeOffRequestModalData;
+// For modals with no data like addWidget or keyboardShortcuts, data is undefined.
+// --- END: MODAL DATA TYPES ---
+
+
 export interface AppState {
     currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
     currentUser: User | null;
@@ -807,8 +877,8 @@ export interface AppState {
         };
         modal: {
             isOpen: boolean;
-            type: 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 'taskDetail' | 'addCommentToTimeLog' | 'upgradePlan' | 'automations' | 'configureWidget' | 'addWidget' | 'wikiHistory' | 'addManualTimeLog' | 'addObjective' | 'addKeyResult' | 'addTimeOffRequest' | 'addCalendarEvent' | 'addExpense' | 'employeeDetail' | 'rejectTimeOffRequest' | 'confirmPlanChange' | 'addDeal' | 'adjustVacationAllowance' | 'aiProjectPlanner' | 'subtaskDetail' | 'assignGlobalTime' | 'addProjectSection' | 'addReview' | 'addGoal' | 'addInventoryItem' | 'assignInventoryItem' | 'setBudgets' | 'dealWon' | 'sendInvoiceEmail' | 'keyboardShortcuts' | null;
-            data?: any;
+            type: ModalType | null;
+            data?: ModalData;
             justOpened?: boolean;
         };
         reports: {

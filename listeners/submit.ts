@@ -1,9 +1,6 @@
-
-
-
 import { getState } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
-import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity } from '../types.ts';
+import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity, AddTaskModalData, AutomationsModalData, TaskDetailModalData, AddInvoiceModalData } from '../types.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
@@ -139,7 +136,7 @@ export async function handleSubmit(e: SubmitEvent) {
         }
     } else if (target.id === 'add-automation-form') {
         const form = target as HTMLFormElement;
-        const projectId = getState().ui.modal.data?.projectId;
+        const projectId = (getState().ui.modal.data as AutomationsModalData)?.projectId;
         const automationId = form.dataset.automationId || null;
         const name = (form.querySelector('input[name="automation-name"]') as HTMLInputElement).value;
         const triggerStatus = (form.querySelector('select[name="automation-trigger-status"]') as HTMLSelectElement).value as Task['status'];
@@ -173,7 +170,7 @@ export async function handleSubmit(e: SubmitEvent) {
         const form = target as HTMLFormElement;
         const isReply = form.classList.contains('reply-form');
         const parentId = isReply ? form.dataset.parentId : null;
-        const taskId = form.dataset.taskId || getState().ui.modal.data.taskId;
+        const taskId = form.dataset.taskId || (getState().ui.modal.data as TaskDetailModalData).taskId;
         const inputDiv = form.querySelector<HTMLElement>('.rich-text-input');
         
         if (taskId && inputDiv) {

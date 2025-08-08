@@ -1,5 +1,3 @@
-
-
 import { getState, setState } from './state.ts';
 import { ProjectsPage } from './pages/ProjectsPage.ts';
 import { ClientsPage, initClientsPage } from './pages/ClientsPage.ts';
@@ -15,15 +13,16 @@ import { ChatPage } from './pages/ChatPage.ts';
 import { TeamCalendarPage, initTeamCalendarPage } from './pages/TeamCalendarPage.ts';
 import { SalesPage, initSalesPage } from './pages/SalesPage.ts';
 import { AuthPage } from './pages/AuthPage.ts';
-import type { AppState } from './types.ts';
+import type { AppState, TaskDetailModalData } from './types.ts';
 import { can } from './permissions.ts';
 import { openProjectPanel, openClientPanel, openDealPanel, showModal } from './handlers/ui.ts';
 import { updateUI } from './app-renderer.ts';
 import { GoalsPage, initGoalsPage } from './pages/GoalsPage.ts';
 import { InventoryPage, initInventoryPage } from './pages/InventoryPage.ts';
 import { BudgetPage, initBudgetPage } from './pages/BudgetPage.ts';
+import type { TemplateResult } from 'lit-html';
 
-export async function router() {
+export async function router(): Promise<TemplateResult> {
     let state = getState();
     // If no user is authenticated, always show the authentication page.
     if (!state.currentUser) {
@@ -72,7 +71,7 @@ export async function router() {
                 if (state.ui.openedClientId !== id) openClientPanel(id);
                 break;
             case 'tasks':
-                if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || state.ui.modal.data?.taskId !== id) {
+                if (!state.ui.modal.isOpen || state.ui.modal.type !== 'taskDetail' || (state.ui.modal.data as TaskDetailModalData)?.taskId !== id) {
                     showModal('taskDetail', { taskId: id });
                 }
                 break;
@@ -92,7 +91,7 @@ export async function router() {
         case 'team-calendar':   await initTeamCalendarPage(); return can('view_team_calendar') ? await TeamCalendarPage() : DashboardPage();
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales':           await initSalesPage(); return can('view_sales') ? SalesPage() : DashboardPage();
-        case 'invoices':        await initInvoicesPage(); return can('view_invoices') ? InvoicesPage() : DashboardPage();
+        case 'invoices':        await initInvoicesPage(); return can('view_invoices') ? await InvoicesPage() : DashboardPage();
         case 'ai-assistant':    return can('view_ai_assistant') ? AIAssistantPage() : DashboardPage();
         case 'settings':        return can('view_settings') ? SettingsPage() : DashboardPage();
         case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();

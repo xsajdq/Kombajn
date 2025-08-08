@@ -1,5 +1,6 @@
 
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
@@ -9,6 +10,7 @@ import { can } from '../permissions.ts';
 import { openTaskDetail, fetchTasksForWorkspace } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
+import { html, TemplateResult } from 'lit-html';
 
 declare const Gantt: any;
 
@@ -102,14 +104,14 @@ function getFilteredTasks(): Task[] {
     return filtered;
 }
 
-function renderBoardView(filteredTasks: Task[]) {
+function renderBoardView(filteredTasks: Task[]): TemplateResult {
     const state = getState();
     const kanbanStages = state.kanbanStages
         .filter(s => s.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => a.sortOrder - b.sortOrder);
 
     if (kanbanStages.length === 0) {
-        return `<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
+        return html`<div class="flex flex-col items-center justify-center h-full bg-content rounded-lg border-2 border-dashed border-border-color">
             <span class="material-icons-sharp text-5xl text-text-subtle">view_week</span>
             <h3 class="text-lg font-medium mt-4">${t('tasks.no_kanban_columns_title')}</h3>
             <p class="text-sm text-text-subtle mt-1">${t('tasks.no_kanban_columns_desc')}</p>
@@ -129,33 +131,32 @@ function renderBoardView(filteredTasks: Task[]) {
         const columnTasks = tasksByStatus[stage.status] || [];
         const totalSeconds = columnTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
         
-        return `
+        return html`
             <div class="tasks-board-column" data-status="${stage.status}">
                 <div class="tasks-board-column-header">
                     <span>${stage.name} <span class="text-sm font-normal text-text-subtle">${columnTasks.length}</span></span>
-                    ${totalSeconds > 0 ? `<span class="text-xs font-normal text-text-subtle">${formatDuration(totalSeconds)}</span>` : ''}
+                    ${totalSeconds > 0 ? html`<span class="text-xs font-normal text-text-subtle">${formatDuration(totalSeconds)}</span>` : ''}
                 </div>
                 <div class="tasks-board-column-body">
-                    ${columnTasks.map(renderTaskCard).join('') || '<div class="h-full"></div>'}
+                    ${columnTasks.map(renderTaskCard)}
+                    ${columnTasks.length === 0 ? html`<div class="h-full"></div>` : ''}
                 </div>
             </div>
         `;
     };
 
-    const boardHtml = kanbanStages.map(renderColumn).join('');
-        
-    return `
+    return html`
         <div class="flex-1 overflow-y-auto overflow-x-auto">
             <div class="tasks-board-container">
-                ${boardHtml}
+                ${kanbanStages.map(renderColumn)}
             </div>
         </div>
     `;
 }
 
-function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]) {
+function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]): TemplateResult {
     if (filteredTasks.length === 0) {
-        return `<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
+        return html`<div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg">
             <span class="material-icons-sharp text-5xl text-text-subtle">search_off</span>
             <h3 class="text-lg font-medium mt-4">${t('tasks.no_tasks_match_filters')}</h3>
         </div>`;
@@ -177,13 +178,13 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
         const trackedSeconds = getTaskCurrentTrackedSeconds(task);
         const priorityText = task.priority ? t(`tasks.priority_${task.priority}`) : t('tasks.priority_none');
         
-        return `
+        return html`
             <tr data-task-id="${task.id}" class="cursor-pointer">
                 <td data-label="${t('tasks.col_task')}" class="px-4 py-3 font-medium">${task.name}</td>
                 <td data-label="${t('tasks.col_project')}" class="px-4 py-3 text-text-subtle">${project?.name || ''}</td>
                 <td data-label="${t('tasks.col_assignee')}" class="px-4 py-3">
                     <div class="avatar-stack justify-end md:justify-start">
-                         ${assignees.map(u => u ? `<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '').join('')}
+                         ${assignees.map(u => u ? html`<div class="avatar-small" title="${u.name}">${getUserInitials(u)}</div>` : '')}
                     </div>
                 </td>
                 <td data-label="${t('tasks.col_due_date')}" class="px-4 py-3 text-text-subtle">${task.dueDate ? formatDate(task.dueDate) : ''}</td>
@@ -193,12 +194,12 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
         `;
     };
     
-    let tableRowsHtml = '';
+    let tableRows: TemplateResult[] = [];
     
     projectSections.forEach(section => {
         const tasks = tasksBySection[section.id];
         if (tasks && tasks.length > 0) {
-            tableRowsHtml += `
+            tableRows.push(html`
                 <tr class="task-section-header-row">
                     <th colspan="6">
                         <div class="flex items-center gap-2">
@@ -207,13 +208,13 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
                         </div>
                     </th>
                 </tr>
-                ${tasks.map(renderTaskRow).join('')}
-            `;
+                ${tasks.map(renderTaskRow)}
+            `);
         }
     });
 
     if (tasksBySection['no-section'] && tasksBySection['no-section'].length > 0) {
-         tableRowsHtml += `
+         tableRows.push(html`
             <tr class="task-section-header-row">
                 <th colspan="6">
                     <div class="flex items-center gap-2">
@@ -222,12 +223,12 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
                     </div>
                 </th>
             </tr>
-            ${tasksBySection['no-section'].map(renderTaskRow).join('')}
-        `;
+            ${tasksBySection['no-section'].map(renderTaskRow)}
+        `);
     }
 
 
-    return `
+    return html`
         <div class="bg-content rounded-lg shadow-sm overflow-x-auto">
              <table class="w-full text-sm responsive-table">
                 <thead class="text-xs text-text-subtle uppercase bg-background">
@@ -241,14 +242,14 @@ function renderListView(filteredTasks: Task[], projectSections: ProjectSection[]
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border-color">
-                   ${tableRowsHtml}
+                   ${tableRows}
                 </tbody>
             </table>
         </div>
     `;
 }
 
-function renderCalendarView(filteredTasks: Task[]) {
+function renderCalendarView(filteredTasks: Task[]): TemplateResult {
     const state = getState();
     const calendarDate = new Date(state.ui.calendarDate + '-15T12:00:00Z');
     const year = calendarDate.getFullYear();
@@ -277,7 +278,7 @@ function renderCalendarView(filteredTasks: Task[]) {
 
     const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-    return `
+    return html`
         <div class="bg-content rounded-lg shadow-sm flex flex-col h-full">
             <div class="p-3 border-b border-border-color flex justify-between items-center">
                 <h4 class="font-semibold">${firstDayOfMonth.toLocaleString(state.settings.language, { month: 'long', year: 'numeric' })}</h4>
@@ -287,29 +288,29 @@ function renderCalendarView(filteredTasks: Task[]) {
                 </div>
             </div>
             <div class="grid grid-cols-7 flex-grow">
-                ${weekdays.map(day => `<div class="py-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`).join('')}
+                ${weekdays.map(day => html`<div class="py-2 text-center text-xs font-semibold text-text-subtle border-b border-r border-border-color">${t(`calendar.weekdays.${day}`)}</div>`)}
                 ${weeks.flat().map(day => {
                     const dayStr = day.toISOString().slice(0, 10);
                     const tasksForDay = filteredTasks.filter(t => t.dueDate === dayStr);
                     const isCurrentMonth = day.getMonth() === month;
                     const isToday = day.getTime() === today.getTime();
                     
-                    return `
+                    return html`
                         <div class="border-r border-b border-border-color p-2 ${isCurrentMonth ? '' : 'bg-background/50 text-text-subtle'} ${isToday ? 'bg-primary/5' : ''}">
                             <div class="text-sm text-right font-semibold ${isToday ? 'text-primary' : ''}">${day.getDate()}</div>
                             <div class="space-y-1 mt-1">
-                                ${tasksForDay.map(task => `<div class="p-1 text-xs bg-primary/10 text-primary rounded truncate cursor-pointer" data-task-id="${task.id}">${task.name}</div>`).join('')}
+                                ${tasksForDay.map(task => html`<div class="p-1 text-xs bg-primary/10 text-primary rounded truncate cursor-pointer" data-task-id="${task.id}">${task.name}</div>`)}
                             </div>
                         </div>
                     `;
-                }).join('')}
+                })}
             </div>
         </div>
     `;
 }
 
-function renderGanttView(filteredTasks: Task[]) {
-    return `<div class="gantt-container bg-content rounded-lg shadow-sm" id="gantt-chart"></div>`;
+function renderGanttView(filteredTasks: Task[]): TemplateResult {
+    return html`<div class="gantt-container bg-content rounded-lg shadow-sm" id="gantt-chart"></div>`;
 }
 
 function destroyGanttChart() {
@@ -364,14 +365,14 @@ export function initTasksPageView() {
     }
 }
 
-export function TasksPage() {
+export function TasksPage(): TemplateResult {
     const state = getState();
     const { isFilterOpen, viewMode: globalViewMode, ganttViewMode, sortBy, isLoading, isLoadingMore } = state.ui.tasks;
     const canManage = can('manage_tasks');
 
-    let contentHtml = '';
+    let content: TemplateResult;
     if (isLoading) {
-        contentHtml = `
+        content = html`
             <div class="flex-1 flex items-center justify-center">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -384,11 +385,11 @@ export function TasksPage() {
         const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
         switch (viewMode) {
-            case 'board': contentHtml = renderBoardView(filteredTasks); break;
-            case 'list': contentHtml = renderListView(filteredTasks, projectSections); break;
-            case 'calendar': contentHtml = renderCalendarView(filteredTasks); break;
-            case 'gantt': contentHtml = renderGanttView(filteredTasks); break;
-            default: contentHtml = renderBoardView(filteredTasks);
+            case 'board': content = renderBoardView(filteredTasks); break;
+            case 'list': content = renderListView(filteredTasks, projectSections); break;
+            case 'calendar': content = renderCalendarView(filteredTasks); break;
+            case 'gantt': content = renderGanttView(filteredTasks); break;
+            default: content = renderBoardView(filteredTasks);
         }
     }
 
@@ -409,15 +410,15 @@ export function TasksPage() {
     
     const viewMode = state.ui.activeTaskViewId ? 'board' : globalViewMode;
 
-    return `
+    return html`
         <div class="h-full flex flex-col">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <h2 class="text-2xl font-bold">${state.ui.activeTaskViewId ? state.taskViews.find(tv => tv.id === state.ui.activeTaskViewId)?.name : t('tasks.title')}</h2>
                 <div class="flex items-center gap-2">
                     <div class="p-1 bg-content border border-border-color rounded-lg flex items-center">
-                         ${navItems.map(item => `
+                         ${navItems.map(item => html`
                              <button class="px-3 py-1 text-sm font-medium rounded-md ${viewMode === item.id ? 'bg-background shadow-sm' : 'text-text-subtle'}" data-view-mode="${item.id}">${item.text}</button>
-                        `).join('')}
+                        `)}
                     </div>
                      <div class="relative">
                         <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-menu-toggle="task-sort-menu" aria-haspopup="true" aria-expanded="false">
@@ -426,12 +427,12 @@ export function TasksPage() {
                         </button>
                         <div id="task-sort-menu" class="dropdown-menu absolute top-full right-0 mt-1 w-48 bg-content rounded-md shadow-lg border border-border-color z-10 hidden">
                              <div class="py-1">
-                                ${sortOptions.map(opt => `
+                                ${sortOptions.map(opt => html`
                                     <button class="w-full text-left flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-background" data-sort-by="${opt.id}">
                                         <span>${opt.text}</span>
-                                        ${sortBy === opt.id ? '<span class="material-icons-sharp text-base">check</span>' : ''}
+                                        ${sortBy === opt.id ? html`<span class="material-icons-sharp text-base">check</span>` : ''}
                                     </button>
-                                `).join('')}
+                                `)}
                             </div>
                         </div>
                     </div>
@@ -443,7 +444,7 @@ export function TasksPage() {
                         <span class="material-icons-sharp text-base">smart_toy</span>
                         <span>${t('tasks.automations_button_text')}</span>
                     </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ${!canManage ? 'disabled' : ''}>
+                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ?disabled=${!canManage}>
                         <span class="material-icons-sharp text-base">add</span> ${t('tasks.new_task')}
                     </button>
                 </div>
@@ -453,9 +454,9 @@ export function TasksPage() {
                 ${TaskFilterPanel()}
             </div>
 
-            ${contentHtml}
+            ${content}
 
-            ${isLoadingMore ? `
+            ${isLoadingMore ? html`
                 <div class="flex items-center justify-center p-4">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>

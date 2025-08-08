@@ -155,37 +155,16 @@ async function main() {
         
         setInterval(() => {
             try {
-                const { ui, activeTimers, tasks, currentPage } = getState();
-                const { isRunning, startTime } = ui.globalTimer;
-                if (isRunning && startTime) {
-                    const elapsedSeconds = (Date.now() - startTime) / 1000;
-                    const formattedTime = formatDuration(elapsedSeconds);
-                    const display = document.getElementById('global-timer-display');
-                    if (display && display.textContent !== formattedTime) display.textContent = formattedTime;
+                const { ui, activeTimers } = getState();
+                // If no timers are running, do nothing.
+                if (!ui.globalTimer.isRunning && Object.keys(activeTimers).length === 0) {
+                    return;
                 }
                 
-                if (Object.keys(activeTimers).length === 0 && !ui.openedProjectId && currentPage !== 'dashboard') return;
+                // If any timer is active, trigger a UI update for components that might
+                // display time. lit-html will efficiently update only the changed text nodes.
+                updateUI(['header', 'page', 'side-panel']);
 
-                Object.keys(activeTimers).forEach(taskId => {
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task) {
-                        const currentSeconds = getTaskCurrentTrackedSeconds(task);
-                        const formattedTime = formatDuration(currentSeconds);
-                         document.querySelectorAll(`[data-timer-task-id="${taskId}"] .task-tracked-time, [data-task-id="${taskId}"] .task-tracked-time`).forEach(el => {
-                            if (el.textContent !== formattedTime) el.textContent = formattedTime;
-                        });
-                    }
-                });
-
-                if (ui.openedProjectId) {
-                    const projectTotalTimeEl = document.querySelector<HTMLElement>('.project-total-time');
-                    if (projectTotalTimeEl) {
-                        const projectTasks = tasks.filter(t => t.projectId === ui.openedProjectId);
-                        const totalSeconds = projectTasks.reduce((sum, task) => sum + getTaskCurrentTrackedSeconds(task), 0);
-                        const formattedTotalTime = formatDuration(totalSeconds);
-                        if (projectTotalTimeEl.textContent !== formattedTotalTime) projectTotalTimeEl.textContent = formattedTotalTime;
-                    }
-                }
             } catch (error) {
                 console.error("Error inside setInterval timer update:", error);
                 // This catch block prevents the interval from crashing the app.

@@ -1,7 +1,7 @@
 import { getState, setState } from '../state.ts';
 import { updateUI, UIComponent } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
-import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState, ProjectSortByOption } from '../types.ts';
+import type { Role, PlanId, User, DashboardWidgetType, ClientContact, ProjectRole, SortByOption, Task, TeamCalendarView, AppState, ProjectSortByOption, TaskDetailModalData } from '../types.ts';
 import { t } from '../i18n.ts';
 import * as aiHandlers from '../handlers/ai.ts';
 import * as billingHandlers from '../handlers/billing.ts';
@@ -34,6 +34,7 @@ import type { TaggableEntity } from '../handlers/tags.ts';
 import * as kanbanHandlers from '../handlers/kanban.ts';
 import { handleInsertSlashCommand } from '../handlers/editor.ts';
 import { handleOptimisticDelete, ResourceName } from '../handlers/generic.ts';
+import { html, render } from 'lit-html';
 
 function closeDynamicMenus() {
     document.querySelectorAll('#dynamic-role-menu, .task-card-menu, .dropdown-menu, .reaction-picker, .breadcrumb-switcher-menu, #reminder-popover, .custom-select-dropdown').forEach(menu => menu.classList.add('hidden'));
@@ -256,7 +257,7 @@ export async function handleClick(e: MouseEvent) {
             }), ['page']);
         } else if (container.closest('#configure-widget-form')) {
             setState(prevState => ({
-                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, widget: { ...prevState.ui.modal.data.widget, config: { ...prevState.ui.modal.data.widget.config, userId: value } } } } }
+                ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), widget: { ...(prevState.ui.modal.data as any).widget, config: { ...(prevState.ui.modal.data as any).widget.config, userId: value } } } } }
             }), ['modal']);
         }
         
@@ -478,8 +479,8 @@ export async function handleClick(e: MouseEvent) {
         setState(prevState => {
             if (prevState.ui.modal.type === 'addInvoice') {
                 const newItem = { id: Date.now().toString(), invoiceId: '', description: '', quantity: 1, unitPrice: 0 };
-                const newItems = [...(prevState.ui.modal.data.items || []), newItem];
-                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: newItems } } } };
+                const newItems = [...((prevState.ui.modal.data as any).items || []), newItem];
+                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), items: newItems } } } };
             }
             return prevState;
         }, ['modal']);
@@ -491,8 +492,8 @@ export async function handleClick(e: MouseEvent) {
         const itemId = removeInvoiceItemBtn.closest<HTMLElement>('.invoice-item-row')?.dataset.itemId;
         setState(prevState => {
             if (prevState.ui.modal.type === 'addInvoice' && itemId) {
-                const newItems = prevState.ui.modal.data.items.filter((item: any) => item.id.toString() !== itemId);
-                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...prevState.ui.modal.data, items: newItems } } } };
+                const newItems = (prevState.ui.modal.data as any).items.filter((item: any) => item.id.toString() !== itemId);
+                return { ui: { ...prevState.ui, modal: { ...prevState.ui.modal, data: { ...(prevState.ui.modal.data as any), items: newItems } } } };
             }
             return prevState;
         }, ['modal']);
@@ -529,7 +530,7 @@ export async function handleClick(e: MouseEvent) {
     if (createTaskFromSelectionBtn) {
         const { selectedText, context } = getState().ui.textSelectionPopover;
         if (selectedText && context) {
-            const modalData: { taskName: string; projectId?: string; taskDescription?: string; } = { taskName: selectedText };
+            const modalData: any = { taskName: selectedText };
     
             if (context.type === 'project') {
                 modalData.projectId = context.id;
@@ -565,8 +566,8 @@ export async function handleClick(e: MouseEvent) {
             if (container.innerHTML) {
                 container.innerHTML = '';
             } else {
-                container.innerHTML = `
-                    <form class="reply-form" data-task-id="${getState().ui.modal.data.taskId}" data-parent-id="${commentId}">
+                render(html`
+                    <form class="reply-form" data-task-id="${(getState().ui.modal.data as TaskDetailModalData).taskId}" data-parent-id="${commentId}">
                         <div class="rich-text-input-container">
                             <div class="rich-text-input" contenteditable="true" data-placeholder="${t('modals.add_comment')}"></div>
                         </div>
@@ -575,7 +576,7 @@ export async function handleClick(e: MouseEvent) {
                             <button type="submit" class="btn btn-primary btn-sm">${t('modals.reply_button')}</button>
                         </div>
                     </form>
-                `;
+                `, container);
                 container.querySelector<HTMLElement>('.rich-text-input')?.focus();
             }
         }
@@ -593,7 +594,7 @@ export async function handleClick(e: MouseEvent) {
 
         if (commentBody && commentActions) {
             commentActions.classList.add('hidden');
-            commentBody.innerHTML = `
+            render(html`
                 <form class="edit-comment-form" data-comment-id="${commentId}">
                     <div class="rich-text-input-container">
                         <textarea class="form-control" rows="3">${comment.content}</textarea>
@@ -603,7 +604,7 @@ export async function handleClick(e: MouseEvent) {
                         <button type="button" class="btn btn-primary btn-sm" data-save-edit-comment-id="${commentId}">${t('modals.save')}</button>
                     </div>
                 </form>
-            `;
+            `, commentBody);
             commentBody.querySelector('textarea')?.focus();
         }
         return;
@@ -672,20 +673,20 @@ export async function handleClick(e: MouseEvent) {
         popover.id = 'reminder-popover';
         popover.className = 'reminder-popover';
     
-        popover.innerHTML = `
+        render(html`
             <h5 class="text-sm font-semibold">${t('modals.set_reminder')}</h5>
             <input type="datetime-local" class="form-control" id="reminder-datetime-input">
             <div class="text-xs font-semibold text-text-subtle">${t('modals.reminder_or_preset')}</div>
             <div class="grid grid-cols-2 gap-2 text-sm">
                 <button class="btn btn-secondary btn-sm" data-preset="1h">${t('modals.reminder_preset_1h')}</button>
                 <button class="btn btn-secondary btn-sm" data-preset="tomorrow">${t('modals.reminder_preset_tomorrow')}</button>
-                <button class="btn btn-secondary btn-sm col-span-2 ${!task.dueDate ? 'opacity-50' : ''}" data-preset="1d_before" ${!task.dueDate ? 'disabled' : ''}>${t('modals.reminder_preset_1d_before')}</button>
+                <button class="btn btn-secondary btn-sm col-span-2 ${!task.dueDate ? 'opacity-50' : ''}" data-preset="1d_before" ?disabled=${!task.dueDate}>${t('modals.reminder_preset_1d_before')}</button>
             </div>
             <div class="flex justify-between items-center pt-2 border-t border-border-color">
                 <button class="btn-text text-danger" data-preset="clear">${t('modals.reminder_clear')}</button>
                 <button class="btn btn-primary btn-sm" id="save-reminder-btn">${t('modals.save')}</button>
             </div>
-        `;
+        `, popover);
         document.body.appendChild(popover);
         const btnRect = reminderBtn.getBoundingClientRect();
         popover.style.top = `${btnRect.bottom + 5}px`;
@@ -827,7 +828,7 @@ export async function handleClick(e: MouseEvent) {
         document.querySelectorAll('[data-auth-tab]').forEach(t => t.classList.remove('active'));
         authTab.classList.add('active');
         const container = document.getElementById('auth-form-container')!;
-        if (tabName === 'login') container.innerHTML = renderLoginForm(); else container.innerHTML = renderRegisterForm();
+        if (tabName === 'login') render(renderLoginForm(), container); else render(renderRegisterForm(), container);
         return;
     }
     if (target.closest<HTMLElement>('[data-logout-button]')) { auth.logout(); return; }
@@ -890,14 +891,14 @@ export async function handleClick(e: MouseEvent) {
     }
     const checklistItemCheckbox = target.closest<HTMLElement>('.checklist-item-checkbox');
     if (checklistItemCheckbox) {
-        const taskId = state.ui.modal.data?.taskId;
+        const taskId = (getState().ui.modal.data as TaskDetailModalData)?.taskId;
         const itemId = (checklistItemCheckbox as HTMLInputElement).dataset.itemId!;
         if (taskId && itemId) { taskHandlers.handleToggleChecklistItem(taskId, itemId); }
         return;
     }
     const deleteChecklistItemBtn = target.closest<HTMLElement>('.delete-checklist-item-btn');
     if (deleteChecklistItemBtn) {
-        const taskId = state.ui.modal.data?.taskId;
+        const taskId = (getState().ui.modal.data as TaskDetailModalData)?.taskId;
         const itemId = deleteChecklistItemBtn.dataset.itemId!;
         if (taskId && itemId) { taskHandlers.handleDeleteChecklistItem(taskId, itemId); }
         return;

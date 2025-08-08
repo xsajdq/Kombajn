@@ -1,18 +1,17 @@
-
-
 import { t } from '../i18n.ts';
 import { getState } from '../state.ts';
+import { html, TemplateResult } from 'lit-html';
 
-function renderSetupPage() {
+function renderSetupPage(): TemplateResult {
     const state = getState();
     const { currentUser, workspaceJoinRequests, workspaces } = state;
-    if (!currentUser) return '';
+    if (!currentUser) return html``;
 
     const pendingRequest = workspaceJoinRequests.find(r => r.userId === currentUser.id && r.status === 'pending');
 
     if (pendingRequest) {
         const workspaceName = workspaces.find(w => w.id === pendingRequest.workspaceId)?.name || 'a workspace';
-        return `
+        return html`
             <div class="bg-content p-8 rounded-lg shadow-md max-w-lg w-full text-center">
                 <h3 class="text-xl font-bold">${t('setup.request_pending_title')}</h3>
                 <p class="mt-4 leading-relaxed text-text-subtle">${t('setup.request_pending_message').replace('{workspaceName}', workspaceName)}</p>
@@ -21,7 +20,7 @@ function renderSetupPage() {
         `;
     }
 
-    return `
+    return html`
         <div class="bg-content p-8 rounded-lg shadow-md max-w-3xl w-full">
             <h2 class="text-center text-2xl font-bold mb-6">${t('setup.title')}, ${currentUser.name || currentUser.initials}!</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -56,8 +55,8 @@ function renderSetupPage() {
     `;
 }
 
-export function AuthPage({ isSetup = false } = {}) {
-    const content = isSetup ? renderSetupPage() : `
+export function AuthPage({ isSetup = false } = {}): TemplateResult {
+    const content = isSetup ? renderSetupPage() : html`
         <div class="bg-content rounded-lg shadow-md max-w-md w-full">
             <div class="flex border-b border-border-color">
                 <button class="flex-1 py-3 px-4 font-medium text-text-subtle border-b-2 border-transparent -mb-px active" data-auth-tab="login">${t('auth.login_tab')}</button>
@@ -69,15 +68,15 @@ export function AuthPage({ isSetup = false } = {}) {
         </div>
     `;
     
-    return `
+    return html`
         <div class="flex justify-center items-center min-h-screen p-4 bg-background">
             ${content}
         </div>
     `;
 }
 
-export function renderLoginForm() {
-    return `
+export function renderLoginForm(): TemplateResult {
+    return html`
         <form id="loginForm" novalidate class="space-y-4">
             <h3 class="text-center text-xl font-bold mb-6">${t('auth.welcome_back')}</h3>
             <div id="login-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>
@@ -94,8 +93,8 @@ export function renderLoginForm() {
     `;
 }
 
-export function renderRegisterForm() {
-    return `
+export function renderRegisterForm(): TemplateResult {
+    return html`
         <form id="registerForm" novalidate class="space-y-4">
             <h3 class="text-center text-xl font-bold mb-6">${t('auth.create_account_title')}</h3>
             <div id="register-error" class="bg-danger/10 text-danger text-sm p-3 rounded-md hidden"></div>

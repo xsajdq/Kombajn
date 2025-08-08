@@ -56,6 +56,33 @@
     background-color: rgba(var(--subtle-text-color-rgb), 0.6);
   }
 
+  /* == Toast Notifications == */
+  #toast-container {
+    @apply fixed top-4 right-4 z-[100] flex flex-col items-end gap-2;
+  }
+  .toast {
+    @apply flex items-center gap-3 w-full max-w-sm p-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300;
+    animation: toast-in 0.3s ease-out forwards;
+  }
+  .toast.exiting {
+    animation: toast-out 0.3s ease-in forwards;
+  }
+  .toast-success { @apply bg-success text-white; }
+  .toast-error { @apply bg-danger text-white; }
+  .toast-info { @apply bg-primary text-white; }
+  .toast .material-icons-sharp { @apply text-lg; }
+  .toast-close-btn { @apply ml-auto -mr-1 p-1 rounded-full hover:bg-white/20; }
+
+  @keyframes toast-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes toast-out {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+
+
   /* == Breadcrumbs == */
   .breadcrumb-container {
     @apply flex items-center gap-2 text-sm text-text-subtle px-8 py-2 border-b border-border-color bg-content flex-wrap;

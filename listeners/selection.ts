@@ -1,5 +1,6 @@
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
+import { TaskDetailModalData } from '../types.ts';
 
 export function handleMouseUp(e: MouseEvent) {
     const target = e.target as HTMLElement;
@@ -43,7 +44,7 @@ export function handleMouseUp(e: MouseEvent) {
             context = { type: 'project', id: projectId };
         }
     } else if (commentBody) {
-        const taskId = state.ui.modal.data?.taskId;
+        const taskId = (state.ui.modal.data as TaskDetailModalData)?.taskId;
         if (taskId) {
             context = { type: 'task', id: taskId };
         }

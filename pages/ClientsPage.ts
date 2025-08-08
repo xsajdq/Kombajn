@@ -3,6 +3,7 @@ import { t } from '../i18n.ts';
 import { can } from '../permissions.ts';
 import { formatCurrency, formatDate, filterItems } from '../utils.ts';
 import { fetchClientsForWorkspace } from '../handlers/clients.ts';
+import { html, TemplateResult } from 'lit-html';
 
 export async function initClientsPage() {
     const state = getState();
@@ -22,13 +23,13 @@ export async function initClientsPage() {
     }
 }
 
-export function ClientsPage() {
+export function ClientsPage(): TemplateResult {
     const state = getState();
     const { activeWorkspaceId } = state;
-    if (!activeWorkspaceId) return '';
+    if (!activeWorkspaceId) return html``;
 
     if (state.ui.clients.isLoading) {
-        return `<div class="flex items-center justify-center h-full">
+        return html`<div class="flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>`;
     }
@@ -58,13 +59,13 @@ export function ClientsPage() {
 
     const { text: filterText, status: filterStatus, tagIds: filterTagIds } = state.ui.clients.filters;
 
-    return `
+    return html`
     <div class="space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 class="text-2xl font-bold">${t('clients.title')}</h2>
             </div>
-            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
+            <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ?disabled=${!canManage}>
                 <span class="material-icons-sharp text-base">add</span> ${t('clients.add_client')}
             </button>
         </div>
@@ -126,19 +127,19 @@ export function ClientsPage() {
                     </button>
                     <div id="client-filter-tags-dropdown" class="multiselect-dropdown hidden">
                         <div class="multiselect-list">
-                        ${workspaceTags.map(tag => `
+                        ${workspaceTags.map(tag => html`
                             <label class="multiselect-list-item">
-                                <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ${filterTagIds.includes(tag.id) ? 'checked' : ''}>
+                                <input type="checkbox" value="${tag.id}" data-filter-key="tagIds" ?checked=${filterTagIds.includes(tag.id)}>
                                 <span class="tag-chip" style="background-color: ${tag.color}20; border-color: ${tag.color}">${tag.name}</span>
                             </label>
-                        `).join('')}
+                        `)}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        ${filteredClients.length > 0 ? `
+        ${filteredClients.length > 0 ? html`
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${filteredClients.map(client => {
                     const projectCount = state.projects.filter(p => p.clientId === client.id).length;
@@ -151,7 +152,7 @@ export function ClientsPage() {
                     const statusText = status.charAt(0).toUpperCase() + status.slice(1);
                     const clientTags = state.clientTags.filter(ct => ct.clientId === client.id).map(ct => state.tags.find(t => t.id === ct.tagId)).filter(Boolean);
 
-                    return `
+                    return html`
                     <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col space-y-4 cursor-pointer hover:shadow-md transition-shadow" data-client-id="${client.id}" role="button" tabindex="0">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-3">
@@ -163,9 +164,9 @@ export function ClientsPage() {
                             </div>
                             <span class="px-2 py-1 text-xs font-medium rounded-full ${statusClass}">${statusText}</span>
                         </div>
-                        ${clientTags.length > 0 ? `
+                        ${clientTags.length > 0 ? html`
                             <div class="flex flex-wrap gap-1.5 pt-2 border-t border-border-color">
-                                ${clientTags.map(tag => `<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`).join('')}
+                                ${clientTags.map(tag => html`<span class="tag-chip" style="background-color: ${tag!.color}20; border-color: ${tag!.color}">${tag!.name}</span>`)}
                             </div>
                         ` : ''}
                         <div class="text-sm text-text-subtle space-y-2 border-t border-border-color pt-4 mt-auto">
@@ -179,14 +180,14 @@ export function ClientsPage() {
                             </div>
                         </div>
                     </div>
-                `}).join('')}
+                `})}
             </div>
-        ` : `
+        ` : html`
             <div class="flex flex-col items-center justify-center h-96 bg-content rounded-lg border-2 border-dashed border-border-color">
                 <span class="material-icons-sharp text-5xl text-text-subtle">people_outline</span>
                 <h3 class="text-lg font-medium mt-4">${t('clients.no_clients_yet')}</h3>
                 <p class="text-sm text-text-subtle mt-1">${t('clients.no_clients_desc')}</p>
-                 <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ${!canManage ? 'disabled' : ''}>
+                 <button class="mt-4 px-4 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addClient" ?disabled=${!canManage}>
                     ${t('clients.add_client')}
                 </button>
             </div>

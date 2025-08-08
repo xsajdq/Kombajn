@@ -5,11 +5,12 @@ import type { Role, User, WorkspaceMember, TimeOffRequest, Review } from '../typ
 import { can } from '../permissions.ts';
 import { PLANS } from '../utils.ts';
 import { fetchPublicHolidays } from '../handlers/calendar.ts';
+import { html, TemplateResult } from 'lit-html';
 
-async function renderEmployeesTab() {
+async function renderEmployeesTab(): Promise<TemplateResult> {
     const state = getState();
     const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
-    if (!activeWorkspace) return 'Error: Active workspace not found.';
+    if (!activeWorkspace) return html`Error: Active workspace not found.`;
 
     const filterText = state.ui.hr.filters.text.toLowerCase();
 
@@ -32,16 +33,16 @@ async function renderEmployeesTab() {
     const usage = PLANS[activeWorkspace.subscription.planId];
     const userLimitReached = members.length >= usage.users;
 
-    return `
+    return html`
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold">${t('hr.tabs.employees')}</h3>
             <div class="flex items-center gap-2">
                 <div class="relative">
                      <span class="material-icons-sharp absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">search</span>
-                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="${t('hr.search_placeholder')}" value="${state.ui.hr.filters.text}">
+                     <input type="text" id="employee-search" class="pl-10 pr-4 py-2 w-64 bg-background border border-border-color rounded-md text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="${t('hr.search_placeholder')}" .value=${state.ui.hr.filters.text}>
                 </div>
-                ${canInviteUsers ? `
-                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" id="hr-invite-member-btn" ${userLimitReached ? 'disabled' : ''} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
+                ${canInviteUsers ? html`
+                <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed" id="hr-invite-member-btn" ?disabled=${userLimitReached} title="${userLimitReached ? t('billing.limit_reached_users').replace('{planName}', activeWorkspace.subscription.planId) : ''}">
                     <span class="material-icons-sharp text-base">add</span> ${t('hr.invite_member')}
                 </button>
                 ` : ''}
@@ -60,21 +61,21 @@ async function renderEmployeesTab() {
                         const isSelf = user.id === state.currentUser?.id;
                         const isOwner = member.role === 'owner';
                         const displayName = user.name || user.email || getUserInitials(user);
-                        return `
+                        return html`
                         <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr_1.5fr_2fr_auto] md:gap-4 md:items-center md:p-0 group">
                             <div class="flex items-center gap-3 md:p-4">
                                 <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
                                 <div class="font-semibold">
-                                    ${displayName} ${isSelf ? `<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
+                                    ${displayName} ${isSelf ? html`<span class="text-xs font-normal text-text-subtle">(${t('hr.you')})</span>` : ''}
                                 </div>
                             </div>
                             <div class="md:p-4">
-                                ${canManageRoles && !isOwner && !isSelf ? `
+                                ${canManageRoles && !isOwner && !isSelf ? html`
                                     <button class="role-tag" data-role-menu-for-member-id="${member.id}" aria-haspopup="true" aria-expanded="false">
                                         <span>${t(`hr.role_${member.role}`)}</span>
                                         <span class="material-icons-sharp text-base">expand_more</span>
                                     </button>
-                                ` : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
+                                ` : html`<span class="px-2 py-1 text-xs font-semibold rounded-full bg-background capitalize">${t(`hr.role_${member.role}`)}</span>`}
                             </div>
                             <div class="md:p-4">
                                 <span class="text-text-subtle">${user.email || t('misc.not_applicable')}</span>
@@ -83,12 +84,12 @@ async function renderEmployeesTab() {
                                 <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color" data-modal-target="employeeDetail" data-user-id="${user.id}" title="${t('hr.view_details_title')}">
                                     <span class="material-icons-sharp text-lg">edit_note</span>
                                 </button>
-                                ${canRemoveUsers && !isOwner && !isSelf ? `
+                                ${canRemoveUsers && !isOwner && !isSelf ? html`
                                     <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-remove-member-id="${member.id}" title="${t('hr.remove')}"><span class="material-icons-sharp text-lg">person_remove</span></button>
                                 ` : ''}
                             </div>
                         </div>
-                    `}).join('')}
+                    `})}
                 </div>
             </div>
         </div>
@@ -107,7 +108,7 @@ async function renderEmployeesTab() {
                     <div class="flex flex-col gap-1.5">
                         <label for="invite-role" class="text-sm font-medium text-text-subtle">${t('hr.select_role')}</label>
                         <select id="invite-role" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                            ${['owner', 'admin', 'manager', 'member', 'finance', 'client'].filter(r => r !== 'owner').map(r => `<option value="${r}">${t(`hr.role_${r}`)}</option>`).join('')}
+                            ${['owner', 'admin', 'manager', 'member', 'finance', 'client'].filter(r => r !== 'owner').map(r => html`<option value="${r}">${t(`hr.role_${r}`)}</option>`)}
                         </select>
                     </div>
                 </div>
@@ -120,7 +121,7 @@ async function renderEmployeesTab() {
     `;
 }
 
-function renderRequestsTab() {
+function renderRequestsTab(): TemplateResult {
     const state = getState();
      const pendingLeaveRequests = state.timeOffRequests.filter(r => 
         r.workspaceId === state.activeWorkspaceId && r.status === 'pending'
@@ -130,13 +131,13 @@ function renderRequestsTab() {
      );
 
      if (pendingLeaveRequests.length === 0 && pendingJoinRequests.length === 0) {
-        return `<div class="flex flex-col items-center justify-center h-full text-center">
+        return html`<div class="flex flex-col items-center justify-center h-full text-center">
             <span class="material-icons-sharp text-5xl text-text-subtle">inbox</span>
             <h3 class="text-lg font-medium mt-2">${t('hr.no_pending_requests')}</h3>
         </div>`;
      }
 
-     return `
+     return html`
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold">${t('hr.tabs.requests')}</h3>
         </div>
@@ -147,7 +148,7 @@ function renderRequestsTab() {
                     ${pendingJoinRequests.length > 0 ? pendingJoinRequests.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
                         if (!user) return '';
-                        return `
+                        return html`
                             <div class="bg-content p-3 rounded-lg flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
@@ -162,7 +163,7 @@ function renderRequestsTab() {
                                 </div>
                             </div>
                         `;
-                    }).join('') : `<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
+                    }) : html`<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
                 </div>
             </div>
             <div>
@@ -170,7 +171,7 @@ function renderRequestsTab() {
                 <div class="space-y-3">
                     ${pendingLeaveRequests.length > 0 ? pendingLeaveRequests.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
-                        return `
+                        return html`
                             <div class="bg-content p-3 rounded-lg flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(user)}</div>
@@ -190,14 +191,14 @@ function renderRequestsTab() {
                                 </div>
                             </div>
                         `;
-                    }).join('') : `<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
+                    }) : html`<div class="bg-content p-4 rounded-lg text-center text-sm text-text-subtle">${t('hr.no_pending_requests')}</div>`}
                 </div>
             </div>
         </div>
      `;
 }
 
-function renderVacationTab() {
+function renderVacationTab(): TemplateResult {
     const state = getState();
     const workspaceUsers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
@@ -206,7 +207,7 @@ function renderVacationTab() {
 
     const canManage = can('manage_roles');
 
-    return `
+    return html`
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold">${t('hr.tabs.vacation')}</h3>
         </div>
@@ -223,7 +224,7 @@ function renderVacationTab() {
                     ${workspaceUsers.map(user => {
                         const vacationInfo = getVacationInfo(user, state.timeOffRequests, state.publicHolidays);
                         const usagePercentage = vacationInfo.pool.hours > 0 ? (vacationInfo.used.hours / vacationInfo.pool.hours) * 100 : 0;
-                        return `
+                        return html`
                             <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr,1fr,2fr,1fr,1fr] md:gap-4 md:items-center md:p-0 md:border-none">
                                 <div class="md:p-4" data-label="${t('hr.employee')}">${user.name || getUserInitials(user)}</div>
                                 <div class="md:p-4" data-label="${t('hr.vacation_pool')}">
@@ -241,7 +242,7 @@ function renderVacationTab() {
                                     <span class="text-text-subtle ml-1">(${vacationInfo.remaining.hours} ${t('hr.hours')})</span>
                                 </div>
                                 <div class="md:p-4 text-right" data-label="${t('hr.actions')}">
-                                    ${canManage ? `
+                                    ${canManage ? html`
                                     <button class="px-2 py-1 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="adjustVacationAllowance" data-user-id="${user.id}" data-current-allowance="${vacationInfo.pool.hours}">
                                         ${t('hr.manage_vacation')}
                                     </button>
@@ -249,21 +250,21 @@ function renderVacationTab() {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+                    })}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderHistoryTab() {
+function renderHistoryTab(): TemplateResult {
     const state = getState();
     const history = state.timeOffRequests
         .filter(r => r.workspaceId === state.activeWorkspaceId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (history.length === 0) {
-        return `<div class="empty-state">
+        return html`<div class="empty-state">
             <span class="material-icons-sharp text-5xl text-text-subtle">history</span>
             <h3 class="text-lg font-medium mt-2">${t('hr.no_leave_history')}</h3>
         </div>`;
@@ -275,7 +276,7 @@ function renderHistoryTab() {
         pending: 'bg-warning/10 text-warning',
     };
 
-    return `
+    return html`
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold">${t('hr.tabs.history')}</h3>
         </div>
@@ -291,7 +292,7 @@ function renderHistoryTab() {
                 <div class="md:contents">
                     ${history.map(request => {
                         const user = state.users.find(u => u.id === request.userId);
-                        return `
+                        return html`
                         <div class="p-4 border-b border-border-color last:border-b-0 md:grid md:grid-cols-[2fr,1fr,1fr,1fr,1fr] md:gap-4 md:items-center md:p-0 md:border-none">
                             <div class="md:p-4" data-label="${t('hr.history_table.employee')}">${user?.name || 'Unknown'}</div>
                             <div class="md:p-4" data-label="${t('hr.history_table.type')}">${t(`team_calendar.leave_type_${request.type}`)}</div>
@@ -304,14 +305,14 @@ function renderHistoryTab() {
                             </div>
                         </div>
                         `
-                    }).join('')}
+                    })}
                 </div>
             </div>
         </div>
     `;
 }
 
-function renderReviewsTab() {
+function renderReviewsTab(): TemplateResult {
     const state = getState();
     const members = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId)
@@ -321,7 +322,7 @@ function renderReviewsTab() {
         
     const canManage = can('manage_roles');
 
-    return `
+    return html`
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold">${t('hr.tabs.reviews')}</h3>
         </div>
@@ -331,14 +332,14 @@ function renderReviewsTab() {
                     .filter(r => r.employeeId === member.id)
                     .sort((a, b) => new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime());
                 
-                return `
+                return html`
                 <details class="bg-content rounded-lg shadow-sm" open>
                     <summary class="flex justify-between items-center p-4 cursor-pointer">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold">${getUserInitials(member)}</div>
                             <span class="font-semibold">${member.name}</span>
                         </div>
-                        ${canManage ? `
+                        ${canManage ? html`
                         <button class="btn btn-secondary btn-sm" data-modal-target="addReview" data-employee-id="${member.id}">
                             <span class="material-icons-sharp text-base">add</span>
                             ${t('hr.add_review')}
@@ -346,38 +347,38 @@ function renderReviewsTab() {
                         ` : ''}
                     </summary>
                     <div class="p-4 border-t border-border-color">
-                        ${reviews.length > 0 ? `
+                        ${reviews.length > 0 ? html`
                             <div class="space-y-4">
                                 ${reviews.map(review => {
                                     const reviewer = state.users.find(u => u.id === review.reviewerId);
-                                    return `
+                                    return html`
                                     <div class="p-3 bg-background rounded-md">
                                         <div class="flex justify-between items-center mb-2">
                                             <p class="text-xs text-text-subtle">${t('hr.reviewed_by', {name: reviewer?.name || 'User', date: formatDate(review.reviewDate)})}</p>
                                             <div class="flex items-center gap-1 text-yellow-500">
-                                                ${Array.from({length: 5}).map((_, i) => `<span class="material-icons-sharp text-base">${i < review.rating ? 'star' : 'star_border'}</span>`).join('')}
+                                                ${Array.from({length: 5}).map((_, i) => html`<span class="material-icons-sharp text-base">${i < review.rating ? 'star' : 'star_border'}</span>`)}
                                             </div>
                                         </div>
                                         <p class="text-sm">${review.notes.replace(/\n/g, '<br>')}</p>
                                     </div>
                                     `
-                                }).join('')}
+                                })}
                             </div>
-                        ` : `
+                        ` : html`
                             <p class="text-sm text-text-subtle text-center py-4">${t('hr.no_reviews')}</p>
                         `}
                     </div>
                 </details>
                 `;
-            }).join('')}
+            })}
         </div>
     `;
 }
 
 
-export async function HRPage() {
+export async function HRPage(): Promise<TemplateResult> {
     if (!can('view_hr')) {
-        return `<div class="flex flex-col items-center justify-center h-full text-center">
+        return html`<div class="flex flex-col items-center justify-center h-full text-center">
             <span class="material-icons-sharp text-5xl text-text-subtle">lock</span>
             <h3 class="text-lg font-medium mt-2">${t('hr.access_denied')}</h3>
             <p class="text-sm text-text-subtle">${t('hr.access_denied_desc')}</p>
@@ -388,7 +389,7 @@ export async function HRPage() {
     
     const state = getState();
     const { activeTab } = state.ui.hr;
-    let tabContent = '';
+    let tabContent: TemplateResult | Promise<TemplateResult> = html``;
     switch(activeTab) {
         case 'employees': tabContent = await renderEmployeesTab(); break;
         case 'requests': tabContent = renderRequestsTab(); break;
@@ -405,14 +406,14 @@ export async function HRPage() {
         { id: 'reviews', text: t('hr.tabs.reviews') },
     ];
 
-    return `
+    return html`
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('hr.title')}</h2>
             <div class="border-b border-border-color">
                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    ${navItems.map(item => `
+                    ${navItems.map(item => html`
                         <button type="button" class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${activeTab === item.id ? 'border-primary text-primary' : 'border-transparent text-text-subtle hover:text-text-main hover:border-border-color'}" data-tab-group="ui.hr.activeTab" data-tab-value="${item.id}">${item.text}</button>
-                    `).join('')}
+                    `)}
                 </nav>
             </div>
             <div>

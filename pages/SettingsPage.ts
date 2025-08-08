@@ -1,23 +1,25 @@
 
+
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
 import type { CustomFieldType, TaskView } from '../types.ts';
 import { can } from '../permissions.ts';
+import { html, TemplateResult } from 'lit-html';
 
-export function SettingsPage() {
+export function SettingsPage(): TemplateResult {
     const state = getState();
     const { activeTab } = state.ui.settings;
     const canManage = can('manage_workspace_settings');
 
-    const renderGeneralSettings = () => `
+    const renderGeneralSettings = (): TemplateResult => html`
         <div class="flex justify-between items-center py-4 border-b border-border-color">
             <div>
                 <h4 class="font-semibold">${t('settings.theme')}</h4>
                 <p class="text-sm text-text-subtle">${t('settings.theme_desc')}</p>
             </div>
             <select id="theme-switcher" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                <option value="light" ${state.settings.theme === 'light' ? 'selected' : ''}>${t('settings.theme_light')}</option>
-                <option value="dark" ${state.settings.theme === 'dark' ? 'selected' : ''}>${t('settings.theme_dark')}</option>
+                <option value="light" ?selected=${state.settings.theme === 'light'}>${t('settings.theme_light')}</option>
+                <option value="dark" ?selected=${state.settings.theme === 'dark'}>${t('settings.theme_dark')}</option>
             </select>
         </div>
         <div class="flex justify-between items-center py-4 border-b border-border-color">
@@ -26,8 +28,8 @@ export function SettingsPage() {
                 <p class="text-sm text-text-subtle">${t('settings.language_desc')}</p>
             </div>
             <select id="language-switcher" class="w-full max-w-[200px] bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                <option value="en" ${state.settings.language === 'en' ? 'selected' : ''}>${t('settings.english')}</option>
-                <option value="pl" ${state.settings.language === 'pl' ? 'selected' : ''}>${t('settings.polish')}</option>
+                <option value="en" ?selected=${state.settings.language === 'en'}>${t('settings.english')}</option>
+                <option value="pl" ?selected=${state.settings.language === 'pl'}>${t('settings.polish')}</option>
             </select>
         </div>
         <div class="flex justify-between items-center py-4">
@@ -39,11 +41,11 @@ export function SettingsPage() {
         </div>
     `;
 
-    const renderProfileSettings = () => {
+    const renderProfileSettings = (): TemplateResult | '' => {
         const user = state.currentUser;
         if (!user) return '';
 
-        return `
+        return html`
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div class="bg-content p-5 rounded-lg shadow-sm">
                     <h4 class="font-semibold text-lg mb-4">${t('settings.profile_details')}</h4>
@@ -52,7 +54,7 @@ export function SettingsPage() {
                             <label class="text-sm font-medium text-text-subtle">${t('settings.avatar')}</label>
                             <div class="flex items-center gap-4">
                                 <div id="avatar-preview" class="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xl font-semibold">
-                                    ${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="User avatar" class="w-full h-full rounded-full object-cover">` : user.initials}
+                                    ${user.avatarUrl ? html`<img src="${user.avatarUrl}" alt="User avatar" class="w-full h-full rounded-full object-cover">` : user.initials}
                                 </div>
                                 <label for="avatar-upload" class="cursor-pointer px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.upload_avatar')}</label>
                                 <input type="file" id="avatar-upload" class="hidden" accept="image/png, image/jpeg">
@@ -60,11 +62,11 @@ export function SettingsPage() {
                         </div>
                         <div class="flex flex-col gap-1.5">
                             <label for="profile-full-name" class="text-sm font-medium text-text-subtle">${t('settings.full_name')}</label>
-                            <input type="text" id="profile-full-name" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${user.name || ''}" required>
+                            <input type="text" id="profile-full-name" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${user.name || ''}" required>
                         </div>
                         <div class="flex flex-col gap-1.5">
                             <label for="profile-email" class="text-sm font-medium text-text-subtle">${t('settings.email_address')}</label>
-                            <input type="email" id="profile-email" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${user.email || ''}" readonly disabled>
+                            <input type="email" id="profile-email" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${user.email || ''}" readonly disabled>
                         </div>
                         <div class="flex justify-end items-center gap-3 pt-4">
                             <span id="profile-update-status" class="text-sm transition-opacity duration-300"></span>
@@ -93,23 +95,23 @@ export function SettingsPage() {
         `;
     };
 
-    const renderCustomFieldsSettings = () => {
+    const renderCustomFieldsSettings = (): TemplateResult => {
         const customFields = state.customFieldDefinitions.filter(cf => cf.workspaceId === state.activeWorkspaceId);
         const fieldTypes: CustomFieldType[] = ['text', 'number', 'date', 'checkbox'];
 
-        return `
+        return html`
             <div>
                 <h4 class="font-semibold text-lg mb-1">${t('settings.tab_custom_fields')}</h4>
                 <p class="text-sm text-text-subtle mb-4">Add custom fields to your tasks to capture more specific information.</p>
             </div>
             <div class="bg-content p-5 rounded-lg shadow-sm">
                 <div class="divide-y divide-border-color">
-                ${customFields.length > 0 ? customFields.map(field => `
+                ${customFields.length > 0 ? customFields.map(field => html`
                     <div class="flex justify-between items-center py-3">
                         <span class="font-medium">${field.name} <span class="text-text-subtle ml-2 text-xs capitalize">(${t(`settings.field_type_${field.type}`)})</span></span>
                         <button class="p-1.5 rounded-full text-text-subtle hover:bg-border-color hover:text-danger" data-field-id="${field.id}" title="${t('modals.remove_item')}"><span class="material-icons-sharp text-lg">delete</span></button>
                     </div>
-                `).join('') : `<p class="text-center text-sm text-text-subtle py-8">${t('settings.no_custom_fields')}</p>`}
+                `) : html`<p class="text-center text-sm text-text-subtle py-8">${t('settings.no_custom_fields')}</p>`}
                 </div>
             </div>
             <form id="add-custom-field-form" class="bg-content p-5 rounded-lg shadow-sm mt-6">
@@ -121,7 +123,7 @@ export function SettingsPage() {
                     <div class="flex flex-col gap-1.5">
                         <label for="custom-field-type" class="text-sm font-medium text-text-subtle">${t('settings.field_type')}</label>
                         <select id="custom-field-type" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
-                            ${fieldTypes.map(type => `<option value="${type}">${t(`settings.field_type_${type}`)}</option>`).join('')}
+                            ${fieldTypes.map(type => html`<option value="${type}">${t(`settings.field_type_${type}`)}</option>`)}
                         </select>
                     </div>
                     <button type="submit" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.add_field')}</button>
@@ -130,11 +132,11 @@ export function SettingsPage() {
         `;
     };
 
-    const renderWorkspaceSettings = () => {
+    const renderWorkspaceSettings = (): TemplateResult | '' => {
         const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
         if (!workspace) return '';
         
-        return `
+        return html`
             <form id="workspace-settings-form">
                 <div class="bg-content p-5 rounded-lg shadow-sm">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -142,7 +144,7 @@ export function SettingsPage() {
                             <h4 class="font-semibold text-lg">${t('settings.company_details')}</h4>
                             <div class="flex flex-col gap-1.5">
                                 <label for="companyName" class="text-sm font-medium text-text-subtle">${t('settings.company_name')}</label>
-                                <input type="text" id="companyName" data-field="companyName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyName || ''}">
+                                <input type="text" id="companyName" data-field="companyName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${workspace.companyName || ''}">
                             </div>
                             <div class="flex flex-col gap-1.5">
                                 <label for="companyAddress" class="text-sm font-medium text-text-subtle">${t('settings.company_address')}</label>
@@ -151,11 +153,11 @@ export function SettingsPage() {
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="flex flex-col gap-1.5">
                                     <label for="companyVatId" class="text-sm font-medium text-text-subtle">${t('settings.company_vat_id')}</label>
-                                    <input type="text" id="companyVatId" data-field="companyVatId" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyVatId || ''}">
+                                    <input type="text" id="companyVatId" data-field="companyVatId" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${workspace.companyVatId || ''}">
                                 </div>
                                  <div class="flex flex-col gap-1.5">
                                     <label for="companyEmail" class="text-sm font-medium text-text-subtle">${t('settings.company_email')}</label>
-                                    <input type="email" id="companyEmail" data-field="companyEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyEmail || ''}">
+                                    <input type="email" id="companyEmail" data-field="companyEmail" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${workspace.companyEmail || ''}">
                                 </div>
                             </div>
                         </div>
@@ -164,12 +166,12 @@ export function SettingsPage() {
                             <div class="flex flex-col gap-1.5">
                                  <label class="text-sm font-medium text-text-subtle">${t('settings.logo_preview')}</label>
                                  <div class="h-24 bg-background border border-border-color rounded-md flex items-center justify-center">
-                                    ${workspace.companyLogo ? `<img src="${workspace.companyLogo}" class="max-h-full max-w-full object-contain p-2">` : `<span class="text-text-subtle text-sm">No logo</span>`}
+                                    ${workspace.companyLogo ? html`<img src="${workspace.companyLogo}" class="max-h-full max-w-full object-contain p-2">` : html`<span class="text-text-subtle text-sm">No logo</span>`}
                                  </div>
                                  <input type="file" id="logo-upload" class="hidden" accept="image/png, image/jpeg">
                                  <div class="flex gap-2">
                                     <label for="logo-upload" class="cursor-pointer px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background">${t('settings.upload_logo')}</label>
-                                    ${workspace.companyLogo ? `<button id="remove-logo-btn" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger">${t('settings.remove_logo')}</button>` : ''}
+                                    ${workspace.companyLogo ? html`<button id="remove-logo-btn" class="px-3 py-2 text-sm font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger">${t('settings.remove_logo')}</button>` : ''}
                                  </div>
                             </div>
                         </div>
@@ -180,11 +182,11 @@ export function SettingsPage() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="flex flex-col gap-1.5">
                             <label for="companyBankName" class="text-sm font-medium text-text-subtle">${t('settings.bank_name')}</label>
-                            <input type="text" id="companyBankName" data-field="companyBankName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyBankName || ''}">
+                            <input type="text" id="companyBankName" data-field="companyBankName" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${workspace.companyBankName || ''}">
                         </div>
                          <div class="flex flex-col gap-1.5">
                             <label for="companyBankAccount" class="text-sm font-medium text-text-subtle">${t('settings.bank_account')}</label>
-                            <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" value="${workspace.companyBankAccount || ''}">
+                            <input type="text" id="companyBankAccount" data-field="companyBankAccount" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" .value="${workspace.companyBankAccount || ''}">
                         </div>
                     </div>
                 </div>
@@ -196,7 +198,7 @@ export function SettingsPage() {
         `;
     };
     
-    const renderIntegrationsSettings = () => {
+    const renderIntegrationsSettings = (): TemplateResult => {
         const slackIntegration = state.integrations.find(i => i.provider === 'slack' && i.workspaceId === state.activeWorkspaceId);
         const googleDriveIntegration = state.integrations.find(i => i.provider === 'google_drive' && i.workspaceId === state.activeWorkspaceId);
         const gmailIntegration = state.integrations.find(i => i.provider === 'google_gmail' && i.workspaceId === state.activeWorkspaceId);
@@ -209,7 +211,7 @@ export function SettingsPage() {
             { provider: 'figma', title: t('integrations.figma_title'), desc: t('integrations.figma_desc'), logo: 'https://cdn.worldvectorlogo.com/logos/figma-1.svg', enabled: false },
         ];
 
-        return `
+        return html`
             <div>
                 <h4 class="font-semibold text-lg mb-1">${t('settings.tab_integrations')}</h4>
                 <p class="text-sm text-text-subtle mb-4">Connect your other tools to Kombajn to streamline your workflow.</p>
@@ -225,7 +227,7 @@ export function SettingsPage() {
                         }
                     }
 
-                    return `
+                    return html`
                         <div class="bg-content p-5 rounded-lg shadow-sm flex flex-col ${!int.enabled ? 'opacity-50' : ''}">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -241,26 +243,26 @@ export function SettingsPage() {
                                 <p class="text-xs text-text-subtle">${connectionStatus}</p>
                                 ${int.enabled ? (
                                     int.instance?.isActive 
-                                    ? `<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>`
-                                    : `<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
+                                    ? html`<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-content border border-border-color hover:bg-background text-danger" data-disconnect-provider="${int.provider}">${t('integrations.disconnect')}</button>`
+                                    : html`<button class="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-hover" data-connect-provider="${int.provider}">${t('integrations.connect')}</button>`
                                 ) : ''}
                             </div>
                         </div>
-                    `}).join('')}
+                    `})}
             </div>
         `;
     };
     
-    const renderTaskViewsSettings = () => {
+    const renderTaskViewsSettings = (): TemplateResult => {
         const taskViews = state.taskViews.filter(tv => tv.workspaceId === state.activeWorkspaceId);
-        return `
+        return html`
             <div>
                 <h4 class="font-semibold text-lg mb-1">${t('settings.tab_task_views')}</h4>
                 <p class="text-sm text-text-subtle mb-4">Create custom task boards that will appear in your sidebar for quick access.</p>
             </div>
             <div class="bg-content p-5 rounded-lg shadow-sm">
                 <div class="divide-y divide-border-color">
-                    ${taskViews.map(view => `
+                    ${taskViews.map(view => html`
                         <div class="py-3 task-view-item" data-view-id="${view.id}">
                             <div class="view-mode flex justify-between items-center">
                                 <div class="flex items-center gap-3">
@@ -276,18 +278,18 @@ export function SettingsPage() {
                                 <div class="flex gap-2 items-end">
                                     <div class="flex-1">
                                         <label class="text-xs font-medium text-text-subtle">${t('settings.view_name')}</label>
-                                        <input type="text" name="view-name" class="form-control" value="${view.name}">
+                                        <input type="text" name="view-name" class="form-control" .value="${view.name}">
                                     </div>
                                     <div class="flex-1">
                                         <label class="text-xs font-medium text-text-subtle">${t('settings.icon')}</label>
-                                        <input type="text" name="view-icon" class="form-control" value="${view.icon}">
+                                        <input type="text" name="view-icon" class="form-control" .value="${view.icon}">
                                     </div>
                                     <button class="btn btn-secondary cancel-task-view-edit-btn">${t('modals.cancel')}</button>
                                     <button class="btn btn-primary save-task-view-btn">${t('modals.save')}</button>
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `)}
                 </div>
             </div>
             <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
@@ -306,7 +308,7 @@ export function SettingsPage() {
         `;
     };
 
-    const renderPipelineSettings = () => {
+    const renderPipelineSettings = (): TemplateResult => {
         const stages = state.pipelineStages
             .filter(s => s.workspaceId === state.activeWorkspaceId)
             .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -314,11 +316,11 @@ export function SettingsPage() {
         const wonStage = stages.find(s => s.category === 'won');
         const lostStage = stages.find(s => s.category === 'lost');
     
-        const renderStageRow = (stage: any, isDraggable: boolean) => `
-            <div class="flex items-center gap-3 p-3 bg-background rounded-md pipeline-stage-row" data-stage-id="${stage.id}" ${isDraggable ? 'draggable="true"' : ''}>
-                ${isDraggable ? `<span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>` : ''}
-                <input type="text" class="form-control" value="${stage.name}" data-stage-name-id="${stage.id}" ${!isDraggable ? 'disabled' : ''}>
-                ${isDraggable ? `
+        const renderStageRow = (stage: any, isDraggable: boolean) => html`
+            <div class="flex items-center gap-3 p-3 bg-background rounded-md pipeline-stage-row" data-stage-id="${stage.id}" ?draggable=${isDraggable}>
+                ${isDraggable ? html`<span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>` : ''}
+                <input type="text" class="form-control" .value="${stage.name}" data-stage-name-id="${stage.id}" ?disabled=${!isDraggable}>
+                ${isDraggable ? html`
                 <div class="flex items-center gap-1">
                     <button class="btn-icon" data-save-pipeline-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
                     <button class="btn-icon" data-delete-pipeline-stage="${stage.id}" title="${t('modals.delete')}"><span class="material-icons-sharp text-base text-danger">delete</span></button>
@@ -327,7 +329,7 @@ export function SettingsPage() {
             </div>
         `;
     
-        return `
+        return html`
             <div>
                 <h4 class="font-semibold text-lg mb-1">${t('settings.tab_pipeline')}</h4>
                 <p class="text-sm text-text-subtle mb-4">Customize the stages of your sales pipeline.</p>
@@ -336,7 +338,7 @@ export function SettingsPage() {
                 <h5 class="font-semibold mb-2">${t('settings.deal_stages')}</h5>
                 <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
                 <div id="pipeline-stages-list" class="space-y-2">
-                    ${openStages.map(stage => renderStageRow(stage, true)).join('')}
+                    ${openStages.map(stage => renderStageRow(stage, true))}
                     ${wonStage ? renderStageRow(wonStage, false) : ''}
                     ${lostStage ? renderStageRow(lostStage, false) : ''}
                 </div>
@@ -353,12 +355,12 @@ export function SettingsPage() {
         `;
     };
 
-    const renderKanbanSettings = () => {
+    const renderKanbanSettings = (): TemplateResult => {
         const stages = state.kanbanStages
             .filter(s => s.workspaceId === state.activeWorkspaceId)
             .sort((a, b) => a.sortOrder - b.sortOrder);
         
-        return `
+        return html`
             <div>
                 <h4 class="font-semibold text-lg mb-1">${t('settings.tab_kanban')}</h4>
                 <p class="text-sm text-text-subtle mb-4">Customize the name and order of your task board columns.</p>
@@ -367,21 +369,21 @@ export function SettingsPage() {
                 <h5 class="font-semibold mb-2">Kanban Columns</h5>
                 <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
                 <div id="kanban-stages-list" class="space-y-2">
-                    ${stages.map(stage => `
+                    ${stages.map(stage => html`
                         <div class="flex items-center gap-3 p-3 bg-background rounded-md kanban-stage-row" data-stage-id="${stage.id}" draggable="true">
                             <span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>
-                            <input type="text" class="form-control" value="${stage.name}" data-stage-name-id="${stage.id}">
+                            <input type="text" class="form-control" .value="${stage.name}" data-stage-name-id="${stage.id}">
                             <div class="flex items-center gap-1">
                                 <button class="btn-icon" data-save-kanban-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
                             </div>
                         </div>
-                    `).join('')}
+                    `)}
                 </div>
             </div>
         `;
     };
 
-    let tabContent = '';
+    let tabContent: TemplateResult | '' = '';
     switch (activeTab) {
         case 'general': tabContent = renderGeneralSettings(); break;
         case 'profile': tabContent = renderProfileSettings(); break;
@@ -406,20 +408,20 @@ export function SettingsPage() {
 
     const availableNavItems = navItems.filter(item => !item.permission || can(item.permission as any));
 
-    return `
+    return html`
         <div class="space-y-6">
             <h2 class="text-2xl font-bold">${t('settings.title')}</h2>
             <div class="flex flex-col md:flex-row gap-8">
                 <nav class="flex flex-row md:flex-col md:w-56 shrink-0 overflow-x-auto -mx-4 px-4 md:m-0 md:p-0" id="settings-nav">
                     <ul class="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1">
-                        ${availableNavItems.map(item => `
+                        ${availableNavItems.map(item => html`
                             <li>
                                 <button type="button" class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap w-full ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'hover:bg-background'}" data-tab-group="ui.settings.activeTab" data-tab-value="${item.id}">
                                     <span class="material-icons-sharp">${item.icon}</span>
                                     ${item.text}
                                 </button>
                             </li>
-                        `).join('')}
+                        `)}
                     </ul>
                 </nav>
                 <main class="flex-1">

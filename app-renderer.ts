@@ -16,12 +16,12 @@ import { AuthPage } from './pages/AuthPage.ts';
 import { OnboardingGuide } from './components/OnboardingGuide.ts';
 import { SlashCommandPopover } from './components/SlashCommandPopover.ts';
 import { TextSelectionPopover } from './components/TextSelectionPopover.ts';
-import { diff } from './dom-diff.ts';
 import type { UIComponent as UIComponentType } from './types.ts';
+import { html, render, TemplateResult } from 'lit-html';
 
 export type UIComponent = UIComponentType;
 
-async function AppLayout() {
+async function AppLayout(): Promise<TemplateResult> {
     const state = getState();
     if (!state.currentUser) {
         return AuthPage();
@@ -33,7 +33,7 @@ async function AppLayout() {
     
     const pageContent = await router();
     
-    return `
+    return html`
     <div class="relative h-screen overflow-hidden md:flex">
         <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
         ${Sidebar()}
@@ -53,9 +53,9 @@ async function AppLayout() {
         <div id="command-palette-container">${state.ui.isCommandPaletteOpen ? CommandPalette() : ''}</div>
         <div id="fab-container" class="fab-container">${FloatingActionButton()}</div>
         <div id="onboarding-container">${state.ui.onboarding.isActive ? OnboardingGuide() : ''}</div>
-        <div id="mention-popover-container"></div>
-        <div id="slash-command-popover-container"></div>
-        <div id="text-selection-popover-container"></div>
+        <div id="mention-popover-container">${MentionPopover()}</div>
+        <div id="slash-command-popover-container">${SlashCommandPopover()}</div>
+        <div id="text-selection-popover-container">${TextSelectionPopover()}</div>
     </div>
     `;
 }
@@ -65,7 +65,7 @@ function renderSidePanel() {
     if (openedProjectId) return ProjectDetailPanel({ projectId: openedProjectId });
     if (openedClientId) return ClientDetailPanel({ clientId: openedClientId });
     if (openedDealId) return DealDetailPanel({ dealId: openedDealId });
-    return '';
+    return html``;
 }
 
 function postRenderActions() {
@@ -110,127 +110,14 @@ export async function renderApp() {
     const app = document.getElementById('app')!;
     if (!app) return;
     
-    app.innerHTML = await AppLayout();
-    
-    const state = getState();
-    if (!state.currentUser || state.currentPage === 'setup') {
-        return;
-    }
+    render(await AppLayout(), app);
     
     postRenderActions();
 }
 
 export async function updateUI(componentsToUpdate: UIComponent[]) {
-    const app = document.getElementById('app');
-    if (!app) return;
-
-    for (const component of componentsToUpdate) {
-        if (component === 'all') {
-            await renderApp();
-            return;
-        }
-
-        let oldNode: Element | null = null;
-        let newContentString: string | Promise<string> = '';
-        let isContainer = false;
-
-        const state = getState();
-
-        switch (component) {
-            case 'header':
-                oldNode = app.querySelector('header');
-                newContentString = AppHeader({ currentUser: state.currentUser!, activeWorkspaceId: state.activeWorkspaceId! });
-                break;
-            case 'sidebar':
-                oldNode = app.querySelector('aside');
-                newContentString = Sidebar();
-                break;
-            case 'page':
-                oldNode = app.querySelector('main');
-                newContentString = router(); // router is async
-                isContainer = true;
-                break;
-            case 'modal':
-                oldNode = document.getElementById('modal-container');
-                newContentString = state.ui.modal.isOpen ? Modal() : '';
-                isContainer = true;
-                break;
-            case 'side-panel':
-                oldNode = document.getElementById('side-panel-container');
-                const shouldBeOpen = !!(state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId);
-
-                // Explicitly manage the container's class state here, so the diffing logic below works correctly.
-                oldNode?.classList.toggle('is-open', shouldBeOpen);
-                
-                const sidePanelOverlay = document.getElementById('side-panel-overlay');
-                 if (sidePanelOverlay) {
-                    sidePanelOverlay.classList.toggle('opacity-100', shouldBeOpen);
-                    sidePanelOverlay.classList.toggle('pointer-events-auto', shouldBeOpen);
-                    sidePanelOverlay.classList.toggle('opacity-0', !shouldBeOpen);
-                    sidePanelOverlay.classList.toggle('pointer-events-none', !shouldBeOpen);
-                }
-                newContentString = renderSidePanel();
-                isContainer = true;
-                break;
-            case 'command-palette':
-                oldNode = document.getElementById('command-palette-container');
-                newContentString = state.ui.isCommandPaletteOpen ? CommandPalette() : '';
-                isContainer = true;
-                break;
-            case 'fab':
-                oldNode = document.getElementById('fab-container');
-                newContentString = FloatingActionButton();
-                isContainer = true;
-                break;
-             case 'onboarding':
-                oldNode = document.getElementById('onboarding-container');
-                newContentString = state.ui.onboarding.isActive ? OnboardingGuide() : '';
-                isContainer = true;
-                break;
-            case 'mention-popover':
-                 oldNode = document.getElementById('mention-popover-container');
-                newContentString = MentionPopover();
-                isContainer = true;
-                break;
-            case 'slash-command-popover':
-                oldNode = document.getElementById('slash-command-popover-container');
-                newContentString = SlashCommandPopover();
-                isContainer = true;
-                break;
-            case 'text-selection-popover':
-                oldNode = document.getElementById('text-selection-popover-container');
-                newContentString = TextSelectionPopover();
-                isContainer = true;
-                break;
-        }
-
-        if (oldNode) {
-            const resolvedContent = await Promise.resolve(newContentString);
-            const tempContainer = document.createElement(oldNode.tagName);
-            
-            if (isContainer) {
-                // This is the fix: copy attributes from the old element to the new temporary one
-                // before diffing, so attributes like `class` on `<main>` are preserved.
-                for (const attr of oldNode.attributes) {
-                    tempContainer.setAttribute(attr.name, attr.value);
-                }
-            }
-            
-            tempContainer.innerHTML = resolvedContent;
-
-            if (isContainer) {
-                diff(oldNode, tempContainer);
-            } else {
-                const newNode = tempContainer.firstElementChild;
-                if (newNode) {
-                    diff(oldNode, newNode);
-                } else if(oldNode.parentNode) {
-                    // This handles cases where a component might render to nothing
-                    oldNode.parentNode.replaceChild(tempContainer, oldNode);
-                }
-            }
-        }
-    }
-    
-    postRenderActions();
+    // With lit-html, we can simply re-render the entire app layout.
+    // lit-html is efficient and will only update the parts of the DOM that have changed.
+    // This dramatically simplifies the update logic and removes the need for manual diffing.
+    await renderApp();
 }
