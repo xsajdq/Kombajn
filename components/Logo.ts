@@ -1,6 +1,8 @@
 // components/Logo.ts
-export function Logo() {
-    return `
+import { html, TemplateResult } from 'lit-html';
+
+export function Logo(): TemplateResult {
+    return html`
     <svg viewBox="0 0 205 40" class="h-8 w-auto" xmlns="http://www.w3.org/2000/svg" aria-label="WorkInOne">
         <style>
             .font-style { font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 800; }
