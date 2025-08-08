@@ -3,8 +3,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 
-declare var Buffer: any;
-
 // ============================================================================
 // LIB HELPERS (from _lib/supabaseAdmin.ts)
 // ============================================================================
@@ -109,6 +107,7 @@ function renderClosingPage(success: boolean, error?: string, provider?: string) 
 // MAIN HANDLER & ROUTER
 // ============================================================================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    console.log(`[API START] Received request for action: ${req.query.action}`);
     const { action } = req.query;
 
     try {
@@ -502,15 +501,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // CONFIG HANDLER
             // ============================================================================
             case 'app-config': {
-                if (req.method !== 'GET') return res.status(405).json({ error: "Method Not Allowed" });
+                console.log('[API app-config] Handler started.');
+                if (req.method !== 'GET') {
+                    console.log('[API app-config] Method not allowed.');
+                    return res.status(405).json({ error: "Method Not Allowed" });
+                }
                 
+                console.log('[API app-config] Reading env vars...');
                 const supabaseUrl = process.env.SUPABASE_URL;
                 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
+                console.log(`[API app-config] SUPABASE_URL is ${supabaseUrl ? 'set' : 'NOT SET'}.`);
+                console.log(`[API app-config] SUPABASE_ANON_KEY is ${supabaseAnonKey ? 'set' : 'NOT SET'}.`);
+
                 if (!supabaseUrl || !supabaseAnonKey) {
+                    console.error('[API app-config] Missing Supabase credentials.');
                     return res.status(500).json({ error: 'Server configuration error: Supabase credentials missing.' });
                 }
 
+                console.log('[API app-config] Supabase credentials found. Sending response.');
                 return res.status(200).json({ supabaseUrl, supabaseAnonKey });
             }
             case 'token': { // Integration token handler
