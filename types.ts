@@ -681,7 +681,7 @@ export type ModalType = 'addClient' | 'addProject' | 'addTask' | 'addInvoice' | 
 export interface AddClientModalData { clientId?: string }
 export interface AddProjectModalData { projectId?: string; clientId?: string; projectName?: string }
 export interface AddTaskModalData { projectId?: string; dealId?: string }
-export interface AddInvoiceModalData { invoiceId?: string; items?: InvoiceLineItem[]; issueDate?: string; dueDate?: string; sourceLogIds?: string[]; sourceExpenseIds?: string[]; }
+export interface AddInvoiceModalData { invoiceId?: string; clientId?: string; items?: InvoiceLineItem[]; issueDate?: string; dueDate?: string; sourceLogIds?: string[]; sourceExpenseIds?: string[]; }
 export interface TaskDetailModalData { taskId: string }
 export interface AddCommentToTimeLogModalData { taskId: string; trackedSeconds: number }
 export interface UpgradePlanModalData { message: string }
