@@ -990,3 +990,14 @@
     }
   }
 }
+
+/* Temporary debug borders */
+#app-sidebar {
+  border: 2px solid red !important;
+}
+header {
+  border: 2px solid green !important;
+}
+main {
+  border: 2px solid blue !important;
+}
