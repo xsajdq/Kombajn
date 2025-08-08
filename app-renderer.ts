@@ -37,7 +37,7 @@ async function AppLayout(): Promise<TemplateResult> {
     <div class="relative h-full overflow-hidden md:flex">
         <div id="mobile-menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
         ${Sidebar()}
-        <div class="flex-1 flex flex-col overflow-hidden relative">
+        <div class="flex-1 flex flex-col overflow-hidden relative min-h-0">
             ${AppHeader({ currentUser: state.currentUser, activeWorkspaceId: state.activeWorkspaceId! })}
             <main class="flex-1 overflow-x-hidden overflow-y-auto p-8">
                 ${pageContent}
