@@ -5,9 +5,7 @@
   "description": "Teamwork Kombajn Application",
   "scripts": {
     "start": "esbuild index.tsx --bundle --format=esm --outfile=index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js --servedir=.",
-    "build": "tailwindcss -i ./css/main.css -o ./public/css/main.css && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html public/",
-    "test:e2e": "cypress run",
-    "test:e2e:ui": "cypress open"
+    "build": "tailwindcss -i ./css/main.css -o ./public/css/main.css && esbuild index.tsx --bundle --format=esm --outfile=public/index.js --platform=browser --target=es2020 --external:@google/genai --external:@supabase/supabase-js && cp index.html public/"
   },
   "keywords": [],
   "author": "",
@@ -21,7 +19,6 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
-    "cypress": "^13.13.1",
     "tailwindcss": "^3.4.4"
   }
 }

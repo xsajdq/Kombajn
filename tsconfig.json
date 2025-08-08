@@ -15,5 +15,5 @@
     "jsx": "preserve"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "public", ".vercel", "cypress"]
+  "exclude": ["node_modules", "public", ".vercel"]
 }
