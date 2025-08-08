@@ -12,19 +12,27 @@ export async function initSupabase() {
 
     try {
         const response = await fetch('/api?action=app-config');
-        const responseBody = await response.json().catch(() => null);
-
+        
         if (!response.ok) {
-            // Specifically check for the 500 error which indicates missing env vars on the server.
-            if (response.status === 500 && responseBody && responseBody.error === 'Server configuration error: Supabase credentials missing.') {
-                throw new Error("Could not connect to the database. The server is missing the required SUPABASE_URL and SUPABASE_ANON_KEY environment variables. Please add them to your Vercel project settings.");
+            let errorBody;
+            try {
+                errorBody = await response.json();
+            } catch (e) {
+                // The body wasn't JSON or there was another error
+                errorBody = { error: `Server returned status ${response.status}: ${response.statusText}` };
             }
+            
+            // Look for the specific error I added in the API
+            if (errorBody && errorBody.error && errorBody.error.includes('Supabase credentials missing')) {
+                 throw new Error("Could not connect to the database. The server is missing required configuration. Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in the Vercel project environment variables.");
+            }
+            
             // Generic error for other failures.
-            const errorMessage = responseBody?.error || `Failed to fetch application configuration (Status: ${response.status}). Please check your network connection and server status.`;
+            const errorMessage = errorBody?.error || `Failed to fetch application configuration (Status: ${response.status}). Please check your network connection and server status.`;
             throw new Error(errorMessage);
         }
         
-        const { supabaseUrl, supabaseAnonKey } = responseBody;
+        const { supabaseUrl, supabaseAnonKey } = await response.json();
 
         if (!supabaseUrl || !supabaseAnonKey) {
             throw new Error("Supabase URL or Anon Key is missing in the server config response.");
