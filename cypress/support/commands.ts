@@ -4,12 +4,9 @@ Cypress.Commands.add('seed', () => {
   cy.task('seed');
 });
 
-declare global {
-  namespace Cypress {
-    interface Chainable {
-      seed(): Chainable<void>;
-    }
+// Augment the Cypress namespace
+declare namespace Cypress {
+  interface Chainable {
+    seed(): Chainable<void>;
   }
 }
-
-export {};
