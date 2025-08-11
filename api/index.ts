@@ -1,3 +1,4 @@
+
 // api/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
@@ -266,23 +267,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         return res.status(201).json(keysToCamel(data));
                     }
                     case 'PUT': {
-                        const id = bodyInSnakeCase.id;
-                        if (!id) {
-                            return res.status(400).json({ error: 'ID is required for update' });
+                        const { id, ids, ...recordToUpdate } = bodyInSnakeCase;
+                    
+                        if (!id && !ids) {
+                            return res.status(400).json({ error: 'An "id" or an "ids" array is required for an update operation.' });
                         }
                     
-                        const recordToUpdate = { ...bodyInSnakeCase };
-                        delete recordToUpdate.id;
-                    
-                        const queryBuilder = supabase
-                            .from(resource)
-                            .update(recordToUpdate)
-                            .match({ id });
+                        let queryBuilder;
+                        if (id) {
+                            // Single record update
+                            queryBuilder = supabase.from(resource).update(recordToUpdate).eq('id', id);
+                        } else {
+                            // Batch update multiple records
+                            queryBuilder = supabase.from(resource).update(recordToUpdate).in('id', ids);
+                        }
                     
                         const { data, error } = await queryBuilder.select();
                     
                         if (error) {
-                            console.error(`[API PUT FAILED] Resource: ${resource}, ID: ${id}, User: ${user.id}. Supabase error: ${error.message}`);
+                            console.error(`[API PUT FAILED] Resource: ${resource}, ID(s): ${id || (Array.isArray(ids) ? ids.join(',') : '')}, User: ${user.id}. Supabase error: ${error.message}`);
                             const clientError = error.message.includes("schema cache")
                                 ? "Database schema cache error, please try again."
                                 : error.message;
@@ -293,21 +296,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                     case 'DELETE': {
                         if (!req.body) return res.status(400).json({ error: 'Request body is required for DELETE operation.' });
+                        
+                        // Keep special handlers for composite keys or specific logic
                         if (resource === 'task_assignees') {
                             const { taskId, userId } = req.body;
                             const { error } = await supabase.from('task_assignees').delete().match({ task_id: taskId, user_id: userId });
                             if (error) throw error;
-                        } else if (resource === 'task_tags' || resource === 'project_tags' || resource === 'client_tags') {
-                            const idKey = `${resource.split('_')[0]}_id`;
+                        } else if (resource.endsWith('_tags')) {
+                            const entityIdKey = `${resource.split('_')[0]}_id`;
                             const tagIdKey = 'tag_id';
-                            const matchObject = { [idKey]: req.body[camelToSnake(idKey)], [tagIdKey]: req.body.tagId };
+                            const matchObject = { [entityIdKey]: req.body[camelToSnake(entityIdKey)], [tagIdKey]: req.body.tagId };
                             const { error } = await supabase.from(resource).delete().match(matchObject);
                             if (error) throw error;
                         } else {
-                            const { id } = req.body;
-                            if (!id) return res.status(400).json({ error: 'An "id" is required.' });
-                            const query = (supabase.from(resource) as any).delete().eq('id', id);
-                            if (resource === 'dashboard_widgets' || resource === 'filter_views') query.eq('user_id', user.id);
+                            // Generic handler for deleting based on any criteria in the body
+                            const matchObject = keysToSnake(req.body);
+                            if (Object.keys(matchObject).length === 0) {
+                                 return res.status(400).json({ error: 'At least one field is required for deletion.' });
+                            }
+                            let query = supabase.from(resource).delete().match(matchObject);
+                            
+                            // Permission checks for certain resources
+                            if (resource === 'dashboard_widgets' || resource === 'filter_views') {
+                                query = query.eq('user_id', user.id);
+                            }
                             const { error } = await query;
                             if (error) throw error;
                         }
@@ -429,7 +441,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
                     queries['clientTags'] = supabase.from('client_tags').select('*').eq('workspace_id', workspaceId);
                 } else if (invoicesOnly === 'true') {
-                    queries['invoices'] = supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId);
+                    queries['invoices'] = supabase.from('invoices').select('*, invoice_line_items(*)').eq('workspace_id', workspaceId).limit(10000);
                 } else if (salesOnly === 'true') {
                     queries['deals'] = supabase.from('deals').select('*').eq('workspace_id', workspaceId);
                     queries['dealActivities'] = supabase.from('deal_activities').select('*').eq('workspace_id', workspaceId);

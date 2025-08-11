@@ -69,7 +69,7 @@ export async function subscribeToUserChannel() {
     }
 
     // Explicitly set the auth token for the realtime client
-    supabase.realtime.setAuth(session.access_token);
+    await supabase.realtime.setAuth(session.access_token);
 
     const userId = currentUser.id;
     userChannel = supabase.channel(`user-notifications:${userId}`);

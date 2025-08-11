@@ -1,4 +1,5 @@
 
+
 import { html, render } from 'lit-html';
 import { getInitialState, setState, resetState, subscribe } from './state.ts';
 import { setupEventListeners } from './eventListeners.ts';
@@ -140,7 +141,7 @@ async function main() {
             // Set auth token for Realtime on sign-in or token refresh to prevent WebSocket errors
             if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
                 if (supabase) {
-                    supabase.realtime.setAuth(session.access_token);
+                    await supabase.realtime.setAuth(session.access_token);
                     console.log('Supabase Realtime auth token set/refreshed.');
                 }
             }
@@ -170,7 +171,7 @@ async function main() {
                 }
             } else if (event === 'SIGNED_OUT') {
                 if (supabase) {
-                    supabase.realtime.setAuth(null); // Important to clear the token on sign out
+                    await supabase.realtime.setAuth(null); // Important to clear the token on sign out
                 }
                 await unsubscribeAll();
                 isBootstrapping = false;
