@@ -85,13 +85,17 @@ function postRenderActions() {
             // transform/opacity styles before transitioning to the final state.
             setTimeout(() => {
                 modalContent.classList.remove('scale-95', 'opacity-0');
-            }, 10);
 
-            // Autofocus the first focusable element
-            modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+                // Autofocus the first focusable element
+                modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+                
+                // Reset the flag AFTER the animation has started to prevent race conditions.
+                setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
+            }, 10);
+        } else {
+            // If for some reason the modal content isn't there, still reset the flag to prevent a stuck state.
+            setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
         }
-        // This is a transient flag, reset it without causing re-render loops.
-        setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
     }
 
     if (state.ui.openedProjectId || state.ui.openedClientId || state.ui.openedDealId) {
