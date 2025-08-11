@@ -284,6 +284,9 @@
   .multiselect-list-item {
     @apply flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer text-sm;
   }
+  .multiselect-list-item .avatar {
+    @apply w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0;
+  }
   .multiselect-list-item input {
     @apply w-4 h-4 rounded text-primary focus:ring-primary;
   }

@@ -119,14 +119,31 @@ export async function renderApp() {
 }
 
 export async function updateUI(componentsToUpdate: UIComponent[]) {
-    // If the componentsToUpdate array is empty, it's a "silent" state update.
-    // We must not trigger a re-render to avoid infinite loops, especially from the router.
-    if (componentsToUpdate.length === 0) {
-        return;
-    }
+    if (componentsToUpdate.length === 0) return;
 
-    // With lit-html, we can simply re-render the entire app layout.
-    // lit-html is efficient and will only update the parts of the DOM that have changed.
-    // This dramatically simplifies the update logic and removes the need for manual diffing.
-    await renderApp();
+    // Check if we are ONLY updating popovers. This prevents a full re-render
+    // when typing in an editable field, which would cause issues like duplicating characters.
+    const isOnlyPopoverUpdate = componentsToUpdate.every(c => 
+        c === 'mention-popover' || 
+        c === 'slash-command-popover' || 
+        c === 'text-selection-popover'
+    );
+
+    if (isOnlyPopoverUpdate) {
+        if (componentsToUpdate.includes('mention-popover')) {
+            const container = document.getElementById('mention-popover-container');
+            if (container) render(MentionPopover(), container);
+        }
+        if (componentsToUpdate.includes('slash-command-popover')) {
+            const container = document.getElementById('slash-command-popover-container');
+            if (container) render(SlashCommandPopover(), container);
+        }
+        if (componentsToUpdate.includes('text-selection-popover')) {
+            const container = document.getElementById('text-selection-popover-container');
+            if (container) render(TextSelectionPopover(), container);
+        }
+    } else {
+        // For any other update, re-render the whole app. lit-html is efficient.
+        await renderApp();
+    }
 }

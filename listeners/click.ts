@@ -114,6 +114,16 @@ export async function handleClick(e: MouseEvent) {
         return;
     }
 
+    const notificationItem = target.closest<HTMLElement>('.notification-item');
+    if (notificationItem) {
+        const notificationId = notificationItem.dataset.notificationId;
+        if (notificationId) {
+            notificationHandlers.handleNotificationClick(notificationId);
+        }
+        return;
+    }
+
+
     // --- Generic Tab Switching Handler ---
     const tabButton = target.closest<HTMLElement>('[data-tab-group]');
     if (tabButton) {
