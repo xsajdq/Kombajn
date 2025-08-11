@@ -53,6 +53,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
             reviews: data.reviews || [],
             tasks: data.tasks || [], // Add tasks for "My Day"
             taskAssignees: data.taskAssignees || [], // Add assignees for those tasks
+            taskViews: data.taskViews || [],
             // Set loaded state for dashboard
             ui: {
                 ...prevState.ui,
