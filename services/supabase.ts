@@ -11,7 +11,7 @@ export async function initSupabase() {
     if (supabase) return;
 
     try {
-        const response = await fetch('/api/app-config');
+        const response = await fetch('/api?action=app-config');
         
         if (!response.ok) {
             let errorMessage = `Failed to fetch application configuration (Status: ${response.status}).`;
@@ -93,21 +93,15 @@ export async function subscribeToUserChannel() {
                 }, ['header']);
             }
         )
-        .subscribe(async (status, err) => {
-            console.log(`User channel status: ${status}`, err || '');
-            switch (status) {
-                case 'SUBSCRIBED':
-                    console.log(`Successfully subscribed to user channel for ${userId}`);
-                    break;
-                case 'CHANNEL_ERROR':
-                case 'TIMED_OUT':
-                case 'CLOSED':
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`Successfully subscribed to user channel for ${userId}`);
+            } else {
+                console.log(`User channel status: ${status}`, err || '');
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                     console.error(`User channel issue. Status: ${status}`, err);
-                    console.log('Attempting to re-subscribe to user channel...');
-                    if(supabase && userChannel) await supabase.removeChannel(userChannel);
-                    userChannel = null;
-                    setTimeout(subscribeToUserChannel, 3000); // Retry after 3 seconds
-                    break;
+                    // Rely on Supabase's built-in reconnection logic.
+                }
             }
         });
 }
@@ -170,20 +164,15 @@ export async function switchWorkspaceChannel(workspaceId: string) {
                 }, ['page']);
             }
         )
-        .subscribe(async (status, err) => {
-             console.log(`Workspace channel status: ${status}`, err || '');
-            switch (status) {
-                case 'SUBSCRIBED':
-                    console.log(`Successfully subscribed to workspace channel for ${workspaceId}`);
-                    break;
-                case 'CHANNEL_ERROR':
-                case 'TIMED_OUT':
-                case 'CLOSED':
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log(`Successfully subscribed to workspace channel for ${workspaceId}`);
+            } else {
+                console.log(`Workspace channel status: ${status}`, err || '');
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                     console.error(`Workspace channel issue. Status: ${status}`, err);
-                    if(supabase && workspaceChannel) await supabase.removeChannel(workspaceChannel);
-                    workspaceChannel = null;
-                    setTimeout(() => switchWorkspaceChannel(workspaceId), 3000);
-                    break;
+                    // Rely on Supabase's built-in reconnection logic.
+                }
             }
         });
 }

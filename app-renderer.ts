@@ -79,22 +79,20 @@ function postRenderActions() {
 
     // Animate and autofocus modal on open
     if (state.ui.modal.isOpen && state.ui.modal.justOpened) {
+        // IMPORTANT: Reset the flag immediately and silently to prevent race conditions
+        // from subsequent renders that might occur before the animation timeout fires.
+        setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
+
         const modalContent = document.getElementById('modal-content');
         if (modalContent) {
-            // Use a short timeout to allow the element to be painted with its initial
-            // transform/opacity styles before transitioning to the final state.
+            // Use a short timeout to allow the browser to paint the element with its initial
+            // `opacity-0` style before we remove the class to trigger the CSS transition.
             setTimeout(() => {
                 modalContent.classList.remove('scale-95', 'opacity-0');
 
-                // Autofocus the first focusable element
+                // Autofocus the first focusable element after it becomes visible
                 modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
-                
-                // Reset the flag AFTER the animation has started to prevent race conditions.
-                setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
             }, 10);
-        } else {
-            // If for some reason the modal content isn't there, still reset the flag to prevent a stuck state.
-            setState(prevState => ({ ui: { ...prevState.ui, modal: { ...prevState.ui.modal, justOpened: false }}}), []);
         }
     }
 

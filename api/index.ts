@@ -115,6 +115,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         switch (action) {
             // ============================================================================
+            // APP CONFIG HANDLER
+            // ============================================================================
+            case 'app-config': {
+                if (req.method !== 'GET') {
+                    return res.status(405).json({ error: "Method Not Allowed" });
+                }
+                
+                const supabaseUrl = process.env.SUPABASE_URL;
+                const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+            
+                if (!supabaseUrl || !supabaseAnonKey) {
+                    console.error('[API Action: app-config] CRITICAL: Supabase environment variables are missing.');
+                    return res.status(500).json({ error: 'Server configuration error: The SUPABASE_URL and SUPABASE_ANON_KEY environment variables are not set on the server.' });
+                }
+            
+                return res.status(200).json({ supabaseUrl, supabaseAnonKey });
+            }
+            // ============================================================================
             // BOOTSTRAP HANDLER
             // ============================================================================
             case 'bootstrap': {
