@@ -311,12 +311,23 @@ export function TaskDetailModal() {
     const project = state.projects.find(p => p.id === task.projectId);
     const projectRole = getUserProjectRole(state.currentUser?.id || '', task.projectId);
     const canEdit = projectRole === 'admin' || projectRole === 'editor' || can('manage_tasks');
-    const { activeTab } = state.ui.taskDetail;
-
-    const projectMembers = state.projectMembers
-        .filter(pm => pm.projectId === task.projectId)
-        .map(pm => state.users.find(u => u.id === pm.userId))
-        .filter((u): u is User => !!u);
+    
+    let assignableUsers: User[] = [];
+    if (project) {
+        if (project.privacy === 'private') {
+            // For private projects, only explicit members can be assigned
+            assignableUsers = state.projectMembers
+                .filter(pm => pm.projectId === project.id)
+                .map(pm => state.users.find(u => u.id === pm.userId))
+                .filter((u): u is User => !!u);
+        } else {
+            // For public projects, all workspace members can be assigned
+            assignableUsers = state.workspaceMembers
+                .filter(wm => wm.workspaceId === state.activeWorkspaceId)
+                .map(wm => state.users.find(u => u.id === wm.userId))
+                .filter((u): u is User => !!u);
+        }
+    }
         
     const assignees = state.taskAssignees.filter(a => a.taskId === task.id).map(a => a.userId);
     const totalTrackedSeconds = getTaskCurrentTrackedSeconds(task);
@@ -330,10 +341,12 @@ export function TaskDetailModal() {
         { id: 'attachments', text: t('modals.attachments'), content: renderAttachmentsTab(task) },
     ];
     
+    const { activeTab } = state.ui.taskDetail;
+    
     const title = html`
-        <div class="flex items-center gap-2">
-            <input type="text" class="text-lg font-semibold bg-transparent border-none p-0 focus:ring-0" value="${task.name}" data-field="name" ?disabled=${!canEdit}>
-            <span class="text-sm text-text-subtle">• ${project?.name || ''}</span>
+        <div class="flex items-center gap-2 min-w-0">
+            <input type="text" class="text-lg font-semibold bg-transparent border-none p-0 focus:ring-0 truncate" value="${task.name}" data-field="name" ?disabled=${!canEdit}>
+            <span class="text-sm text-text-subtle whitespace-nowrap">• ${project?.name || ''}</span>
         </div>
     `;
     const body = html`
@@ -355,7 +368,7 @@ export function TaskDetailModal() {
                         {value: 'done', text: t('modals.status_done')},
                     ], disabled: !canEdit, containerClassName: 'sidebar-item', dataField: 'status' })}
 
-                    ${renderMultiUserSelect({ id: 'task-assignees-sidebar', label: t('modals.assignees'), users: projectMembers, selectedUserIds: assignees, unassignedText: t('modals.unassigned'), containerClassName: 'sidebar-item' })}
+                    ${renderMultiUserSelect({ id: 'task-assignees-sidebar', label: t('modals.assignees'), users: assignableUsers, selectedUserIds: assignees, unassignedText: t('modals.unassigned'), containerClassName: 'sidebar-item' })}
 
                     <div class="sidebar-item">
                         <label class="${labelClasses}">${t('modals.dates')}</label>

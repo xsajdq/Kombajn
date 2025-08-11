@@ -93,8 +93,8 @@ export function Modal(): TemplateResult | '' {
     return html`
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="modal-backdrop">
             <div id="modal-content" class="bg-content rounded-lg shadow-xl w-full ${maxWidth} transition-all transform scale-95 opacity-0" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-                <div class="flex justify-between items-center p-4 border-b border-border-color">
-                    <h3 class="text-lg font-semibold flex-1" id="modal-title">${title}</h3>
+                <div class="flex justify-between items-center p-4 border-b border-border-color gap-4">
+                    <h3 class="text-lg font-semibold flex-1 min-w-0" id="modal-title">${title}</h3>
                     <button class="p-1 rounded-full hover:bg-background btn-close-modal" aria-label="Close modal">
                         <span class="material-icons-sharp">close</span>
                     </button>

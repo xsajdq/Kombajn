@@ -1,6 +1,6 @@
-
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
+import { html, TemplateResult, nothing } from 'lit-html';
 
 type CommandItem = {
     id: 'heading1' | 'bulleted_list' | 'checklist';
@@ -13,10 +13,10 @@ const COMMANDS: CommandItem[] = [
     { id: 'checklist', icon: 'checklist' },
 ];
 
-export function SlashCommandPopover() {
+export function SlashCommandPopover(): TemplateResult | typeof nothing {
     const state = getState();
     const { query, activeIndex, rect, target } = state.ui.slashCommand;
-    if (query === null || !rect || !target) return '';
+    if (query === null || !rect || !target) return nothing;
 
     const filteredCommands = COMMANDS.filter(cmd => cmd.id.includes(query.toLowerCase()));
 
@@ -24,7 +24,7 @@ export function SlashCommandPopover() {
     const left = rect.left + window.scrollX;
 
     const popoverContent = filteredCommands.length > 0
-        ? filteredCommands.map((cmd, index) => `
+        ? filteredCommands.map((cmd, index) => html`
             <div class="slash-command-item ${index === activeIndex ? 'active' : ''}" data-command="${cmd.id}">
                 <div class="slash-command-icon">
                     <span class="material-icons-sharp">${cmd.icon}</span>
@@ -34,10 +34,10 @@ export function SlashCommandPopover() {
                     <p>${t(`slash_commands.${cmd.id}_desc`)}</p>
                 </div>
             </div>
-        `).join('')
-        : `<div class="slash-command-item-empty">${t('command_palette.no_results')}</div>`;
+        `)
+        : html`<div class="slash-command-item-empty">${t('command_palette.no_results')}</div>`;
 
-    return `
+    return html`
         <div class="slash-command-popover" style="position: absolute; top: ${top}px; left: ${left}px;">
             ${popoverContent}
         </div>

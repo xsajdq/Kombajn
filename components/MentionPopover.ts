@@ -1,15 +1,13 @@
-
-
 import { getState } from '../state.ts';
 import type { User } from '../types.ts';
 import { t } from '../i18n.ts';
 import { getUserInitials } from '../utils.ts';
-import { html, TemplateResult } from 'lit-html';
+import { html, TemplateResult, nothing } from 'lit-html';
 
-export function MentionPopover(): TemplateResult | '' {
+export function MentionPopover(): TemplateResult | typeof nothing {
     const state = getState();
     const { query, activeIndex, rect } = state.ui.mention;
-    if (query === null || !rect) return '';
+    if (query === null || !rect) return nothing;
 
     const workspaceMembers = state.workspaceMembers
         .filter(m => m.workspaceId === state.activeWorkspaceId && m.userId !== state.currentUser?.id) // Filter out current user
