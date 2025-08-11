@@ -21,12 +21,10 @@ type InputOptions = {
     min?: number;
     step?: number;
     disabled?: boolean;
-    dataAttributes?: { [key: string]: any };
+    dataField?: string;
 };
 
-export function renderTextInput({ id, label, type = 'text', value = '', required = false, placeholder = '', containerClassName = formGroupClasses, min, step, disabled = false, dataAttributes = {} }: InputOptions): TemplateResult {
-    const dataAttrs = Object.entries(dataAttributes).map(([key, val]) => `data-${key}="${val}"`).join(' ');
-
+export function renderTextInput({ id, label, type = 'text', value = '', required = false, placeholder = '', containerClassName = formGroupClasses, min, step, disabled = false, dataField }: InputOptions): TemplateResult {
     return html`
         <div class="${containerClassName}">
             <label for="${id}" class="${labelClasses}">${label} ${required ? html`<span class="text-danger">*</span>` : ''}</label>
@@ -40,7 +38,7 @@ export function renderTextInput({ id, label, type = 'text', value = '', required
                 min="${min}"
                 step="${step}"
                 ?disabled=${disabled}
-                ${unsafeHTML(dataAttrs)}
+                data-field=${dataField}
             >
         </div>
     `;
@@ -79,12 +77,10 @@ type SelectOptions = {
     options: { value: string | number; text: string }[];
     containerClassName?: string;
     disabled?: boolean;
-    dataAttributes?: { [key: string]: any };
+    dataField?: string;
 };
 
-export function renderSelect({ id, label, value = '', required = false, options, containerClassName = formGroupClasses, disabled = false, dataAttributes = {} }: SelectOptions): TemplateResult {
-    const dataAttrs = Object.entries(dataAttributes).map(([key, val]) => `data-${key}="${val}"`).join(' ');
-
+export function renderSelect({ id, label, value = '', required = false, options, containerClassName = formGroupClasses, disabled = false, dataField }: SelectOptions): TemplateResult {
     return html`
         <div class="${containerClassName}">
             <label for="${id}" class="${labelClasses}">${label} ${required ? html`<span class="text-danger">*</span>` : ''}</label>
@@ -93,7 +89,7 @@ export function renderSelect({ id, label, value = '', required = false, options,
                 class="${formControlClasses}" 
                 ?required=${required}
                 ?disabled=${disabled}
-                ${unsafeHTML(dataAttrs)}
+                data-field=${dataField}
             >
                 ${options.map(opt => html`<option value="${opt.value}" ?selected=${opt.value === value}>${opt.text}</option>`)}
             </select>

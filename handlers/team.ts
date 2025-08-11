@@ -1,4 +1,3 @@
-
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, WorkspaceMember, User, Workspace, TimeOffRequest, ProjectMember, WorkspaceJoinRequest, ProjectRole } from '../types.ts';
@@ -19,7 +18,7 @@ export async function handleWorkspaceSwitch(workspaceId: string) {
         
         localStorage.setItem('activeWorkspaceId', workspaceId);
 
-        // Reset loaded status for all pages to force refetch
+        // Reset loaded status for all pages to force refetch on next page visit/render
         const newUiState = { ...state.ui };
         Object.keys(newUiState).forEach(key => {
             const pageState = (newUiState as any)[key];
@@ -28,23 +27,21 @@ export async function handleWorkspaceSwitch(workspaceId: string) {
             }
         });
         
-        newUiState.dashboard.isLoading = true;
-        
         closeSidePanels(false);
         
+        // Set the new active workspace ID but keep the current page.
+        // The re-render will trigger the correct init function for the current page.
         setState({ 
             activeWorkspaceId: workspaceId,
-            currentPage: 'dashboard',
             ui: newUiState
         }, ['page', 'sidebar', 'header']);
-        
-        history.pushState({}, '', '/dashboard');
-
+        // The history/URL does not need to be changed as we are staying on the same page.
 
         await switchWorkspaceChannel(workspaceId);
-        await fetchWorkspaceData(workspaceId);
         
-        setState(prevState => ({ ui: { ...prevState.ui, dashboard: { ...prevState.ui.dashboard, isLoading: false } } }), ['page']);
+        // Fetch CORE data that's needed across many pages (projects, clients, members, etc.)
+        // The `init...Page` function for the current page will handle fetching its specific data.
+        await fetchWorkspaceData(workspaceId);
     }
 }
 

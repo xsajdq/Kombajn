@@ -1,5 +1,4 @@
 
-
 import { getState, setState } from '../state.ts';
 import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
@@ -101,6 +100,8 @@ export function handleDragOver(e: DragEvent) {
 
 export async function handleDrop(e: DragEvent) {
     e.preventDefault();
+    document.querySelectorAll('[data-status], [data-stage-id]').forEach(el => el.classList.remove('bg-primary/10'));
+    
     const state = getState();
     
     if (!draggedItemId || !draggedItemType || !state.currentUser) {

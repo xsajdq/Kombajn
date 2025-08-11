@@ -1,5 +1,4 @@
 
-
 import { getState, setState } from '../state.ts';
 import { closeModal, showToast } from './ui.ts';
 import { createNotification } from './notifications.ts';
@@ -334,54 +333,88 @@ export async function handleFormSubmit() {
 
             setState(prevState => ({ tasks: [...prevState.tasks, savedTask] }), []);
         } else if (type === 'addInvoice') {
-            if (usage.invoicesThisMonth >= planLimits.invoices) {
-                showToast(t('billing.limit_reached_invoices', {planName: workspace.subscription.planId}), 'error');
+            const form = document.getElementById('invoiceForm') as HTMLFormElement;
+            const invoiceId = (data as AddInvoiceModalData)?.invoiceId;
+            const isEdit = !!invoiceId;
+        
+            if (!isEdit && usage.invoicesThisMonth >= planLimits.invoices) {
+                showToast(t('billing.limit_reached_invoices', { planName: workspace.subscription.planId }), 'error');
                 return;
             }
-            const form = document.getElementById('invoiceForm') as HTMLFormElement;
+        
             const clientId = (form.querySelector('#invoiceClient') as HTMLSelectElement).value;
             const issueDate = (form.querySelector('#invoiceIssueDate') as HTMLInputElement).value;
             const dueDate = (form.querySelector('#invoiceDueDate') as HTMLInputElement).value;
-            if (!clientId || !issueDate || !dueDate) { showToast(t('errors.fill_all_fields'), 'error'); return; }
-
-            const invoiceData: Partial<Invoice> = {
-                workspaceId: activeWorkspaceId,
-                clientId,
-                issueDate,
-                dueDate,
-                status: 'pending',
-                emailStatus: 'not_sent',
-            };
-
-            const [savedInvoice] = await apiPost('invoices', invoiceData);
-            
+            if (!clientId || !issueDate || !dueDate) {
+                showToast(t('errors.fill_all_fields'), 'error');
+                return;
+            }
+        
             const itemRows = form.querySelectorAll<HTMLElement>('.invoice-item-row');
-            const lineItems: Omit<InvoiceLineItem, 'id'>[] = [];
+            const lineItemsFromForm: Omit<InvoiceLineItem, 'id' | 'invoiceId'>[] = [];
             itemRows.forEach(row => {
                 const description = (row.querySelector('[data-field="description"]') as HTMLInputElement).value;
                 const quantity = parseFloat((row.querySelector('[data-field="quantity"]') as HTMLInputElement).value);
                 const unitPrice = parseFloat((row.querySelector('[data-field="unitPrice"]') as HTMLInputElement).value);
                 if (description && !isNaN(quantity) && !isNaN(unitPrice)) {
-                    lineItems.push({ invoiceId: savedInvoice.id, description, quantity, unitPrice });
+                    lineItemsFromForm.push({ description, quantity, unitPrice });
                 }
             });
-
-            if (lineItems.length > 0) {
-                const savedItems = await apiPost('invoice_line_items', lineItems);
-                savedInvoice.items = savedItems;
+        
+            if (isEdit) {
+                const invoiceData = { clientId, issueDate, dueDate };
+                const [updatedInvoice] = await apiPut('invoices', { ...invoiceData, id: invoiceId });
+        
+                await apiFetch(`/api?action=data&resource=invoice_line_items`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ invoiceId: invoiceId })
+                });
+        
+                let savedItems: InvoiceLineItem[] = [];
+                if (lineItemsFromForm.length > 0) {
+                    const newLineItemsPayload = lineItemsFromForm.map(item => ({ ...item, invoiceId }));
+                    savedItems = await apiPost('invoice_line_items', newLineItemsPayload);
+                }
+                
+                updatedInvoice.items = savedItems;
+                
+                setState(prevState => ({
+                    invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, ...updatedInvoice } : i)
+                }), ['page']);
             } else {
-                savedInvoice.items = [];
+                const invoiceData: Partial<Invoice> = {
+                    workspaceId: activeWorkspaceId,
+                    clientId,
+                    issueDate,
+                    dueDate,
+                    status: 'pending',
+                    emailStatus: 'not_sent',
+                };
+                const [savedInvoice] = await apiPost('invoices', invoiceData);
+                
+                let savedItems: InvoiceLineItem[] = [];
+                if (lineItemsFromForm.length > 0) {
+                    const lineItemsPayload = lineItemsFromForm.map(item => ({ ...item, invoiceId: savedInvoice.id }));
+                    savedItems = await apiPost('invoice_line_items', lineItemsPayload);
+                }
+                savedInvoice.items = savedItems;
+                
+                const modalData = data as AddInvoiceModalData;
+                if (modalData?.sourceLogIds?.length) {
+                    await apiPut('time_logs', { ids: modalData.sourceLogIds, invoiceId: savedInvoice.id });
+                    setState(prevState => ({
+                        timeLogs: prevState.timeLogs.map(log => modalData.sourceLogIds!.includes(log.id) ? { ...log, invoiceId: savedInvoice.id } : log)
+                    }), []);
+                }
+                if (modalData?.sourceExpenseIds?.length) {
+                    await apiPut('expenses', { ids: modalData.sourceExpenseIds, invoiceId: savedInvoice.id });
+                    setState(prevState => ({
+                        expenses: prevState.expenses.map(exp => modalData.sourceExpenseIds!.includes(exp.id) ? { ...exp, invoiceId: savedInvoice.id } : exp)
+                    }), []);
+                }
+        
+                setState(prevState => ({ invoices: [...prevState.invoices, savedInvoice] }), ['page']);
             }
-            
-            const modalData = data as AddInvoiceModalData;
-            if (modalData?.sourceLogIds?.length) {
-                await apiPut('time_logs', { ids: modalData.sourceLogIds, invoiceId: savedInvoice.id });
-            }
-            if (modalData?.sourceExpenseIds?.length) {
-                await apiPut('expenses', { ids: modalData.sourceExpenseIds, invoiceId: savedInvoice.id });
-            }
-
-            setState(prevState => ({ invoices: [...prevState.invoices, savedInvoice] }), []);
         } else if (type === 'addCommentToTimeLog') {
             const form = document.getElementById('add-comment-to-timelog-form') as HTMLFormElement;
             const trackedSeconds = parseInt((form.querySelector('#time-picker-seconds') as HTMLInputElement).value, 10);

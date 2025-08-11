@@ -353,21 +353,21 @@ export function TaskDetailModal() {
                         {value: 'backlog', text: t('modals.status_backlog')}, {value: 'todo', text: t('modals.status_todo')},
                         {value: 'inprogress', text: t('modals.status_inprogress')}, {value: 'inreview', text: t('modals.status_inreview')},
                         {value: 'done', text: t('modals.status_done')},
-                    ], disabled: !canEdit, containerClassName: 'sidebar-item', dataAttributes: { field: 'status' } })}
+                    ], disabled: !canEdit, containerClassName: 'sidebar-item', dataField: 'status' })}
 
                     ${renderMultiUserSelect({ id: 'task-assignees-sidebar', label: t('modals.assignees'), users: projectMembers, selectedUserIds: assignees, unassignedText: t('modals.unassigned'), containerClassName: 'sidebar-item' })}
 
                     <div class="sidebar-item">
                         <label class="${labelClasses}">${t('modals.dates')}</label>
                         <div class="grid grid-cols-2 gap-2">
-                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.startDate, dataAttributes: { field: 'startDate' }, containerClassName: '' })}
-                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.dueDate, dataAttributes: { field: 'dueDate' }, containerClassName: '' })}
+                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.startDate, dataField: 'startDate', containerClassName: '' })}
+                            ${renderTextInput({ id: '', label: '', type: 'date', value: task.dueDate, dataField: 'dueDate', containerClassName: '' })}
                         </div>
                     </div>
                      ${renderSelect({ id: '', label: t('modals.priority'), value: task.priority || '', options: [
                         {value: '', text: t('modals.priority_none')}, {value: 'low', text: t('modals.priority_low')},
                         {value: 'medium', text: t('modals.priority_medium')}, {value: 'high', text: t('modals.priority_high')},
-                     ], disabled: !canEdit, containerClassName: 'sidebar-item', dataAttributes: { field: 'priority' } })}
+                     ], disabled: !canEdit, containerClassName: 'sidebar-item', dataField: 'priority' })}
                 </div>
 
                 <div class="bg-background p-4 rounded-lg space-y-4">

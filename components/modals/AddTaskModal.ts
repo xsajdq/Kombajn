@@ -40,7 +40,7 @@ export function AddTaskModal() {
                     <label for="projectSection" class="${labelClasses}">${t('modals.project_section')}</label>
                     <select id="projectSection" class="w-full bg-background border border-border-color rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition">
                         <option value="">${t('tasks.default_board')}</option>
-                        ${projectSectionsForSelectedProject.map((ps: ProjectSection) => html`<option value="${ps.id}">${ps.name}</option>`).join('')}
+                        ${projectSectionsForSelectedProject.map((ps: ProjectSection) => html`<option value="${ps.id}">${ps.name}</option>`)}
                     </select>
                 </div>
                 ${renderSelect({
