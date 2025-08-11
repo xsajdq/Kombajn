@@ -777,7 +777,18 @@ export async function handleClick(e: MouseEvent) {
         if(state.ui.isNotificationsOpen) notificationHandlers.toggleNotificationsPopover(false);
     }
     if (!target.closest('.command-palette') && state.ui.isCommandPaletteOpen) uiHandlers.toggleCommandPalette(false);
-    if (state.ui.onboarding.isActive && !target.closest('.absolute.bg-content')) onboardingHandlers.finishOnboarding();
+    
+    const onboardingNextBtn = target.closest('.onboarding-next-btn');
+    if (onboardingNextBtn) {
+        onboardingHandlers.nextStep();
+        return;
+    }
+
+    const onboardingSkipBtn = target.closest('.onboarding-skip-btn');
+    if (onboardingSkipBtn) {
+        onboardingHandlers.finishOnboarding();
+        return;
+    }
 
     const navLink = target.closest('a');
     if (navLink && navLink.hostname === window.location.hostname && !navLink.href.startsWith('mailto:')) {
