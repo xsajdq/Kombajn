@@ -95,6 +95,18 @@ export async function handleClick(e: MouseEvent) {
     if (!(e.target instanceof Element)) return;
     const target = e.target as HTMLElement;
 
+    // This handler has top priority to ensure modal buttons always work,
+    // even if they are inside another clickable element (like a card).
+    const modalTarget = target.closest<HTMLElement>('[data-modal-target]');
+    if (modalTarget) {
+        // If the modal was triggered from the FAB menu, close the menu.
+        if (target.closest('.fab-option')) {
+            document.getElementById('fab-container')?.classList.remove('is-open');
+        }
+        uiHandlers.showModal(modalTarget.dataset.modalTarget as any, { ...modalTarget.dataset });
+        return;
+    }
+
     // --- Notification Bell Handler ---
     const notificationBell = target.closest('#notification-bell');
     if (notificationBell) {
@@ -787,12 +799,6 @@ export async function handleClick(e: MouseEvent) {
     }
 
     if (target.closest('#help-btn')) { uiHandlers.showModal('keyboardShortcuts'); return; }
-    const modalTarget = target.closest<HTMLElement>('[data-modal-target]');
-    if (modalTarget) {
-        if (target.closest('.fab-option')) { fabContainer?.classList.remove('is-open'); }
-        uiHandlers.showModal(modalTarget.dataset.modalTarget as any, { ...modalTarget.dataset });
-        return;
-    }
     const saveModalBtn = target.closest('#modal-save-btn');
     if (saveModalBtn) { formHandlers.handleFormSubmit(); return; }
     if (target.closest('.btn-close-modal') || (target.id === 'modal-backdrop' && !target.closest('#modal-content'))) { uiHandlers.closeModal(); return; }
