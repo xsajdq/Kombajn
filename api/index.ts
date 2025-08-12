@@ -380,8 +380,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     queries['timeOffRequests'] = supabase.from('time_off_requests').select('*').eq('workspace_id', workspaceId);
                     queries['reviews'] = supabase.from('reviews').select('*').eq('workspace_id', workspaceId);
                     queries['taskViews'] = supabase.from('task_views').select('*').eq('workspace_id', workspaceId);
-                    queries['kanban_stages'] = supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId);
-                    queries['pipeline_stages'] = supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId);
+                    queries['kanbanStages'] = supabase.from('kanban_stages').select('*').eq('workspace_id', workspaceId);
+                    queries['pipelineStages'] = supabase.from('pipeline_stages').select('*').eq('workspace_id', workspaceId);
                     
                     // Fetch essential tasks for the dashboard
                     const { data: myTasksData, error: myTasksError } = await supabase.from('tasks').select('*, task_assignees!inner(*)').eq('workspace_id', workspaceId).eq('task_assignees.user_id', user.id).neq('status', 'done').eq('is_archived', false).limit(50);
