@@ -61,7 +61,7 @@ export async function fetchWorkspaceData(workspaceId: string) {
                 ...prevState.ui,
                 dashboard: { ...prevState.ui.dashboard, loadedWorkspaceId: workspaceId, isLoading: false },
             }
-        }), []);
+        }), ['page']);
         
         console.log(`Successfully fetched core data for workspace ${workspaceId}.`);
     } catch (error) {
