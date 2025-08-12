@@ -1,4 +1,5 @@
 
+
 import { getState } from './state.ts';
 
 const translations = {
@@ -271,9 +272,8 @@ const translations = {
             tab_workspace: 'Workspace',
             tab_integrations: 'Integrations',
             tab_pipeline: 'Sales Pipeline',
-            tab_kanban: 'Kanban Board',
             tab_custom_fields: 'Custom Fields',
-            tab_task_views: 'Task Views',
+            tab_task_boards: 'Task Boards',
             profile_details: 'Profile Details',
             avatar: 'Avatar',
             upload_avatar: 'Upload Avatar',
@@ -1103,9 +1103,8 @@ const translations = {
             tab_workspace: 'Obszar Roboczy',
             tab_integrations: 'Integracje',
             tab_pipeline: 'Lejek Sprzedażowy',
-            tab_kanban: 'Tablica Kanban',
             tab_custom_fields: 'Pola Niestandardowe',
-            tab_task_views: 'Widoki Zadań',
+            tab_task_boards: 'Tablice Zadań',
             profile_details: 'Szczegóły Profilu',
             avatar: 'Awatar',
             upload_avatar: 'Prześlij Awatar',

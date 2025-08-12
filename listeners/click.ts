@@ -975,6 +975,12 @@ export async function handleClick(e: MouseEvent) {
         (document.getElementById('new-task-view-name') as HTMLInputElement).value = '';
         return;
     }
+    const deleteTaskViewBtn = target.closest<HTMLElement>('.delete-task-view-btn');
+    if (deleteTaskViewBtn) {
+        const viewId = deleteTaskViewBtn.dataset.viewId!;
+        taskViewHandlers.handleDeleteTaskView(viewId);
+        return;
+    }
     const milestoneCheckbox = target.closest<HTMLInputElement>('.milestone-checkbox');
     if (milestoneCheckbox) {
         const milestoneId = milestoneCheckbox.dataset.milestoneId!;
@@ -984,108 +990,4 @@ export async function handleClick(e: MouseEvent) {
     const savePipelineStageBtn = target.closest<HTMLElement>('[data-save-pipeline-stage]');
     if (savePipelineStageBtn) {
         const stageId = savePipelineStageBtn.dataset.savePipelineStage!;
-        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
-        if (input) { pipelineHandlers.handleUpdateStage(stageId, input.value); }
-        return;
-    }
-    const saveKanbanStageBtn = target.closest<HTMLElement>('[data-save-kanban-stage]');
-    if (saveKanbanStageBtn) {
-        const stageId = saveKanbanStageBtn.dataset.saveKanbanStage!;
-        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
-        if (input) { kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value); }
-        return;
-    }
-
-    const removeTagBtn = target.closest<HTMLElement>('.remove-tag-btn');
-    if (removeTagBtn) {
-        const container = removeTagBtn.closest<HTMLElement>('.multiselect-container')!;
-        const tagId = removeTagBtn.dataset.tagId!;
-        const entityType = container.dataset.entityType as TaggableEntity;
-        const entityId = container.dataset.entityId!;
-        if (entityType && entityId && tagId) { tagHandlers.handleToggleTag(entityType, entityId, tagId); }
-        return;
-    }
-    if (target.closest('#create-project-from-deal-btn')) {
-        const btn = target.closest<HTMLElement>('#create-project-from-deal-btn')!;
-        uiHandlers.closeModal(false);
-        uiHandlers.showModal('addProject', { clientId: btn.dataset.clientId, projectName: btn.dataset.dealName });
-        return;
-    }
-    const taskCardMenuBtn = target.closest<HTMLElement>('.task-card-menu-btn');
-    if (taskCardMenuBtn) {
-        e.stopPropagation();
-        const taskId = taskCardMenuBtn.closest<HTMLElement>('.task-card')!.dataset.taskId!;
-        showTaskCardMenu(taskId, taskCardMenuBtn);
-        return;
-    }
-    if (target.closest<HTMLElement>('[data-edit-task-id]')) {
-        const taskId = target.closest<HTMLElement>('[data-edit-task-id]')!.dataset.editTaskId!;
-        taskHandlers.openTaskDetail(taskId);
-        closeDynamicMenus();
-        return;
-    }
-    if (target.closest<HTMLElement>('[data-archive-task-id]')) {
-        const taskId = target.closest<HTMLElement>('[data-archive-task-id]')!.dataset.archiveTaskId!;
-        taskHandlers.handleToggleTaskArchive(taskId);
-        closeDynamicMenus();
-        return;
-    }
-    if (target.closest<HTMLElement>('[data-remove-member-id]')) {
-        const memberId = target.closest<HTMLElement>('[data-remove-member-id]')!.dataset.removeMemberId!;
-        teamHandlers.handleRemoveUserFromWorkspace(memberId);
-        return;
-    }
-    if (target.closest('#add-milestone-btn')) {
-        goalHandlers.handleAddMilestone();
-        return;
-    }
-    const removeMilestoneBtn = target.closest('.remove-milestone-btn');
-    if (removeMilestoneBtn) {
-        const id = removeMilestoneBtn.closest<HTMLElement>('.milestone-item')!.dataset.id!;
-        goalHandlers.handleRemoveMilestone(id);
-        return;
-    }
-    const clientFilterStatusBtn = target.closest<HTMLElement>('[data-client-filter-status]');
-    if (clientFilterStatusBtn) {
-        setState(prevState => ({ ui: { ...prevState.ui, clients: { ...prevState.ui.clients, filters: { ...prevState.ui.clients.filters, status: clientFilterStatusBtn.dataset.clientFilterStatus as any } } } }), ['page']);
-        return;
-    }
-    const teamCalendarViewBtn = target.closest<HTMLElement>('[data-team-calendar-view]');
-    if (teamCalendarViewBtn) {
-        setState(prevState => ({ ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, view: teamCalendarViewBtn.dataset.teamCalendarView as any } } }), ['page']);
-        return;
-    }
-    const calendarNavBtn = target.closest<HTMLElement>('[data-calendar-nav]');
-    if (calendarNavBtn) {
-        const direction = calendarNavBtn.dataset.calendarNav;
-        const targetCalendar = calendarNavBtn.dataset.targetCalendar;
-        
-        setState(prevState => {
-            if (targetCalendar === 'team') {
-                const viewKey = prevState.ui.teamCalendar.view;
-                const currentDate = new Date(prevState.ui.teamCalendar.date + 'T12:00:00Z');
-                
-                if (direction === 'prev') {
-                    if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
-                    else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() - 7);
-                    else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() - 1);
-                } else { // 'next'
-                    if (viewKey === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
-                    else if (['week', 'workload', 'timesheet'].includes(viewKey)) currentDate.setDate(currentDate.getDate() + 7);
-                    else if (viewKey === 'day') currentDate.setDate(currentDate.getDate() + 1);
-                }
-                return { ui: { ...prevState.ui, teamCalendar: { ...prevState.ui.teamCalendar, date: currentDate.toISOString().slice(0, 10) } } };
-            } else { // for tasks calendar
-                const currentDate = new Date(prevState.ui.calendarDate + '-15T12:00:00Z');
-                if (direction === 'prev') {
-                    currentDate.setMonth(currentDate.getMonth() - 1);
-                } else { // 'next'
-                    currentDate.setMonth(currentDate.getMonth() + 1);
-                }
-                return { ui: { ...prevState.ui, calendarDate: currentDate.toISOString().slice(0, 7) } };
-            }
-        }, ['page']);
-        return;
-    }
-
-}
+        const input = document.querySelector<

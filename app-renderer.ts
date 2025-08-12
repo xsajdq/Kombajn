@@ -91,8 +91,10 @@ function postRenderActions() {
                 
                 modalContent.classList.remove('scale-95', 'opacity-0');
 
-                // Autofocus the first focusable element after it becomes visible
-                modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+                // Autofocus the first focusable element after it becomes visible, unless it's a detail view
+                if (state.ui.modal.type !== 'taskDetail' && state.ui.modal.type !== 'subtaskDetail') {
+                    modalContent.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus();
+                }
             }, 10);
         }
     }

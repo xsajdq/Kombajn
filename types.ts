@@ -517,6 +517,7 @@ export interface KanbanStage {
     name: string;
     status: Task['status'];
     sortOrder: number;
+    taskViewId?: string | null;
 }
 
 
@@ -850,6 +851,14 @@ export interface AppState {
             hasMore: boolean;
             isLoadingMore: boolean;
             viewingBaselineId: string | null;
+            collapsedProjects: string[];
+            selectedTaskIds: string[];
+            expandedSubtasks: string[];
+            editingTask: {
+                id: string;
+                field: 'name' | 'assignees' | 'dueDate' | 'priority' | 'status';
+                rect: DOMRect | null;
+            } | null;
         };
         invoiceFilters: {
             clientId: string;
@@ -892,7 +901,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskViews' | 'pipeline' | 'kanban' | 'checklistTemplates';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskBoards' | 'pipeline' | 'checklistTemplates';
         };
         dashboard: {
             isEditing: boolean;

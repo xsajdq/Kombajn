@@ -1,13 +1,14 @@
 
 
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
 import { renderTaskCard } from '../components/TaskCard.ts';
 import type { Task, User, ProjectSection, SortByOption, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
-import { openTaskDetail, fetchTasksForWorkspace } from '../handlers/tasks.ts';
+import { openTaskDetail, fetchTasksForWorkspace, handleGanttTaskUpdate, handleTaskProgressUpdate } from '../handlers/tasks.ts';
 import { getWorkspaceKanbanWorkflow } from '../handlers/main.ts';
 import { TaskFilterPanel } from '../components/TaskFilterPanel.ts';
 import { html, TemplateResult } from 'lit-html';
@@ -106,8 +107,10 @@ function getFilteredTasks(): Task[] {
 
 function renderBoardView(filteredTasks: Task[]): TemplateResult {
     const state = getState();
+    const activeViewId = state.ui.activeTaskViewId;
+    
     const kanbanStages = state.kanbanStages
-        .filter(s => s.workspaceId === state.activeWorkspaceId)
+        .filter(s => s.workspaceId === state.activeWorkspaceId && s.taskViewId === (activeViewId || null))
         .sort((a, b) => a.sortOrder - b.sortOrder);
 
     if (kanbanStages.length === 0) {
@@ -342,19 +345,38 @@ export function initTasksPageView() {
     if (currentState.ui.tasks.viewMode === 'gantt' && !currentState.ui.tasks.isLoading) {
         const ganttContainer = document.getElementById('gantt-chart');
         if (ganttContainer && !ganttChart) {
-            const tasksForGantt = getFilteredTasks()
+            const tasks = getFilteredTasks();
+            const taskIds = new Set(tasks.map(t => t.id));
+            
+            const tasksForGantt = tasks
                 .filter(t => t.startDate && t.dueDate)
-                .map(t => ({
-                    id: t.id,
-                    name: t.name,
-                    start: t.startDate!,
-                    end: t.dueDate!,
-                    progress: t.progress || 0,
-                }));
+                .map(t => {
+                    const dependencies = currentState.dependencies
+                        .filter(d => d.blockedTaskId === t.id && taskIds.has(d.blockingTaskId))
+                        .map(d => d.blockingTaskId);
+
+                    return {
+                        id: t.id,
+                        name: t.name,
+                        start: t.startDate!,
+                        end: t.dueDate!,
+                        progress: t.progress || 0,
+                        dependencies: dependencies.join(','),
+                        custom_class: t.isMilestone ? 'gantt-milestone' : '',
+                    };
+                });
             
             if (tasksForGantt.length > 0) {
                 ganttChart = new Gantt("#gantt-chart", tasksForGantt, {
                     on_click: (task: any) => openTaskDetail(task.id),
+                    on_date_change: (task: any, start: Date, end: Date) => {
+                        const startDate = start.toISOString().slice(0, 10);
+                        const endDate = end.toISOString().slice(0, 10);
+                        handleGanttTaskUpdate(task.id, startDate, endDate);
+                    },
+                    on_progress_change: (task: any, progress: number) => {
+                        handleTaskProgressUpdate(task.id, progress);
+                    },
                     bar_height: 20,
                     bar_corner_radius: 4,
                     view_mode: currentState.ui.tasks.ganttViewMode,

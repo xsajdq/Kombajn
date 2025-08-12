@@ -2,7 +2,7 @@
 
 import { getState } from '../state.ts';
 import { t } from '../i18n.ts';
-import type { CustomFieldType, TaskView } from '../types.ts';
+import type { CustomFieldType, TaskView, KanbanStage } from '../types.ts';
 import { can } from '../permissions.ts';
 import { html, TemplateResult } from 'lit-html';
 
@@ -253,46 +253,78 @@ export function SettingsPage(): TemplateResult {
         `;
     };
     
-    const renderTaskViewsSettings = (): TemplateResult => {
+    const renderTaskBoardsSettings = (): TemplateResult => {
         const taskViews = state.taskViews.filter(tv => tv.workspaceId === state.activeWorkspaceId);
-        return html`
-            <div>
-                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_task_views')}</h4>
-                <p class="text-sm text-text-subtle mb-4">Create custom task boards that will appear in your sidebar for quick access.</p>
-            </div>
-            <div class="bg-content p-5 rounded-lg shadow-sm">
-                <div class="divide-y divide-border-color">
-                    ${taskViews.map(view => html`
-                        <div class="py-3 task-view-item" data-view-id="${view.id}">
-                            <div class="view-mode flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <span class="material-icons-sharp">${view.icon}</span>
-                                    <span class="font-medium">${view.name}</span>
+        const allKanbanStages = state.kanbanStages.filter(ks => ks.workspaceId === state.activeWorkspaceId);
+    
+        const renderBoardConfig = (board: TaskView | { id: null, name: string, icon: string }) => {
+            const boardId = board.id;
+            const stages = allKanbanStages
+                .filter(ks => ks.taskViewId === boardId)
+                .sort((a, b) => a.sortOrder - b.sortOrder);
+    
+            return html`
+                <details class="bg-content p-4 rounded-lg shadow-sm task-view-item" data-view-id="${board.id}" open>
+                    <summary class="flex justify-between items-center cursor-pointer">
+                        <div class="flex items-center gap-3 view-mode">
+                            <span class="material-icons-sharp">${board.icon}</span>
+                            <span class="font-semibold">${board.name}</span>
+                        </div>
+                         <div class="edit-mode hidden flex-1">
+                             <div class="flex gap-2 items-end">
+                                <div class="flex-1">
+                                    <label class="text-xs font-medium text-text-subtle">${t('settings.view_name')}</label>
+                                    <input type="text" name="view-name" class="form-control" .value="${board.name}">
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <button class="btn-icon edit-task-view-btn"><span class="material-icons-sharp text-base">edit</span></button>
-                                    <button class="btn-icon delete-task-view-btn" data-view-id="${view.id}"><span class="material-icons-sharp text-base text-danger">delete</span></button>
-                                </div>
-                            </div>
-                            <div class="edit-mode hidden mt-2">
-                                <div class="flex gap-2 items-end">
-                                    <div class="flex-1">
-                                        <label class="text-xs font-medium text-text-subtle">${t('settings.view_name')}</label>
-                                        <input type="text" name="view-name" class="form-control" .value="${view.name}">
-                                    </div>
-                                    <div class="flex-1">
-                                        <label class="text-xs font-medium text-text-subtle">${t('settings.icon')}</label>
-                                        <input type="text" name="view-icon" class="form-control" .value="${view.icon}">
-                                    </div>
-                                    <button class="btn btn-secondary cancel-task-view-edit-btn">${t('modals.cancel')}</button>
-                                    <button class="btn btn-primary save-task-view-btn">${t('modals.save')}</button>
+                                <div>
+                                    <label class="text-xs font-medium text-text-subtle">${t('settings.icon')}</label>
+                                    <input type="text" name="view-icon" class="form-control" .value="${board.icon}">
                                 </div>
                             </div>
                         </div>
-                    `)}
-                </div>
+                        ${board.id !== null ? html`
+                            <div class="flex items-center gap-2">
+                                <div class="view-mode">
+                                    <button class="btn-icon edit-task-view-btn"><span class="material-icons-sharp text-base">edit</span></button>
+                                    <button class="btn-icon delete-task-view-btn" data-view-id="${board.id}"><span class="material-icons-sharp text-base text-danger">delete</span></button>
+                                </div>
+                                <div class="edit-mode hidden">
+                                    <button class="btn btn-secondary btn-sm cancel-task-view-edit-btn">${t('modals.cancel')}</button>
+                                    <button class="btn btn-primary btn-sm save-task-view-btn">${t('modals.save')}</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </summary>
+    
+                    <div class="pt-4 mt-4 border-t border-border-color">
+                        <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
+                        <div class="space-y-2 kanban-stages-list" data-view-id="${board.id || 'default'}">
+                            ${stages.map(stage => html`
+                                <div class="flex items-center gap-3 p-3 bg-background rounded-md kanban-stage-row" data-stage-id="${stage.id}" draggable="true">
+                                    <span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>
+                                    <input type="text" class="form-control" .value="${stage.name}" data-stage-name-id="${stage.id}">
+                                    <div class="flex items-center gap-1">
+                                        <button class="btn-icon" data-save-kanban-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
+                                    </div>
+                                </div>
+                            `)}
+                        </div>
+                    </div>
+                </details>
+            `;
+        };
+    
+        return html`
+            <div>
+                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_task_boards')}</h4>
+                <p class="text-sm text-text-subtle mb-4">Create custom task boards and configure their Kanban columns.</p>
+            </div>
+            <div class="space-y-4">
+                ${renderBoardConfig({ id: null, name: 'Default Board', icon: 'view_kanban' })}
+                ${taskViews.map(view => renderBoardConfig(view))}
             </div>
             <div class="bg-content p-5 rounded-lg shadow-sm mt-6">
+                <h4 class="font-semibold mb-4">Create New Board</h4>
                 <div class="flex gap-4 items-end">
                     <div class="flex-grow">
                         <label for="new-task-view-name" class="text-sm font-medium text-text-subtle">${t('settings.view_name')}</label>
@@ -355,34 +387,6 @@ export function SettingsPage(): TemplateResult {
         `;
     };
 
-    const renderKanbanSettings = (): TemplateResult => {
-        const stages = state.kanbanStages
-            .filter(s => s.workspaceId === state.activeWorkspaceId)
-            .sort((a, b) => a.sortOrder - b.sortOrder);
-        
-        return html`
-            <div>
-                <h4 class="font-semibold text-lg mb-1">${t('settings.tab_kanban')}</h4>
-                <p class="text-sm text-text-subtle mb-4">Customize the name and order of your task board columns.</p>
-            </div>
-            <div class="bg-content p-5 rounded-lg shadow-sm">
-                <h5 class="font-semibold mb-2">Kanban Columns</h5>
-                <p class="text-xs text-text-subtle mb-4">${t('settings.drag_to_reorder')}</p>
-                <div id="kanban-stages-list" class="space-y-2">
-                    ${stages.map(stage => html`
-                        <div class="flex items-center gap-3 p-3 bg-background rounded-md kanban-stage-row" data-stage-id="${stage.id}" draggable="true">
-                            <span class="material-icons-sharp text-text-subtle cursor-move">drag_indicator</span>
-                            <input type="text" class="form-control" .value="${stage.name}" data-stage-name-id="${stage.id}">
-                            <div class="flex items-center gap-1">
-                                <button class="btn-icon" data-save-kanban-stage="${stage.id}" title="${t('modals.save')}"><span class="material-icons-sharp text-base">save</span></button>
-                            </div>
-                        </div>
-                    `)}
-                </div>
-            </div>
-        `;
-    };
-
     let tabContent: TemplateResult | '' = '';
     switch (activeTab) {
         case 'general': tabContent = renderGeneralSettings(); break;
@@ -390,9 +394,8 @@ export function SettingsPage(): TemplateResult {
         case 'customFields': if (canManage) tabContent = renderCustomFieldsSettings(); break;
         case 'workspace': if (canManage) tabContent = renderWorkspaceSettings(); break;
         case 'integrations': if (canManage) tabContent = renderIntegrationsSettings(); break;
-        case 'taskViews': if (canManage) tabContent = renderTaskViewsSettings(); break;
+        case 'taskBoards': if (canManage) tabContent = renderTaskBoardsSettings(); break;
         case 'pipeline': if (canManage) tabContent = renderPipelineSettings(); break;
-        case 'kanban': if (canManage) tabContent = renderKanbanSettings(); break;
     }
 
     const navItems = [
@@ -401,9 +404,8 @@ export function SettingsPage(): TemplateResult {
         { id: 'workspace', icon: 'corporate_fare', text: t('settings.tab_workspace'), permission: 'manage_workspace_settings' },
         { id: 'integrations', icon: 'integration_instructions', text: t('settings.tab_integrations'), permission: 'manage_workspace_settings' },
         { id: 'pipeline', icon: 'view_kanban', text: t('settings.tab_pipeline'), permission: 'manage_workspace_settings' },
-        { id: 'kanban', icon: 'view_week', text: t('settings.tab_kanban'), permission: 'manage_workspace_settings' },
+        { id: 'taskBoards', icon: 'view_week', text: t('settings.tab_task_boards'), permission: 'manage_workspace_settings' },
         { id: 'customFields', icon: 'ballot', text: t('settings.tab_custom_fields'), permission: 'manage_workspace_settings' },
-        { id: 'taskViews', icon: 'view_list', text: t('settings.tab_task_views'), permission: 'manage_workspace_settings' },
     ];
 
     const availableNavItems = navItems.filter(item => !item.permission || can(item.permission as any));
