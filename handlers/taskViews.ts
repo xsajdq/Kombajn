@@ -3,6 +3,7 @@ import { updateUI } from '../app-renderer.ts';
 import { apiPost, apiPut, apiFetch } from '../services/api.ts';
 import type { TaskView } from '../types.ts';
 import { closeModal } from './ui.ts';
+import { handleCreateDefaultKanbanStagesForView } from './kanban.ts';
 
 export async function handleCreateTaskView(name: string, icon: string) {
     const state = getState();
@@ -16,6 +17,7 @@ export async function handleCreateTaskView(name: string, icon: string) {
 
     try {
         const [newView] = await apiPost('task_views', payload);
+        await handleCreateDefaultKanbanStagesForView(state.activeWorkspaceId, newView.id);
         setState(prevState => ({ taskViews: [...prevState.taskViews, newView] }), ['page', 'sidebar']);
     } catch (error) {
         console.error("Failed to create task view:", error);
@@ -62,23 +64,30 @@ export async function handleDeleteTaskView(id: string) {
     const viewIndex = state.taskViews.findIndex(tv => tv.id === id);
     if (viewIndex === -1) return;
 
-    const originalTaskViews = [...state.taskViews];
-    const originalTasks = state.tasks.map(t => ({ id: t.id, taskViewId: t.taskViewId }));
+    const originalState: Partial<any> = {};
+    const stateUpdate: Partial<any> = {};
 
-    let newState: Partial<any> = {
-        taskViews: state.taskViews.filter(tv => tv.id !== id),
-        tasks: state.tasks.map(task => task.taskViewId === id ? { ...task, taskViewId: null } : task),
-    };
+    originalState.taskViews = [...state.taskViews];
+    originalState.tasks = state.tasks.map(t => ({ id: t.id, taskViewId: t.taskViewId }));
+    originalState.kanbanStages = [...state.kanbanStages];
+
+    stateUpdate.taskViews = state.taskViews.filter(tv => tv.id !== id);
+    stateUpdate.tasks = state.tasks.map(task => task.taskViewId === id ? { ...task, taskViewId: null } : task);
+    stateUpdate.kanbanStages = state.kanbanStages.filter(ks => ks.taskViewId !== id);
 
     if (state.ui.activeTaskViewId === id) {
-        newState.ui = { ...state.ui, activeTaskViewId: null };
-        newState.currentPage = 'tasks';
+        stateUpdate.ui = { ...state.ui, activeTaskViewId: null };
+        stateUpdate.currentPage = 'tasks';
         history.pushState({}, '', '/tasks');
     }
     
-    setState(newState, ['page', 'sidebar']);
+    setState(stateUpdate, ['page', 'sidebar']);
 
     try {
+        await apiFetch('/api?action=data&resource=kanban_stages', {
+            method: 'DELETE',
+            body: JSON.stringify({ task_view_id: id }),
+        });
         await apiFetch('/api?action=data&resource=task_views', {
             method: 'DELETE',
             body: JSON.stringify({ id }),
@@ -87,9 +96,10 @@ export async function handleDeleteTaskView(id: string) {
         console.error("Failed to delete task view:", error);
         alert("Could not delete the task view.");
         setState(prevState => ({
-            taskViews: originalTaskViews,
+            taskViews: originalState.taskViews,
+            kanbanStages: originalState.kanbanStages,
             tasks: prevState.tasks.map(task => {
-                const original = originalTasks.find(ot => ot.id === task.id);
+                const original = originalState.tasks.find((ot: any) => ot.id === task.id);
                 return original ? { ...task, taskViewId: original.taskViewId } : task;
             })
         }), ['page', 'sidebar']);

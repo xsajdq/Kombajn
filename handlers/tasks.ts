@@ -2,6 +2,8 @@
 
 
 
+
+
 import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, DependencyType } from '../types.ts';
@@ -283,6 +285,35 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
         alert(`Could not update task. Reverting change.`);
         const revertedTasks = state.tasks.map(t => t.id === taskId ? { ...t, [field]: oldValue } as Task : t);
         setState({ tasks: revertedTasks }, [state.ui.modal.isOpen ? 'modal' : 'page']);
+    }
+}
+
+export async function handleGanttTaskUpdate(taskId: string, start: string, end: string) {
+    const state = getState();
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const originalStart = task.startDate;
+    const originalEnd = task.dueDate;
+
+    // Optimistic UI update
+    setState(prevState => ({
+        tasks: prevState.tasks.map(t => 
+            t.id === taskId ? { ...t, startDate: start, dueDate: end } : t
+        )
+    }), ['page']);
+
+    try {
+        await apiPut('tasks', { id: taskId, startDate: start, dueDate: end });
+    } catch (error) {
+        console.error('Failed to update task from Gantt chart', error);
+        alert('Failed to save Gantt changes.');
+        // Revert on failure
+        setState(prevState => ({
+            tasks: prevState.tasks.map(t => 
+                t.id === taskId ? { ...t, startDate: originalStart, dueDate: originalEnd } : t
+            )
+        }), ['page']);
     }
 }
 
@@ -775,5 +806,30 @@ export async function handleApplyChecklistTemplate(taskId: string, templateId: s
         setState(prevState => ({
             tasks: prevState.tasks.map(t => t.id === taskId ? { ...t, checklist: task.checklist } : t)
         }), ['modal']);
+    }
+}
+
+export async function handleBulkUpdateTasks(taskIds: string[], updates: Partial<Task>) {
+    const state = getState();
+    const originalTasks = state.tasks.filter(t => taskIds.includes(t.id));
+
+    // Optimistic update
+    setState(prevState => ({
+        tasks: prevState.tasks.map(t => taskIds.includes(t.id) ? { ...t, ...updates } : t)
+    }), ['page']);
+
+    try {
+        const payload = { ids: taskIds, ...updates };
+        await apiPut('tasks', payload);
+    } catch (error) {
+        console.error('Failed to bulk update tasks:', error);
+        alert('Could not update all selected tasks.');
+        // Revert on failure
+        setState(prevState => ({
+            tasks: prevState.tasks.map(t => {
+                const original = originalTasks.find(ot => ot.id === t.id);
+                return original ? original : t;
+            })
+        }), ['page']);
     }
 }

@@ -344,8 +344,8 @@ export function TaskDetailModal() {
     const { activeTab } = state.ui.taskDetail;
     
     const title = html`
-        <div class="flex items-center gap-2 min-w-0">
-            <input type="text" class="text-lg font-semibold bg-transparent border-none p-0 focus:ring-0 truncate" value="${task.name}" data-field="name" ?disabled=${!canEdit}>
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+            <input type="text" class="text-lg font-semibold bg-transparent border-none p-0 focus:ring-0 flex-1 min-w-0" value="${task.name}" data-field="name" ?disabled=${!canEdit}>
             <span class="text-sm text-text-subtle whitespace-nowrap">• ${project?.name || ''}</span>
         </div>
     `;
@@ -379,7 +379,8 @@ export function TaskDetailModal() {
                     </div>
                      ${renderSelect({ id: '', label: t('modals.priority'), value: task.priority || '', options: [
                         {value: '', text: t('modals.priority_none')}, {value: 'low', text: t('modals.priority_low')},
-                        {value: 'medium', text: t('modals.priority_medium')}, {value: 'high', text: t('modals.priority_high')},
+                        {value: 'medium', text: t('modals.priority_medium')},
+                        {value: 'high', text: t('modals.priority_high')},
                      ], disabled: !canEdit, containerClassName: 'sidebar-item', dataField: 'priority' })}
                 </div>
 
