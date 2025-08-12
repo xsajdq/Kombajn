@@ -54,6 +54,8 @@ export async function fetchWorkspaceData(workspaceId: string) {
             tasks: data.tasks || [], // Add tasks for "My Day"
             taskAssignees: data.taskAssignees || [], // Add assignees for those tasks
             taskViews: data.taskViews || [],
+            kanbanStages: data.kanbanStages || [],
+            pipelineStages: data.pipelineStages || [],
             // Set loaded state for dashboard
             ui: {
                 ...prevState.ui,
