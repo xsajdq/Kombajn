@@ -84,10 +84,7 @@ export async function handleDeleteTaskView(id: string) {
     setState(stateUpdate, ['page', 'sidebar']);
 
     try {
-        await apiFetch('/api?action=data&resource=kanban_stages', {
-            method: 'DELETE',
-            body: JSON.stringify({ task_view_id: id }),
-        });
+        // The database's ON DELETE CASCADE will handle deleting the kanban_stages.
         await apiFetch('/api?action=data&resource=task_views', {
             method: 'DELETE',
             body: JSON.stringify({ id }),
