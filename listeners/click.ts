@@ -990,4 +990,20 @@ export async function handleClick(e: MouseEvent) {
     const savePipelineStageBtn = target.closest<HTMLElement>('[data-save-pipeline-stage]');
     if (savePipelineStageBtn) {
         const stageId = savePipelineStageBtn.dataset.savePipelineStage!;
-        const input = document.querySelector<
+        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
+        if (input) {
+            await pipelineHandlers.handleUpdateStage(stageId, input.value);
+        }
+        return;
+    }
+    
+    const saveKanbanStageBtn = target.closest<HTMLElement>('[data-save-kanban-stage]');
+    if (saveKanbanStageBtn) {
+        const stageId = saveKanbanStageBtn.dataset.saveKanbanStage!;
+        const input = document.querySelector<HTMLInputElement>(`input[data-stage-name-id="${stageId}"]`);
+        if (input) {
+            await kanbanHandlers.handleUpdateKanbanStageName(stageId, input.value);
+        }
+        return;
+    }
+}
