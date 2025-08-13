@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import { getState, generateId, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Comment, Task, Attachment, TaskDependency, CustomFieldDefinition, CustomFieldType, CustomFieldValue, TaskAssignee, Tag, TaskTag, CommentReaction, DependencyType } from '../types.ts';

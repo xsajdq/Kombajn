@@ -35,8 +35,8 @@ export async function handleUpdateTaskView(id: string, name: string, icon: strin
     
     const editRow = document.querySelector(`.task-view-item[data-view-id="${id}"]`);
     if(editRow) {
-        editRow.querySelector('.view-mode')?.classList.remove('hidden');
-        editRow.querySelector('.edit-mode')?.classList.add('hidden');
+        editRow.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+        editRow.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
     }
 
     setState(prevState => ({
