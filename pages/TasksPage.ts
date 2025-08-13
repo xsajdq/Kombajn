@@ -1,7 +1,4 @@
 
-
-
-
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';

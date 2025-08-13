@@ -1,3 +1,4 @@
+
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Role, Task, AppState, ProjectRole, TaskDetailModalData } from '../types.ts';
@@ -13,6 +14,34 @@ import { t } from '../i18n.ts';
 export function handleChange(e: Event) {
     const target = e.target as HTMLElement;
     const state = getState();
+
+    const taskCheckbox = target.closest<HTMLInputElement>('.task-list-checkbox');
+    if (taskCheckbox) {
+        const taskId = taskCheckbox.dataset.taskId;
+        const projectId = taskCheckbox.dataset.projectId;
+        
+        setState(prevState => {
+            const selected = new Set(prevState.ui.tasks.selectedTaskIds);
+            const isChecked = taskCheckbox.checked;
+
+            if (taskId) { // Individual task checkbox
+                if (isChecked) {
+                    selected.add(taskId);
+                } else {
+                    selected.delete(taskId);
+                }
+            } else if (projectId) { // Project header checkbox
+                const tasksInProject = prevState.tasks.filter(t => t.projectId === projectId).map(t => t.id);
+                if (isChecked) {
+                    tasksInProject.forEach(id => selected.add(id));
+                } else {
+                    tasksInProject.forEach(id => selected.delete(id));
+                }
+            }
+            return { ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, selectedTaskIds: Array.from(selected) } } };
+        }, ['page']);
+        return;
+    }
 
     const followUpToggle = target.closest<HTMLInputElement>('[data-toggle-follow-up]');
     if (followUpToggle) {

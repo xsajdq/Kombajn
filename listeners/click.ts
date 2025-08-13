@@ -1,3 +1,4 @@
+
 import { getState, setState } from '../state.ts';
 import { updateUI, UIComponent } from '../app-renderer.ts';
 import { generateInvoicePDF } from '../services.ts';
@@ -190,6 +191,84 @@ export async function handleClick(e: MouseEvent) {
      const viewModeBtn = target.closest<HTMLElement>('[data-view-mode]');
     if(viewModeBtn){
         setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, viewMode: viewModeBtn.dataset.viewMode as any } } }), ['page']);
+        return;
+    }
+    const collapseProjectBtn = target.closest<HTMLElement>('.task-list-project-header summary');
+    if (collapseProjectBtn) {
+        const projectId = collapseProjectBtn.closest<HTMLElement>('[data-project-id]')?.dataset.projectId;
+        if (projectId) {
+            setState(prevState => {
+                const collapsed = new Set(prevState.ui.tasks.collapsedProjects);
+                if (collapsed.has(projectId)) {
+                    collapsed.delete(projectId);
+                } else {
+                    collapsed.add(projectId);
+                }
+                return { ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, collapsedProjects: Array.from(collapsed) } } }
+            }, ['page']);
+        }
+        return;
+    }
+    if (target.closest('#collapse-all-projects-btn')) {
+        const state = getState();
+        const allProjectIds = state.projects.filter(p => p.workspaceId === state.activeWorkspaceId).map(p => p.id);
+        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, collapsedProjects: allProjectIds } } }), ['page']);
+        return;
+    }
+    if (target.closest('#expand-all-projects-btn')) {
+        setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, collapsedProjects: [] } } }), ['page']);
+        return;
+    }
+    const subtaskToggle = target.closest<HTMLElement>('.subtask-toggle');
+    if (subtaskToggle) {
+        const taskId = subtaskToggle.dataset.taskId;
+        if (taskId) {
+            setState(prevState => {
+                const expanded = new Set(prevState.ui.tasks.expandedSubtasks);
+                if (expanded.has(taskId)) {
+                    expanded.delete(taskId);
+                } else {
+                    expanded.add(taskId);
+                }
+                return { ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, expandedSubtasks: Array.from(expanded) } } }
+            }, ['page']);
+        }
+        return;
+    }
+    const inlineEditable = target.closest<HTMLElement>('.inline-editable');
+    if (inlineEditable) {
+        const field = inlineEditable.dataset.field as any;
+        const taskId = inlineEditable.closest<HTMLElement>('[data-task-id]')?.dataset.taskId;
+        if (field && taskId) {
+            const rect = inlineEditable.getBoundingClientRect();
+            setState(prevState => ({
+                ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, editingTask: { id: taskId, field, rect } } }
+            }), ['page']);
+        }
+        return;
+    }
+    if (target.closest('#bulk-action-bar-close') || !target.closest('#bulk-action-bar')) {
+        if(getState().ui.tasks.editingTask) {
+             setState(prevState => ({ ui: { ...prevState.ui, tasks: { ...prevState.ui.tasks, editingTask: null } } }), ['page']);
+        }
+    }
+    const bulkActionBtn = target.closest<HTMLElement>('[data-bulk-action]');
+    if (bulkActionBtn) {
+        const action = bulkActionBtn.dataset.bulkAction!;
+        const value = bulkActionBtn.dataset.value!;
+        const { selectedTaskIds } = getState().ui.tasks;
+        if (selectedTaskIds.length === 0) return;
+
+        switch (action) {
+            case 'change-status':
+                taskHandlers.handleBulkUpdateTasks(selectedTaskIds, { status: value as any });
+                break;
+            case 'change-priority':
+                taskHandlers.handleBulkUpdateTasks(selectedTaskIds, { priority: value as any });
+                break;
+        }
+        // Close popovers if any
+        bulkActionBtn.closest('.relative')?.querySelector('.dropdown-menu')?.classList.add('hidden');
         return;
     }
     // --- END: Task Page UI Handlers ---
@@ -832,8 +911,8 @@ export async function handleClick(e: MouseEvent) {
     const dealCard = target.closest<HTMLElement>('.deal-card');
     if (dealCard && !target.closest('button, a')) { uiHandlers.updateUrlAndShowDetail('deal', dealCard.dataset.dealId!); return; }
     
-    const taskCardOrRow = target.closest<HTMLElement>('.modern-list-row, .task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item, .timesheet-entry');
-    if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn')) {
+    const taskCardOrRow = target.closest<HTMLElement>('.task-card, .project-task-row, .task-calendar-item, .workload-task-bar, .calendar-event-bar[data-task-id], .dashboard-task-item, .timesheet-entry, .task-list-row');
+    if (taskCardOrRow && !target.closest('button, a, input, textarea, select, [contenteditable="true"], .timer-controls, .task-card-menu-btn, .inline-editable')) {
         const taskId = taskCardOrRow.dataset.taskId;
         if (taskId) { uiHandlers.updateUrlAndShowDetail('task', taskId); return; }
     }
@@ -886,8 +965,6 @@ export async function handleClick(e: MouseEvent) {
     const taskStatusToggle = target.closest<HTMLElement>('.task-status-toggle');
     if (taskStatusToggle) { taskHandlers.handleToggleProjectTaskStatus(taskStatusToggle.dataset.taskId!); return; }
     if (target.closest('#restart-onboarding-btn')) { onboardingHandlers.startOnboarding(); return; }
-    if (target.closest('.onboarding-next-btn')) { onboardingHandlers.nextStep(); return; }
-    if (target.closest('.onboarding-skip-btn')) { onboardingHandlers.finishOnboarding(); return; }
     const mentionItem = target.closest<HTMLElement>('.mention-item');
     if (mentionItem) {
         const userId = mentionItem.dataset.mentionId!;
