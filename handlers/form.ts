@@ -382,9 +382,35 @@ export async function handleFormSubmit() {
                     invoices: prevState.invoices.map(i => i.id === invoiceId ? { ...i, ...updatedInvoice } : i)
                 }), ['page']);
             } else {
+                const issueDateObj = new Date(issueDate);
+                const year = issueDateObj.getFullYear();
+                const month = issueDateObj.getMonth() + 1;
+        
+                const invoicesInMonth = state.invoices.filter(inv => {
+                    if (inv.workspaceId !== activeWorkspaceId) return false;
+                    try {
+                        const invDate = new Date(inv.issueDate);
+                        return invDate.getFullYear() === year && (invDate.getMonth() + 1) === month;
+                    } catch (e) { return false; }
+                });
+        
+                let lastNumber = 0;
+                invoicesInMonth.forEach(inv => {
+                    const numberParts = inv.invoiceNumber.split('/');
+                    if (numberParts.length === 3) {
+                        const num = parseInt(numberParts[2], 10);
+                        if (!isNaN(num) && num > lastNumber) {
+                            lastNumber = num;
+                        }
+                    }
+                });
+        
+                const newInvoiceNumber = `${year}/${String(month).padStart(2, '0')}/${String(lastNumber + 1).padStart(3, '0')}`;
+
                 const invoiceData: Partial<Invoice> = {
                     workspaceId: activeWorkspaceId,
                     clientId,
+                    invoiceNumber: newInvoiceNumber,
                     issueDate,
                     dueDate,
                     status: 'pending',
