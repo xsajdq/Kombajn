@@ -1,7 +1,6 @@
 
 
 
-
 import { getState, setState } from '../state.ts';
 import { updateUI } from '../app-renderer.ts';
 import type { Task } from '../types.ts';
@@ -9,6 +8,7 @@ import { apiPost } from '../services/api.ts';
 import { getWorkspaceKanbanWorkflow } from './main.ts';
 import { t } from '../i18n.ts';
 import { showToast } from './ui.ts';
+import { runAutomations } from './automations.ts';
 
 export async function handleAddAiTask(taskIndex: number, projectId: string) {
     const state = getState();
@@ -36,6 +36,7 @@ export async function handleAddAiTask(taskIndex: number, projectId: string) {
             suggestedTasks: prevState.ai.suggestedTasks!.filter((_, i) => i !== taskIndex),
           }
         }), ['page']);
+        runAutomations('taskCreated', { task: savedTask, actorId: state.currentUser.id });
     } catch (error) {
         console.error("Failed to add AI-generated task:", error);
         showToast(t('errors.ai_task_save_failed'), 'error');

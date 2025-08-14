@@ -26,6 +26,7 @@ export function Sidebar(): TemplateResult {
         { id: 'invoices', icon: 'receipt_long', text: t('sidebar.invoices'), permission: 'view_invoices' },
         { id: 'inventory', icon: 'inventory_2', text: t('sidebar.inventory'), permission: 'view_inventory' },
         { id: 'budget-and-expenses', icon: 'account_balance_wallet', text: t('sidebar.budget-and-expenses'), permission: 'view_budgets' },
+        { id: 'automations', icon: 'smart_toy', text: t('sidebar.automations'), permission: 'view_automations' },
         { id: 'ai-assistant', icon: 'smart_toy', text: t('sidebar.ai_assistant'), permission: 'view_ai_assistant' },
         { id: 'hr', icon: 'groups', text: t('sidebar.hr'), permission: 'view_hr' },
         { id: 'reports', icon: 'assessment', text: t('sidebar.reports'), permission: 'view_reports' },

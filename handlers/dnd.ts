@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { renderApp, updateUI } from '../app-renderer.ts';
 import type { Task, Deal, DashboardWidget, UserTaskSortOrder, PipelineStage } from '../types.ts';
@@ -180,7 +181,7 @@ export async function handleDrop(e: DragEvent) {
             });
 
             if (originalTaskStatus !== newStatus) {
-                runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
+                runAutomations('taskStatusChanged', { task: updatedTask, actorId: state.currentUser.id });
             }
         } catch (error) {
             console.error("Failed to update task:", error);

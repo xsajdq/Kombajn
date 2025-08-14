@@ -237,7 +237,7 @@ export async function handleTaskDetailUpdate(taskId: string, field: keyof Task, 
                     await createNotification('status_change', { taskId, userIdToNotify: assignee.userId, newStatus: newStatus, actorId: state.currentUser.id });
                 }
             }
-            runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
+            runAutomations('taskStatusChanged', { task: updatedTask, actorId: state.currentUser.id });
         } catch (error) {
             console.error(`Failed to update task field status:`, error);
             alert(`Could not update task. Reverting change.`);
@@ -348,7 +348,7 @@ export async function handleTaskProgressUpdate(taskId: string, newProgress: numb
 
         // If status changed, run automations
         if (updatedTask.status !== originalStatus && state.currentUser) {
-            runAutomations('statusChange', { task: updatedTask, actorId: state.currentUser.id });
+            runAutomations('taskStatusChanged', { task: updatedTask, actorId: state.currentUser.id });
         }
     } catch (error) {
         console.error('Failed to update task progress', error);
@@ -465,7 +465,7 @@ export async function handleToggleChecklistItem(taskId: string, itemId: string) 
 export async function handleAddSubtask(parentId: string, name: string) {
     const state = getState();
     const parentTask = state.tasks.find(t => t.id === parentId);
-    if (!parentTask || !state.activeWorkspaceId) return;
+    if (!parentTask || !state.activeWorkspaceId || !state.currentUser) return;
 
     const newSubtaskPayload: Omit<Task, 'id' | 'createdAt'> = {
         workspaceId: state.activeWorkspaceId,
@@ -479,6 +479,7 @@ export async function handleAddSubtask(parentId: string, name: string) {
     try {
         const [savedSubtask] = await apiPost('tasks', newSubtaskPayload);
         setState({ tasks: [...state.tasks, savedSubtask] }, ['modal']);
+        runAutomations('taskCreated', { task: savedSubtask, actorId: state.currentUser.id });
     } catch (error) {
         console.error("Failed to add subtask:", error);
     }

@@ -13,7 +13,7 @@ export async function handleSaveChecklistTemplate(templateId?: string) {
     const name = (form.querySelector('#template-name') as HTMLInputElement).value.trim();
     if (!name) return;
 
-    const items: Omit<ChecklistTemplateItem, 'id'>[] = [];
+    const items: ChecklistTemplateItem[] = [];
     form.querySelectorAll('.template-item-row').forEach(row => {
         const text = (row.querySelector('input') as HTMLInputElement).value.trim();
         if (text) {

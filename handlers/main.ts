@@ -1,5 +1,7 @@
-import { getState, setState } from '../state.ts';
-import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView } from '../types.ts';
+
+
+import { getState, setState, generateId } from '../state.ts';
+import type { Role, ProjectRole, ProjectTemplate, Task, Attachment, ChatMessage, Automation, DashboardWidget, Client, Project, Invoice, User, Workspace, WorkspaceMember, Notification, FilterView, ProjectTemplateSection } from '../types.ts';
 import { updateUI } from '../app-renderer.ts';
 import { t } from '../i18n.ts';
 import { apiFetch, apiPost } from '../services/api.ts';
@@ -128,17 +130,25 @@ export async function handleSaveProjectAsTemplate(projectId: string) {
 
     const tasksToTemplate = state.tasks
         .filter(t => t.projectId === projectId && !t.parentId)
-        .map(({ name, description, priority }) => ({ name, description, priority }));
+        .map(({ name, description, priority, estimatedHours }) => ({
+            id: generateId(),
+            name,
+            description,
+            priority,
+            estimatedHours
+        }));
 
-    const automationsToTemplate = state.automations
-        .filter(a => a.projectId === projectId)
-        .map(({ name, trigger, actions }): Omit<Automation, 'id' | 'workspaceId' | 'projectId'> => ({ name, trigger, actions }));
-
+    const sections: ProjectTemplateSection[] = [{
+        id: generateId(),
+        name: "Tasks",
+        tasks: tasksToTemplate
+    }];
+    
     const newTemplatePayload: Omit<ProjectTemplate, 'id'> = {
         workspaceId: state.activeWorkspaceId,
         name: `${project.name} Template`,
-        tasks: tasksToTemplate,
-        automations: automationsToTemplate,
+        sections: sections,
+        roles: [],
     };
 
     try {
