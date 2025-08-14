@@ -881,4 +881,24 @@
   .custom-select-dropdown { @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-20; }
   .custom-select-list { @apply max-h-48 overflow-y-auto p-1; }
   .custom-select-option { @apply flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer text-sm; }
+
+  /* == Toggle Switch == */
+  .toggle-switch {
+    @apply relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer;
+  }
+  .toggle-switch-input {
+    @apply sr-only;
+  }
+  .toggle-switch-track {
+    @apply w-11 h-6 bg-border-color rounded-full transition-colors;
+  }
+  .toggle-switch-thumb {
+    @apply inline-block w-4 h-4 transform bg-white rounded-full transition-transform absolute top-1 left-1;
+  }
+  .toggle-switch-input:checked + .toggle-switch-track {
+    @apply bg-primary;
+  }
+  .toggle-switch-input:checked + .toggle-switch-track .toggle-switch-thumb {
+    @apply translate-x-5;
+  }
 }
