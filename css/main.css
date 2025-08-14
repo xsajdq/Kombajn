@@ -1,5 +1,4 @@
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -882,5 +881,4 @@
   .custom-select-dropdown { @apply absolute top-full mt-1 w-full bg-content border border-border-color rounded-md shadow-lg z-20; }
   .custom-select-list { @apply max-h-48 overflow-y-auto p-1; }
   .custom-select-option { @apply flex items-center gap-2 p-2 rounded-md hover:bg-background cursor-pointer text-sm; }
-
-  /* ==
+}
