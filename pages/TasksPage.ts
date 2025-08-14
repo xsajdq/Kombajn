@@ -1,4 +1,5 @@
 
+
 import { getState, setState } from '../state.ts';
 import { t } from '../i18n.ts';
 import { formatDuration, getTaskCurrentTrackedSeconds, formatDate, getUserInitials, filterItems } from '../utils.ts';
@@ -459,10 +460,10 @@ export function TasksPage(): TemplateResult {
                         <span class="material-icons-sharp text-base">filter_list</span>
                         <span>${t('tasks.filters_button_text')}</span>
                     </button>
-                    <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background" data-modal-target="automations">
+                    <a href="/automations" class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-content border border-border-color hover:bg-background">
                         <span class="material-icons-sharp text-base">smart_toy</span>
                         <span>${t('tasks.automations_button_text')}</span>
-                    </button>
+                    </a>
                     <button class="px-3 py-2 text-sm font-medium flex items-center gap-2 rounded-md bg-primary text-white hover:bg-primary-hover" data-modal-target="addTask" ?disabled=${!canManage}>
                         <span class="material-icons-sharp text-base">add</span> ${t('tasks.new_task')}
                     </button>

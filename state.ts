@@ -72,9 +72,9 @@ export function getInitialState(): AppState {
         budgets: [],
         pipelineStages: [],
         kanbanStages: [],
-        checklistTemplates: [],
         projectBaselines: [],
         baselineTasks: [],
+        checklistTemplates: [],
         ai: { loading: false, error: null, suggestedTasks: null },
         settings: {
             theme: theme,
@@ -128,7 +128,7 @@ export function getInitialState(): AppState {
             dealDetail: { activeTab: 'activity' },
             modal: { isOpen: false, type: null, data: undefined, justOpened: false },
             reports: {
-                activeTab: 'productivity',
+                activeTab: 'financial',
                 filters: { dateStart: oneMonthAgo.toISOString().slice(0, 10), dateEnd: now.toISOString().slice(0, 10), projectId: 'all', userId: 'all', clientId: 'all' },
             },
             settings: { activeTab: 'general' },

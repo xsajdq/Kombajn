@@ -209,7 +209,7 @@ export function initReportsPage() {
     const { tasks, timeLogs, invoices, expenses, objectives } = getFilteredData();
     const activeTab = state.ui.reports.activeTab;
 
-    if (activeTab === 'productivity') {
+    if (activeTab === 'performance') {
         const velocityCtx = (document.getElementById('taskVelocityChart') as HTMLCanvasElement | null)?.getContext('2d');
         if (velocityCtx) {
             const completedByDay = tasks.filter(t => t.status === 'done' && t.dueDate).reduce((acc, task) => {
@@ -277,7 +277,7 @@ export function ReportsPage(): TemplateResult {
     const { tasks, timeLogs, invoices, expenses, objectives } = getFilteredData();
 
     let content: TemplateResult = html`<div class="p-8 text-center text-text-subtle">${t('reports.no_data')}</div>`;
-    if (activeTab === 'productivity' && tasks.length > 0) content = renderProductivityReports({ tasks });
+    if (activeTab === 'performance' && tasks.length > 0) content = renderProductivityReports({ tasks });
     if (activeTab === 'time' && timeLogs.length > 0) content = renderTimeTrackingReports({ timeLogs });
     if (activeTab === 'financial' && (invoices.length > 0 || expenses.length > 0)) content = renderFinancialReports({ invoices, expenses });
     if (activeTab === 'goals' && objectives.length > 0) content = renderGoalsReports({ objectives });
@@ -290,7 +290,7 @@ export function ReportsPage(): TemplateResult {
 
 
     const navItems = [
-        { id: 'productivity', text: t('reports.tab_productivity') },
+        { id: 'performance', text: t('reports.tab_performance') },
         { id: 'time', text: t('reports.tab_time') },
         { id: 'financial', text: t('reports.tab_financial') },
         { id: 'goals', text: t('reports.tab_goals') },

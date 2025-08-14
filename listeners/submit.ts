@@ -1,6 +1,7 @@
+
 import { getState } from '../state.ts';
 import { handleAiTaskGeneration } from '../services.ts';
-import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity, AddTaskModalData, AutomationsModalData, TaskDetailModalData, AddInvoiceModalData } from '../types.ts';
+import type { Role, Task, CustomFieldType, ProjectRole, AutomationAction, DealActivity, AddTaskModalData, AutomationsModalData, TaskDetailModalData, AddInvoiceModalData, AutomationTrigger, AutomationCondition } from '../types.ts';
 import * as auth from '../services/auth.ts';
 import { renderLoginForm, renderRegisterForm } from '../pages/AuthPage.ts';
 import * as userHandlers from '../handlers/user.ts';
@@ -139,22 +140,47 @@ export async function handleSubmit(e: SubmitEvent) {
         const projectId = (getState().ui.modal.data as AutomationsModalData)?.projectId;
         const automationId = form.dataset.automationId || null;
         const name = (form.querySelector('input[name="automation-name"]') as HTMLInputElement).value;
-        const triggerStatus = (form.querySelector('select[name="automation-trigger-status"]') as HTMLSelectElement).value as Task['status'];
+        
+        const triggerType = (form.querySelector('select[name="trigger-type"]') as HTMLSelectElement).value;
+        let trigger: AutomationTrigger;
+        if (triggerType === 'taskStatusChanged') {
+            const triggerStatus = (form.querySelector('select[name="trigger-value"]') as HTMLSelectElement).value as Task['status'];
+            trigger = { type: 'taskStatusChanged', to: triggerStatus };
+        } else {
+            trigger = { type: 'taskCreated' };
+        }
+
+        const conditions: AutomationCondition[] = [];
+        form.querySelectorAll('.automation-builder-row[data-condition-index]').forEach(row => {
+            const index = (row as HTMLElement).dataset.conditionIndex!;
+            const field = (form.querySelector(`select[name="condition-field-${index}"]`) as HTMLSelectElement).value as 'taskPriority' | 'taskAssignee';
+            const operator = (form.querySelector(`select[name="condition-operator-${index}"]`) as HTMLSelectElement).value as 'is' | 'isNot' | 'isSet' | 'isUnset';
+            const valueEl = (form.querySelector(`select[name="condition-value-${index}"]`) as HTMLSelectElement | null);
+            const value = valueEl ? valueEl.value : undefined;
+
+            if (field === 'taskPriority') {
+                conditions.push({ field: field, operator: operator as 'is' | 'isNot', value: value as Task['priority'] });
+            } else if (field === 'taskAssignee') {
+                conditions.push({ field: field, operator: operator, value: value });
+            }
+        });
         
         const actions: AutomationAction[] = [];
         form.querySelectorAll('.automation-action-row').forEach(row => {
-            const type = (row.querySelector('select[name="action-type"]') as HTMLSelectElement).value;
-            const value = (row.querySelector('select[name="action-value"]') as HTMLSelectElement).value;
+            const index = (row as HTMLElement).dataset.actionIndex!;
+            const type = (row.querySelector(`select[name="action-type-${index}"]`) as HTMLSelectElement).value;
+            const value = (row.querySelector(`select[name="action-value-${index}"]`) as HTMLSelectElement).value;
             if (type === 'assignUser') {
                 actions.push({ type: 'assignUser', userId: value });
             } else if (type === 'changeStatus') {
                 actions.push({ type: 'changeStatus', status: value as Task['status'] });
+            } else if (type === 'changePriority') {
+                actions.push({ type: 'changePriority', priority: value as Task['priority'] });
             }
         });
 
-        if (projectId && name && triggerStatus && actions.length > 0) {
-            const trigger = { type: 'statusChange' as const, status: triggerStatus };
-            await automationHandlers.handleSaveAutomation(automationId, projectId, name, trigger, actions);
+        if (projectId && name && trigger && actions.length > 0) {
+            await automationHandlers.handleSaveAutomation(automationId, projectId, name, trigger, conditions, actions);
         }
     } else if (target.id === 'chat-form') {
         const inputDiv = document.getElementById('chat-message-input') as HTMLElement;

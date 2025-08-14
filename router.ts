@@ -20,6 +20,7 @@ import { updateUI } from './app-renderer.ts';
 import { GoalsPage, initGoalsPage } from './pages/GoalsPage.ts';
 import { InventoryPage, initInventoryPage } from './pages/InventoryPage.ts';
 import { BudgetPage, initBudgetPage } from './pages/BudgetPage.ts';
+import { AutomationsPage, initAutomationsPage } from './pages/AutomationsPage.ts';
 import type { TemplateResult } from 'lit-html';
 
 export async function router(): Promise<TemplateResult> {
@@ -92,6 +93,7 @@ export async function router(): Promise<TemplateResult> {
         case 'reports':         return can('view_reports') ? ReportsPage() : DashboardPage();
         case 'sales':           await initSalesPage(); return can('view_sales') ? SalesPage() : DashboardPage();
         case 'invoices':        await initInvoicesPage(); return can('view_invoices') ? await InvoicesPage() : DashboardPage();
+        case 'automations':     await initAutomationsPage(); return can('view_automations') ? AutomationsPage() : DashboardPage();
         case 'ai-assistant':    return can('view_ai_assistant') ? AIAssistantPage() : DashboardPage();
         case 'settings':        return can('view_settings') ? SettingsPage() : DashboardPage();
         case 'chat':            return can('view_chat') ? ChatPage() : DashboardPage();

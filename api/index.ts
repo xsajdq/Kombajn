@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // GENERIC DATA HANDLER
             // ============================================================================
             case 'data': {
-                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages', 'kanban_stages', 'checklist_templates'];
+                const ALLOWED_RESOURCES = ['clients', 'projects', 'tasks', 'project_sections', 'task_views', 'time_logs', 'invoices', 'deals', 'workspaces', 'workspace_members', 'project_members', 'profiles', 'task_dependencies', 'comments', 'notifications', 'attachments', 'custom_field_definitions', 'custom_field_values', 'automations', 'project_templates', 'wiki_history', 'channels', 'chat_messages', 'objectives', 'key_results', 'time_off_requests', 'calendar_events', 'expenses', 'workspace_join_requests', 'dashboard_widgets', 'invoice_line_items', 'task_assignees', 'tags', 'task_tags', 'project_tags', 'client_tags', 'deal_activities', 'integrations', 'client_contacts', 'filter_views', 'reviews', 'user_task_sort_orders', 'inventory_items', 'inventory_assignments', 'budgets', 'pipeline_stages', 'kanban_stages'];
                 const { resource } = req.query;
                 if (typeof resource !== 'string' || !ALLOWED_RESOURCES.includes(resource)) return res.status(404).json({ error: `Resource '${resource}' not found or not allowed.` });
                 
@@ -434,7 +434,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             queries['taskViews'] = supabase.from('task_views').select('*').eq('workspace_id', workspaceId);
                             queries['tags'] = supabase.from('tags').select('*').eq('workspace_id', workspaceId);
                             queries['customFieldDefinitions'] = supabase.from('custom_field_definitions').select('*').eq('workspace_id', workspaceId);
-                            queries['checklistTemplates'] = supabase.from('checklist_templates').select('*').eq('workspace_id', workspaceId);
+                            queries['projectTemplates'] = supabase.from('project_templates').select('*').eq('workspace_id', workspaceId);
+                            queries['projectBaselines'] = supabase.from('project_baselines').select('*'); // This should be filtered by project later
                         }
                     }
                 } else if (clientsOnly === 'true') {
@@ -509,8 +510,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const key = queryEntries[i][0];
                     const { data, error } = results[i];
                     if (error) {
-                         if (key === 'checklistTemplates' && error.message.includes('relation "public.checklist_templates" does not exist')) {
-                            console.warn('checklist_templates table not found, gracefully ignoring.');
+                         if (key === 'projectTemplates' && error.message.includes('relation "public.project_templates" does not exist')) {
+                            console.warn('project_templates table not found, gracefully ignoring.');
                             responseData[key] = [];
                         } else {
                             console.error(`Error fetching ${key}:`, error);

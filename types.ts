@@ -12,7 +12,7 @@ export interface User {
     contractInfoNotes?: string;
     employmentInfoNotes?: string;
     managerId?: string; // The user ID of the employee's direct manager
-
+    hourlyRate?: number; // Cost per hour for this user
     vacationAllowanceHours?: number; // Total vacation hours for the year
     kanbanViewMode?: 'simple' | 'detailed';
 }
@@ -44,6 +44,7 @@ export type Permission =
     | 'view_goals'
     | 'view_inventory'
     | 'view_budgets'
+    | 'view_automations'
     // Main Entity Management
     | 'manage_projects'
     | 'create_projects'
@@ -331,23 +332,37 @@ export interface CustomFieldValue {
     value: any;
 }
 
-export interface AutomationTrigger {
-    type: 'statusChange';
-    status: Task['status'];
-}
 
-export type AutomationAction = 
-    | { type: 'assignUser'; userId: string; }
-    | { type: 'changeStatus'; status: Task['status']; };
+// --- Automation Triggers ---
+export type AutomationTrigger =
+  | { type: 'taskStatusChanged'; to: Task['status'] }
+  | { type: 'taskCreated' };
 
+// --- Automation Conditions ---
+export type AutomationConditionOperator = 'is' | 'isNot' | 'isSet' | 'isUnset';
+
+export type AutomationCondition =
+  | { field: 'taskPriority'; operator: 'is' | 'isNot'; value: Task['priority'] }
+  | { field: 'taskAssignee'; operator: 'is' | 'isNot' | 'isSet' | 'isUnset'; value?: string }; // userId
+
+// --- Automation Actions ---
+export type AutomationAction =
+  | { type: 'assignUser'; userId: string }
+  | { type: 'changeStatus'; status: Task['status'] }
+  | { type: 'changePriority'; priority: Task['priority'] };
+
+// --- Main Automation Interface ---
 export interface Automation {
     id: string;
     workspaceId: string;
-    projectId: string;
+    projectId: string | null; // null for workspace-level automations
     name: string;
+    isEnabled: boolean;
     trigger: AutomationTrigger;
+    conditions: AutomationCondition[];
     actions: AutomationAction[];
 }
+
 
 export type DashboardWidgetType = 'kpiMetric' | 'recentProjects' | 'todaysTasks' | 'activityFeed' | 'quickActions' | 'schedule' | 'alerts' | 'weeklyPerformance' | 'timeTrackingSummary' | 'invoiceSummary' | 'goalProgress';
 export interface DashboardWidget {
@@ -400,18 +415,29 @@ export interface FilterView {
     filters: TaskFilters;
 }
 
-// --- NEW ---
+// --- NEW Project Templates ---
+export interface ProjectTemplateTask {
+    id: string; // Temporary frontend ID
+    name: string;
+    description?: string;
+    priority?: 'low' | 'medium' | 'high';
+    estimatedHours?: number;
+    dueDateOffset?: number; // Relative due date in days from project start
+    assignedRole?: string; // e.g., "Developer", "Designer"
+}
+
+export interface ProjectTemplateSection {
+    id: string; // Temporary frontend ID
+    name: string;
+    tasks: ProjectTemplateTask[];
+}
+
 export interface ProjectTemplate {
     id: string;
     workspaceId: string;
     name: string;
-    // We only copy a subset of task properties for a template
-    tasks: {
-        name: string;
-        description?: string;
-        priority?: 'low' | 'medium' | 'high';
-    }[];
-    automations: Omit<Automation, 'id' | 'workspaceId' | 'projectId'>[];
+    sections: ProjectTemplateSection[];
+    roles: string[]; // e.g., ["Developer", "Designer", "Project Manager"]
 }
 
 export interface WikiHistory {
@@ -644,17 +670,6 @@ export interface Budget {
     amount: number;
 }
 
-export interface ChecklistTemplateItem {
-    id: string;
-    text: string;
-}
-export interface ChecklistTemplate {
-    id: string;
-    workspaceId: string;
-    name: string;
-    items: ChecklistTemplateItem[];
-}
-
 export interface ProjectBaseline {
     id: string;
     projectId: string;
@@ -686,7 +701,7 @@ export interface AddInvoiceModalData { invoiceId?: string; clientId?: string; it
 export interface TaskDetailModalData { taskId: string }
 export interface AddCommentToTimeLogModalData { taskId: string; trackedSeconds: number }
 export interface UpgradePlanModalData { message: string }
-export interface AutomationsModalData { projectId: string }
+export interface AutomationsModalData { automationId?: string; projectId?: string | null; }
 export interface ConfigureWidgetModalData { widget: DashboardWidget }
 export interface WikiHistoryModalData { projectId: string }
 export interface AddManualTimeLogModalData { taskId?: string; selectedProjectId?: string }
@@ -745,9 +760,20 @@ export type ModalData =
 // For modals with no data like addWidget or keyboardShortcuts, data is undefined.
 // --- END: MODAL DATA TYPES ---
 
+// --- NEW Checklist Templates ---
+export interface ChecklistTemplateItem {
+    text: string;
+}
+
+export interface ChecklistTemplate {
+    id: string;
+    workspaceId: string;
+    name: string;
+    items: ChecklistTemplateItem[];
+}
 
 export interface AppState {
-    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses';
+    currentPage: 'dashboard' | 'projects' | 'tasks' | 'clients' | 'invoices' | 'ai-assistant' | 'settings' | 'team-calendar' | 'sales' | 'reports' | 'chat' | 'hr' | 'billing' | 'auth' | 'setup' | 'goals' | 'inventory' | 'budget-and-expenses' | 'automations';
     currentUser: User | null;
     activeWorkspaceId: string | null;
     error: string | null;
@@ -798,9 +824,9 @@ export interface AppState {
     budgets: Budget[];
     pipelineStages: PipelineStage[];
     kanbanStages: KanbanStage[];
-    checklistTemplates: ChecklistTemplate[];
     projectBaselines: ProjectBaseline[];
     baselineTasks: BaselineTask[];
+    checklistTemplates: ChecklistTemplate[];
     ai: { loading: boolean; error: string | null; suggestedTasks: AiSuggestedTask[] | null; };
     settings: {
         theme: 'light' | 'dark' | 'minimal';
@@ -811,7 +837,7 @@ export interface AppState {
         openedClientId: string | null;
         openedProjectId: string | null;
         openedDealId: string | null;
-        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs' | 'expenses' | 'tags';
+        openedProjectTab: 'overview' | 'tasks' | 'wiki' | 'files' | 'access' | 'okrs' | 'expenses' | 'tags' | 'automations';
         isNotificationsOpen: boolean;
         isCommandPaletteOpen: boolean;
         commandPaletteQuery: string;
@@ -891,7 +917,7 @@ export interface AppState {
             justOpened?: boolean;
         };
         reports: {
-            activeTab: 'productivity' | 'time' | 'financial' | 'goals';
+            activeTab: 'financial' | 'performance' | 'time' | 'goals';
             filters: {
                 dateStart: string;
                 dateEnd: string;
@@ -901,7 +927,7 @@ export interface AppState {
             }
         };
         settings: {
-            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskBoards' | 'pipeline' | 'checklistTemplates';
+            activeTab: 'general' | 'customFields' | 'workspace' | 'profile' | 'integrations' | 'taskBoards' | 'pipeline' | 'projectTemplates';
         };
         dashboard: {
             isEditing: boolean;
